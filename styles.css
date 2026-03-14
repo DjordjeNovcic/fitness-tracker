@@ -834,6 +834,19 @@ body.plan-compact .hero-day-picker {
   padding-top: 82px;
 }
 
+.shell-with-menu.is-plan-shell {
+  padding-top: 6px;
+}
+
+.shell-with-menu.is-plan-shell .hero {
+  padding-top: 64px;
+  border-radius: var(--radius-xl);
+}
+
+.shell-with-menu.is-plan-shell .hero-top {
+  padding-right: 76px;
+}
+
 .menu-fab {
   position: fixed;
   top: calc(14px + env(safe-area-inset-top));
@@ -841,10 +854,10 @@ body.plan-compact .hero-day-picker {
   z-index: 60;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 12px 14px;
-  border-radius: 18px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 16px;
   color: #fffaf2;
   background: rgba(23, 53, 43, 0.92);
   box-shadow: 0 16px 30px rgba(25, 34, 31, 0.18);
@@ -1001,16 +1014,27 @@ body.plan-compact .hero-day-picker {
 }
 
 @media (max-width: 520px) {
+  .menu-fab {
+    right: 12px;
+    min-width: 48px;
+    padding: 11px;
+    justify-content: center;
+  }
+
+  .menu-fab-label {
+    display: none;
+  }
+
+  .shell-with-menu.is-plan-shell .hero-top {
+    padding-right: 0;
+  }
+
   .section {
     padding: 16px;
   }
 
   .hero {
     padding: 16px 16px 14px;
-  }
-
-  .menu-fab {
-    right: 12px;
   }
 
   .suggestion-row {
@@ -1030,6 +1054,18 @@ body.plan-compact .hero-day-picker {
 
   .shell-with-menu {
     padding-top: 36px;
+  }
+
+  .shell-with-menu.is-plan-shell {
+    padding-top: 24px;
+  }
+
+  .shell-with-menu.is-plan-shell .hero {
+    padding-top: 24px;
+  }
+
+  .shell-with-menu.is-plan-shell .hero-top {
+    padding-right: 0;
   }
 
   .hero {

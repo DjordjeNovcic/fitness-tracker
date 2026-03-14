@@ -1102,6 +1102,10 @@ function renderLoadingShell() {
   `;
 }
 
+function scrollPageTop(behavior = "smooth") {
+  window.scrollTo({ top: 0, behavior });
+}
+
 function renderAuthShell() {
   const submitLabel = state.authPending
     ? state.authMode === "register"
@@ -2117,7 +2121,6 @@ function renderGoalsTab() {
       <div class="food-card">
         <div class="food-card-top">
           <strong>${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-          ${state.authUser ? '<button class="ghost-button signout-button" data-action="sign-out">Odjavi se</button>' : ""}
         </div>
         <div class="pill-row">
           <span class="pill strong">${state.syncStatus}</span>
@@ -2832,7 +2835,7 @@ function render() {
       </div>
     </aside>
 
-    <main class="shell shell-with-menu">
+    <main class="shell shell-with-menu ${state.activeTab === "plan" ? "is-plan-shell" : ""}">
       ${heroMarkup}
       ${sections[state.activeTab]}
     </main>
@@ -2908,6 +2911,7 @@ function handleDocumentClick(event) {
     state.navMenuOpen = false;
     window.location.hash = state.activeTab;
     render();
+    window.requestAnimationFrame(() => scrollPageTop("auto"));
     return;
   }
 
@@ -2929,6 +2933,7 @@ function handleDocumentClick(event) {
     state.navMenuOpen = false;
     resetPlanDraft();
     render();
+    window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
   }
 
