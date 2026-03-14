@@ -899,6 +899,85 @@ body.plan-compact .hero-day-picker {
   box-shadow: 0 10px 24px rgba(25, 34, 31, 0.08);
 }
 
+.routine-day-picker {
+  margin-top: 0;
+  color: var(--ink);
+  background: linear-gradient(135deg, rgba(216, 234, 223, 0.5), rgba(255, 250, 242, 0.96));
+  border-color: rgba(44, 123, 116, 0.08);
+}
+
+.routine-day-picker .hero-picker-label {
+  color: var(--muted);
+}
+
+.routine-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.routine-card {
+  border-radius: 20px;
+}
+
+.routine-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.routine-content {
+  min-width: 0;
+}
+
+.routine-content strong {
+  display: block;
+  font-size: 1.02rem;
+}
+
+.routine-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.routine-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.routine-check-ui {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(25, 34, 31, 0.16);
+  background: #fffdf9;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.routine-check-ui::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  width: 7px;
+  height: 13px;
+  border-right: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  transform: rotate(40deg);
+}
+
+.routine-checkbox:checked + .routine-check-ui {
+  border-color: rgba(44, 123, 116, 0.38);
+  background: linear-gradient(135deg, rgba(44, 123, 116, 0.16), rgba(216, 234, 223, 0.95));
+}
+
+.routine-checkbox:checked + .routine-check-ui::after {
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 .shell-with-menu {
   padding-top: 82px;
 }
@@ -1104,6 +1183,19 @@ body.plan-compact .hero-day-picker {
 }
 
 @media (max-width: 520px) {
+  .routine-summary-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .routine-row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .routine-row .danger-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .menu-fab {
     right: 12px;
     min-width: 48px;

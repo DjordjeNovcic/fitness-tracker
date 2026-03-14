@@ -24,6 +24,7 @@ const TABS = [
   { id: "recipes", label: "Obroci", icon: "🥣" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
+  { id: "routine", label: "Rutina", icon: "✅" },
   { id: "progress", label: "Napredak", icon: "📏" },
   { id: "goals", label: "Ciljevi", icon: "🎯" },
 ];
@@ -79,6 +80,8 @@ const state = {
   progressCompareRightId: "",
   deletedPlanEntry: null,
   editingFoodId: "",
+  editingHabitId: "",
+  editingTaskId: "",
   authReady: false,
   authPending: false,
   authMode: "login",
@@ -116,6 +119,8 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     trainingTemplates: Array.isArray(rawStore.trainingTemplates)
       ? rawStore.trainingTemplates
       : fallback.trainingTemplates,
+    habits: Array.isArray(rawStore.habits) ? rawStore.habits : [],
+    dayTasks: Array.isArray(rawStore.dayTasks) ? rawStore.dayTasks : [],
     favoriteTrainings: Array.isArray(rawStore.favoriteTrainings) ? rawStore.favoriteTrainings : [],
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
@@ -154,6 +159,8 @@ function hydrateStore() {
 function ensureStoreCollections(targetStore) {
   targetStore.trainingLogs = targetStore.trainingLogs || [];
   targetStore.favoriteTrainings = targetStore.favoriteTrainings || [];
+  targetStore.habits = targetStore.habits || [];
+  targetStore.dayTasks = targetStore.dayTasks || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
@@ -392,6 +399,11 @@ function resetFoodEditing() {
   state.editingFoodId = "";
 }
 
+function resetRoutineEditing() {
+  state.editingHabitId = "";
+  state.editingTaskId = "";
+}
+
 function syncFoodNameAcrossStore(foodId, foodName) {
   store.weeklyPlanEntries = store.weeklyPlanEntries.map((entry) =>
     entry.foodId === foodId
@@ -546,6 +558,48 @@ function getTrainingForDay(weekday) {
 
 function getTrainingBurnForDay(weekday) {
   return toNumber(store.trainingBurnByWeekday?.[weekday]);
+}
+
+function getHabits() {
+  return [...store.habits].sort((a, b) => a.name.localeCompare(b.name, "sr"));
+}
+
+function getTasksForDay(weekday) {
+  return store.dayTasks
+    .filter((task) => task.weekday === weekday)
+    .sort((a, b) => {
+      if (a.done === b.done) {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+      return Number(a.done) - Number(b.done);
+    });
+}
+
+function isHabitDoneForDay(habit, weekday) {
+  return Boolean(habit?.completions?.[weekday]);
+}
+
+function getHabitWeeklyCount(habit) {
+  return WEEKDAYS.reduce((count, weekday) => count + (isHabitDoneForDay(habit, weekday) ? 1 : 0), 0);
+}
+
+function getRoutineSummaryForDay(weekday) {
+  const habits = getHabits();
+  const tasks = getTasksForDay(weekday);
+  const doneHabits = habits.filter((habit) => isHabitDoneForDay(habit, weekday)).length;
+  const doneTasks = tasks.filter((task) => task.done).length;
+  const totalItems = habits.length + tasks.length;
+  const doneItems = doneHabits + doneTasks;
+
+  return {
+    habits,
+    tasks,
+    doneHabits,
+    doneTasks,
+    totalItems,
+    doneItems,
+    progress: totalItems ? roundValue((doneItems / totalItems) * 100, 0) : 0,
+  };
 }
 
 function getTodayDateValue() {
@@ -2224,6 +2278,216 @@ function renderTrainingTab() {
   `;
 }
 
+function renderRoutineTab() {
+  const summary = getRoutineSummaryForDay(state.selectedWeekday);
+  const editingHabit = state.editingHabitId ? store.habits.find((habit) => habit.id === state.editingHabitId) : null;
+  const editingTask = state.editingTaskId ? store.dayTasks.find((task) => task.id === state.editingTaskId) : null;
+  const selectedDayIndex = WEEKDAYS.indexOf(state.selectedWeekday);
+  const previousWeekday = selectedDayIndex > 0 ? WEEKDAYS[selectedDayIndex - 1] : "";
+  const previousDayTaskCount = previousWeekday ? getTasksForDay(previousWeekday).length : 0;
+  const weeklyHabitProgress = WEEKDAYS.map((weekday) => {
+    const doneCount = summary.habits.filter((habit) => isHabitDoneForDay(habit, weekday)).length;
+    return {
+      weekday,
+      doneCount,
+      totalCount: summary.habits.length,
+      progress: summary.habits.length ? roundValue((doneCount / summary.habits.length) * 100, 0) : 0,
+    };
+  });
+
+  return `
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Rutina za ${state.selectedWeekday}</h2>
+          <p>Velike navike i sitni taskovi za taj dan, sve na jednom mestu.</p>
+        </div>
+      </div>
+      <div class="hero-day-picker routine-day-picker">
+        <div class="hero-picker-label">Dan u nedelji</div>
+        <div class="chips" style="margin-top:12px;">
+          ${WEEKDAYS.map(
+            (weekday) => `
+              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+                ${weekday.slice(0, 3)}
+              </button>
+            `
+          ).join("")}
+        </div>
+      </div>
+      <div class="stats-grid routine-summary-grid" style="margin-top:14px;">
+        <article class="stat-card">
+          <strong>Ukupno za danas</strong>
+          <div class="macro-value">${summary.progress}%</div>
+          <div class="footer-note">${summary.doneItems} od ${summary.totalItems || 0} čekirano</div>
+        </article>
+        <article class="stat-card">
+          <strong>Navike</strong>
+          <div class="macro-value">${summary.doneHabits}/${summary.habits.length}</div>
+          <div class="footer-note">Završeno za ${state.selectedWeekday}</div>
+        </article>
+        <article class="stat-card">
+          <strong>Taskovi</strong>
+          <div class="macro-value">${summary.doneTasks}/${summary.tasks.length}</div>
+          <div class="footer-note">Dnevne obaveze</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Navike</h2>
+          <p>Npr. 10k koraka, čitanje, bez slatkiša. Čekiraš kad ispuniš.</p>
+        </div>
+      </div>
+      <form id="habit-form" class="form-grid split">
+        <div class="field">
+          <label for="habit-name">${editingHabit ? "Izmena navike" : "Nova navika"}</label>
+          <input id="habit-name" name="name" placeholder="npr. 10k koraka" value="${editingHabit?.name || ""}" required />
+        </div>
+        <div class="field">
+          <label for="habit-note">Opis / cilj</label>
+          <input id="habit-note" name="note" placeholder="npr. svaki dan, makar 10 min" value="${editingHabit?.note || ""}" />
+        </div>
+        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+          <button class="solid-button" type="submit">${editingHabit ? "Sačuvaj izmenu" : "Dodaj naviku"}</button>
+          ${editingHabit ? '<button class="ghost-button" type="button" data-action="cancel-edit-habit">Odustani</button>' : ""}
+        </div>
+      </form>
+      <div class="stack" style="margin-top:14px;">
+        ${
+          summary.habits.length
+            ? summary.habits
+                .map(
+                  (habit) => `
+                    <article class="food-card routine-card">
+                      <div class="routine-row">
+                        <label class="routine-check">
+                          <input
+                            type="checkbox"
+                            class="routine-checkbox"
+                            data-action="toggle-habit-day"
+                            data-habit-id="${habit.id}"
+                            ${isHabitDoneForDay(habit, state.selectedWeekday) ? "checked" : ""}
+                          />
+                          <span class="routine-check-ui" aria-hidden="true"></span>
+                        </label>
+                        <div class="routine-content">
+                          <strong>${habit.name}</strong>
+                          <div class="footer-note">${habit.note || "Bez dodatne napomene"}</div>
+                          <div class="pill-row">
+                            <span class="pill">${getHabitWeeklyCount(habit)}/7 dana</span>
+                            <span class="pill note">${isHabitDoneForDay(habit, state.selectedWeekday) ? "Označeno danas" : "Čeka za danas"}</span>
+                          </div>
+                        </div>
+                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
+                          <button class="ghost-button" data-action="edit-habit" data-habit-id="${habit.id}">Izmeni</button>
+                          <button class="danger-button" data-action="delete-habit" data-habit-id="${habit.id}">Obriši</button>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Dodaj prvu naviku i prati je kroz dane u nedelji.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Taskovi za ${state.selectedWeekday}</h2>
+          <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak.</p>
+        </div>
+      </div>
+      <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        ${
+          previousWeekday && previousDayTaskCount
+            ? `<button class="ghost-button" data-action="copy-previous-day-tasks">Kopiraj iz ${previousWeekday}</button>`
+            : ""
+        }
+        ${
+          summary.tasks.some((task) => task.done)
+            ? '<button class="ghost-button" data-action="clear-completed-tasks">Obriši završene</button>'
+            : ""
+        }
+      </div>
+      <form id="task-form" class="form-grid split">
+        <div class="field">
+          <label for="task-title">${editingTask ? "Izmena taska" : "Novi task"}</label>
+          <input id="task-title" name="title" placeholder="npr. Spremi ručak" value="${editingTask?.title || ""}" required />
+        </div>
+        <div class="field">
+          <label for="task-note">Napomena</label>
+          <input id="task-note" name="note" placeholder="opciono" value="${editingTask?.note || ""}" />
+        </div>
+        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+          <button class="solid-button secondary-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj task"}</button>
+          ${editingTask ? '<button class="ghost-button" type="button" data-action="cancel-edit-task">Odustani</button>' : ""}
+        </div>
+      </form>
+      <div class="stack" style="margin-top:14px;">
+        ${
+          summary.tasks.length
+            ? summary.tasks
+                .map(
+                  (task) => `
+                    <article class="food-card routine-card">
+                      <div class="routine-row">
+                        <label class="routine-check">
+                          <input
+                            type="checkbox"
+                            class="routine-checkbox"
+                            data-action="toggle-task-done"
+                            data-task-id="${task.id}"
+                            ${task.done ? "checked" : ""}
+                          />
+                          <span class="routine-check-ui" aria-hidden="true"></span>
+                        </label>
+                        <div class="routine-content">
+                          <strong>${task.title}</strong>
+                          <div class="footer-note">${task.note || "Bez dodatne napomene"}</div>
+                        </div>
+                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
+                          <button class="ghost-button" data-action="edit-task" data-task-id="${task.id}">Izmeni</button>
+                          <button class="danger-button" data-action="delete-task" data-task-id="${task.id}">Obriši</button>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Još nema taskova za ${state.selectedWeekday}. Dodaj prvi pa čekiraj kad završiš.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Nedeljni pregled navika</h2>
+          <p>Kratak pregled koliko si navika ispunio po danima.</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        ${weeklyHabitProgress
+          .map(
+            (day) => `
+              <article class="stat-card">
+                <strong>${day.weekday}</strong>
+                <div class="macro-value">${day.progress}%</div>
+                <div class="footer-note">${day.doneCount}/${day.totalCount} navika</div>
+              </article>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
   const weeklyMetrics = [
@@ -2939,6 +3203,7 @@ function render() {
     recipes: renderRecipesTab(),
     foods: renderFoodsTab(),
     training: renderTrainingTab(),
+    routine: renderRoutineTab(),
     progress: renderProgressTab(),
     goals: renderGoalsTab(),
   };
@@ -3069,6 +3334,7 @@ function handleDocumentClick(event) {
     state.editingMealLabel = "";
     state.navMenuOpen = false;
     resetFoodEditing();
+    resetRoutineEditing();
     window.location.hash = state.activeTab;
     render();
     window.requestAnimationFrame(() => scrollPageTop("auto"));
@@ -3101,6 +3367,7 @@ function handleDocumentClick(event) {
     state.editingMealLabel = "";
     state.navMenuOpen = false;
     resetPlanDraft();
+    resetRoutineEditing();
     render();
     window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
@@ -3124,6 +3391,141 @@ function handleDocumentClick(event) {
       store.favoriteFoods.unshift(foodId);
     }
 
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "toggle-habit-day") {
+    const habitId = actionTarget.dataset.habitId;
+    const habit = store.habits.find((entry) => entry.id === habitId);
+    if (!habit) {
+      return;
+    }
+
+    habit.completions = habit.completions || {};
+    habit.completions[state.selectedWeekday] = !Boolean(habit.completions[state.selectedWeekday]);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "edit-habit") {
+    const habitId = actionTarget.dataset.habitId;
+    if (!habitId || !store.habits.find((entry) => entry.id === habitId)) {
+      return;
+    }
+    state.editingHabitId = habitId;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#habit-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#habit-name")?.focus();
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-habit") {
+    state.editingHabitId = "";
+    render();
+    return;
+  }
+
+  if (action === "delete-habit") {
+    const habit = store.habits.find((entry) => entry.id === actionTarget.dataset.habitId);
+    const confirmed = window.confirm(habit ? `Obriši naviku "${habit.name}"?` : "Obriši ovu naviku?");
+    if (!confirmed) {
+      return;
+    }
+
+    store.habits = store.habits.filter((entry) => entry.id !== actionTarget.dataset.habitId);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "toggle-task-done") {
+    const taskId = actionTarget.dataset.taskId;
+    store.dayTasks = store.dayTasks.map((task) =>
+      task.id === taskId
+        ? {
+            ...task,
+            done: !task.done,
+          }
+        : task
+    );
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "edit-task") {
+    const taskId = actionTarget.dataset.taskId;
+    if (!taskId || !store.dayTasks.find((entry) => entry.id === taskId)) {
+      return;
+    }
+    state.editingTaskId = taskId;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#task-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#task-title")?.focus();
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-task") {
+    state.editingTaskId = "";
+    render();
+    return;
+  }
+
+  if (action === "delete-task") {
+    const task = store.dayTasks.find((entry) => entry.id === actionTarget.dataset.taskId);
+    const confirmed = window.confirm(task ? `Obriši task "${task.title}"?` : "Obriši ovaj task?");
+    if (!confirmed) {
+      return;
+    }
+
+    store.dayTasks = store.dayTasks.filter((entry) => entry.id !== actionTarget.dataset.taskId);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "clear-completed-tasks") {
+    const hasCompleted = store.dayTasks.some((task) => task.weekday === state.selectedWeekday && task.done);
+    if (!hasCompleted) {
+      return;
+    }
+    const confirmed = window.confirm(`Obriši sve završene taskove za ${state.selectedWeekday}?`);
+    if (!confirmed) {
+      return;
+    }
+    store.dayTasks = store.dayTasks.filter((task) => !(task.weekday === state.selectedWeekday && task.done));
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "copy-previous-day-tasks") {
+    const selectedDayIndex = WEEKDAYS.indexOf(state.selectedWeekday);
+    const previousWeekday = selectedDayIndex > 0 ? WEEKDAYS[selectedDayIndex - 1] : "";
+    if (!previousWeekday) {
+      return;
+    }
+    const previousTasks = getTasksForDay(previousWeekday);
+    if (!previousTasks.length) {
+      return;
+    }
+    previousTasks.forEach((task) => {
+      store.dayTasks.push({
+        id: uid("task"),
+        weekday: state.selectedWeekday,
+        title: task.title,
+        note: task.note,
+        done: false,
+        createdAt: new Date().toISOString(),
+      });
+    });
     persist();
     render();
     return;
@@ -3816,6 +4218,73 @@ async function handleSubmit(event) {
     return;
   }
 
+  if (event.target.id === "habit-form") {
+    const name = String(formData.get("name") || "").trim();
+    const note = String(formData.get("note") || "").trim();
+    if (!name) {
+      return;
+    }
+
+    if (state.editingHabitId) {
+      store.habits = store.habits.map((habit) =>
+        habit.id === state.editingHabitId
+          ? {
+              ...habit,
+              name,
+              note,
+            }
+          : habit
+      );
+      state.editingHabitId = "";
+    } else {
+      store.habits.push({
+        id: uid("habit"),
+        name,
+        note,
+        completions: {},
+        createdAt: new Date().toISOString(),
+      });
+    }
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
+  if (event.target.id === "task-form") {
+    const title = String(formData.get("title") || "").trim();
+    const note = String(formData.get("note") || "").trim();
+    if (!title) {
+      return;
+    }
+
+    if (state.editingTaskId) {
+      store.dayTasks = store.dayTasks.map((task) =>
+        task.id === state.editingTaskId
+          ? {
+              ...task,
+              title,
+              note,
+            }
+          : task
+      );
+      state.editingTaskId = "";
+    } else {
+      store.dayTasks.push({
+        id: uid("task"),
+        weekday: state.selectedWeekday,
+        title,
+        note,
+        done: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
   if (event.target.id === "favorite-meal-form") {
     const favoriteName = String(formData.get("favoriteName") || "").trim();
     const mealLabel = String(formData.get("mealLabel") || "").trim();
@@ -4109,6 +4578,7 @@ window.addEventListener("hashchange", () => {
     state.activeTab = nextTab;
     state.navMenuOpen = false;
     resetFoodEditing();
+    resetRoutineEditing();
     render();
   }
 });
