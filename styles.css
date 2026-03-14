@@ -211,7 +211,7 @@ body.plan-compact .hero-day-picker {
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.46);
-  box-shadow: var(--shadow);
+  box-shadow: 0 14px 28px rgba(25, 34, 31, 0.08);
   backdrop-filter: blur(18px);
 }
 
@@ -486,10 +486,10 @@ body.plan-compact .hero-day-picker {
   background:
     linear-gradient(180deg, rgba(125, 139, 90, 0.06), rgba(255, 250, 242, 0.96) 22%),
     var(--surface-strong);
-  padding: 16px;
+  padding: 18px;
   border-radius: 22px;
   box-shadow:
-    0 14px 30px rgba(25, 34, 31, 0.06),
+    0 10px 22px rgba(25, 34, 31, 0.05),
     var(--shadow-tight);
 }
 
@@ -508,7 +508,7 @@ body.plan-compact .hero-day-picker {
 }
 
 .meal-card-topline {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .meal-card-heading {
@@ -562,10 +562,12 @@ body.plan-compact .hero-day-picker {
 .plan-meals-section::before {
   content: "";
   position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(90deg, rgba(44, 123, 116, 0.16), rgba(125, 139, 90, 0.26), rgba(255, 250, 242, 0));
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(44, 123, 116, 0.08), rgba(125, 139, 90, 0.14), rgba(255, 250, 242, 0));
   pointer-events: none;
 }
 
@@ -580,6 +582,20 @@ body.plan-compact .hero-day-picker {
     linear-gradient(135deg, rgba(228, 234, 211, 0.26), rgba(255, 250, 242, 0.98) 34%),
     var(--surface-strong);
   border-radius: 22px;
+  box-shadow: 0 8px 18px rgba(25, 34, 31, 0.05);
+}
+
+.plan-quick-section {
+  box-shadow: 0 10px 22px rgba(25, 34, 31, 0.06);
+}
+
+.plan-quick-form .solid-button {
+  grid-column: 1 / -1;
+}
+
+.plan-quick-stack {
+  margin-top: 14px;
+  gap: 14px;
 }
 
 .composer-context {
@@ -658,6 +674,35 @@ body.plan-compact .hero-day-picker {
   margin-top: 10px;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.entry-actions--start {
+  justify-content: flex-start;
+}
+
+.meal-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: stretch;
+  margin-top: 12px;
+}
+
+.meal-card-actions > button {
+  width: 100%;
+}
+
+.meal-card-actions > :nth-child(3):last-child {
+  grid-column: 1 / -1;
+}
+
+.plan-inline-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: stretch;
+}
+
+.plan-inline-actions > button {
+  width: 100%;
 }
 
 .ghost-button,
@@ -997,8 +1042,8 @@ body.plan-compact .hero-day-picker {
 
 .menu-fab {
   position: fixed;
-  top: calc(14px + env(safe-area-inset-top));
-  right: 16px;
+  top: calc(18px + env(safe-area-inset-top));
+  right: max(18px, calc((100vw - 720px) / 2 + 18px));
   z-index: 60;
   display: inline-flex;
   align-items: center;
@@ -1033,6 +1078,18 @@ body.plan-compact .hero-day-picker {
   backdrop-filter: blur(4px);
 }
 
+body.menu-open {
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+body.menu-open .mobile-menu,
+body.menu-open .menu-overlay,
+body.menu-open .menu-fab {
+  touch-action: auto;
+}
+
 .mobile-menu {
   position: fixed;
   top: 0;
@@ -1049,6 +1106,9 @@ body.plan-compact .hero-day-picker {
     var(--surface-strong);
   border-left: 1px solid rgba(25, 34, 31, 0.08);
   box-shadow: -18px 0 40px rgba(25, 34, 31, 0.14);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   transform: translateX(110%);
   transition: transform 0.24s ease;
 }
@@ -1197,7 +1257,8 @@ body.plan-compact .hero-day-picker {
   }
 
   .menu-fab {
-    right: 12px;
+    top: calc(20px + env(safe-area-inset-top));
+    right: 20px;
     min-width: 48px;
     padding: 11px;
     justify-content: center;
@@ -1215,6 +1276,14 @@ body.plan-compact .hero-day-picker {
     padding: 16px;
   }
 
+  .plan-summary-section::before,
+  .plan-preview-section::before,
+  .plan-quick-section::before,
+  .plan-meals-section::before {
+    left: 16px;
+    right: 16px;
+  }
+
   .hero {
     padding: 16px 16px 14px;
   }
@@ -1226,6 +1295,15 @@ body.plan-compact .hero-day-picker {
   .suggestion-row .entry-actions,
   .suggestion-row .pill-row {
     width: 100%;
+  }
+
+  .meal-card-actions,
+  .plan-inline-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .meal-card-actions > :nth-child(3):last-child {
+    grid-column: auto;
   }
 
   .update-banner {

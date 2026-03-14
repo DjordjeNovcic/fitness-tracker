@@ -50,6 +50,13 @@ const measurementFields = [
 
 const PHOTO_TAGS = ["front", "side", "back"];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
+const MEAL_LABEL_MAP = {
+  "1. Dorucak": "1. Doručak",
+  "2. Uzina": "2. Užina",
+  "3. Obrok pre treninga": "3. Obrok pre treninga",
+  "4. Obrok posle treninga": "4. Obrok posle treninga",
+  "5. Vecera": "5. Večera",
+};
 
 const state = {
   activeTab: getInitialTab(),
@@ -96,6 +103,7 @@ let undoDeleteTimer = null;
 let cloudSaveTimer = null;
 let isHydratingCloudState = false;
 let serviceWorkerRegistration = null;
+let lockedScrollY = 0;
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = getAuth(firebaseApp);
@@ -167,6 +175,14 @@ function ensureStoreCollections(targetStore) {
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
+  targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) => ({
+    ...entry,
+    mealLabel: normalizeMealLabel(entry.mealLabel),
+  }));
+  targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => ({
+    ...favorite,
+    mealLabel: normalizeMealLabel(favorite.mealLabel),
+  }));
 }
 
 function replaceStore(nextStore) {
@@ -372,6 +388,11 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeMealLabel(label) {
+  const normalized = String(label || "").trim();
+  return MEAL_LABEL_MAP[normalized] || normalized;
+}
+
 function roundValue(value, digits = 1) {
   const factor = 10 ** digits;
   return Math.round((value + Number.EPSILON) * factor) / factor;
@@ -470,6 +491,7 @@ function getPlanEntriesForDay(weekday) {
       const totals = food ? calculateEntry(food, entry.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
       return {
         ...entry,
+        mealLabel: normalizeMealLabel(entry.mealLabel),
         food,
         totals,
       };
@@ -1209,6 +1231,37 @@ function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
 }
 
+function syncBodyScrollLock() {
+  if (state.navMenuOpen) {
+    if (!document.body.classList.contains("menu-open")) {
+      lockedScrollY = window.scrollY;
+    }
+    document.body.classList.add("menu-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    return;
+  }
+
+  if (!document.body.classList.contains("menu-open")) {
+    return;
+  }
+
+  const topValue = document.body.style.top;
+  document.body.classList.remove("menu-open");
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+
+  if (topValue) {
+    window.scrollTo(0, Math.abs(parseInt(topValue, 10)) || lockedScrollY || 0);
+  }
+}
+
 function markUpdateReady(registration) {
   serviceWorkerRegistration = registration || serviceWorkerRegistration;
   if (!serviceWorkerRegistration?.waiting) {
@@ -1350,7 +1403,7 @@ function renderMacroCards(totals) {
 }
 
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
-  const activeMealLabel = state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0];
+  const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const mealParts = getMealDisplayParts(activeMealLabel);
 
   return `
@@ -1432,7 +1485,7 @@ function renderPlanTab(entries) {
   const totals = getDayTotals(entries);
   const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
   const netCalories = roundValue(totals.kcal - trainingBurn, 0);
-  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => entry.mealLabel)])];
+  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
   const favorites = getFavoriteMealsDetailed();
   const favoriteFoods = getFavoriteFoodsDetailed();
@@ -1505,7 +1558,7 @@ function renderPlanTab(entries) {
           <p>Dupliciraj ceo dan kad imas slican raspored ili koristi omiljene namirnice za brz unos.</p>
         </div>
       </div>
-      <form id="duplicate-day-form" class="form-grid split">
+      <form id="duplicate-day-form" class="form-grid split plan-quick-form">
         <div class="field">
           <label for="duplicate-target-weekday">Kopiraj ${state.selectedWeekday} u</label>
           <select id="duplicate-target-weekday" name="targetWeekday" required>
@@ -1524,7 +1577,7 @@ function renderPlanTab(entries) {
         </div>
         <button class="solid-button" type="submit">Kopiraj dan</button>
       </form>
-      <div class="stack" style="margin-top:14px;">
+      <div class="stack plan-quick-stack">
         ${
           favoriteFoods.length
             ? `
@@ -1561,7 +1614,7 @@ function renderPlanTab(entries) {
               .map((meal) => `${meal.mealLabel}: ${meal.items.map((item) => `${item.food.name} ${roundValue(item.grams, 0)}g`).join(", ")}`)
               .join(" | ")}
           </div>
-          <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+          <div class="entry-actions entry-actions--start plan-inline-actions">
             <button class="solid-button secondary-button" data-action="apply-day-suggestion" data-mode="replace">
               Primeni na dan
             </button>
@@ -1586,7 +1639,7 @@ function renderPlanTab(entries) {
           <span class="pill strong">${favorites.length}</span>
         </div>
         <div class="footer-note">U tabu Obroci praviš, menjaš i čuvaš cele sastavljene obroke, pa ih jednim tapom dodaješ u ${state.selectedWeekday}.</div>
-        <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
+        <div class="entry-actions entry-actions--start" style="margin-top:12px;">
           <button class="solid-button secondary-button" data-action="switch-tab" data-tab="recipes">Idi na Obroke</button>
         </div>
       </article>
@@ -1628,7 +1681,7 @@ function renderPlanTab(entries) {
                           `
                           : ""
                       }
-                      <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+                      <div class="entry-actions meal-card-actions">
                         <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
                           Dodaj stavku
                         </button>
@@ -1820,7 +1873,7 @@ function renderFoodsTab() {
 
 function renderRecipesTab() {
   const favorites = getFavoriteMealsDetailed();
-  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => entry.mealLabel)])];
+  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
   const draftPreview = getFavoriteDraftPreview();
 
   return `
@@ -3185,12 +3238,16 @@ function renderProgressTab() {
 function render() {
   if (!state.authReady) {
     document.body.classList.remove("plan-compact");
+    state.navMenuOpen = false;
+    syncBodyScrollLock();
     document.querySelector("#app").innerHTML = renderLoadingShell();
     return;
   }
 
   if (!state.authUser) {
     document.body.classList.remove("plan-compact");
+    state.navMenuOpen = false;
+    syncBodyScrollLock();
     document.querySelector("#app").innerHTML = renderAuthShell();
     return;
   }
@@ -3280,6 +3337,7 @@ function render() {
 
   `;
 
+  syncBodyScrollLock();
   updateHeroScrollState();
   syncEntryPreview();
 }
@@ -3627,7 +3685,7 @@ function handleDocumentClick(event) {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
       weekday: state.selectedWeekday,
-      mealLabel: state.planDraft.mealLabel || defaultMeals[0],
+      mealLabel: normalizeMealLabel(state.planDraft.mealLabel || defaultMeals[0]),
       foodId: food.id,
       foodName: food.name,
       grams,
@@ -3655,7 +3713,7 @@ function handleDocumentClick(event) {
         store.weeklyPlanEntries.push({
           id: uid("plan"),
           weekday: state.selectedWeekday,
-          mealLabel: meal.mealLabel,
+          mealLabel: normalizeMealLabel(meal.mealLabel),
           foodId: item.food.id,
           foodName: item.food.name,
           grams: item.grams,
@@ -3798,7 +3856,7 @@ function handleDocumentClick(event) {
       store.weeklyPlanEntries.push({
         id: uid("plan"),
         weekday: state.selectedWeekday,
-        mealLabel: favorite.mealLabel || favorite.name,
+        mealLabel: normalizeMealLabel(favorite.mealLabel || favorite.name),
         foodId: item.foodId,
         foodName: item.foodName,
         grams: item.grams,
@@ -3821,7 +3879,7 @@ function handleDocumentClick(event) {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
       weekday: state.selectedWeekday,
-      mealLabel: favorite.mealLabel || favorite.name,
+      mealLabel: normalizeMealLabel(favorite.mealLabel || favorite.name),
       foodId: item.foodId,
       foodName: item.foodName,
       grams: item.grams,
@@ -4105,7 +4163,7 @@ async function handleSubmit(event) {
   }
 
   if (event.target.id === "plan-entry-form") {
-    const mealLabel = String(formData.get("mealLabel") || "").trim();
+    const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
     const foodId = String(formData.get("foodId") || "").trim();
     const grams = toNumber(formData.get("grams"));
     const food = getFoodById(foodId);
@@ -4287,7 +4345,7 @@ async function handleSubmit(event) {
 
   if (event.target.id === "favorite-meal-form") {
     const favoriteName = String(formData.get("favoriteName") || "").trim();
-    const mealLabel = String(formData.get("mealLabel") || "").trim();
+    const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
     const foodId = String(formData.get("foodId") || "").trim();
     const grams = toNumber(formData.get("grams"));
     const saved = saveFavoriteMealItem(favoriteName, mealLabel, foodId, grams);
