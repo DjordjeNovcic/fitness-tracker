@@ -29,17 +29,17 @@ const TABS = [
 ];
 
 const defaultMeals = [
-  "1. Dorucak",
+  "1. Doručak",
   "2. Uzina",
   "3. Obrok pre treninga",
   "4. Obrok posle treninga",
-  "5. Vecera",
+  "5. Večera",
 ];
 
 const measurementFields = [
   { id: "trainingType", label: "Trening", type: "text", placeholder: "npr. noge" },
   { id: "calorieDeficit", label: "Kalorije deficit", type: "number", step: "1", unit: "kcal" },
-  { id: "weightKg", label: "Tezina", type: "number", step: "0.1", unit: "kg" },
+  { id: "weightKg", label: "Težina", type: "number", step: "0.1", unit: "kg" },
   { id: "thighCm", label: "Butine", type: "number", step: "0.1", unit: "cm" },
   { id: "upperWaistCm", label: "Stomak gornji", type: "number", step: "0.1", unit: "cm" },
   { id: "lowerWaistCm", label: "Stomak donji", type: "number", step: "0.1", unit: "cm" },
@@ -78,12 +78,13 @@ const state = {
   progressCompareLeftId: "",
   progressCompareRightId: "",
   deletedPlanEntry: null,
+  editingFoodId: "",
   authReady: false,
   authPending: false,
   authMode: "login",
   authUser: null,
   authError: "",
-  syncStatus: "Lokalno cuvanje",
+  syncStatus: "Lokalno čuvanje",
   navMenuOpen: false,
   updateReady: false,
 };
@@ -115,6 +116,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     trainingTemplates: Array.isArray(rawStore.trainingTemplates)
       ? rawStore.trainingTemplates
       : fallback.trainingTemplates,
+    favoriteTrainings: Array.isArray(rawStore.favoriteTrainings) ? rawStore.favoriteTrainings : [],
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
     trainingBurnByWeekday:
@@ -151,6 +153,7 @@ function hydrateStore() {
 
 function ensureStoreCollections(targetStore) {
   targetStore.trainingLogs = targetStore.trainingLogs || [];
+  targetStore.favoriteTrainings = targetStore.favoriteTrainings || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
@@ -244,7 +247,7 @@ function scheduleCloudPersist() {
     window.clearTimeout(cloudSaveTimer);
   }
 
-  state.syncStatus = "Cuvam izmene u cloud...";
+  state.syncStatus = "Čuvam izmene u cloud...";
   cloudSaveTimer = window.setTimeout(() => {
     saveCloudStateNow({ renderAfterSave: true });
   }, 650);
@@ -292,7 +295,7 @@ function persistLocal(rollback) {
       rollback();
     }
     console.error("Persist failed", error);
-    window.alert("Ponestaje prostora za cuvanje podataka. Obrisi neke slike ili napravi backup.");
+    window.alert("Ponestaje prostora za čuvanje podataka. Obriši neke slike ili napravi backup.");
     return false;
   }
 }
@@ -383,6 +386,33 @@ function getFoods() {
 
 function getFoodById(foodId) {
   return store.foods.find((food) => food.id === foodId);
+}
+
+function resetFoodEditing() {
+  state.editingFoodId = "";
+}
+
+function syncFoodNameAcrossStore(foodId, foodName) {
+  store.weeklyPlanEntries = store.weeklyPlanEntries.map((entry) =>
+    entry.foodId === foodId
+      ? {
+          ...entry,
+          foodName,
+        }
+      : entry
+  );
+
+  store.favoriteMeals = store.favoriteMeals.map((favorite) => ({
+    ...favorite,
+    items: favorite.items.map((item) =>
+      item.foodId === foodId
+        ? {
+            ...item,
+            foodName,
+          }
+        : item
+    ),
+  }));
 }
 
 function getFoodMacroGroup(food) {
@@ -531,6 +561,15 @@ function getWeeklyTrainingPlan() {
   }));
 }
 
+function getFavoriteTrainingsDetailed() {
+  return [...store.favoriteTrainings]
+    .map((training) => ({
+      ...training,
+      exerciseCount: Array.isArray(training.exercises) ? training.exercises.length : 0,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "sr"));
+}
+
 function getTrainingExerciseOptions() {
   const names = new Set();
 
@@ -546,6 +585,14 @@ function getTrainingExerciseOptions() {
     if (log.exerciseName) {
       names.add(log.exerciseName.trim());
     }
+  });
+
+  store.favoriteTrainings.forEach((training) => {
+    training.exercises.forEach((exercise) => {
+      if (exercise.name) {
+        names.add(exercise.name.trim());
+      }
+    });
   });
 
   return [...names].sort((a, b) => a.localeCompare(b, "sr"));
@@ -1160,7 +1207,7 @@ function renderAuthShell() {
         <div class="auth-hero">
           <span class="auth-badge">Cloud sync</span>
           <h1>${state.authMode === "register" ? "Napravi svoj nalog" : "Prijavi se u svoj tracker"}</h1>
-          <p>Plan, obroci i trening bice sync-ovani izmedju uredjaja.</p>
+          <p>Plan, obroci i trening biće sync-ovani između uređaja.</p>
         </div>
         <div class="auth-mode-switch" role="tablist" aria-label="Rezim prijave">
           <button
@@ -1189,7 +1236,7 @@ function renderAuthShell() {
             <label for="auth-password">Lozinka</label>
             <div class="password-input-wrap">
               <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
-              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikazi lozinku">
+              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikaži lozinku">
                 ${renderPasswordToggleIcon(false)}
               </button>
             </div>
@@ -1260,7 +1307,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         <div>
           <strong>${mealParts.title || activeMealLabel}</strong>
           <div class="footer-note">
-            ${state.editingEntryId ? "Menjas postojecu stavku u ovom obroku." : "Dodajes novu namirnicu direktno u ovaj obrok."}
+            ${state.editingEntryId ? "Menjaš postojeću stavku u ovom obroku." : "Dodaješ novu namirnicu direktno u ovaj obrok."}
           </div>
         </div>
       </div>
@@ -1274,12 +1321,12 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         </select>
       </div>
       <div class="field">
-        <label for="grams">Kolicina u gramima</label>
+        <label for="grams">Količina u gramima</label>
         <input id="grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.planDraft.grams}" required />
       </div>
       <div class="preview-box" id="entry-preview">
         <h3>Preview</h3>
-        <p>Izaberi namirnicu i gramazu da odmah vidis makroe.</p>
+        <p>Izaberi namirnicu i gramažu da odmah vidiš makroe.</p>
       </div>
       ${
         companionSuggestions.length
@@ -1315,7 +1362,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
           : ""
       }
       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-        <button class="solid-button secondary-button" type="submit">${state.editingEntryId ? "Sacuvaj izmene" : "Dodaj namirnicu"}</button>
+        <button class="solid-button secondary-button" type="submit">${state.editingEntryId ? "Sačuvaj izmene" : "Dodaj namirnicu"}</button>
         ${
           state.editingEntryId
             ? `<button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
@@ -1351,14 +1398,14 @@ function renderPlanTab(entries) {
       ${renderMacroCards(totals)}
       <div class="stats-grid plan-secondary-stats" style="margin-top:12px;">
         <article class="stat-card">
-          <strong>Potroseno trening</strong>
+          <strong>Potrošeno trening</strong>
           <div class="macro-value">${roundValue(trainingBurn, 0)} kcal</div>
           <div class="footer-note">Apple Watch unos za ${state.selectedWeekday}</div>
         </article>
         <article class="stat-card">
           <strong>Neto kcal</strong>
           <div class="macro-value">${netCalories} kcal</div>
-          <div class="footer-note">Uneto minus potroseno na treningu</div>
+          <div class="footer-note">Uneto minus potrošeno na treningu</div>
         </article>
       </div>
     </section>
@@ -1367,7 +1414,7 @@ function renderPlanTab(entries) {
       <div class="section-header">
         <div>
           <h2>Preview dana</h2>
-          <p>Brzi pregled po obrocima, da odmah vidis kako izgleda ceo dan.</p>
+          <p>Brzi pregled po obrocima, da odmah vidiš kako izgleda ceo dan.</p>
         </div>
       </div>
       <div class="stack">
@@ -1392,7 +1439,7 @@ function renderPlanTab(entries) {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Jos nema stavki za preview dana.</div>`
+            : `<div class="empty">Još nema stavki za preview dana.</div>`
         }
       </div>
     </section>
@@ -1418,7 +1465,7 @@ function renderPlanTab(entries) {
           <label for="duplicate-mode">Nacin kopiranja</label>
           <select id="duplicate-mode" name="mode">
             <option value="append">Dodaj u plan</option>
-            <option value="replace">Prepisi dan</option>
+            <option value="replace">Prepiši dan</option>
           </select>
         </div>
         <button class="solid-button" type="submit">Kopiraj dan</button>
@@ -1442,7 +1489,7 @@ function renderPlanTab(entries) {
                 </div>
               </div>
             `
-            : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ces ih ovde birati jednim tapom.</div>`
+            : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
         }
         <article class="food-card suggestion-surface">
           <div class="food-card-top">
@@ -1484,7 +1531,7 @@ function renderPlanTab(entries) {
           <h3>Omiljeni obroci i recepti</h3>
           <span class="pill strong">${favorites.length}</span>
         </div>
-        <div class="footer-note">U tabu Obroci pravis, menjas i cuvas cele sastavljene obroke, pa ih jednim tapom dodajes u ${state.selectedWeekday}.</div>
+        <div class="footer-note">U tabu Obroci praviš, menjaš i čuvaš cele sastavljene obroke, pa ih jednim tapom dodaješ u ${state.selectedWeekday}.</div>
         <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
           <button class="solid-button secondary-button" data-action="switch-tab" data-tab="recipes">Idi na Obroke</button>
         </div>
@@ -1495,7 +1542,7 @@ function renderPlanTab(entries) {
       <div class="section-header">
         <div>
           <h2>Obroci za ${state.selectedWeekday}</h2>
-          <p>${entries.length ? "Mozes da menjas gramazu ili brises stavke." : "Jos nema stavki za ovaj dan."}</p>
+          <p>${entries.length ? "Možeš da menjaš gramažu ili brišeš stavke." : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
       <div class="stack">
@@ -1512,7 +1559,7 @@ function renderPlanTab(entries) {
                         ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                         <div class="meal-card-heading">
                           <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
-                          <div class="footer-note">${isEditingMeal ? "Uredjujes ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
+                          <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
                         </div>
                       </div>
                       ${
@@ -1538,7 +1585,7 @@ function renderPlanTab(entries) {
                           mealEntries.length
                             ? `
                               <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
-                                Sacuvaj u Obroke
+                                Sačuvaj u Obroke
                               </button>
                             `
                             : ""
@@ -1566,20 +1613,20 @@ function renderPlanTab(entries) {
                                         Izmeni
                                       </button>
                                       <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
-                                        Obrisi
+                                        Obriši
                                       </button>
                                     </div>
                                   </div>
                                 `
                               )
                               .join("")
-                          : `<div class="empty" style="margin-top:12px;">Jos nema stavki u ovom obroku.</div>`
+                          : `<div class="empty" style="margin-top:12px;">Još nema stavki u ovom obroku.</div>`
                       }
                     </article>
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi obrok za ${state.selectedWeekday} i aplikacija ce odmah sabirati makroe.</div>`
+            : `<div class="empty">Dodaj prvi obrok za ${state.selectedWeekday} i aplikacija će odmah sabirati makroe.</div>`
         }
       </div>
     </section>
@@ -1588,6 +1635,7 @@ function renderPlanTab(entries) {
 
 function renderFoodsTab() {
   const query = state.foodSearch.trim().toLowerCase();
+  const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
   const foods = getFoods()
     .map((food) => ({
       ...food,
@@ -1654,11 +1702,18 @@ function renderFoodsTab() {
                 </div>
                 <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button
+                    class="ghost-button"
+                    data-action="edit-food"
+                    data-food-id="${food.id}"
+                  >
+                    Izmeni
+                  </button>
+                  <button
                     class="${store.favoriteFoods.includes(food.id) ? "solid-button secondary-button" : "ghost-button"}"
                     data-action="toggle-favorite-food"
                     data-food-id="${food.id}"
                   >
-                    ${store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sacuvaj favorit"}
+                    ${store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sačuvaj favorit"}
                   </button>
                 </div>
               </article>
@@ -1671,36 +1726,39 @@ function renderFoodsTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Dodaj namirnicu</h2>
-          <p>Unosis vrednosti na 100 g i posle ih koristis bilo kojom gramazom.</p>
+          <h2>${editingFood ? "Izmeni namirnicu" : "Dodaj namirnicu"}</h2>
+          <p>${editingFood ? "Promeni vrednosti na 100 g i sačuvaj izmenu." : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom."}</p>
         </div>
       </div>
       <form id="food-form" class="form-grid split">
         <div class="field">
           <label for="food-name">Naziv</label>
-          <input id="food-name" name="name" placeholder="npr. Grcki jogurt" required />
+          <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${editingFood?.name || ""}" required />
         </div>
         <div class="field">
           <label for="food-category">Kategorija</label>
-          <input id="food-category" name="category" placeholder="Proteini, masti, voce..." />
+          <input id="food-category" name="category" placeholder="Proteini, masti, voce..." value="${editingFood?.category || ""}" />
         </div>
         <div class="field">
           <label for="food-kcal">Kalorije na 100 g</label>
-          <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" required />
+          <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.kcal, 1) : ""}" required />
         </div>
         <div class="field">
           <label for="food-protein">Proteini na 100 g</label>
-          <input id="food-protein" name="protein" type="number" step="0.1" min="0" required />
+          <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.protein, 1) : ""}" required />
         </div>
         <div class="field">
           <label for="food-carbs">Ugljeni hidrati na 100 g</label>
-          <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" required />
+          <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.carbs, 1) : ""}" required />
         </div>
         <div class="field">
           <label for="food-fat">Masti na 100 g</label>
-          <input id="food-fat" name="fat" type="number" step="0.1" min="0" required />
+          <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
         </div>
-        <button class="solid-button" type="submit">Sacuvaj namirnicu</button>
+        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+          <button class="solid-button" type="submit">${editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu"}</button>
+          ${editingFood ? '<button class="ghost-button" type="button" data-action="cancel-edit-food">Odustani</button>' : ""}
+        </div>
       </form>
     </section>
   `;
@@ -1716,7 +1774,7 @@ function renderRecipesTab() {
       <div class="section-header">
         <div>
           <h2>Omiljeni obroci</h2>
-          <p>Ovde pravis CEO obrok tako sto dodajes namirnicu po namirnicu, svaku sa svojom gramazom.</p>
+          <p>Ovde praviš CEO obrok tako što dodaješ namirnicu po namirnicu, svaku sa svojom gramažom.</p>
         </div>
       </div>
       <form id="favorite-meal-form" class="form-grid split" style="margin-bottom:14px;">
@@ -1729,7 +1787,7 @@ function renderRecipesTab() {
         </div>
         <div class="field">
           <label for="favorite-meal-label">Tip obroka</label>
-          <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Dorucak" value="${state.favoriteDraft.mealLabel}" required />
+          <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${state.favoriteDraft.mealLabel}" required />
           <datalist id="recipe-meal-options">
             ${meals.map((meal) => `<option value="${meal}"></option>`).join("")}
           </datalist>
@@ -1748,11 +1806,11 @@ function renderRecipesTab() {
           <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.favoriteDraft.grams}" required />
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button secondary-button" type="submit">${state.editingFavoriteItem.itemId ? "Sacuvaj izmenu" : "Dodaj stavku u obrok"}</button>
+          <button class="solid-button secondary-button" type="submit">${state.editingFavoriteItem.itemId ? "Sačuvaj izmenu" : "Dodaj stavku u obrok"}</button>
           ${state.editingFavoriteItem.itemId ? `<button class="ghost-button" type="button" data-action="cancel-edit-favorite-item">Odustani</button>` : ""}
         </div>
       </form>
-      <div class="footer-note">Kad kliknes Dodaj namirnicu u obrok, ta stavka ulazi u taj recept. Ako upises isti naziv obroka, dodajes novu namirnicu u isti obrok.</div>
+      <div class="footer-note">Kad klikneš Dodaj namirnicu u obrok, ta stavka ulazi u taj recept. Ako upišeš isti naziv obroka, dodaješ novu namirnicu u isti obrok.</div>
       <article class="food-card suggestion-surface" style="margin-top:14px;">
         <div class="food-card-top">
           <h3>${draftPreview.favoriteName || "Obrok u izradi"}</h3>
@@ -1778,14 +1836,14 @@ function renderRecipesTab() {
                           <div class="footer-note">${roundValue(item.grams, 0)} g</div>
                         </div>
                         <div class="pill-row" style="margin-top:0;">
-                          <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "sacuvano"}</span>
+                          <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "sačuvano"}</span>
                           <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
                         </div>
                       </div>
                     `
                   )
                   .join("")
-              : `<div class="empty">Dodaj prvu namirnicu i gramazu, pa ces ovde odmah videti sastavljen obrok.</div>`
+              : `<div class="empty">Dodaj prvu namirnicu i gramažu, pa ćeš ovde odmah videti sastavljen obrok.</div>`
           }
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:14px;">
@@ -1794,7 +1852,7 @@ function renderRecipesTab() {
             data-action="save-favorite-meal-draft"
             ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
           >
-            Sacuvaj obrok
+            Sačuvaj obrok
           </button>
         </div>
       </article>
@@ -1803,8 +1861,8 @@ function renderRecipesTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Sacuvani obroci</h2>
-          <p>${favorites.length ? `Trenutno imas ${favorites.length} sacuvanih obroka.` : "Jos nema sacuvanih obroka."}</p>
+          <h2>Sačuvani obroci</h2>
+          <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih obroka.` : "Još nema sačuvanih obroka."}</p>
         </div>
       </div>
       <div class="stack">
@@ -1838,7 +1896,7 @@ function renderRecipesTab() {
                                 <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
                                   <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
                                   <button class="ghost-button" data-action="add-favorite-item-to-day" data-favorite-id="${favorite.id}" data-item-index="${index}">Ubaci samo ovu</button>
-                                  <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obrisi</button>
+                                  <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obriši</button>
                                 </div>
                               </div>
                             `
@@ -1848,13 +1906,13 @@ function renderRecipesTab() {
                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
                         <button class="solid-button secondary-button" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">Ubaci u ${state.selectedWeekday}</button>
                         <button class="ghost-button" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">Dodaj stavku</button>
-                        <button class="danger-button" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">Obrisi obrok</button>
+                        <button class="danger-button" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">Obriši obrok</button>
                       </div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Napravi prvi omiljeni obrok ovde, pa ces ga posle dodavati u dane jednim tapom.</div>`
+            : `<div class="empty">Napravi prvi omiljeni obrok ovde, pa ćeš ga posle dodavati u dane jednim tapom.</div>`
         }
       </div>
     </section>
@@ -1863,6 +1921,7 @@ function renderRecipesTab() {
 
 function renderTrainingTab() {
   const templates = getTrainingForDay(state.selectedWeekday);
+  const favoriteTrainings = getFavoriteTrainingsDetailed();
   const logs = store.trainingLogs.filter((log) => log.weekday === state.selectedWeekday);
   const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
   const weeklyTrainingPlan = getWeeklyTrainingPlan();
@@ -1883,7 +1942,7 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Nedeljni plan treninga</h2>
-          <p>Brz pregled cele nedelje, da odmah vidis gde si ubacio trening a gde je odmor.</p>
+          <p>Brz pregled cele nedelje, da odmah vidiš gde si ubacio trening a gde je odmor.</p>
         </div>
       </div>
       <div class="stats-grid">
@@ -1896,7 +1955,7 @@ function renderTrainingTab() {
                   ${day.templates.length ? day.templates.map((template) => template.name).join(", ") : "Odmor / nije uneto"}
                 </div>
                 <div class="pill-row">
-                  <span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vezbi</span>
+                  <span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vežbi</span>
                   <span class="pill">${roundValue(day.trainingBurn, 0)} kcal</span>
                   <span class="pill">${day.progressCount} logova</span>
                 </div>
@@ -1911,7 +1970,7 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Trening za ${state.selectedWeekday}</h2>
-          <p>Za pocetak mozes drzati sablon vezbi i kratke beleske po danu.</p>
+          <p>Za početak možeš držati sablon vežbi i kratke beleške po danu.</p>
         </div>
       </div>
       <article class="food-card suggestion-surface" style="margin-bottom:16px;">
@@ -1919,10 +1978,10 @@ function renderTrainingTab() {
           <h3>Apple Watch potrosnja</h3>
           <span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>
         </div>
-        <div class="footer-note">Upisi koliko si potrosio na treningu tog dana da imas pregled neto kalorija u planu.</div>
+        <div class="footer-note">Upiši koliko si potrošio na treningu tog dana da imaš pregled neto kalorija u planu.</div>
         <form id="training-burn-form" class="form-grid split" style="margin-top:14px;">
           <div class="field">
-            <label for="training-burn-kcal">Potroseno kcal</label>
+            <label for="training-burn-kcal">Potrošeno kcal</label>
             <input
               id="training-burn-kcal"
               name="burnKcal"
@@ -1934,7 +1993,7 @@ function renderTrainingTab() {
               value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
             />
           </div>
-          <button class="solid-button secondary-button" type="submit">Sacuvaj kcal</button>
+          <button class="solid-button secondary-button" type="submit">Sačuvaj kcal</button>
         </form>
       </article>
       <div class="stack">
@@ -1946,7 +2005,7 @@ function renderTrainingTab() {
                     <article class="training-card">
                       <div class="training-top">
                         <h3>${template.name}</h3>
-                        <span class="pill strong">${template.exercises.length} vezbi</span>
+                        <span class="pill strong">${template.exercises.length} vežbi</span>
                       </div>
                       <div class="training-list" style="margin-top:12px;">
                         ${template.exercises
@@ -1962,11 +2021,52 @@ function renderTrainingTab() {
                           )
                           .join("")}
                       </div>
+                      <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
+                        <button class="ghost-button" data-action="save-training-favorite" data-template-id="${template.id}">
+                          Sačuvaj kao omiljeni
+                        </button>
+                      </div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Jos nema trening sablona za ${state.selectedWeekday}. Dodaj ga ispod.</div>`
+            : `<div class="empty">Još nema trening sablona za ${state.selectedWeekday}. Dodaj ga ispod.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Omiljeni treninzi</h2>
+          <p>Jednom sačuvaš trening i posle ga ubacuješ u bilo koji dan bez kucanja ispočetka.</p>
+        </div>
+      </div>
+      <div class="stack">
+        ${
+          favoriteTrainings.length
+            ? favoriteTrainings
+                .map(
+                  (training) => `
+                    <article class="training-card">
+                      <div class="training-top">
+                        <h3>${training.name}</h3>
+                        <span class="pill strong">${training.exerciseCount} vežbi</span>
+                      </div>
+                      <div class="footer-note" style="margin-top:10px;">${training.exercises.map((exercise) => exercise.details).join(" · ")}</div>
+                      <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
+                        <button class="solid-button secondary-button" data-action="apply-favorite-training" data-favorite-training-id="${training.id}">
+                          Ubaci u ${state.selectedWeekday}
+                        </button>
+                        <button class="danger-button" data-action="delete-favorite-training" data-favorite-training-id="${training.id}">
+                          Obriši
+                        </button>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Sačuvaj jedan trening kao omiljeni i ovde ćeš ga posle ubacivati u bilo koji dan.</div>`
         }
       </div>
     </section>
@@ -1975,7 +2075,7 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Dodaj trening sablon</h2>
-          <p>Jedan red je jedna vezba. Mozes odmah da biras i za koji dan u nedelji ga cuvas.</p>
+          <p>Jedan red je jedna vežba. Možeš odmah da biraš i za koji dan u nedelji ga čuvaš.</p>
         </div>
       </div>
       <form id="training-form" class="form-grid">
@@ -1994,22 +2094,22 @@ function renderTrainingTab() {
           <input id="training-name" name="name" placeholder="npr. Noge" required />
         </div>
         <div class="field">
-          <label for="training-exercises">Vezbe</label>
+          <label for="training-exercises">Vežbe</label>
           <textarea id="training-exercises" name="exercises" placeholder="Cucanj 4x8-10&#10;Rumunsko mrtvo 4x10&#10;Iskorak 3x12"></textarea>
         </div>
-        <button class="solid-button" type="submit">Sacuvaj sablon</button>
+        <button class="solid-button" type="submit">Sačuvaj sablon</button>
       </form>
     </section>
 
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Progres po vezbi</h2>
-          <p>Upisi kilazu za vezbu i prati kako napredujes kroz vreme.</p>
+          <h2>Progres po vežbi</h2>
+          <p>Upiši kilažu za vežbu i prati kako napreduješ kroz vreme.</p>
         </div>
       </div>
       <form id="training-progress-form" class="form-grid split">
-        <div class="field">
+        <div class="field date-field">
           <label for="progress-date">Datum</label>
           <input id="progress-date" name="date" type="date" value="${getTodayDateValue()}" required />
         </div>
@@ -2031,7 +2131,7 @@ function renderTrainingTab() {
           </datalist>
         </div>
         <div class="field">
-          <label for="progress-weight">Kilaza</label>
+          <label for="progress-weight">Kilaža</label>
           <input id="progress-weight" name="weightKg" type="number" step="0.5" min="0" placeholder="npr. 80" required />
         </div>
         <div class="field">
@@ -2042,13 +2142,13 @@ function renderTrainingTab() {
           <label for="progress-note">Napomena</label>
           <input id="progress-note" name="note" placeholder="npr. lagano, ostalo jos" />
         </div>
-        <button class="solid-button secondary-button" type="submit">Sacuvaj unos</button>
+        <button class="solid-button secondary-button" type="submit">Sačuvaj unos</button>
       </form>
       <div class="chart-grid" style="margin-top:14px;">
         ${
           progressGroups.length
             ? progressGroups.map((group) => renderExerciseProgressCard(group)).join("")
-            : `<div class="empty">Dodaj prvi unos kilaze za neku vezbu pa ce se ovde pojaviti progres.</div>`
+            : `<div class="empty">Dodaj prvi unos kilaže za neku vežbu pa će se ovde pojaviti progres.</div>`
         }
       </div>
     </section>
@@ -2057,7 +2157,7 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Poslednji unosi opterecenja</h2>
-          <p>Brza istorija zadnjih kilaza po vezbama.</p>
+          <p>Brza istorija zadnjih kilaža po vežbama.</p>
         </div>
       </div>
       <div class="stack">
@@ -2069,7 +2169,7 @@ function renderTrainingTab() {
                     <article class="food-card">
                       <div class="food-card-top">
                         <strong>${log.exerciseName}</strong>
-                        <button class="danger-button" data-action="delete-training-progress" data-progress-id="${log.id}">Obrisi</button>
+                        <button class="danger-button" data-action="delete-training-progress" data-progress-id="${log.id}">Obriši</button>
                       </div>
                       <div class="pill-row">
                         <span class="pill strong">${roundValue(log.weightKg, 1)} kg</span>
@@ -2082,7 +2182,7 @@ function renderTrainingTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Jos nema sacuvanih unosa opterecenja.</div>`
+            : `<div class="empty">Još nema sačuvanih unosa opterećenja.</div>`
         }
       </div>
     </section>
@@ -2091,15 +2191,15 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Beleske</h2>
-          <p>Kratak log ako hoces da zabelezis kako je prosao trening.</p>
+          <p>Kratak log ako hoćeš da zabeležiš kako je prošao trening.</p>
         </div>
       </div>
       <form id="training-log-form" class="form-grid">
         <div class="field">
           <label for="training-note">Beleska</label>
-          <textarea id="training-note" name="note" placeholder="Npr. cucanj lagan, povecati tezinu sledeci put"></textarea>
+          <textarea id="training-note" name="note" placeholder="Npr. čučanj lagan, povećati težinu sledeći put"></textarea>
         </div>
-        <button class="solid-button secondary-button" type="submit">Sacuvaj belesku</button>
+        <button class="solid-button secondary-button" type="submit">Sačuvaj belešku</button>
       </form>
       <div class="stack" style="margin-top:14px;">
         ${
@@ -2110,14 +2210,14 @@ function renderTrainingTab() {
                     <article class="food-card">
                       <div class="food-card-top">
                         <strong>${log.createdAt}</strong>
-                        <button class="danger-button" data-action="delete-training-log" data-log-id="${log.id}">Obrisi</button>
+                        <button class="danger-button" data-action="delete-training-log" data-log-id="${log.id}">Obriši</button>
                       </div>
                       <div class="footer-note">${log.note}</div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Jos nema beleski za ovaj dan.</div>`
+            : `<div class="empty">Još nema beleški za ovaj dan.</div>`
         }
       </div>
     </section>
@@ -2180,7 +2280,7 @@ function renderGoalsTab() {
       <div class="section-header">
         <div>
           <h2>Profil i ciljevi</h2>
-          <p>Makroi mogu rucno ili iz tezine po istoj formuli kao u Excel-u.</p>
+          <p>Makroi mogu ručno ili iz težine po istoj formuli kao u Excel-u.</p>
         </div>
       </div>
       <form id="goals-form" class="form-grid split">
@@ -2193,7 +2293,7 @@ function renderGoalsTab() {
           <input id="profile-age" name="age" type="number" min="0" value="${store.profile.age || ""}" />
         </div>
         <div class="field">
-          <label for="profile-weight">Tezina (kg)</label>
+          <label for="profile-weight">Težina (kg)</label>
           <input id="profile-weight" name="weightKg" type="number" step="0.1" min="0" value="${store.profile.weightKg || ""}" />
         </div>
         <div class="field">
@@ -2213,8 +2313,8 @@ function renderGoalsTab() {
           <input id="goal-fat" name="fat" type="number" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
         <div class="meta-row">
-          <button class="ghost-button" type="button" data-action="recalculate-goals">Popuni iz tezine</button>
-          <button class="solid-button" type="submit">Sacuvaj ciljeve</button>
+          <button class="ghost-button" type="button" data-action="recalculate-goals">Popuni iz težine</button>
+          <button class="solid-button" type="submit">Sačuvaj ciljeve</button>
         </div>
       </form>
     </section>
@@ -2223,7 +2323,7 @@ function renderGoalsTab() {
       <div class="section-header">
         <div>
           <h2>Nedeljni nivo</h2>
-          <p>Zbir za svih 7 dana, da odmah vidis da li si u kalorijama i makroima na nivou cele nedelje.</p>
+          <p>Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.</p>
         </div>
       </div>
       <div class="stats-grid">
@@ -2238,7 +2338,7 @@ function renderGoalsTab() {
           <div class="footer-note">${WEEKDAYS.length} x dnevni cilj</div>
         </article>
         <article class="stat-card">
-          <strong>Potroseno trening</strong>
+          <strong>Potrošeno trening</strong>
           <div class="macro-value">${roundValue(weeklyOverview.totals.trainingBurn, 0)} kcal</div>
           <div class="footer-note">Zbir Apple Watch unosa</div>
         </article>
@@ -2287,7 +2387,7 @@ function renderGoalsTab() {
         <label class="ghost-button" for="import-json">Uvezi backup</label>
         <input id="import-json" type="file" accept="application/json" hidden />
       </div>
-      <div class="footer-note">Ako uvezes backup dok si prijavljen, izmene ce se upisati i u Firebase.</div>
+      <div class="footer-note">Ako uvezeš backup dok si prijavljen, izmene će se upisati i u Firebase.</div>
     </section>
   `;
 }
@@ -2551,7 +2651,7 @@ function renderMeasurementCard(field) {
         ${
           latest
             ? `Poslednje: ${new Date(latest.date).toLocaleDateString("sr-RS")}`
-            : "Jos nema unosa"
+            : "Još nema unosa"
         }
         ${
           delta !== null
@@ -2577,8 +2677,8 @@ function renderProgressTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Tezina i mere</h2>
-          <p>Brz unos merenja, da sa telefona pratis kako napredujes kroz vreme.</p>
+          <h2>Težina i mere</h2>
+          <p>Brz unos merenja, da sa telefona pratiš kako napreduješ kroz vreme.</p>
         </div>
       </div>
       <div class="stats-grid">
@@ -2593,7 +2693,7 @@ function renderProgressTab() {
       <div class="section-header">
         <div>
           <h2>Trend</h2>
-          <p>Kratak vizuelni pregled kako idu tezina i stomak kroz vreme.</p>
+          <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
         </div>
       </div>
       <div class="chart-grid">
@@ -2605,7 +2705,7 @@ function renderProgressTab() {
       <div class="section-header">
         <div>
           <h2>Dodaj merenje</h2>
-          <p>Ne moras popuniti sve, upisi samo ono sto si izmerio tog dana.</p>
+          <p>Ne moraš popuniti sve, upiši samo ono što si izmerio tog dana.</p>
         </div>
       </div>
       <form id="measurement-form" class="form-grid split">
@@ -2630,7 +2730,7 @@ function renderProgressTab() {
             `
           )
           .join("")}
-        <button class="solid-button" type="submit">Sacuvaj unos</button>
+        <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
     </section>
 
@@ -2659,7 +2759,7 @@ function renderProgressTab() {
         <div class="field photo-picker">
           <label for="photo-file">Slika</label>
           <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">Slika se automatski smanjuje i cuva lokalno.</div>
+          <div class="footer-note">Slika se automatski smanjuje i čuva lokalno.</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
@@ -2758,7 +2858,7 @@ function renderProgressTab() {
                       <div class="photo-card-body">
                         <div class="food-card-top">
                           <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
-                          <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obrisi</button>
+                          <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obriši</button>
                         </div>
                         <div class="pill-row">
                           <span class="pill strong">${photo.tag || "bez taga"}</span>
@@ -2769,7 +2869,7 @@ function renderProgressTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Jos nema progress slika. Ubaci prvu da imas vizuelni trag napretka.</div>`
+            : `<div class="empty">Još nema progress slika. Ubaci prvu da imaš vizuelni trag napretka.</div>`
         }
       </div>
     </section>
@@ -2778,7 +2878,7 @@ function renderProgressTab() {
       <div class="section-header">
         <div>
           <h2>Istorija unosa</h2>
-          <p>${history.length ? "Najnoviji unos je prvi." : "Jos nema sacuvanih merenja."}</p>
+          <p>${history.length ? "Najnoviji unos je prvi." : "Još nema sačuvanih merenja."}</p>
         </div>
       </div>
       <div class="stack">
@@ -2791,7 +2891,7 @@ function renderProgressTab() {
                       <div class="food-card-top">
                         <h3>${new Date(entry.date).toLocaleDateString("sr-RS")}</h3>
                         <button class="danger-button" data-action="delete-measurement" data-measurement-id="${entry.id}">
-                          Obrisi
+                          Obriši
                         </button>
                       </div>
                       <div class="pill-row">
@@ -2811,7 +2911,7 @@ function renderProgressTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Dodaj prvo merenje pa ce ovde ostati istorija.</div>`
+            : `<div class="empty">Dodaj prvo merenje pa će ovde ostati istorija.</div>`
         }
       </div>
     </section>
@@ -2944,7 +3044,7 @@ function syncEntryPreview() {
   if (!food || !grams) {
     preview.innerHTML = `
       <h3>Preview</h3>
-      <p>Izaberi namirnicu i gramazu da odmah vidis makroe.</p>
+      <p>Izaberi namirnicu i gramažu da odmah vidiš makroe.</p>
     `;
     return;
   }
@@ -2968,6 +3068,7 @@ function handleDocumentClick(event) {
     state.activeTab = actionTarget.dataset.tab;
     state.editingMealLabel = "";
     state.navMenuOpen = false;
+    resetFoodEditing();
     window.location.hash = state.activeTab;
     render();
     window.requestAnimationFrame(() => scrollPageTop("auto"));
@@ -3024,6 +3125,27 @@ function handleDocumentClick(event) {
     }
 
     persist();
+    render();
+    return;
+  }
+
+  if (action === "edit-food") {
+    const foodId = actionTarget.dataset.foodId;
+    if (!foodId || !getFoodById(foodId)) {
+      return;
+    }
+    state.activeTab = "foods";
+    state.editingFoodId = foodId;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#food-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#food-name")?.focus();
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-food") {
+    resetFoodEditing();
     render();
     return;
   }
@@ -3237,7 +3359,7 @@ function handleDocumentClick(event) {
     );
 
     if (!draftPreview.favoriteName || !draftPreview.mealLabel) {
-      window.alert("Upisi naziv i tip obroka pre cuvanja.");
+      window.alert("Upiši naziv i tip obroka pre čuvanja.");
       return;
     }
 
@@ -3252,7 +3374,7 @@ function handleDocumentClick(event) {
         return;
       }
     } else if (!draftPreview.items.length || (!existingFavorite && !state.editingFavoriteItem.favoriteId)) {
-      window.alert("Dodaj bar jednu namirnicu pre cuvanja obroka.");
+      window.alert("Dodaj bar jednu namirnicu pre čuvanja obroka.");
       return;
     }
 
@@ -3260,7 +3382,7 @@ function handleDocumentClick(event) {
     const savedName = draftPreview.favoriteName;
     resetFavoriteDraft();
     render();
-    window.alert(`Obrok "${savedName}" je sacuvan u Obroci.`);
+    window.alert(`Obrok "${savedName}" je sačuvan u Obroci.`);
     return;
   }
 
@@ -3316,7 +3438,7 @@ function handleDocumentClick(event) {
       return;
     }
 
-    const confirmed = window.confirm(`Obrisi "${item.foodName}" iz omiljenog obroka "${favorite.name}"?`);
+    const confirmed = window.confirm(`Obriši "${item.foodName}" iz omiljenog obroka "${favorite.name}"?`);
     if (!confirmed) {
       return;
     }
@@ -3351,8 +3473,8 @@ function handleDocumentClick(event) {
     const entry = getPlanEntriesForDay(state.selectedWeekday).find((item) => item.id === entryId);
     const confirmed = window.confirm(
       entry
-        ? `Obrisi stavku "${entry.foodName}" (${roundValue(entry.grams, 0)} g) iz ${entry.mealLabel}?`
-        : "Obrisi ovu stavku iz plana?"
+        ? `Obriši stavku "${entry.foodName}" (${roundValue(entry.grams, 0)} g) iz ${entry.mealLabel}?`
+        : "Obriši ovu stavku iz plana?"
     );
 
     if (!confirmed) {
@@ -3389,6 +3511,91 @@ function handleDocumentClick(event) {
 
   if (action === "delete-training-log") {
     store.trainingLogs = store.trainingLogs.filter((log) => log.id !== actionTarget.dataset.logId);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "save-training-favorite") {
+    const template = store.trainingTemplates.find((entry) => entry.id === actionTarget.dataset.templateId);
+    if (!template) {
+      return;
+    }
+
+    const suggestedName = template.name || "Trening";
+    const favoriteName = window.prompt("Naziv omiljenog treninga:", suggestedName);
+    if (!favoriteName || !favoriteName.trim()) {
+      return;
+    }
+
+    const normalizedName = favoriteName.trim();
+    const existingFavorite = store.favoriteTrainings.find(
+      (entry) => entry.name.toLowerCase() === normalizedName.toLowerCase()
+    );
+    const nextTraining = {
+      name: normalizedName,
+      exercises: template.exercises.map((exercise) => ({
+        id: uid("exercise"),
+        name: exercise.name,
+        details: exercise.details,
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (existingFavorite) {
+      existingFavorite.name = nextTraining.name;
+      existingFavorite.exercises = nextTraining.exercises;
+      existingFavorite.updatedAt = nextTraining.updatedAt;
+    } else {
+      store.favoriteTrainings.unshift({
+        id: uid("favorite-training"),
+        createdAt: new Date().toISOString(),
+        ...nextTraining,
+      });
+    }
+
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "apply-favorite-training") {
+    const favoriteTraining = store.favoriteTrainings.find(
+      (entry) => entry.id === actionTarget.dataset.favoriteTrainingId
+    );
+    if (!favoriteTraining) {
+      return;
+    }
+
+    store.trainingTemplates.push({
+      id: uid("training"),
+      weekday: state.selectedWeekday,
+      name: favoriteTraining.name,
+      exercises: favoriteTraining.exercises.map((exercise) => ({
+        id: uid("exercise"),
+        name: exercise.name,
+        details: exercise.details,
+      })),
+    });
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "delete-favorite-training") {
+    const favoriteTraining = store.favoriteTrainings.find(
+      (entry) => entry.id === actionTarget.dataset.favoriteTrainingId
+    );
+    const confirmed = window.confirm(
+      favoriteTraining ? `Obriši omiljeni trening "${favoriteTraining.name}"?` : "Obriši omiljeni trening?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    store.favoriteTrainings = store.favoriteTrainings.filter(
+      (entry) => entry.id !== actionTarget.dataset.favoriteTrainingId
+    );
     persist();
     render();
     return;
@@ -3446,7 +3653,7 @@ function handleDocumentClick(event) {
     const nextVisible = passwordInput.type === "password";
     passwordInput.type = nextVisible ? "text" : "password";
     actionTarget.innerHTML = renderPasswordToggleIcon(nextVisible);
-    actionTarget.setAttribute("aria-label", nextVisible ? "Sakrij lozinku" : "Prikazi lozinku");
+    actionTarget.setAttribute("aria-label", nextVisible ? "Sakrij lozinku" : "Prikaži lozinku");
     actionTarget.setAttribute("aria-pressed", String(nextVisible));
     return;
   }
@@ -3575,8 +3782,7 @@ async function handleSubmit(event) {
       return;
     }
 
-    store.foods.push({
-      id: uid("food"),
+    const nextFood = {
       name,
       category: String(formData.get("category") || "Ostalo").trim() || "Ostalo",
       servingBaseGrams: 100,
@@ -3584,7 +3790,26 @@ async function handleSubmit(event) {
       protein: toNumber(formData.get("protein")),
       carbs: toNumber(formData.get("carbs")),
       fat: toNumber(formData.get("fat")),
-    });
+    };
+
+    if (state.editingFoodId) {
+      store.foods = store.foods.map((food) =>
+        food.id === state.editingFoodId
+          ? {
+              ...food,
+              ...nextFood,
+            }
+          : food
+      );
+      syncFoodNameAcrossStore(state.editingFoodId, nextFood.name);
+      resetFoodEditing();
+    } else {
+      store.foods.push({
+        id: uid("food"),
+        ...nextFood,
+      });
+    }
+
     persist();
     event.target.reset();
     render();
@@ -3883,6 +4108,7 @@ window.addEventListener("hashchange", () => {
   if (nextTab !== state.activeTab) {
     state.activeTab = nextTab;
     state.navMenuOpen = false;
+    resetFoodEditing();
     render();
   }
 });
