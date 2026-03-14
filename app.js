@@ -1106,6 +1106,20 @@ function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
 }
 
+function renderPasswordToggleIcon(isVisible) {
+  return isVisible
+    ? `
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M3.3 2.3 21.7 20.7l-1.4 1.4-3.1-3.1c-1.6.8-3.4 1.2-5.2 1.2-5.2 0-9.5-3-11.5-8 1-2.5 2.6-4.5 4.6-5.9L1.9 3.7l1.4-1.4Zm7.2 7.2 3.9 3.9a4 4 0 0 0-3.9-3.9Zm1.5-5.7c5.2 0 9.5 3 11.5 8a13.7 13.7 0 0 1-4.7 5.9l-1.5-1.5a11.5 11.5 0 0 0 3.7-4.4c-1.7-3.6-4.8-5.8-9-5.8-1.3 0-2.5.2-3.6.6L6.7 5.1c1.6-.8 3.4-1.3 5.3-1.3Zm0 4.2a4 4 0 0 1 4 4c0 .7-.2 1.4-.5 2l-5.5-5.5c.6-.3 1.3-.5 2-.5Z"/>
+      </svg>
+    `
+    : `
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M12 5c5.2 0 9.5 3 11.5 8-2 5-6.3 8-11.5 8S2.5 18 0.5 13C2.5 8 6.8 5 12 5Zm0 2c-4.2 0-7.3 2.2-9 6 1.7 3.8 4.8 6 9 6s7.3-2.2 9-6c-1.7-3.8-4.8-6-9-6Zm0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm0 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/>
+      </svg>
+    `;
+}
+
 function renderAuthShell() {
   const submitLabel = state.authPending
     ? state.authMode === "register"
@@ -1121,12 +1135,7 @@ function renderAuthShell() {
         <div class="auth-hero">
           <span class="auth-badge">Cloud sync</span>
           <h1>${state.authMode === "register" ? "Napravi svoj nalog" : "Prijavi se u svoj tracker"}</h1>
-          <p>Plan, obroci, trening, ciljevi i merenja ce ti biti sacuvani i na telefonu i na racunaru.</p>
-          <div class="auth-points">
-            <span class="pill strong">Firestore sync</span>
-            <span class="pill">Bez servera</span>
-            <span class="pill">Slike ostaju lokalno</span>
-          </div>
+          <p>Plan, obroci i trening bice sync-ovani izmedju uredjaja.</p>
         </div>
         <div class="auth-mode-switch" role="tablist" aria-label="Rezim prijave">
           <button
@@ -1149,21 +1158,21 @@ function renderAuthShell() {
         <form id="auth-form" class="form-grid">
           <div class="field">
             <label for="auth-email">Email</label>
-            <input id="auth-email" name="email" type="email" placeholder="ti@email.com" autocomplete="email" required />
+            <input id="auth-email" name="email" type="email" placeholder="ime.prezime@email.com" autocomplete="email" required />
           </div>
           <div class="field password-field">
             <label for="auth-password">Lozinka</label>
             <div class="password-input-wrap">
               <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
-              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikazi ili sakrij lozinku">
-                Prikazi
+              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikazi lozinku">
+                ${renderPasswordToggleIcon(false)}
               </button>
             </div>
           </div>
           ${
             state.authError
               ? `<div class="auth-feedback auth-feedback--error" role="alert">${state.authError}</div>`
-              : `<div class="auth-note">Progress slike za sada ostaju lokalno na telefonu/browseru, a ostali podaci idu u cloud.</div>`
+              : `<div class="auth-note">Slike su za sada lokalno. Ostalo ide u cloud.</div>`
           }
           <button class="solid-button" type="submit" ${state.authPending ? "disabled" : ""}>${submitLabel}</button>
         </form>
@@ -3390,7 +3399,8 @@ function handleDocumentClick(event) {
 
     const nextVisible = passwordInput.type === "password";
     passwordInput.type = nextVisible ? "text" : "password";
-    actionTarget.textContent = nextVisible ? "Sakrij" : "Prikazi";
+    actionTarget.innerHTML = renderPasswordToggleIcon(nextVisible);
+    actionTarget.setAttribute("aria-label", nextVisible ? "Sakrij lozinku" : "Prikazi lozinku");
     actionTarget.setAttribute("aria-pressed", String(nextVisible));
     return;
   }
