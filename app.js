@@ -1113,25 +1113,52 @@ function renderAuthShell() {
   return `
     <main class="shell auth-shell">
       <section class="section auth-card">
-        <div class="section-header">
-          <div>
-            <h2>${state.authMode === "register" ? "Napravi nalog" : "Prijavi se"}</h2>
-            <p>Posle prijave ces imati sync za namirnice, obroke, plan, trening i merenja preko Firebase-a.</p>
+        <div class="auth-hero">
+          <span class="auth-badge">Cloud sync</span>
+          <h1>${state.authMode === "register" ? "Napravi svoj nalog" : "Prijavi se u svoj tracker"}</h1>
+          <p>Plan, obroci, trening, ciljevi i merenja ce ti biti sacuvani i na telefonu i na racunaru.</p>
+          <div class="auth-points">
+            <span class="pill strong">Firestore sync</span>
+            <span class="pill">Bez servera</span>
+            <span class="pill">Slike ostaju lokalno</span>
           </div>
+        </div>
+        <div class="auth-mode-switch" role="tablist" aria-label="Rezim prijave">
+          <button
+            class="auth-mode-chip ${state.authMode === "login" ? "is-active" : ""}"
+            type="button"
+            data-action="set-auth-mode"
+            data-mode="login"
+          >
+            Prijava
+          </button>
+          <button
+            class="auth-mode-chip ${state.authMode === "register" ? "is-active" : ""}"
+            type="button"
+            data-action="set-auth-mode"
+            data-mode="register"
+          >
+            Novi nalog
+          </button>
         </div>
         <form id="auth-form" class="form-grid">
           <div class="field">
             <label for="auth-email">Email</label>
             <input id="auth-email" name="email" type="email" placeholder="ti@email.com" autocomplete="email" required />
           </div>
-          <div class="field">
+          <div class="field password-field">
             <label for="auth-password">Lozinka</label>
-            <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
+            <div class="password-input-wrap">
+              <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
+              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikazi ili sakrij lozinku">
+                Prikazi
+              </button>
+            </div>
           </div>
           ${
             state.authError
               ? `<div class="auth-feedback auth-feedback--error" role="alert">${state.authError}</div>`
-              : `<div class="footer-note">Progress slike za sada ostaju lokalno na telefonu/browseru, a ostali podaci idu u cloud.</div>`
+              : `<div class="auth-note">Progress slike za sada ostaju lokalno na telefonu/browseru, a ostali podaci idu u cloud.</div>`
           }
           <button class="solid-button" type="submit" ${state.authPending ? "disabled" : ""}>${submitLabel}</button>
         </form>
@@ -2089,7 +2116,7 @@ function renderGoalsTab() {
       <div class="food-card">
         <div class="food-card-top">
           <strong>${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-          ${state.authUser ? '<button class="ghost-button" data-action="sign-out">Odjavi se</button>' : ""}
+          ${state.authUser ? '<button class="danger-button" data-action="sign-out">Odjavi se</button>' : ""}
         </div>
         <div class="pill-row">
           <span class="pill strong">${state.syncStatus}</span>
@@ -3293,6 +3320,19 @@ function handleDocumentClick(event) {
     state.authMode = actionTarget.dataset.mode === "register" ? "register" : "login";
     state.authError = "";
     render();
+    return;
+  }
+
+  if (action === "toggle-auth-password") {
+    const passwordInput = document.querySelector("#auth-password");
+    if (!(passwordInput instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const nextVisible = passwordInput.type === "password";
+    passwordInput.type = nextVisible ? "text" : "password";
+    actionTarget.textContent = nextVisible ? "Sakrij" : "Prikazi";
+    actionTarget.setAttribute("aria-pressed", String(nextVisible));
     return;
   }
 

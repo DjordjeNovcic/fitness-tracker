@@ -227,6 +227,87 @@ body.plan-compact .hero-day-picker {
   text-align: center;
 }
 
+.auth-hero {
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  color: #fefbf3;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
+  box-shadow: 0 18px 32px rgba(23, 53, 43, 0.16);
+}
+
+.auth-hero h1,
+.auth-hero p {
+  margin: 0;
+}
+
+.auth-hero h1 {
+  margin-top: 10px;
+  font-size: 1.85rem;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.auth-hero p {
+  margin-top: 10px;
+  color: rgba(254, 251, 243, 0.84);
+}
+
+.auth-badge {
+  display: inline-flex;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.auth-points .pill {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fffaf2;
+}
+
+.auth-points .pill.strong {
+  background: rgba(244, 239, 228, 0.22);
+}
+
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(228, 234, 211, 0.64);
+  border: 1px solid rgba(25, 34, 31, 0.08);
+}
+
+.auth-mode-chip {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.auth-mode-chip.is-active {
+  background: var(--surface-strong);
+  color: var(--accent);
+  box-shadow: var(--shadow-tight);
+}
+
 .auth-toggle-row {
   align-items: center;
   justify-content: space-between;
@@ -242,6 +323,33 @@ body.plan-compact .hero-day-picker {
   background: #f2e5da;
   color: #7a4e38;
   border: 1px solid rgba(122, 78, 56, 0.14);
+}
+
+.auth-note {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(216, 234, 223, 0.55), rgba(255, 250, 242, 0.88));
+  color: var(--muted);
+  border: 1px solid rgba(44, 123, 116, 0.08);
+}
+
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap input {
+  padding-right: 104px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  transform: translateY(-50%);
+  border-radius: 12px;
+  box-shadow: none;
 }
 
 .section-header {
