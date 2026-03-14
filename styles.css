@@ -1,23 +1,28 @@
 :root {
-  --bg: #f4efe4;
-  --bg-strong: #ede3d1;
-  --surface: rgba(255, 250, 242, 0.9);
-  --surface-strong: #fffaf2;
-  --ink: #19221f;
-  --muted: #5f6c66;
-  --line: rgba(25, 34, 31, 0.1);
-  --accent: #17352b;
-  --accent-soft: #d8eadf;
-  --secondary: #7d8b5a;
-  --secondary-soft: #e4ead3;
-  --teal: #2c7b74;
-  --shadow: 0 18px 40px rgba(25, 34, 31, 0.12);
-  --shadow-soft: 0 10px 24px rgba(25, 34, 31, 0.08);
-  --shadow-tight: 0 6px 16px rgba(25, 34, 31, 0.06);
-  --radius-xl: 28px;
-  --radius-lg: 22px;
-  --radius-md: 16px;
-  --radius-sm: 12px;
+  --bg: #f6f0e6;
+  --bg-strong: #ecdfcf;
+  --surface: rgba(255, 251, 246, 0.88);
+  --surface-strong: #fffaf4;
+  --surface-soft: rgba(255, 253, 249, 0.74);
+  --ink: #18211e;
+  --muted: #62706a;
+  --line: rgba(24, 33, 30, 0.09);
+  --accent: #17382d;
+  --accent-strong: #10271f;
+  --accent-soft: #dce9dd;
+  --secondary: #87945f;
+  --secondary-soft: #e7ecd8;
+  --teal: #2b7a71;
+  --clay: #f0e3d7;
+  --shadow: 0 24px 60px rgba(25, 34, 31, 0.11);
+  --shadow-soft: 0 16px 34px rgba(25, 34, 31, 0.08);
+  --shadow-tight: 0 8px 18px rgba(25, 34, 31, 0.055);
+  --shadow-card: 0 14px 30px rgba(25, 34, 31, 0.07);
+  --radius-xl: 32px;
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --radius-sm: 14px;
+  --content-width: 720px;
 }
 
 * {
@@ -28,20 +33,25 @@ html {
   font-size: 16px;
   min-height: 100%;
   background:
-    radial-gradient(circle at top, rgba(125, 139, 90, 0.16), transparent 28%),
-    radial-gradient(circle at 85% 12%, rgba(44, 123, 116, 0.12), transparent 22%),
-    linear-gradient(180deg, #f7f2e8 0%, #efe4d6 100%);
+    radial-gradient(circle at 12% 0%, rgba(135, 148, 95, 0.15), transparent 24%),
+    radial-gradient(circle at 88% 10%, rgba(43, 122, 113, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.42), transparent 30%),
+    linear-gradient(180deg, #faf4eb 0%, #f0e5d7 100%);
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   color: var(--ink);
-  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-family: "Manrope", "Avenir Next", "Gill Sans", sans-serif;
   min-height: 100vh;
-  line-height: 1.45;
+  line-height: 1.5;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
     transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -50,11 +60,12 @@ select,
 textarea {
   font: inherit;
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    background-color 0.18s ease,
-    color 0.18s ease;
+    transform 0.2s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease,
+    color 0.22s ease,
+    opacity 0.22s ease;
 }
 
 button {
@@ -69,7 +80,7 @@ button:disabled {
 }
 
 button:not(:disabled):active {
-  transform: translateY(1px) scale(0.995);
+  transform: translateY(1px) scale(0.992);
 }
 
 button:focus-visible,
@@ -87,10 +98,10 @@ textarea::placeholder {
 
 .shell {
   display: grid;
-  gap: 18px;
-  max-width: 720px;
+  gap: 20px;
+  max-width: var(--content-width);
   margin: 0 auto;
-  padding: 20px 16px 36px;
+  padding: 24px 18px 40px;
 }
 
 .auth-shell {
@@ -105,20 +116,21 @@ textarea::placeholder {
   z-index: 20;
   overflow: hidden;
   margin-bottom: 0;
-  padding: 18px 18px 16px;
+  padding: 20px 20px 18px;
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fefbf3;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 30%),
-    linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 30%),
+    radial-gradient(circle at 15% 120%, rgba(135, 148, 95, 0.18), transparent 34%),
+    linear-gradient(135deg, #132c23 0%, #1c493d 58%, #2b7a71 100%);
   box-shadow: var(--shadow);
   transition:
-    padding 0.22s ease,
-    border-radius 0.22s ease,
-    box-shadow 0.22s ease,
-    background 0.22s ease;
+    padding 0.24s ease,
+    border-radius 0.24s ease,
+    box-shadow 0.24s ease,
+    background 0.24s ease;
 }
 
 .hero h1,
@@ -141,35 +153,39 @@ textarea::placeholder {
 
 .hero-tag {
   display: inline-flex;
-  padding: 7px 11px;
+  padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .hero h1 {
-  margin-top: 10px;
-  font-size: 1.8rem;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  margin-top: 12px;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.92rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
 }
 
 .hero p {
-  margin-top: 8px;
-  max-width: 28ch;
+  margin-top: 10px;
+  max-width: 30ch;
   color: rgba(254, 251, 243, 0.82);
 }
 
 .hero-day-picker {
   margin-top: 18px;
-  padding: 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 24px rgba(10, 24, 19, 0.08);
   transition:
     margin-top 0.22s ease,
     padding 0.22s ease,
@@ -207,12 +223,14 @@ body.plan-compact .hero-day-picker {
 
 .section {
   margin-bottom: 0;
-  padding: 18px;
+  padding: 20px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 250, 244, 0.88)),
+    var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.46);
-  box-shadow: 0 14px 28px rgba(25, 34, 31, 0.08);
-  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(22px);
 }
 
 .auth-card {
@@ -229,13 +247,14 @@ body.plan-compact .hero-day-picker {
 
 .auth-hero {
   margin-bottom: 18px;
-  padding: 16px 16px 18px;
-  border-radius: 22px;
+  padding: 18px 18px 20px;
+  border-radius: 24px;
   color: #fefbf3;
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
-    linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
-  box-shadow: 0 18px 32px rgba(23, 53, 43, 0.16);
+    radial-gradient(circle at 0% 100%, rgba(135, 148, 95, 0.16), transparent 34%),
+    linear-gradient(135deg, #132c23 0%, #1c493d 62%, #2b7a71 100%);
+  box-shadow: 0 18px 38px rgba(23, 53, 43, 0.16);
 }
 
 .auth-hero h1,
@@ -245,9 +264,10 @@ body.plan-compact .hero-day-picker {
 
 .auth-hero h1 {
   margin-top: 10px;
-  font-size: 1.65rem;
-  line-height: 1.02;
-  letter-spacing: -0.04em;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.72rem;
+  line-height: 1;
+  letter-spacing: -0.035em;
 }
 
 .auth-hero p {
@@ -347,7 +367,7 @@ body.plan-compact .hero-day-picker {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .section-header h2,
@@ -356,13 +376,16 @@ body.plan-compact .hero-day-picker {
 }
 
 .section-header h2 {
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.22rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
 }
 
 .section-header p {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   max-width: 44ch;
 }
 
@@ -381,12 +404,12 @@ body.plan-compact .hero-day-picker {
 
 .chip {
   flex: 0 0 auto;
-  padding: 10px 14px;
+  padding: 10px 15px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.24);
   color: inherit;
-  font-weight: 600;
+  font-weight: 700;
   box-shadow: var(--shadow-tight);
   scroll-snap-align: start;
 }
@@ -414,9 +437,11 @@ body.plan-compact .hero-day-picker {
 
 .macro-card,
 .stat-card {
-  padding: 14px;
-  border-radius: 18px;
-  background: var(--surface-strong);
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-tight);
 }
@@ -437,15 +462,15 @@ body.plan-compact .hero-day-picker {
 .training-card h3,
 .list-header {
   margin: 0;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
 }
 
 .macro-value {
   margin-top: 12px;
-  font-size: 1.45rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: 1.52rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .progress {
@@ -475,21 +500,23 @@ body.plan-compact .hero-day-picker {
 .meal-card,
 .food-card,
 .training-card {
-  padding: 14px;
-  border-radius: 18px;
+  padding: 16px;
+  border-radius: 20px;
   border: 1px solid var(--line);
-  background: var(--surface-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
   box-shadow: var(--shadow-tight);
 }
 
 .meal-card {
   background:
-    linear-gradient(180deg, rgba(125, 139, 90, 0.06), rgba(255, 250, 242, 0.96) 22%),
+    linear-gradient(180deg, rgba(135, 148, 95, 0.08), rgba(255, 250, 244, 0.98) 22%),
     var(--surface-strong);
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 24px;
   box-shadow:
-    0 10px 22px rgba(25, 34, 31, 0.05),
+    0 12px 26px rgba(25, 34, 31, 0.055),
     var(--shadow-tight);
 }
 
@@ -517,7 +544,7 @@ body.plan-compact .hero-day-picker {
 
 .meal-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -652,12 +679,15 @@ body.plan-compact .hero-day-picker {
 }
 
 .pill {
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 11px;
   border-radius: 999px;
-  background: var(--bg);
+  background: rgba(240, 233, 221, 0.72);
   color: var(--ink);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pill.strong {
@@ -708,16 +738,16 @@ body.plan-compact .hero-day-picker {
 .ghost-button,
 .danger-button,
 .solid-button {
-  min-height: 42px;
-  padding: 10px 15px;
-  border-radius: 14px;
-  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-weight: 800;
   letter-spacing: 0.01em;
   box-shadow: var(--shadow-tight);
 }
 
 .ghost-button {
-  background: var(--bg);
+  background: rgba(245, 238, 228, 0.88);
   color: var(--ink);
   border: 1px solid rgba(25, 34, 31, 0.08);
 }
@@ -739,8 +769,11 @@ body.plan-compact .hero-day-picker {
 }
 
 .solid-button:not(:disabled):hover,
-.secondary-button:not(:disabled):hover {
-  box-shadow: 0 12px 24px rgba(25, 34, 31, 0.16);
+.secondary-button:not(:disabled):hover,
+.ghost-button:not(:disabled):hover,
+.danger-button:not(:disabled):hover {
+  box-shadow: 0 12px 24px rgba(25, 34, 31, 0.12);
+  transform: translateY(-1px);
 }
 
 .form-grid {
@@ -754,22 +787,24 @@ body.plan-compact .hero-day-picker {
 }
 
 .field label {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .field input,
 .field select,
 .field textarea {
   width: 100%;
-  min-height: 48px;
-  padding: 12px 14px;
+  min-height: 50px;
+  padding: 13px 15px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fffdf9;
+  border-radius: 16px;
+  background: rgba(255, 253, 249, 0.9);
   color: var(--ink);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 2px 6px rgba(25, 34, 31, 0.02);
 }
 
 .field input[type="date"] {
@@ -817,8 +852,8 @@ body.plan-compact .hero-day-picker {
 }
 
 .preview-box {
-  padding: 14px;
-  border-radius: 18px;
+  padding: 16px;
+  border-radius: 20px;
   background: linear-gradient(135deg, var(--accent-soft) 0%, #f6f0e4 100%);
   border: 1px solid rgba(23, 53, 43, 0.08);
 }
@@ -1063,13 +1098,14 @@ body.plan-compact .hero-day-picker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 16px;
+  min-height: 46px;
+  padding: 10px 13px;
+  border-radius: 18px;
   color: #fffaf2;
-  background: rgba(23, 53, 43, 0.92);
-  box-shadow: 0 16px 30px rgba(25, 34, 31, 0.18);
-  backdrop-filter: blur(16px);
+  background: rgba(19, 44, 35, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 36px rgba(25, 34, 31, 0.16);
+  backdrop-filter: blur(20px);
 }
 
 .menu-fab-icon {
@@ -1117,7 +1153,7 @@ body.menu-open .menu-fab {
   align-content: start;
   gap: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(247, 242, 232, 0.98)),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 241, 232, 0.98)),
     var(--surface-strong);
   border-left: 1px solid rgba(25, 34, 31, 0.08);
   box-shadow: -18px 0 40px rgba(25, 34, 31, 0.14);
@@ -1163,7 +1199,7 @@ body.menu-open .menu-fab {
   min-height: 54px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--ink);
   box-shadow: var(--shadow-tight);
   text-align: left;
@@ -1208,10 +1244,10 @@ body.menu-open .menu-fab {
   gap: 12px;
   padding: 14px;
   border-radius: 20px;
-  background: rgba(255, 250, 242, 0.96);
+  background: rgba(255, 250, 244, 0.96);
   border: 1px solid rgba(25, 34, 31, 0.08);
   box-shadow: 0 18px 34px rgba(25, 34, 31, 0.14);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px);
 }
 
 .undo-banner {
@@ -1236,8 +1272,8 @@ body.menu-open .menu-fab {
 
 .empty {
   padding: 16px;
-  border-radius: 16px;
-  background: var(--bg);
+  border-radius: 18px;
+  background: rgba(243, 236, 225, 0.62);
   color: var(--muted);
   border: 1px dashed rgba(25, 34, 31, 0.12);
 }
@@ -1288,7 +1324,7 @@ body.menu-open .menu-fab {
   }
 
   .section {
-    padding: 16px;
+    padding: 18px;
   }
 
   .plan-summary-section::before,
@@ -1300,7 +1336,7 @@ body.menu-open .menu-fab {
   }
 
   .hero {
-    padding: 16px 16px 14px;
+    padding: 18px 18px 16px;
   }
 
   .suggestion-row {
@@ -1329,7 +1365,7 @@ body.menu-open .menu-fab {
 
 @media (min-width: 720px) {
   .shell {
-    padding-top: 28px;
+    padding-top: 30px;
   }
 
   .shell-with-menu {
