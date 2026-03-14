@@ -90,7 +90,7 @@ textarea::placeholder {
   gap: 18px;
   max-width: 720px;
   margin: 0 auto;
-  padding: 20px 16px 110px;
+  padding: 20px 16px 36px;
 }
 
 .auth-shell {
@@ -830,22 +830,138 @@ body.plan-compact .hero-day-picker {
   box-shadow: 0 10px 24px rgba(25, 34, 31, 0.08);
 }
 
-.bottom-nav {
+.shell-with-menu {
+  padding-top: 82px;
+}
+
+.menu-fab {
   position: fixed;
-  left: 0;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 16px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  color: #fffaf2;
+  background: rgba(23, 53, 43, 0.92);
+  box-shadow: 0 16px 30px rgba(25, 34, 31, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+.menu-fab-icon {
+  display: inline-grid;
+  gap: 4px;
+}
+
+.menu-fab-icon span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.menu-fab-label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 54;
+  background: rgba(25, 34, 31, 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
   right: 0;
   bottom: 0;
-  z-index: 40;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(244, 239, 228, 0), rgba(244, 239, 228, 0.98) 24%);
-  backdrop-filter: blur(10px);
+  z-index: 55;
+  width: min(360px, calc(100vw - 24px));
+  padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(247, 242, 232, 0.98)),
+    var(--surface-strong);
+  border-left: 1px solid rgba(25, 34, 31, 0.08);
+  box-shadow: -18px 0 40px rgba(25, 34, 31, 0.14);
+  transform: translateX(110%);
+  transition: transform 0.24s ease;
+}
+
+.mobile-menu.is-open {
+  transform: translateX(0);
+}
+
+.mobile-menu-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-close {
+  min-width: auto;
+}
+
+.mobile-menu-list {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-tab-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  box-shadow: var(--shadow-tight);
+  text-align: left;
+  font-weight: 800;
+}
+
+.menu-tab-button .icon {
+  font-size: 1.15rem;
+}
+
+.menu-tab-button.is-active {
+  color: #fffaf2;
+  background: linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
+}
+
+.mobile-menu-footer {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.signout-button {
+  justify-content: center;
+  background: #f1e7de;
+  color: #7a4e38;
+  border: 1px solid rgba(122, 78, 56, 0.12);
 }
 
 .undo-banner {
   position: fixed;
   left: 16px;
   right: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
+  bottom: calc(18px + env(safe-area-inset-bottom));
   z-index: 50;
   max-width: 720px;
   margin: 0 auto;
@@ -859,45 +975,6 @@ body.plan-compact .hero-day-picker {
   color: #fff9f3;
   box-shadow: 0 16px 30px rgba(25, 34, 31, 0.24);
   backdrop-filter: blur(14px);
-}
-
-.bottom-nav-inner {
-  max-width: 720px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(var(--nav-count, 4), minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px;
-  border-radius: 22px;
-  background: rgba(255, 250, 242, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-}
-
-.nav-button {
-  display: grid;
-  gap: 4px;
-  justify-items: center;
-  padding: 10px 6px;
-  border-radius: 16px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.nav-button.is-active {
-  background: var(--accent);
-  color: #fff9f3;
-  box-shadow: 0 12px 22px rgba(23, 53, 43, 0.24);
-}
-
-.nav-button .icon {
-  font-size: 1.1rem;
-}
-
-.nav-button span:last-child {
-  font-size: 0.75rem;
 }
 
 .empty {
@@ -932,6 +1009,10 @@ body.plan-compact .hero-day-picker {
     padding: 16px 16px 14px;
   }
 
+  .menu-fab {
+    right: 12px;
+  }
+
   .suggestion-row {
     flex-direction: column;
   }
@@ -947,8 +1028,17 @@ body.plan-compact .hero-day-picker {
     padding-top: 28px;
   }
 
+  .shell-with-menu {
+    padding-top: 36px;
+  }
+
   .hero {
     border-radius: var(--radius-xl);
+  }
+
+  .menu-fab {
+    top: 24px;
+    right: max(24px, calc((100vw - 720px) / 2 + 16px));
   }
 
   .goal-grid,

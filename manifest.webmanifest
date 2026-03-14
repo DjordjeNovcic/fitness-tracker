@@ -1,12 +1,25 @@
 {
-  "name": "Fit tracker",
-  "short_name": "Fit tracker",
+  "name": "Fit Tracker",
+  "short_name": "FitTracker",
   "description": "Licna mobilna aplikacija za jelovnik, kalorije i trening.",
   "start_url": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#f4efe4",
   "theme_color": "#17352b",
   "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "./icons/icon.svg",
       "sizes": "any",

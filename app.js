@@ -84,6 +84,7 @@ const state = {
   authUser: null,
   authError: "",
   syncStatus: "Lokalno cuvanje",
+  navMenuOpen: false,
 };
 
 let undoDeleteTimer = null;
@@ -2116,7 +2117,7 @@ function renderGoalsTab() {
       <div class="food-card">
         <div class="food-card-top">
           <strong>${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-          ${state.authUser ? '<button class="danger-button" data-action="sign-out">Odjavi se</button>' : ""}
+          ${state.authUser ? '<button class="ghost-button signout-button" data-action="sign-out">Odjavi se</button>' : ""}
         </div>
         <div class="pill-row">
           <span class="pill strong">${state.syncStatus}</span>
@@ -2793,7 +2794,45 @@ function render() {
   };
 
   document.querySelector("#app").innerHTML = `
-    <main class="shell">
+    <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu">
+      <span class="menu-fab-icon" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      <span class="menu-fab-label">${TABS.find((tab) => tab.id === state.activeTab)?.label || "Meni"}</span>
+    </button>
+
+    ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
+
+    <aside id="app-menu" class="mobile-menu ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
+      <div class="mobile-menu-top">
+        <div>
+          <div class="hero-picker-label">Navigacija</div>
+          <strong>Fit tracker</strong>
+          <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
+        </div>
+        <button class="ghost-button menu-close" type="button" data-action="close-nav-menu">Zatvori</button>
+      </div>
+      <div class="mobile-menu-list">
+        ${TABS.map(
+          (tab) => `
+            <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
+              <span class="icon">${tab.icon}</span>
+              <span>${tab.label}</span>
+            </button>
+          `
+        ).join("")}
+      </div>
+      <div class="mobile-menu-footer">
+        <div class="pill-row" style="margin-top:0;">
+          <span class="pill strong">${state.syncStatus}</span>
+        </div>
+        <button class="ghost-button signout-button" type="button" data-action="sign-out">Odjavi se</button>
+      </div>
+    </aside>
+
+    <main class="shell shell-with-menu">
       ${heroMarkup}
       ${sections[state.activeTab]}
     </main>
@@ -2812,18 +2851,6 @@ function render() {
         : ""
     }
 
-    <nav class="bottom-nav" aria-label="Glavna navigacija">
-      <div class="bottom-nav-inner" style="--nav-count:${TABS.length};">
-        ${TABS.map(
-          (tab) => `
-            <button class="nav-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
-              <span class="icon">${tab.icon}</span>
-              <span>${tab.label}</span>
-            </button>
-          `
-        ).join("")}
-      </div>
-    </nav>
   `;
 
   updateHeroScrollState();
@@ -2878,7 +2905,20 @@ function handleDocumentClick(event) {
   if (action === "switch-tab") {
     state.activeTab = actionTarget.dataset.tab;
     state.editingMealLabel = "";
+    state.navMenuOpen = false;
     window.location.hash = state.activeTab;
+    render();
+    return;
+  }
+
+  if (action === "toggle-nav-menu") {
+    state.navMenuOpen = !state.navMenuOpen;
+    render();
+    return;
+  }
+
+  if (action === "close-nav-menu") {
+    state.navMenuOpen = false;
     render();
     return;
   }
@@ -2886,6 +2926,7 @@ function handleDocumentClick(event) {
   if (action === "select-weekday") {
     state.selectedWeekday = actionTarget.dataset.weekday;
     state.editingMealLabel = "";
+    state.navMenuOpen = false;
     resetPlanDraft();
     render();
     return;
@@ -3337,6 +3378,7 @@ function handleDocumentClick(event) {
   }
 
   if (action === "sign-out") {
+    state.navMenuOpen = false;
     signOut(firebaseAuth).catch((error) => {
       console.error("Sign out failed", error);
       window.alert("Odjava nije uspela. Pokusaj ponovo.");
@@ -3766,6 +3808,7 @@ window.addEventListener("hashchange", () => {
   const nextTab = getInitialTab();
   if (nextTab !== state.activeTab) {
     state.activeTab = nextTab;
+    state.navMenuOpen = false;
     render();
   }
 });
