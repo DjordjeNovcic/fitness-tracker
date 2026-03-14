@@ -911,16 +911,10 @@ body.plan-compact .hero-day-picker {
 }
 
 .menu-fab-icon {
-  display: inline-grid;
-  gap: 4px;
-}
-
-.menu-fab-icon span {
-  display: block;
-  width: 16px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 .menu-fab-label {
@@ -969,7 +963,14 @@ body.plan-compact .hero-day-picker {
 }
 
 .menu-close {
-  min-width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
 }
 
 .mobile-menu-list {
@@ -1014,6 +1015,26 @@ body.plan-compact .hero-day-picker {
   background: #f1e7de;
   color: #7a4e38;
   border: 1px solid rgba(122, 78, 56, 0.12);
+}
+
+.update-banner {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(94px + env(safe-area-inset-bottom));
+  z-index: 52;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 250, 242, 0.96);
+  border: 1px solid rgba(25, 34, 31, 0.08);
+  box-shadow: 0 18px 34px rgba(25, 34, 31, 0.14);
+  backdrop-filter: blur(16px);
 }
 
 .undo-banner {
@@ -1090,6 +1111,11 @@ body.plan-compact .hero-day-picker {
   .suggestion-row .entry-actions,
   .suggestion-row .pill-row {
     width: 100%;
+  }
+
+  .update-banner {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    align-items: flex-start;
   }
 }
 

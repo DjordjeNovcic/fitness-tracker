@@ -85,11 +85,13 @@ const state = {
   authError: "",
   syncStatus: "Lokalno cuvanje",
   navMenuOpen: false,
+  updateReady: false,
 };
 
 let undoDeleteTimer = null;
 let cloudSaveTimer = null;
 let isHydratingCloudState = false;
+let serviceWorkerRegistration = null;
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = getAuth(firebaseApp);
@@ -1106,6 +1108,15 @@ function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
 }
 
+function markUpdateReady(registration) {
+  serviceWorkerRegistration = registration || serviceWorkerRegistration;
+  if (!serviceWorkerRegistration?.waiting) {
+    return;
+  }
+  state.updateReady = true;
+  render();
+}
+
 function renderPasswordToggleIcon(isVisible) {
   return isVisible
     ? `
@@ -1116,6 +1127,20 @@ function renderPasswordToggleIcon(isVisible) {
     : `
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M12 5c5.2 0 9.5 3 11.5 8-2 5-6.3 8-11.5 8S2.5 18 0.5 13C2.5 8 6.8 5 12 5Zm0 2c-4.2 0-7.3 2.2-9 6 1.7 3.8 4.8 6 9 6s7.3-2.2 9-6c-1.7-3.8-4.8-6-9-6Zm0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm0 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/>
+      </svg>
+    `;
+}
+
+function renderMenuToggleIcon(isOpen) {
+  return isOpen
+    ? `
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M6.7 5.3 12 10.6l5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3 1.4-1.4Z"/>
+      </svg>
+    `
+    : `
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M3 6.75h18v1.8H3v-1.8Zm0 4.35h18v1.8H3v-1.8Zm0 4.35h18v1.8H3v-1.8Z"/>
       </svg>
     `;
 }
@@ -2820,11 +2845,7 @@ function render() {
 
   document.querySelector("#app").innerHTML = `
     <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu">
-      <span class="menu-fab-icon" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
+      <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
       <span class="menu-fab-label">${TABS.find((tab) => tab.id === state.activeTab)?.label || "Meni"}</span>
     </button>
 
@@ -2837,7 +2858,9 @@ function render() {
           <strong>Fit tracker</strong>
           <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
         </div>
-        <button class="ghost-button menu-close" type="button" data-action="close-nav-menu">Zatvori</button>
+        <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
+          ${renderMenuToggleIcon(true)}
+        </button>
       </div>
       <div class="mobile-menu-list">
         ${TABS.map(
@@ -2871,6 +2894,20 @@ function render() {
               <div class="footer-note" style="margin-top:4px;">Mozes odmah da je vratis.</div>
             </div>
             <button class="solid-button secondary-button" data-action="undo-delete-entry">Vrati</button>
+          </div>
+        `
+        : ""
+    }
+
+    ${
+      state.updateReady
+        ? `
+          <div class="update-banner" role="status" aria-live="polite">
+            <div>
+              <strong>Nova verzija je spremna.</strong>
+              <div class="footer-note" style="margin-top:4px;">Osvezi app da povuces poslednje izmene.</div>
+            </div>
+            <button class="solid-button secondary-button" data-action="apply-app-update">Osvezi</button>
           </div>
         `
         : ""
@@ -2946,6 +2983,15 @@ function handleDocumentClick(event) {
   if (action === "close-nav-menu") {
     state.navMenuOpen = false;
     render();
+    return;
+  }
+
+  if (action === "apply-app-update") {
+    if (serviceWorkerRegistration?.waiting) {
+      serviceWorkerRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+      return;
+    }
+    window.location.reload();
     return;
   }
 
@@ -3866,8 +3912,39 @@ render();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch((error) => {
-      console.error("SW registration failed", error);
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => {
+        serviceWorkerRegistration = registration;
+
+        if (registration.waiting) {
+          markUpdateReady(registration);
+        }
+
+        registration.addEventListener("updatefound", () => {
+          const worker = registration.installing;
+          if (!worker) {
+            return;
+          }
+
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              markUpdateReady(registration);
+            }
+          });
+        });
+
+        window.setInterval(() => {
+          registration.update().catch(() => {});
+        }, 60 * 1000);
+      })
+      .catch((error) => {
+        console.error("SW registration failed", error);
+      });
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      state.updateReady = false;
+      window.location.reload();
     });
   });
 }
