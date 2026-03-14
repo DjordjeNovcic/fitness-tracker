@@ -885,18 +885,33 @@ body.plan-compact .hero-day-picker {
 .chart-card-top {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  align-items: center;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
 }
 
 .chart-card-top h3 {
   margin: 0;
+  padding-top: 2px;
+}
+
+.chart-card-top .pill,
+.chart-card-top .pill.strong {
+  flex-shrink: 0;
+  min-width: 58px;
+  justify-content: center;
+}
+
+.chart-card .empty {
+  margin-top: 4px;
+  min-height: 112px;
+  display: flex;
+  align-items: center;
 }
 
 .trend-chart {
   width: 100%;
   height: auto;
-  margin-top: 12px;
   border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(216, 234, 223, 0.65) 0%, rgba(255, 250, 242, 0.9) 100%);
