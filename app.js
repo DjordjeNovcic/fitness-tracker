@@ -1307,7 +1307,7 @@ function renderPlanTab(entries) {
   const draftFood = getDraftFood();
 
   return `
-    <section class="section">
+    <section class="section plan-summary-section">
       <div class="section-header">
         <div>
           <h2>Dnevni pregled</h2>
@@ -1315,7 +1315,7 @@ function renderPlanTab(entries) {
         </div>
       </div>
       ${renderMacroCards(totals)}
-      <div class="stats-grid" style="margin-top:12px;">
+      <div class="stats-grid plan-secondary-stats" style="margin-top:12px;">
         <article class="stat-card">
           <strong>Potroseno trening</strong>
           <div class="macro-value">${roundValue(trainingBurn, 0)} kcal</div>
@@ -1329,7 +1329,7 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section plan-preview-section">
       <div class="section-header">
         <div>
           <h2>Preview dana</h2>
@@ -1343,7 +1343,7 @@ function renderPlanTab(entries) {
                 .map((row) => {
                   const mealParts = getMealDisplayParts(row.mealLabel);
                   return `
-                    <article class="food-card">
+                    <article class="food-card plan-preview-card">
                       <div class="meal-heading-block">
                         ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                         <h3 class="meal-title">${mealParts.title || row.mealLabel}</h3>
@@ -1363,7 +1363,7 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section plan-quick-section">
       <div class="section-header">
         <div>
           <h2>Brze akcije</h2>
@@ -1457,7 +1457,7 @@ function renderPlanTab(entries) {
       </article>
     </section>
 
-    <section class="section">
+    <section class="section plan-meals-section">
       <div class="section-header">
         <div>
           <h2>Obroci za ${state.selectedWeekday}</h2>
@@ -1471,6 +1471,7 @@ function renderPlanTab(entries) {
                 .map(([mealLabel, mealEntries]) => {
                   const mealParts = getMealDisplayParts(mealLabel);
                   const isEditingMeal = state.editingMealLabel === mealLabel;
+                  const mealTotals = getDayTotals(mealEntries);
                   return `
                     <article class="meal-card ${isEditingMeal ? "is-editing" : ""}">
                       <div class="meal-card-topline">
@@ -1480,6 +1481,18 @@ function renderPlanTab(entries) {
                           <div class="footer-note">${isEditingMeal ? "Uredjujes ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
                         </div>
                       </div>
+                      ${
+                        mealEntries.length
+                          ? `
+                            <div class="pill-row meal-summary-pills">
+                              <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
+                              <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
+                              <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
+                              <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
+                            </div>
+                          `
+                          : ""
+                      }
                       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
                         <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
                           Dodaj stavku
