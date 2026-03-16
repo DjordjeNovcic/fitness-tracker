@@ -1921,6 +1921,12 @@ body.menu-open .menu-fab {
     height: 100%;
   }
 
+  .food-card.training-burn-card,
+  .training-burn-card {
+    height: auto;
+    align-self: start;
+  }
+
   .menu-fab {
     display: none;
   }
