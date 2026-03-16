@@ -962,12 +962,28 @@ body.plan-compact .hero-day-picker {
 .ghost-button,
 .danger-button,
 .solid-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 44px;
   padding: 10px 16px;
   border-radius: 16px;
   font-weight: 800;
   letter-spacing: 0.01em;
   box-shadow: var(--shadow-tight);
+}
+
+.button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.button-label {
+  display: inline;
 }
 
 .ghost-button {
@@ -1621,6 +1637,16 @@ body.menu-open .menu-fab {
     padding-left: 0;
   }
 
+  .meal-entry-actions .button-label--mobile-hidden {
+    display: none;
+  }
+
+  .meal-entry-actions .ghost-button,
+  .meal-entry-actions .danger-button {
+    min-width: 44px;
+    padding-inline: 12px;
+  }
+
   .update-banner {
     bottom: calc(18px + env(safe-area-inset-bottom));
     align-items: flex-start;
@@ -1818,6 +1844,10 @@ body.menu-open .menu-fab {
   .meal-entry-actions .ghost-button,
   .meal-entry-actions .danger-button {
     min-width: 96px;
+  }
+
+  .meal-entry-actions .button-label--mobile-hidden {
+    display: inline;
   }
 
   .compare-grid {

@@ -1363,6 +1363,26 @@ function renderMenuToggleIcon(isOpen) {
     `;
 }
 
+function renderActionIcon(kind) {
+  const icons = {
+    add: '<path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/>',
+    edit: '<path fill="currentColor" d="m4 16.25 9.7-9.7 4 4L8 20.25H4zm11.1-10.4 1.7-1.7a1.5 1.5 0 0 1 2.1 0l.95.95a1.5 1.5 0 0 1 0 2.1l-1.7 1.7-4-4Z"/>',
+    delete: '<path fill="currentColor" d="M9 4h6l1 1h4v2H4V5h4l1-1Zm1 5h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Z"/>',
+    save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
+    copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
+    open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
+    undo: '<path fill="currentColor" d="M10 7V4L4 9l6 5v-3c3.7 0 6.1 1.3 7 4-0.1-5.1-2.8-8-7-8Z"/>',
+    refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
+    signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
+    apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
+  };
+  return `<span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
+}
+
+function renderButtonContent(label, iconKind, labelClass = "") {
+  return `${renderActionIcon(iconKind)}<span class="button-label ${labelClass}">${label}</span>`;
+}
+
 function renderAuthShell() {
   const submitLabel = state.authPending
     ? state.authMode === "register"
@@ -1646,7 +1666,7 @@ function renderPlanTab(entries) {
                 <option value="replace">Prepiši dan</option>
               </select>
             </div>
-            <button class="solid-button" type="submit">Kopiraj dan</button>
+            <button class="solid-button button-with-icon" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
           </form>
         </article>
 
@@ -1684,7 +1704,7 @@ function renderPlanTab(entries) {
                 </div>
                 <div class="footer-note">Sklonio si predlog sa ekrana. Možeš da ga vratiš kad ti zatreba.</div>
                 <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-                  <button class="ghost-button" data-action="show-day-suggestion">Prikaži opet</button>
+                  <button class="ghost-button button-with-icon" data-action="show-day-suggestion">${renderButtonContent("Prikaži opet", "refresh")}</button>
                 </div>
               </article>
             `
@@ -1706,11 +1726,11 @@ function renderPlanTab(entries) {
                     .join(" | ")}
                 </div>
                 <div class="entry-actions entry-actions--start plan-inline-actions">
-                  <button class="solid-button secondary-button" data-action="apply-day-suggestion" data-mode="replace">
-                    Primeni na dan
+                  <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
+                    ${renderButtonContent("Primeni na dan", "apply")}
                   </button>
-                  <button class="ghost-button" data-action="apply-day-suggestion" data-mode="append">
-                    Dodaj u plan
+                  <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
+                    ${renderButtonContent("Dodaj u plan", "add")}
                   </button>
                 </div>
               </article>
@@ -1723,7 +1743,7 @@ function renderPlanTab(entries) {
           </div>
           <div class="footer-note">Kad ti zatreba gotov recept, otvori Obroke i ubaci ga u ${state.selectedWeekday}.</div>
           <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-            <button class="solid-button secondary-button" data-action="switch-tab" data-tab="recipes">Otvori Obroke</button>
+            <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Obroke", "open")}</button>
           </div>
         </article>
       </div>
@@ -1803,17 +1823,17 @@ function renderPlanTab(entries) {
                             `
                             : `
                               <div class="entry-actions meal-card-actions">
-                                <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
-                                  Dodaj stavku
+                                <button class="solid-button secondary-button button-with-icon" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
+                                  ${renderButtonContent("Dodaj stavku", "add")}
                                 </button>
-                                <button class="ghost-button" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
-                                  ${isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok"}
+                                <button class="ghost-button button-with-icon" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
+                                  ${renderButtonContent(isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok", "edit")}
                                 </button>
                                 ${
                                   mealEntries.length
                                     ? `
-                                      <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
-                                        Sačuvaj u Obroke
+                                      <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
+                                        ${renderButtonContent("Sačuvaj u Obroke", "save")}
                                       </button>
                                     `
                                     : ""
@@ -1846,11 +1866,11 @@ function renderPlanTab(entries) {
                                         !isMealDone
                                           ? `
                                             <div class="entry-actions meal-entry-actions">
-                                              <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
-                                                Izmeni
+                                              <button class="ghost-button button-with-icon" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni stavku">
+                                                ${renderButtonContent("Izmeni", "edit", "button-label--mobile-hidden")}
                                               </button>
-                                              <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
-                                                Obriši
+                                              <button class="danger-button button-with-icon" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši stavku">
+                                                ${renderButtonContent("Obriši", "delete", "button-label--mobile-hidden")}
                                               </button>
                                             </div>
                                           `
@@ -3433,7 +3453,7 @@ function render() {
           <div class="pill-row" style="margin-top:0;">
             <span class="pill strong">${state.syncStatus}</span>
           </div>
-          <button class="ghost-button signout-button" type="button" data-action="sign-out">Odjavi se</button>
+          <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
         </div>
       </aside>
 
@@ -3450,7 +3470,7 @@ function render() {
                 <strong>Stavka obrisana.</strong>
                 <div class="footer-note" style="margin-top:4px;">Mozes odmah da je vratis.</div>
               </div>
-              <button class="solid-button secondary-button" data-action="undo-delete-entry">Vrati</button>
+              <button class="solid-button secondary-button button-with-icon" data-action="undo-delete-entry">${renderButtonContent("Vrati", "undo")}</button>
             </div>
           `
           : ""
@@ -3464,7 +3484,7 @@ function render() {
                 <strong>Nova verzija je spremna.</strong>
                 <div class="footer-note" style="margin-top:4px;">Osvezi app da povuces poslednje izmene.</div>
               </div>
-              <button class="solid-button secondary-button" data-action="apply-app-update">Osvezi</button>
+              <button class="solid-button secondary-button button-with-icon" data-action="apply-app-update">${renderButtonContent("Osvezi", "refresh")}</button>
             </div>
           `
           : ""
