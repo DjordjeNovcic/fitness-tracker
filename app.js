@@ -201,6 +201,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) => ({
     ...entry,
     mealLabel: normalizeMealLabel(entry.mealLabel),
+    done: Boolean(entry.done),
   }));
   targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => ({
     ...favorite,
@@ -515,6 +516,7 @@ function getPlanEntriesForDay(weekday) {
       return {
         ...entry,
         mealLabel: normalizeMealLabel(entry.mealLabel),
+        done: Boolean(entry.done),
         food,
         totals,
       };
@@ -1432,7 +1434,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   return `
     <form id="plan-entry-form" class="form-grid split meal-composer">
       <input id="mealLabel" name="mealLabel" type="hidden" value="${activeMealLabel}" />
-      <div class="composer-context">
+      <div class="composer-context meal-composer-context">
         ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
         <div>
           <strong>${mealParts.title || activeMealLabel}</strong>
@@ -1441,7 +1443,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
           </div>
         </div>
       </div>
-      <div class="field">
+      <div class="field meal-composer-field">
         <label for="foodId">Namirnica</label>
         <select id="foodId" name="foodId" required>
           <option value="">Izaberi namirnicu</option>
@@ -1450,18 +1452,18 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
             .join("")}
         </select>
       </div>
-      <div class="field">
+      <div class="field meal-composer-field">
         <label for="grams">Količina u gramima</label>
         <input id="grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.planDraft.grams}" required />
       </div>
-      <div class="preview-box" id="entry-preview">
+      <div class="preview-box meal-composer-preview" id="entry-preview">
         <h3>Preview</h3>
         <p>Izaberi namirnicu i gramažu da odmah vidiš makroe.</p>
       </div>
       ${
         companionSuggestions.length
           ? `
-            <div class="food-card suggestion-surface" id="companion-suggestions">
+            <div class="food-card suggestion-surface meal-composer-suggestions" id="companion-suggestions">
               <div class="food-card-top">
                 <h3>Brzi predlozi uz ${draftFood?.name || "stavku"}</h3>
                 <span class="pill strong">auto</span>
@@ -1491,7 +1493,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
           `
           : ""
       }
-      <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+      <div class="entry-actions entry-actions--start meal-composer-actions">
         <button class="solid-button secondary-button" type="submit">${state.editingEntryId ? "Sačuvaj izmene" : "Dodaj namirnicu"}</button>
         ${
           state.editingEntryId
@@ -1675,26 +1677,17 @@ function renderPlanTab(entries) {
               </article>
             `
         }
+        <article class="food-card suggestion-surface plan-recipes-card">
+          <div class="food-card-top">
+            <h3>Omiljeni obroci i recepti</h3>
+            <span class="pill strong">${favorites.length}</span>
+          </div>
+          <div class="footer-note">Kad ti zatreba gotov recept, otvori Obroke i ubaci ga u ${state.selectedWeekday}.</div>
+          <div class="entry-actions entry-actions--start" style="margin-top:12px;">
+            <button class="solid-button secondary-button" data-action="switch-tab" data-tab="recipes">Otvori Obroke</button>
+          </div>
+        </article>
       </div>
-    </section>
-
-    <section class="section plan-recipes-section">
-      <div class="section-header">
-        <div>
-          <h2>Obroci iz baze</h2>
-          <p>Recepte i omiljene obroke držiš na jednom mestu, pa ih odatle ubacuješ u dan kad ti zatrebaju.</p>
-        </div>
-      </div>
-      <article class="food-card suggestion-surface plan-recipes-card">
-        <div class="food-card-top">
-          <h3>Omiljeni obroci i recepti</h3>
-          <span class="pill strong">${favorites.length}</span>
-        </div>
-        <div class="footer-note">U tabu Obroci praviš, menjaš i čuvaš cele sastavljene obroke, pa ih jednim tapom dodaješ u ${state.selectedWeekday}.</div>
-        <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-          <button class="solid-button secondary-button" data-action="switch-tab" data-tab="recipes">Otvori Obroke</button>
-        </div>
-      </article>
     </section>
 
     <section class="section plan-meals-section">
@@ -1756,18 +1749,24 @@ function renderPlanTab(entries) {
                           ? mealEntries
                               .map(
                                 (entry) => `
-                                  <div class="meal-entry">
-                                    <div class="meal-entry-top">
-                                      <strong>${entry.foodName}</strong>
-                                      <span class="pill">${roundValue(entry.grams, 0)} g</span>
+                                  <div class="meal-entry ${entry.done ? "is-done" : ""}">
+                                    <label class="meal-entry-check">
+                                      <input class="meal-entry-checkbox" type="checkbox" data-action="toggle-plan-entry-done" data-entry-id="${entry.id}" ${entry.done ? "checked" : ""} />
+                                      <span class="meal-entry-check-ui" aria-hidden="true"></span>
+                                    </label>
+                                    <div class="meal-entry-body">
+                                      <div class="meal-entry-top">
+                                        <strong>${entry.foodName}</strong>
+                                        <span class="pill">${roundValue(entry.grams, 0)} g</span>
+                                      </div>
+                                      <div class="pill-row meal-entry-pills">
+                                        <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
+                                        <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
+                                        <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
+                                        <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
+                                      </div>
                                     </div>
-                                    <div class="pill-row">
-                                      <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                      <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
-                                      <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
-                                      <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
-                                    </div>
-                                    <div class="entry-actions">
+                                    <div class="entry-actions meal-entry-actions">
                                       <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
                                         Izmeni
                                       </button>
@@ -3735,6 +3734,18 @@ function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-plan-entry-done") {
+    const entryId = actionTarget.dataset.entryId;
+    const entry = store.weeklyPlanEntries.find((item) => item.id === entryId);
+    if (!entry) {
+      return;
+    }
+    entry.done = !entry.done;
+    persist();
+    render();
+    return;
+  }
+
   if (action === "cancel-edit-entry") {
     resetPlanDraft();
     render();
@@ -3755,6 +3766,7 @@ function handleDocumentClick(event) {
       foodId: food.id,
       foodName: food.name,
       grams,
+      done: false,
     });
     persist();
     render();
@@ -3783,6 +3795,7 @@ function handleDocumentClick(event) {
           foodId: item.food.id,
           foodName: item.food.name,
           grams: item.grams,
+          done: false,
         });
       });
     });
@@ -3926,6 +3939,7 @@ function handleDocumentClick(event) {
         foodId: item.foodId,
         foodName: item.foodName,
         grams: item.grams,
+        done: false,
       });
     });
 
@@ -3949,6 +3963,7 @@ function handleDocumentClick(event) {
       foodId: item.foodId,
       foodName: item.foodName,
       grams: item.grams,
+      done: false,
     });
 
     persist();
@@ -4258,6 +4273,7 @@ async function handleSubmit(event) {
         foodId: food.id,
         foodName: food.name,
         grams,
+        done: false,
       });
     }
     persist();
@@ -4293,6 +4309,7 @@ async function handleSubmit(event) {
         ...entry,
         id: uid("plan"),
         weekday: targetWeekday,
+        done: false,
       });
     });
 
