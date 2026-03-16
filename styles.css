@@ -1294,6 +1294,11 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 520px) {
+  .shell {
+    gap: 18px;
+    padding: 20px 14px 34px;
+  }
+
   .routine-summary-grid {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
@@ -1309,7 +1314,7 @@ body.menu-open .menu-fab {
 
   .menu-fab {
     top: calc(20px + env(safe-area-inset-top));
-    right: 20px;
+    right: 16px;
     min-width: 48px;
     padding: 11px;
     justify-content: center;
@@ -1337,6 +1342,19 @@ body.menu-open .menu-fab {
 
   .hero {
     padding: 18px 18px 16px;
+  }
+
+  .hero h1 {
+    font-size: 1.72rem;
+  }
+
+  .goal-grid,
+  .macro-grid,
+  .stats-grid,
+  .chart-grid,
+  .photo-grid,
+  .compare-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .suggestion-row {
@@ -1398,7 +1416,7 @@ body.menu-open .menu-fab {
   .stats-grid,
   .chart-grid,
   .photo-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .compare-grid {
@@ -1407,5 +1425,144 @@ body.menu-open .menu-fab {
 
   .form-grid.split {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .shell {
+    max-width: 1080px;
+    gap: 24px;
+    padding: 32px 24px 56px;
+  }
+
+  .shell-with-menu {
+    padding-top: 42px;
+  }
+
+  .shell-with-menu.is-plan-shell {
+    padding-top: 28px;
+  }
+
+  .hero {
+    padding: 28px 30px 24px;
+    border-radius: var(--radius-xl);
+  }
+
+  body.plan-compact .hero {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-size: 2.28rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .hero-day-picker {
+    padding: 18px 20px;
+  }
+
+  .section {
+    padding: 24px;
+  }
+
+  .section-header {
+    margin-bottom: 20px;
+  }
+
+  .section-header h2 {
+    font-size: 1.34rem;
+  }
+
+  .goal-grid,
+  .macro-grid,
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .chart-grid,
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .routine-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .food-list,
+  .training-list,
+  .stack {
+    gap: 16px;
+  }
+
+  .plan-preview-section .stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .plan-meals-section .stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .plan-quick-stack {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+
+  .compare-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .chart-card,
+  .photo-card,
+  .meal-card,
+  .food-card,
+  .training-card,
+  .macro-card,
+  .stat-card {
+    height: 100%;
+  }
+
+  .menu-fab {
+    top: 28px;
+    right: max(28px, calc((100vw - 1080px) / 2 + 24px));
+  }
+
+  .mobile-menu {
+    width: min(390px, calc(100vw - 40px));
+    padding-inline: 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .shell {
+    max-width: 1180px;
+  }
+
+  .goal-grid,
+  .macro-grid,
+  .stats-grid,
+  .chart-grid,
+  .photo-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .routine-summary-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .plan-preview-section .stack {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .menu-fab {
+    right: max(32px, calc((100vw - 1180px) / 2 + 24px));
   }
 }
