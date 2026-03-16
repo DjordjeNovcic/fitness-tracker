@@ -559,6 +559,31 @@ body.plan-compact .hero-day-picker {
   flex: 1 1 auto;
 }
 
+.meal-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.meal-card-content {
+  display: grid;
+  gap: 0;
+}
+
+.meal-card-content.is-hidden {
+  display: none;
+}
+
+.meal-card.is-collapsed {
+  padding-bottom: 18px;
+}
+
 .meal-title {
   margin: 0;
   font-size: 1.2rem;
@@ -1760,8 +1785,30 @@ body.menu-open .menu-fab {
   }
 
   .menu-fab {
-    top: 28px;
+    top: 34px;
     right: max(28px, calc((100vw - 1080px) / 2 + 24px));
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border-radius: 16px;
+    color: var(--accent);
+    background: rgba(255, 251, 245, 0.82);
+    border-color: rgba(25, 34, 31, 0.08);
+    box-shadow: 0 12px 24px rgba(25, 34, 31, 0.08);
+    backdrop-filter: blur(16px);
+  }
+
+  .menu-fab:hover {
+    transform: translateY(-1px);
+  }
+
+  .menu-fab-label {
+    display: inline;
+    font-size: 0.88rem;
+  }
+
+  .menu-fab-icon {
+    color: var(--accent);
   }
 
   .mobile-menu {

@@ -121,6 +121,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
   const fallbackUi = {
     plan: {
       hideDaySuggestion: false,
+      collapsedMealsByWeekday: {},
     },
   };
 
@@ -197,6 +198,9 @@ function ensureStoreCollections(targetStore) {
   targetStore.ui.plan = targetStore.ui.plan || {};
   if (typeof targetStore.ui.plan.hideDaySuggestion !== "boolean") {
     targetStore.ui.plan.hideDaySuggestion = false;
+  }
+  if (!targetStore.ui.plan.collapsedMealsByWeekday || typeof targetStore.ui.plan.collapsedMealsByWeekday !== "object") {
+    targetStore.ui.plan.collapsedMealsByWeekday = {};
   }
   targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) => ({
     ...entry,
@@ -954,6 +958,29 @@ function getMealEntriesForWeekday(weekday, mealLabel) {
 function isMealCompletedForWeekday(weekday, mealLabel) {
   const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
   return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+}
+
+function isMealCollapsedForWeekday(weekday, mealLabel) {
+  const collapsedMeals = store.ui?.plan?.collapsedMealsByWeekday?.[weekday];
+  const normalizedMealLabel = normalizeMealLabel(mealLabel);
+  return Array.isArray(collapsedMeals)
+    ? collapsedMeals.includes(normalizedMealLabel)
+    : Boolean(collapsedMeals?.[normalizedMealLabel]);
+}
+
+function toggleMealCollapsedState(weekday, mealLabel) {
+  const normalizedMealLabel = normalizeMealLabel(mealLabel);
+  const current = store.ui.plan.collapsedMealsByWeekday?.[weekday];
+  const collapsedMeals = Array.isArray(current)
+    ? [...current]
+    : Object.keys(current || {}).filter((label) => current[label]);
+
+  if (collapsedMeals.includes(normalizedMealLabel)) {
+    store.ui.plan.collapsedMealsByWeekday[weekday] = collapsedMeals.filter((label) => label !== normalizedMealLabel);
+    return;
+  }
+
+  store.ui.plan.collapsedMealsByWeekday[weekday] = [...collapsedMeals, normalizedMealLabel];
 }
 
 function getRemainingGoals(totals) {
@@ -1717,15 +1744,32 @@ function renderPlanTab(entries) {
                   const mealParts = getMealDisplayParts(mealLabel);
                   const isEditingMeal = state.editingMealLabel === mealLabel;
                   const isMealDone = mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+                  const isMealCollapsed = isMealCollapsedForWeekday(state.selectedWeekday, mealLabel);
                   const mealTotals = getDayTotals(mealEntries);
                   return `
-                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""}">
+                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-card-topline">
                         ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                         <div class="meal-card-heading">
                           <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
                           <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
                         </div>
+                        ${
+                          mealEntries.length
+                            ? `
+                              <button
+                                class="ghost-button meal-collapse-toggle"
+                                type="button"
+                                data-action="toggle-plan-meal-collapse"
+                                data-meal-label="${mealLabel}"
+                                aria-expanded="${!isMealCollapsed}"
+                                aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
+                              >
+                                <span aria-hidden="true">${isMealCollapsed ? "▾" : "▴"}</span>
+                              </button>
+                            `
+                            : ""
+                        }
                         ${
                           mealEntries.length
                             ? `
@@ -1749,72 +1793,74 @@ function renderPlanTab(entries) {
                           `
                           : ""
                       }
-                      ${
-                        isMealDone
-                          ? `
-                            <div class="meal-done-note">
-                              Ovaj obrok je označen kao završen. Skini čekiranje ako želiš da ga menjaš.
-                            </div>
-                          `
-                          : `
-                            <div class="entry-actions meal-card-actions">
-                              <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
-                                Dodaj stavku
-                              </button>
-                              <button class="ghost-button" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
-                                ${isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok"}
-                              </button>
-                              ${
-                                mealEntries.length
-                                  ? `
-                                    <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
-                                      Sačuvaj u Obroke
-                                    </button>
-                                  `
-                                  : ""
-                              }
-                            </div>
-                          `
-                      }
-                      ${isEditingMeal && !isMealDone ? renderPlanEntryComposer(meals, companionSuggestions, draftFood) : ""}
-                      ${
-                        mealEntries.length
-                          ? mealEntries
-                              .map(
-                                (entry) => `
-                                  <div class="meal-entry ${entry.done ? "is-done" : ""}">
-                                    <div class="meal-entry-body">
-                                      <div class="meal-entry-top">
-                                        <strong>${entry.foodName}</strong>
-                                        <span class="pill">${roundValue(entry.grams, 0)} g</span>
+                      <div class="meal-card-content ${isMealCollapsed ? "is-hidden" : ""}">
+                        ${
+                          isMealDone
+                            ? `
+                              <div class="meal-done-note">
+                                Ovaj obrok je označen kao završen. Skini čekiranje ako želiš da ga menjaš.
+                              </div>
+                            `
+                            : `
+                              <div class="entry-actions meal-card-actions">
+                                <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
+                                  Dodaj stavku
+                                </button>
+                                <button class="ghost-button" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
+                                  ${isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok"}
+                                </button>
+                                ${
+                                  mealEntries.length
+                                    ? `
+                                      <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
+                                        Sačuvaj u Obroke
+                                      </button>
+                                    `
+                                    : ""
+                                }
+                              </div>
+                            `
+                        }
+                        ${isEditingMeal && !isMealDone ? renderPlanEntryComposer(meals, companionSuggestions, draftFood) : ""}
+                        ${
+                          mealEntries.length
+                            ? mealEntries
+                                .map(
+                                  (entry) => `
+                                    <div class="meal-entry ${entry.done ? "is-done" : ""}">
+                                      <div class="meal-entry-body">
+                                        <div class="meal-entry-top">
+                                          <strong>${entry.foodName}</strong>
+                                          <span class="pill">${roundValue(entry.grams, 0)} g</span>
+                                        </div>
+                                        <div class="pill-row meal-entry-pills">
+                                          <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
+                                          <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
+                                          <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
+                                          <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
+                                        </div>
                                       </div>
-                                      <div class="pill-row meal-entry-pills">
-                                        <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                        <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
-                                        <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
-                                        <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
-                                      </div>
+                                      ${
+                                        !isMealDone
+                                          ? `
+                                            <div class="entry-actions meal-entry-actions">
+                                              <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
+                                                Izmeni
+                                              </button>
+                                              <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
+                                                Obriši
+                                              </button>
+                                            </div>
+                                          `
+                                          : ""
+                                      }
                                     </div>
-                                    ${
-                                      !isMealDone
-                                        ? `
-                                          <div class="entry-actions meal-entry-actions">
-                                            <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
-                                              Izmeni
-                                            </button>
-                                            <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
-                                              Obriši
-                                            </button>
-                                          </div>
-                                        `
-                                        : ""
-                                    }
-                                  </div>
-                                `
-                              )
-                              .join("")
-                          : `<div class="empty" style="margin-top:12px;">Još nema stavki u ovom obroku.</div>`
-                      }
+                                  `
+                                )
+                                .join("")
+                            : `<div class="empty" style="margin-top:12px;">Još nema stavki u ovom obroku.</div>`
+                        }
+                      </div>
                     </article>
                   `;
                 })
@@ -3352,9 +3398,9 @@ function render() {
   };
 
   document.querySelector("#app").innerHTML = `
-    <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu">
+    <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
       <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
-      <span class="menu-fab-label">${TABS.find((tab) => tab.id === state.activeTab)?.label || "Meni"}</span>
+      <span class="menu-fab-label">Meni</span>
     </button>
 
     ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
@@ -3789,6 +3835,21 @@ function handleDocumentClick(event) {
       state.editingMealLabel = "";
       resetPlanDraft();
     }
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "toggle-plan-meal-collapse") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    if (state.editingMealLabel === mealLabel && !isMealCollapsedForWeekday(state.selectedWeekday, mealLabel)) {
+      state.editingMealLabel = "";
+      resetPlanDraft();
+    }
+    toggleMealCollapsedState(state.selectedWeekday, mealLabel);
     persist();
     render();
     return;
