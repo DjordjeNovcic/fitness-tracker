@@ -538,6 +538,10 @@ body.plan-compact .hero-day-picker {
   margin-bottom: 12px;
 }
 
+.meal-card.is-collapsed .meal-card-topline {
+  margin-bottom: 0;
+}
+
 .meal-card.is-done {
   opacity: 0.84;
   background:
@@ -581,7 +585,11 @@ body.plan-compact .hero-day-picker {
 }
 
 .meal-card.is-collapsed {
-  padding-bottom: 18px;
+  padding-block: 16px;
+}
+
+.meal-card.is-collapsed .footer-note {
+  margin-top: 2px;
 }
 
 .meal-title {
@@ -1776,7 +1784,6 @@ body.menu-open .menu-fab {
 
   .chart-card,
   .photo-card,
-  .meal-card,
   .food-card,
   .training-card,
   .macro-card,
@@ -1787,14 +1794,15 @@ body.menu-open .menu-fab {
   .menu-fab {
     top: 34px;
     right: max(28px, calc((100vw - 1080px) / 2 + 24px));
-    gap: 10px;
-    min-height: 42px;
-    padding: 8px 12px;
-    border-radius: 16px;
-    color: var(--accent);
-    background: rgba(255, 251, 245, 0.82);
-    border-color: rgba(25, 34, 31, 0.08);
-    box-shadow: 0 12px 24px rgba(25, 34, 31, 0.08);
+    gap: 0;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 999px;
+    color: rgba(255, 250, 242, 0.94);
+    background: rgba(19, 44, 35, 0.42);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 24px rgba(25, 34, 31, 0.12);
     backdrop-filter: blur(16px);
   }
 
@@ -1803,12 +1811,7 @@ body.menu-open .menu-fab {
   }
 
   .menu-fab-label {
-    display: inline;
-    font-size: 0.88rem;
-  }
-
-  .menu-fab-icon {
-    color: var(--accent);
+    display: none;
   }
 
   .mobile-menu {

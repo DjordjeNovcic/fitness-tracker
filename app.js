@@ -1781,19 +1781,19 @@ function renderPlanTab(entries) {
                             : ""
                         }
                       </div>
-                      ${
-                        mealEntries.length
-                          ? `
-                            <div class="pill-row meal-summary-pills">
-                              <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
-                              <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
-                              <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
-                              <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
-                            </div>
-                          `
-                          : ""
-                      }
                       <div class="meal-card-content ${isMealCollapsed ? "is-hidden" : ""}">
+                        ${
+                          mealEntries.length
+                            ? `
+                              <div class="pill-row meal-summary-pills">
+                                <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
+                                <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
+                                <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
+                                <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
+                              </div>
+                            `
+                            : ""
+                        }
                         ${
                           isMealDone
                             ? `
