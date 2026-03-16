@@ -1363,19 +1363,6 @@ function renderMenuToggleIcon(isOpen) {
     `;
 }
 
-function renderTabIcon(tabId) {
-  const icons = {
-    plan: '<path fill="currentColor" d="M4 6h16v12H4V6Zm2 2v8h12V8H6Zm2 1.5h8v1.8H8V9.5Zm0 3.2h5.5v1.8H8v-1.8Z"/>',
-    recipes: '<path fill="currentColor" d="M7 4h2v8.2a3 3 0 1 1-2 0V4Zm8.5 0c1.9 1.3 3 3.3 3 5.6 0 1.7-.6 3.2-1.7 4.3l-1.4-1.4a4 4 0 0 0 1.1-2.9c0-1.3-.6-2.5-1.6-3.3L15.5 4ZM12 4h2v16h-2V4Z"/>',
-    foods: '<path fill="currentColor" d="M12 3c3.9 0 7 3.3 7 7.3 0 5.1-3 8.7-7 10.7-4-2-7-5.6-7-10.7C5 6.3 8.1 3 12 3Zm0 2c-2.8 0-5 2.4-5 5.3 0 3.8 2.1 6.7 5 8.4 2.9-1.7 5-4.6 5-8.4C17 7.4 14.8 5 12 5Z"/>',
-    training: '<path fill="currentColor" d="M2 9h3l2-2 2 2h6l2-2 2 2h3v2h-3l-2 2-2-2H9l-2 2-2-2H2V9Zm6 5h8v2H8v-2Z"/>',
-    routine: '<path fill="currentColor" d="M9.2 16.4 4.8 12l1.4-1.4 3 3 8.6-8.6 1.4 1.4-10 10ZM5 5h9v2H5V5Zm0 12h9v2H5v-2Z"/>',
-    progress: '<path fill="currentColor" d="M5 18h2V9H5v9Zm6 0h2V6h-2v12Zm6 0h2V12h-2v6ZM4 20h16v2H4v-2Z"/>',
-    goals: '<path fill="currentColor" d="M12 3 20 7v5c0 4.3-2.6 8.1-8 10-5.4-1.9-8-5.7-8-10V7l8-4Zm0 2.2L6 8v4c0 3.2 1.8 6.1 6 8 4.2-1.9 6-4.8 6-8V8l-6-2.8Zm-1 4.3h2v4h-2v-4Zm0 5.5h2v2h-2v-2Z"/>',
-  };
-  return `<span class="menu-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[tabId] || icons.plan}</svg></span>`;
-}
-
 function renderActionIcon(kind) {
   const icons = {
     add: '<path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/>',
@@ -3455,11 +3442,11 @@ function render() {
       ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
 
       <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
-        <div class="mobile-menu-top app-sidebar-top">
-          <div class="app-sidebar-brand">
-            <div class="app-sidebar-kicker">Navigacija</div>
+        <div class="mobile-menu-top">
+          <div>
+            <div class="hero-picker-label">Navigacija</div>
             <strong>Fit tracker</strong>
-            <div class="app-sidebar-email">${state.authUser?.email || ""}</div>
+            <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
             ${renderMenuToggleIcon(true)}
@@ -3469,14 +3456,14 @@ function render() {
           ${TABS.map(
             (tab) => `
               <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
-                ${renderTabIcon(tab.id)}
-                <span class="menu-tab-label">${tab.label}</span>
+                <span class="icon">${tab.icon}</span>
+                <span>${tab.label}</span>
               </button>
             `
           ).join("")}
         </div>
         <div class="mobile-menu-footer">
-          <div class="pill-row app-sidebar-status" style="margin-top:0;">
+          <div class="pill-row" style="margin-top:0;">
             <span class="pill strong">${state.syncStatus}</span>
           </div>
           <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
