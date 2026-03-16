@@ -1346,9 +1346,13 @@ body.menu-open {
 }
 
 body.menu-open .mobile-menu,
-body.menu-open .menu-overlay,
-body.menu-open .menu-fab {
+body.menu-open .menu-overlay {
   touch-action: auto;
+}
+
+body.menu-open .menu-fab {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .mobile-menu {
@@ -1725,7 +1729,7 @@ body.menu-open .menu-fab {
   }
 
   .plan-meals-section .stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -1792,22 +1796,22 @@ body.menu-open .menu-fab {
   }
 
   .menu-fab {
-    top: 34px;
+    top: 28px;
     right: max(28px, calc((100vw - 1080px) / 2 + 24px));
-    gap: 0;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 46px;
+    min-height: 46px;
     padding: 0;
-    border-radius: 999px;
-    color: rgba(255, 250, 242, 0.94);
-    background: rgba(19, 44, 35, 0.42);
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 10px 24px rgba(25, 34, 31, 0.12);
-    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    color: var(--accent);
+    background: rgba(255, 251, 245, 0.94);
+    border-color: rgba(25, 34, 31, 0.08);
+    box-shadow: 0 12px 28px rgba(25, 34, 31, 0.08);
+    backdrop-filter: blur(12px);
   }
 
   .menu-fab:hover {
     transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(25, 34, 31, 0.1);
   }
 
   .menu-fab-label {
@@ -1815,8 +1819,35 @@ body.menu-open .menu-fab {
   }
 
   .mobile-menu {
-    width: min(390px, calc(100vw - 40px));
-    padding-inline: 20px;
+    top: 84px;
+    right: max(28px, calc((100vw - 1080px) / 2 + 24px));
+    bottom: auto;
+    width: 340px;
+    max-height: calc(100vh - 112px);
+    padding: 18px;
+    border: 1px solid rgba(25, 34, 31, 0.08);
+    border-radius: 26px;
+    box-shadow: 0 22px 48px rgba(25, 34, 31, 0.14);
+  }
+
+  .menu-overlay {
+    background: rgba(25, 34, 31, 0.12);
+    backdrop-filter: blur(2px);
+  }
+
+  .mobile-menu-top {
+    align-items: center;
+  }
+
+  .mobile-menu-top strong {
+    font-size: 1.04rem;
+  }
+
+  .menu-close {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 12px;
   }
 }
 
@@ -1842,6 +1873,10 @@ body.menu-open .menu-fab {
   }
 
   .menu-fab {
+    right: max(32px, calc((100vw - 1180px) / 2 + 24px));
+  }
+
+  .mobile-menu {
     right: max(32px, calc((100vw - 1180px) / 2 + 24px));
   }
 }
