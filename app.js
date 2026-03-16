@@ -3398,75 +3398,76 @@ function render() {
   };
 
   document.querySelector("#app").innerHTML = `
-    <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
-      <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
-      <span class="menu-fab-label">Meni</span>
-    </button>
+    <div class="app-frame">
+      <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
+        <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
+        <span class="menu-fab-label">Meni</span>
+      </button>
 
-    ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
+      ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
 
-    <aside id="app-menu" class="mobile-menu ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
-      <div class="mobile-menu-top">
-        <div>
-          <div class="hero-picker-label">Navigacija</div>
-          <strong>Fit tracker</strong>
-          <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
+      <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
+        <div class="mobile-menu-top">
+          <div>
+            <div class="hero-picker-label">Navigacija</div>
+            <strong>Fit tracker</strong>
+            <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
+            ${renderMenuToggleIcon(true)}
+          </button>
         </div>
-        <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
-          ${renderMenuToggleIcon(true)}
-        </button>
-      </div>
-      <div class="mobile-menu-list">
-        ${TABS.map(
-          (tab) => `
-            <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
-              <span class="icon">${tab.icon}</span>
-              <span>${tab.label}</span>
-            </button>
+        <div class="mobile-menu-list">
+          ${TABS.map(
+            (tab) => `
+              <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
+                <span class="icon">${tab.icon}</span>
+                <span>${tab.label}</span>
+              </button>
+            `
+          ).join("")}
+        </div>
+        <div class="mobile-menu-footer">
+          <div class="pill-row" style="margin-top:0;">
+            <span class="pill strong">${state.syncStatus}</span>
+          </div>
+          <button class="ghost-button signout-button" type="button" data-action="sign-out">Odjavi se</button>
+        </div>
+      </aside>
+
+      <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""}">
+        ${heroMarkup}
+        ${sections[state.activeTab]}
+      </main>
+
+      ${
+        state.deletedPlanEntry
+          ? `
+            <div class="undo-banner" role="status" aria-live="polite">
+              <div>
+                <strong>Stavka obrisana.</strong>
+                <div class="footer-note" style="margin-top:4px;">Mozes odmah da je vratis.</div>
+              </div>
+              <button class="solid-button secondary-button" data-action="undo-delete-entry">Vrati</button>
+            </div>
           `
-        ).join("")}
-      </div>
-      <div class="mobile-menu-footer">
-        <div class="pill-row" style="margin-top:0;">
-          <span class="pill strong">${state.syncStatus}</span>
-        </div>
-        <button class="ghost-button signout-button" type="button" data-action="sign-out">Odjavi se</button>
-      </div>
-    </aside>
+          : ""
+      }
 
-    <main class="shell shell-with-menu ${state.activeTab === "plan" ? "is-plan-shell" : ""}">
-      ${heroMarkup}
-      ${sections[state.activeTab]}
-    </main>
-
-    ${
-      state.deletedPlanEntry
-        ? `
-          <div class="undo-banner" role="status" aria-live="polite">
-            <div>
-              <strong>Stavka obrisana.</strong>
-              <div class="footer-note" style="margin-top:4px;">Mozes odmah da je vratis.</div>
+      ${
+        state.updateReady
+          ? `
+            <div class="update-banner" role="status" aria-live="polite">
+              <div>
+                <strong>Nova verzija je spremna.</strong>
+                <div class="footer-note" style="margin-top:4px;">Osvezi app da povuces poslednje izmene.</div>
+              </div>
+              <button class="solid-button secondary-button" data-action="apply-app-update">Osvezi</button>
             </div>
-            <button class="solid-button secondary-button" data-action="undo-delete-entry">Vrati</button>
-          </div>
-        `
-        : ""
-    }
-
-    ${
-      state.updateReady
-        ? `
-          <div class="update-banner" role="status" aria-live="polite">
-            <div>
-              <strong>Nova verzija je spremna.</strong>
-              <div class="footer-note" style="margin-top:4px;">Osvezi app da povuces poslednje izmene.</div>
-            </div>
-            <button class="solid-button secondary-button" data-action="apply-app-update">Osvezi</button>
-          </div>
-        `
-        : ""
-    }
-
+          `
+          : ""
+      }
+    </div>
   `;
 
   syncBodyScrollLock();
