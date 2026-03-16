@@ -2209,7 +2209,9 @@ body.menu-open .menu-fab {
   .food-card.training-burn-card,
   .training-burn-card,
   .food-card.recipe-draft-card,
-  .recipe-draft-card {
+  .recipe-draft-card,
+  .food-card.foods-editor-card,
+  .foods-editor-card {
     height: auto;
     align-self: start;
   }
