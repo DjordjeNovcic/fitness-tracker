@@ -1828,13 +1828,15 @@ function renderPlanTab(entries) {
                                 .map(
                                   (entry) => `
                                     <div class="meal-entry ${entry.done ? "is-done" : ""}">
-                                      <div class="meal-entry-body">
-                                        <div class="meal-entry-top">
+                                    <div class="meal-entry-body">
+                                      <div class="meal-entry-top">
+                                        <div class="meal-entry-title-group">
                                           <strong>${entry.foodName}</strong>
-                                          <span class="pill">${roundValue(entry.grams, 0)} g</span>
+                                          <span class="meal-entry-grams">${roundValue(entry.grams, 0)} g</span>
                                         </div>
-                                        <div class="pill-row meal-entry-pills">
-                                          <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
+                                      </div>
+                                      <div class="pill-row meal-entry-pills">
+                                        <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
                                           <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
                                           <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
                                           <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
