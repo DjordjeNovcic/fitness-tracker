@@ -1935,6 +1935,8 @@ function renderFoodsTab() {
     Ostalo: "other",
     Sve: "all",
   };
+  const editorGroup = editingFood ? getFoodMacroGroup(editingFood) : "Sve";
+  const editorToneClass = macroClassMap[editorGroup] || "other";
 
   return `
     <section class="section goals-sync-section foods-section">
@@ -2005,14 +2007,26 @@ function renderFoodsTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section foods-editor-section">
       <div class="section-header">
         <div>
           <h2>${editingFood ? "Izmeni namirnicu" : "Dodaj namirnicu"}</h2>
           <p>${editingFood ? "Promeni vrednosti na 100 g i sačuvaj izmenu." : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom."}</p>
         </div>
       </div>
-      <form id="food-form" class="form-grid split">
+      <div class="food-card suggestion-surface foods-editor-card foods-editor-card--${editorToneClass}">
+        <div class="foods-editor-intro">
+          <div class="foods-editor-copy">
+            <div class="foods-card-kicker">${editingFood ? "Uređivanje" : "Novi unos"}</div>
+            <h3>${editingFood ? editingFood.name : "Nova namirnica u bazi"}</h3>
+            <p>${editingFood ? "Ažuriraš vrednosti na 100 g i promene će važiti svuda gde koristiš ovu namirnicu." : "Unesi makroe na 100 g, pa će app posle sama računati svaku gramažu u obrocima."}</p>
+          </div>
+          <div class="pill-row foods-editor-pills">
+            <span class="pill strong foods-group-badge foods-group-badge--${editorToneClass}">${editingFood ? editorGroup : "Ručno dodavanje"}</span>
+            ${editingFood ? `<span class="pill note foods-kcal-pill">${roundValue(editingFood.kcal, 0)} kcal / ${roundValue(editingFood.servingBaseGrams, 0)} g</span>` : `<span class="pill">Na 100 g</span>`}
+          </div>
+        </div>
+        <form id="food-form" class="form-grid split foods-editor-form">
         <div class="field">
           <label for="food-name">Naziv</label>
           <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${editingFood?.name || ""}" required />
@@ -2037,11 +2051,12 @@ function renderFoodsTab() {
           <label for="food-fat">Masti na 100 g</label>
           <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
         </div>
-        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button" type="submit">${editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu"}</button>
-          ${editingFood ? '<button class="ghost-button" type="button" data-action="cancel-edit-food">Odustani</button>' : ""}
+        <div class="entry-actions foods-editor-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+          <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
+          ${editingFood ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-food">${renderButtonContent("Odustani", "close")}</button>` : ""}
         </div>
-      </form>
+        </form>
+      </div>
     </section>
   `;
 }

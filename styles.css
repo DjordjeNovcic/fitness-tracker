@@ -865,6 +865,75 @@ body.plan-compact .hero-day-picker {
   min-height: 40px;
 }
 
+.foods-editor-card {
+  padding: 18px;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.foods-editor-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.foods-editor-card--proteins::before {
+  background: linear-gradient(90deg, rgba(44, 123, 116, 0.7), rgba(86, 152, 121, 0.9));
+}
+
+.foods-editor-card--carbs::before {
+  background: linear-gradient(90deg, rgba(200, 154, 74, 0.65), rgba(224, 187, 113, 0.92));
+}
+
+.foods-editor-card--fats::before {
+  background: linear-gradient(90deg, rgba(112, 126, 82, 0.7), rgba(156, 168, 108, 0.92));
+}
+
+.foods-editor-card--other::before,
+.foods-editor-card--all::before {
+  background: linear-gradient(90deg, rgba(98, 118, 110, 0.62), rgba(158, 175, 167, 0.92));
+}
+
+.foods-editor-intro {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.foods-editor-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.foods-editor-copy h3,
+.foods-editor-copy p {
+  margin: 0;
+}
+
+.foods-editor-copy p {
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.foods-editor-pills {
+  margin-top: 0;
+}
+
+.foods-editor-form {
+  margin-top: 0;
+}
+
+.foods-editor-actions {
+  margin-top: 4px;
+}
+
+.foods-editor-actions > button {
+  min-height: 42px;
+}
+
 .composer-context {
   display: flex;
   align-items: center;
@@ -2069,6 +2138,11 @@ body.menu-open .menu-fab {
   .foods-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+
+  .foods-editor-intro {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
   }
 
   .plan-suggestion-card {
