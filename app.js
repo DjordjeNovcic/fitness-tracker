@@ -944,6 +944,18 @@ function getEffectiveDayTotals() {
   };
 }
 
+function getMealEntriesForWeekday(weekday, mealLabel) {
+  const normalizedMealLabel = normalizeMealLabel(mealLabel);
+  return store.weeklyPlanEntries.filter(
+    (entry) => entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === normalizedMealLabel
+  );
+}
+
+function isMealCompletedForWeekday(weekday, mealLabel) {
+  const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
+  return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+}
+
 function getRemainingGoals(totals) {
   return {
     kcal: roundValue((store.goals.calories || 0) - totals.kcal, 1),
@@ -1737,24 +1749,34 @@ function renderPlanTab(entries) {
                           `
                           : ""
                       }
-                      <div class="entry-actions meal-card-actions">
-                        <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
-                          Dodaj stavku
-                        </button>
-                        <button class="ghost-button" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
-                          ${isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok"}
-                        </button>
-                        ${
-                          mealEntries.length
-                            ? `
-                              <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
-                                Sačuvaj u Obroke
+                      ${
+                        isMealDone
+                          ? `
+                            <div class="meal-done-note">
+                              Ovaj obrok je označen kao završen. Skini čekiranje ako želiš da ga menjaš.
+                            </div>
+                          `
+                          : `
+                            <div class="entry-actions meal-card-actions">
+                              <button class="solid-button secondary-button" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
+                                Dodaj stavku
                               </button>
-                            `
-                            : ""
-                        }
-                      </div>
-                      ${isEditingMeal ? renderPlanEntryComposer(meals, companionSuggestions, draftFood) : ""}
+                              <button class="ghost-button" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
+                                ${isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok"}
+                              </button>
+                              ${
+                                mealEntries.length
+                                  ? `
+                                    <button class="ghost-button" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
+                                      Sačuvaj u Obroke
+                                    </button>
+                                  `
+                                  : ""
+                              }
+                            </div>
+                          `
+                      }
+                      ${isEditingMeal && !isMealDone ? renderPlanEntryComposer(meals, companionSuggestions, draftFood) : ""}
                       ${
                         mealEntries.length
                           ? mealEntries
@@ -1773,14 +1795,20 @@ function renderPlanTab(entries) {
                                         <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
                                       </div>
                                     </div>
-                                    <div class="entry-actions meal-entry-actions">
-                                      <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
-                                        Izmeni
-                                      </button>
-                                      <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
-                                        Obriši
-                                      </button>
-                                    </div>
+                                    ${
+                                      !isMealDone
+                                        ? `
+                                          <div class="entry-actions meal-entry-actions">
+                                            <button class="ghost-button" data-action="edit-entry" data-entry-id="${entry.id}">
+                                              Izmeni
+                                            </button>
+                                            <button class="danger-button" data-action="delete-entry" data-entry-id="${entry.id}">
+                                              Obriši
+                                            </button>
+                                          </div>
+                                        `
+                                        : ""
+                                    }
                                   </div>
                                 `
                               )
@@ -3699,6 +3727,9 @@ function handleDocumentClick(event) {
 
   if (action === "start-add-to-meal") {
     const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      return;
+    }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
@@ -3712,6 +3743,9 @@ function handleDocumentClick(event) {
 
   if (action === "edit-meal") {
     const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      return;
+    }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
@@ -3733,7 +3767,7 @@ function handleDocumentClick(event) {
   if (action === "edit-entry") {
     const entryId = actionTarget.dataset.entryId;
     const entry = getPlanEntriesForDay(state.selectedWeekday).find((item) => item.id === entryId);
-    if (!entry) {
+    if (!entry || isMealCompletedForWeekday(state.selectedWeekday, entry.mealLabel)) {
       return;
     }
     setPlanDraftFromEntry(entry);
@@ -3743,9 +3777,7 @@ function handleDocumentClick(event) {
 
   if (action === "toggle-plan-meal-done") {
     const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
-    const mealEntries = store.weeklyPlanEntries.filter(
-      (item) => item.weekday === state.selectedWeekday && normalizeMealLabel(item.mealLabel) === mealLabel
-    );
+    const mealEntries = getMealEntriesForWeekday(state.selectedWeekday, mealLabel);
     if (!mealEntries.length) {
       return;
     }
@@ -3753,6 +3785,10 @@ function handleDocumentClick(event) {
     mealEntries.forEach((entry) => {
       entry.done = nextDone;
     });
+    if (nextDone && normalizeMealLabel(state.editingMealLabel) === mealLabel) {
+      state.editingMealLabel = "";
+      resetPlanDraft();
+    }
     persist();
     render();
     return;
@@ -3818,8 +3854,11 @@ function handleDocumentClick(event) {
 
   if (action === "save-meal-as-favorite") {
     const mealLabel = actionTarget.dataset.mealLabel;
+    if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      return;
+    }
     const mealEntries = getPlanEntriesForDay(state.selectedWeekday)
-      .filter((entry) => entry.mealLabel === mealLabel)
+      .filter((entry) => normalizeMealLabel(entry.mealLabel) === normalizeMealLabel(mealLabel))
       .map((entry) => ({
         id: uid("favorite-item"),
         foodId: entry.foodId,
@@ -4024,6 +4063,9 @@ function handleDocumentClick(event) {
   if (action === "delete-entry") {
     const entryId = actionTarget.dataset.entryId;
     const entry = getPlanEntriesForDay(state.selectedWeekday).find((item) => item.id === entryId);
+    if (entry && isMealCompletedForWeekday(state.selectedWeekday, entry.mealLabel)) {
+      return;
+    }
     const confirmed = window.confirm(
       entry
         ? `Obriši stavku "${entry.foodName}" (${roundValue(entry.grams, 0)} g) iz ${entry.mealLabel}?`
@@ -4261,7 +4303,7 @@ async function handleSubmit(event) {
     const grams = toNumber(formData.get("grams"));
     const food = getFoodById(foodId);
 
-    if (!mealLabel || !food || !grams) {
+    if (!mealLabel || !food || !grams || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
       return;
     }
 

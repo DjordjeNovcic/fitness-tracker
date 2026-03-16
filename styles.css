@@ -539,11 +539,19 @@ body.plan-compact .hero-day-picker {
 }
 
 .meal-card.is-done {
-  opacity: 0.8;
+  opacity: 0.84;
+  background:
+    linear-gradient(135deg, rgba(247, 243, 235, 0.96), rgba(239, 245, 236, 0.92)),
+    var(--surface);
 }
 
 .meal-card.is-done .meal-title {
   text-decoration: line-through;
+}
+
+.meal-card.is-done .meal-order,
+.meal-card.is-done .pill {
+  filter: saturate(0.8);
 }
 
 .meal-card-heading {
@@ -754,6 +762,16 @@ body.plan-compact .hero-day-picker {
 .meal-toggle-checkbox:checked + .meal-toggle-ui::after {
   border-right-color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+.meal-done-note {
+  margin: 8px 0 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(226, 235, 221, 0.72), rgba(255, 250, 242, 0.92));
+  border: 1px solid rgba(44, 123, 116, 0.12);
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .meal-entry {
