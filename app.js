@@ -2234,13 +2234,15 @@ function renderTrainingTab() {
           <p>Za početak možeš držati sablon vežbi i kratke beleške po danu.</p>
         </div>
       </div>
-      <article class="food-card suggestion-surface training-burn-card" style="margin-bottom:16px;">
-        <div class="food-card-top">
-          <h3>Apple Watch potrosnja</h3>
+      <article class="food-card suggestion-surface training-burn-card">
+        <div class="food-card-top training-burn-top">
+          <div class="training-burn-copy">
+            <h3>Apple Watch potrosnja</h3>
+            <p>Upiši kalorije sa treninga za taj dan da plan odmah prikaže neto unos.</p>
+          </div>
           <span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>
         </div>
-        <div class="footer-note">Upiši koliko si potrošio na treningu tog dana da imaš pregled neto kalorija u planu.</div>
-        <form id="training-burn-form" class="form-grid split training-burn-form" style="margin-top:14px;">
+        <form id="training-burn-form" class="form-grid split training-burn-form">
           <div class="field">
             <label for="training-burn-kcal">Potrošeno kcal</label>
             <input
@@ -2254,7 +2256,9 @@ function renderTrainingTab() {
               value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
             />
           </div>
-          <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+          <div class="training-burn-actions">
+            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+          </div>
         </form>
       </article>
       <div class="stack">
@@ -2733,13 +2737,15 @@ function renderGoalsTab() {
       <div class="section-header">
         <div>
           <h2>Nalog i sync</h2>
-          <p>Cloud sync je sada ukljucen za sve osim progress slika, koje ostaju lokalno dok ne dodamo Storage.</p>
+          <p>Cloud sync radi za podatke iz app-a, dok progress slike za sada ostaju lokalno.</p>
         </div>
       </div>
       <div class="goals-sync-card">
-        <strong class="goals-sync-email">${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-        <div class="pill-row goals-sync-pills">
+        <div class="goals-sync-top">
+          <strong class="goals-sync-email">${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
           <span class="pill strong">${state.syncStatus}</span>
+        </div>
+        <div class="pill-row goals-sync-pills">
           <span class="pill">Slike: lokalno</span>
         </div>
       </div>

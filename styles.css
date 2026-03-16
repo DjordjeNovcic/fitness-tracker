@@ -1129,8 +1129,34 @@ body.plan-compact .hero-day-picker {
   height: auto;
 }
 
+.goals-sync-top {
+  display: grid;
+  gap: 10px;
+}
+
 .training-burn-form {
+  margin-top: 14px;
   align-items: end;
+}
+
+.training-burn-top {
+  align-items: flex-start;
+}
+
+.training-burn-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.training-burn-copy p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 50ch;
+}
+
+.training-burn-actions {
+  display: flex;
+  align-items: flex-end;
 }
 
 .training-burn-submit {
@@ -2001,18 +2027,23 @@ body.menu-open .menu-fab {
   .goals-sync-card {
     max-width: 620px;
     display: grid;
-    gap: 12px;
-    padding: 14px 0 0;
+    gap: 10px;
+    padding: 10px 0 0;
     border-top: 1px solid rgba(24, 33, 30, 0.08);
   }
 
   .goals-sync-section .section-header {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+  }
+
+  .goals-sync-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   .goals-sync-email {
-    font-size: 1.12rem;
-    font-weight: 800;
+    font-size: 1.04rem;
+    font-weight: 760;
     letter-spacing: -0.02em;
   }
 
@@ -2069,21 +2100,26 @@ body.menu-open .menu-fab {
   }
 
   .training-burn-card {
-    max-width: 720px;
+    max-width: 700px;
     padding: 16px 18px;
   }
 
   .training-burn-form {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 280px) auto;
     gap: 12px;
+    justify-content: flex-start;
   }
 
   .training-burn-form .field {
     gap: 8px;
   }
 
+  .training-burn-actions {
+    min-width: 0;
+  }
+
   .training-burn-submit {
-    min-width: 170px;
+    min-width: 156px;
   }
 }
 
