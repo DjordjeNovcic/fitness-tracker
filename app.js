@@ -1921,7 +1921,7 @@ function renderFoodsTab() {
   }, {});
 
   return `
-    <section class="section">
+    <section class="section goals-sync-section">
       <div class="section-header">
         <div>
           <h2>Baza namirnica</h2>
@@ -2736,7 +2736,7 @@ function renderGoalsTab() {
           <p>Cloud sync je sada ukljucen za sve osim progress slika, koje ostaju lokalno dok ne dodamo Storage.</p>
         </div>
       </div>
-      <div class="food-card">
+      <div class="food-card goals-sync-card">
         <div class="food-card-top">
           <strong>${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
         </div>
@@ -2747,14 +2747,14 @@ function renderGoalsTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section goals-profile-section">
       <div class="section-header">
         <div>
           <h2>Profil i ciljevi</h2>
           <p>Makroi mogu ručno ili iz težine po istoj formuli kao u Excel-u.</p>
         </div>
       </div>
-      <form id="goals-form" class="form-grid split">
+      <form id="goals-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="profile-name">Ime</label>
           <input id="profile-name" name="name" value="${store.profile.name || ""}" />
@@ -2790,7 +2790,7 @@ function renderGoalsTab() {
       </form>
     </section>
 
-    <section class="section">
+    <section class="section goals-weekly-section">
       <div class="section-header">
         <div>
           <h2>Nedeljni nivo</h2>
@@ -2824,7 +2824,7 @@ function renderGoalsTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section goals-days-section">
       <div class="section-header">
         <div>
           <h2>Pregled po danima</h2>
@@ -2846,7 +2846,7 @@ function renderGoalsTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section goals-backup-section">
       <div class="section-header">
         <div>
           <h2>Backup</h2>
