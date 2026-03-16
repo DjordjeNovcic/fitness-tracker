@@ -1124,6 +1124,20 @@ body.plan-compact .hero-day-picker {
   border-color: rgba(44, 123, 116, 0.12);
 }
 
+.goals-sync-card,
+.training-burn-card {
+  height: auto;
+}
+
+.training-burn-form {
+  align-items: end;
+}
+
+.training-burn-submit {
+  width: auto;
+  justify-self: start;
+}
+
 .suggestion-row {
   display: flex;
   align-items: flex-start;
@@ -1985,12 +1999,25 @@ body.menu-open .menu-fab {
   }
 
   .goals-sync-card {
-    max-width: 560px;
-    padding: 14px 16px;
+    max-width: 620px;
+    display: grid;
+    gap: 12px;
+    padding: 14px 0 0;
+    border-top: 1px solid rgba(24, 33, 30, 0.08);
   }
 
   .goals-sync-section .section-header {
     margin-bottom: 10px;
+  }
+
+  .goals-sync-email {
+    font-size: 1.12rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .goals-sync-pills {
+    margin-top: 0;
   }
 
   .goals-form-layout {
@@ -2039,6 +2066,24 @@ body.menu-open .menu-fab {
   .meal-entry {
     gap: 12px;
     padding: 12px 0;
+  }
+
+  .training-burn-card {
+    max-width: 720px;
+    padding: 16px 18px;
+  }
+
+  .training-burn-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .training-burn-form .field {
+    gap: 8px;
+  }
+
+  .training-burn-submit {
+    min-width: 170px;
   }
 }
 
