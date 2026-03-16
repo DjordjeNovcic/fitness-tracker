@@ -1928,20 +1928,27 @@ function renderFoodsTab() {
         : store.foods.filter((food) => getFoodMacroGroup(food) === filter).length;
     return acc;
   }, {});
+  const macroClassMap = {
+    Proteini: "proteins",
+    UH: "carbs",
+    Masti: "fats",
+    Ostalo: "other",
+    Sve: "all",
+  };
 
   return `
-    <section class="section goals-sync-section">
+    <section class="section goals-sync-section foods-section">
       <div class="section-header">
         <div>
           <h2>Baza namirnica</h2>
           <p>Trenutno imas ${store.foods.length} namirnica iz Excel-a i nove koje uneses preko telefona.</p>
         </div>
       </div>
-      <div class="chips" style="margin-bottom:14px;">
+      <div class="chips foods-filter-bar" style="margin-bottom:14px;">
         ${FOOD_MACRO_FILTERS.map(
           (filter) => `
             <button
-              class="chip is-light ${filter === state.foodMacroFilter ? "is-active" : ""}"
+              class="chip is-light foods-filter-chip foods-filter-chip--${macroClassMap[filter] || "other"} ${filter === state.foodMacroFilter ? "is-active" : ""}"
               data-action="set-food-filter"
               data-filter="${filter}"
             >
@@ -1954,40 +1961,45 @@ function renderFoodsTab() {
         <label for="food-search">Pretraga</label>
         <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinac..." />
       </div>
-      <div class="food-list" style="margin-top:14px;">
+      <div class="food-list foods-grid" style="margin-top:14px;">
         ${foods
           .map(
-            (food) => `
-              <article class="food-card">
-                <div class="food-card-top">
-                  <h3>${food.name}</h3>
-                  <span class="pill strong">${food.macroGroup}</span>
+            (food) => {
+              const toneClass = macroClassMap[food.macroGroup] || "other";
+              return `
+              <article class="food-card foods-card foods-card--${toneClass}">
+                <div class="food-card-top foods-card-top">
+                  <div class="foods-title-block">
+                    <div class="foods-card-kicker">${food.category || "Ostalo"}</div>
+                    <h3>${food.name}</h3>
+                  </div>
+                  <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                 </div>
-                <div class="pill-row">
-                  <span class="pill">${food.category || "Ostalo"}</span>
-                  <span class="pill note">${roundValue(food.kcal, 0)} kcal / ${roundValue(food.servingBaseGrams, 0)} g</span>
+                <div class="pill-row foods-macro-row">
+                  <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal / ${roundValue(food.servingBaseGrams, 0)} g</span>
                   <span class="pill">P ${roundValue(food.protein, 1)}</span>
                   <span class="pill">UH ${roundValue(food.carbs, 1)}</span>
                   <span class="pill">M ${roundValue(food.fat, 1)}</span>
                 </div>
-                <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
+                <div class="entry-actions foods-card-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button
-                    class="ghost-button"
+                    class="ghost-button button-with-icon"
                     data-action="edit-food"
                     data-food-id="${food.id}"
                   >
-                    Izmeni
+                    ${renderButtonContent("Izmeni", "edit")}
                   </button>
                   <button
-                    class="${store.favoriteFoods.includes(food.id) ? "solid-button secondary-button" : "ghost-button"}"
+                    class="${store.favoriteFoods.includes(food.id) ? "solid-button secondary-button button-with-icon" : "ghost-button button-with-icon"}"
                     data-action="toggle-favorite-food"
                     data-food-id="${food.id}"
                   >
-                    ${store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sačuvaj favorit"}
+                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sačuvaj favorit", "save")}
                   </button>
                 </div>
               </article>
-            `
+            `;
+            }
           )
           .join("")}
       </div>
