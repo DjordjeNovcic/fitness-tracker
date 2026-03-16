@@ -1704,15 +1704,26 @@ function renderPlanTab(entries) {
                 .map(([mealLabel, mealEntries]) => {
                   const mealParts = getMealDisplayParts(mealLabel);
                   const isEditingMeal = state.editingMealLabel === mealLabel;
+                  const isMealDone = mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
                   const mealTotals = getDayTotals(mealEntries);
                   return `
-                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""}">
+                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""}">
                       <div class="meal-card-topline">
                         ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                         <div class="meal-card-heading">
                           <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
                           <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
                         </div>
+                        ${
+                          mealEntries.length
+                            ? `
+                              <label class="meal-toggle">
+                                <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} />
+                                <span class="meal-toggle-ui" aria-hidden="true"></span>
+                              </label>
+                            `
+                            : ""
+                        }
                       </div>
                       ${
                         mealEntries.length
@@ -1750,10 +1761,6 @@ function renderPlanTab(entries) {
                               .map(
                                 (entry) => `
                                   <div class="meal-entry ${entry.done ? "is-done" : ""}">
-                                    <label class="meal-entry-check">
-                                      <input class="meal-entry-checkbox" type="checkbox" data-action="toggle-plan-entry-done" data-entry-id="${entry.id}" ${entry.done ? "checked" : ""} />
-                                      <span class="meal-entry-check-ui" aria-hidden="true"></span>
-                                    </label>
                                     <div class="meal-entry-body">
                                       <div class="meal-entry-top">
                                         <strong>${entry.foodName}</strong>
@@ -3734,13 +3741,18 @@ function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "toggle-plan-entry-done") {
-    const entryId = actionTarget.dataset.entryId;
-    const entry = store.weeklyPlanEntries.find((item) => item.id === entryId);
-    if (!entry) {
+  if (action === "toggle-plan-meal-done") {
+    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
+    const mealEntries = store.weeklyPlanEntries.filter(
+      (item) => item.weekday === state.selectedWeekday && normalizeMealLabel(item.mealLabel) === mealLabel
+    );
+    if (!mealEntries.length) {
       return;
     }
-    entry.done = !entry.done;
+    const nextDone = !mealEntries.every((entry) => entry.done);
+    mealEntries.forEach((entry) => {
+      entry.done = nextDone;
+    });
     persist();
     render();
     return;
