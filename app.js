@@ -31,8 +31,8 @@ const TABS = [
 
 const defaultMeals = [
   "1. Doručak",
-  "2. Uzina",
-  "3. Obrok pre treninga",
+  "2. Prva užina",
+  "3. Obrok 2h pre treninga",
   "4. Obrok posle treninga",
   "5. Večera",
 ];
@@ -52,8 +52,12 @@ const PHOTO_TAGS = ["front", "side", "back"];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
 const MEAL_LABEL_MAP = {
   "1. Dorucak": "1. Doručak",
-  "2. Uzina": "2. Užina",
-  "3. Obrok pre treninga": "3. Obrok pre treninga",
+  "2. Uzina": "2. Prva užina",
+  "2. Užina": "2. Prva užina",
+  "2. Prva uzina": "2. Prva užina",
+  "3. Obrok pre treninga": "3. Obrok 2h pre treninga",
+  "3. Obrok pred trening": "3. Obrok 2h pre treninga",
+  "3. Obrok 2h pre treninga": "3. Obrok 2h pre treninga",
   "4. Obrok posle treninga": "4. Obrok posle treninga",
   "5. Vecera": "5. Večera",
 };
@@ -1015,7 +1019,7 @@ function generateDaySuggestion() {
       ].filter(Boolean),
     },
     {
-      mealLabel: "2. Uzina",
+      mealLabel: "2. Prva užina",
       items: [
         snackProtein &&
           {
@@ -1029,7 +1033,7 @@ function generateDaySuggestion() {
       ].filter(Boolean),
     },
     {
-      mealLabel: "3. Obrok pre treninga",
+      mealLabel: "3. Obrok 2h pre treninga",
       items: [
         lunchProtein &&
           {
