@@ -624,9 +624,14 @@ body.plan-compact .hero-day-picker {
   border-top: 1px solid var(--line);
 }
 
+.meal-card-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
 .meal-summary-pills {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .plan-summary-section,
@@ -635,6 +640,11 @@ body.plan-compact .hero-day-picker {
 .plan-meals-section {
   position: relative;
   overflow: hidden;
+}
+
+.plan-summary-layout {
+  display: grid;
+  gap: 12px;
 }
 
 .plan-summary-section::before,
@@ -751,6 +761,44 @@ body.plan-compact .hero-day-picker {
 .chart-card,
 .photo-card {
   position: relative;
+}
+
+.training-template-card,
+.training-favorite-card {
+  overflow: hidden;
+}
+
+.training-exercise-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.training-exercise-row {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.76);
+  border: 1px solid rgba(24, 33, 30, 0.08);
+}
+
+.training-exercise-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.training-exercise-name {
+  font-size: 0.98rem;
+}
+
+.training-exercise-detail,
+.training-favorite-copy {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.training-favorite-copy {
+  margin-top: 10px;
 }
 
 .meal-toggle {
@@ -1468,6 +1516,30 @@ body.menu-open .menu-fab {
   gap: 12px;
 }
 
+.app-sidebar-top {
+  padding: 4px 2px 2px;
+}
+
+.app-sidebar-brand {
+  display: grid;
+  gap: 6px;
+}
+
+.app-sidebar-kicker {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.app-sidebar-email {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .menu-close {
   display: inline-flex;
   align-items: center;
@@ -1499,13 +1571,30 @@ body.menu-open .menu-fab {
   font-weight: 800;
 }
 
-.menu-tab-button .icon {
-  font-size: 1.15rem;
+.menu-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(24, 33, 30, 0.06);
+  color: #305447;
+  flex-shrink: 0;
+}
+
+.menu-tab-label {
+  min-width: 0;
 }
 
 .menu-tab-button.is-active {
   color: #fffaf2;
   background: linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
+}
+
+.menu-tab-button.is-active .menu-tab-icon {
+  background: rgba(255, 250, 242, 0.16);
+  color: #fffaf2;
 }
 
 .mobile-menu-footer {
@@ -1514,6 +1603,10 @@ body.menu-open .menu-fab {
   gap: 12px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
+}
+
+.app-sidebar-status {
+  gap: 0;
 }
 
 .signout-button {
@@ -1662,6 +1755,10 @@ body.menu-open .menu-fab {
   .meal-card-actions,
   .plan-inline-actions {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .meal-card-toolbar {
+    gap: 12px;
   }
 
   .meal-card-actions > :nth-child(3):last-child {
@@ -1845,6 +1942,20 @@ body.menu-open .menu-fab {
     gap: 14px;
   }
 
+  .plan-summary-layout {
+    grid-template-columns: minmax(0, 1.9fr) minmax(260px, 0.9fr);
+    align-items: start;
+  }
+
+  .plan-summary-layout .macro-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .plan-secondary-stats {
+    margin-top: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .plan-preview-section .stack {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
@@ -1949,6 +2060,9 @@ body.menu-open .menu-fab {
     box-shadow: 0 16px 30px rgba(25, 34, 31, 0.09);
     transform: none;
     transition: none;
+    background:
+      linear-gradient(180deg, rgba(255, 252, 247, 0.94), rgba(246, 239, 229, 0.92)),
+      var(--surface-strong);
   }
 
   .mobile-menu.is-open {
@@ -1958,6 +2072,7 @@ body.menu-open .menu-fab {
   .mobile-menu-top {
     align-items: flex-start;
     gap: 10px;
+    margin-bottom: 4px;
   }
 
   .menu-close {
@@ -2005,6 +2120,13 @@ body.menu-open .menu-fab {
     padding: 10px 12px;
     border-radius: 14px;
     font-size: 0.98rem;
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .menu-tab-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
   }
 
   .mobile-menu-footer {
@@ -2092,17 +2214,37 @@ body.menu-open .menu-fab {
   }
 
   .meal-card {
-    padding: 16px;
+    padding: 15px 16px;
     border-radius: 20px;
   }
 
+  .meal-card-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .meal-card-toolbar:not(.has-actions) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .meal-card-actions {
-    margin-top: 12px;
+    margin-top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .meal-card-actions > button {
+    width: auto;
+    min-width: 0;
   }
 
   .meal-entry {
-    gap: 12px;
-    padding: 12px 0;
+    gap: 10px;
+    padding: 10px 0;
   }
 
   .training-burn-card {
@@ -2126,6 +2268,24 @@ body.menu-open .menu-fab {
 
   .training-burn-submit {
     min-width: 156px;
+  }
+
+  .training-template-stack {
+    gap: 12px;
+  }
+
+  .training-template-card {
+    padding: 15px 16px;
+  }
+
+  .training-exercise-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .training-exercise-row {
+    padding: 10px 12px;
+    border-radius: 16px;
   }
 }
 
@@ -2151,14 +2311,14 @@ body.menu-open .menu-fab {
   }
 
   .plan-preview-section .stack {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .app-frame {
-    grid-template-columns: 292px minmax(0, 1fr);
+    grid-template-columns: 272px minmax(0, 1fr);
   }
 
   .app-main.shell {
-    max-width: 1080px;
+    max-width: 1040px;
   }
 }
