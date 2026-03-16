@@ -2081,7 +2081,7 @@ function renderRecipesTab() {
         </div>
       </form>
       <div class="footer-note">Kad klikneš Dodaj namirnicu u obrok, ta stavka ulazi u taj recept. Ako upišeš isti naziv obroka, dodaješ novu namirnicu u isti obrok.</div>
-      <article class="food-card suggestion-surface" style="margin-top:14px;">
+      <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
         <div class="food-card-top">
           <h3>${draftPreview.favoriteName || "Obrok u izradi"}</h3>
           <span class="pill strong">${draftPreview.items.length} stavki</span>
