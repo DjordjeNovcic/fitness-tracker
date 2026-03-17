@@ -2004,7 +2004,7 @@ function renderFoodsTab() {
                     data-action="toggle-favorite-food"
                     data-food-id="${food.id}"
                   >
-                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sačuvaj favorit", "save")}
+                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Favorit", "save")}
                   </button>
                 </div>
               </article>
