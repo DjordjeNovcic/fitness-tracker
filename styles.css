@@ -875,70 +875,43 @@ body.plan-compact .hero-day-picker {
   color: #55625d;
 }
 
-.foods-card-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
+.foods-macro-row {
+  margin-top: 12px;
 }
 
-.foods-stat-box {
-  display: grid;
-  gap: 3px;
-  padding: 12px 12px 11px;
-  border-radius: 18px;
-  border: 1px solid rgba(24, 33, 30, 0.07);
-  background: rgba(255, 252, 247, 0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+.foods-macro-row .pill {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
-.foods-stat-box strong {
-  font-size: 1.02rem;
-  letter-spacing: -0.02em;
+.foods-kcal-pill {
+  background: rgba(223, 232, 209, 0.92);
+  color: #41523b;
+  font-weight: 800;
 }
 
-.foods-stat-label,
-.foods-stat-meta {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 760;
-  line-height: 1.2;
-}
-
-.foods-stat-meta {
-  font-size: 0.72rem;
-}
-
-.foods-stat-box--kcal {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, rgba(223, 232, 209, 0.88), rgba(255, 250, 242, 0.92));
-  border-color: rgba(125, 139, 90, 0.12);
-}
-
-.foods-stat-box--kcal strong {
-  color: #334237;
-}
-
-.foods-stat-box--protein {
-  background: rgba(222, 237, 227, 0.82);
+.foods-stat-pill--protein {
+  background: rgba(222, 237, 227, 0.88);
   color: #355a47;
 }
 
-.foods-stat-box--carbs {
-  background: rgba(247, 232, 199, 0.84);
+.foods-stat-pill--carbs {
+  background: rgba(247, 232, 199, 0.9);
   color: #8a6230;
 }
 
-.foods-stat-box--fat {
-  background: rgba(229, 236, 214, 0.86);
+.foods-stat-pill--fat {
+  background: rgba(229, 236, 214, 0.9);
   color: #596647;
 }
 
-.foods-stat-box.is-dominant {
-  border-color: rgba(24, 33, 30, 0.11);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
-    0 8px 16px rgba(25, 34, 31, 0.05);
+.foods-stat-pill.is-dominant {
+  border-color: rgba(24, 33, 30, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+  font-weight: 820;
 }
 
 .foods-card-actions {
@@ -2261,14 +2234,6 @@ body.menu-open .menu-fab {
   .foods-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
-  }
-
-  .foods-card-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .foods-stat-box--kcal {
-    grid-column: span 1;
   }
 
   .foods-editor-intro {

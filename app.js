@@ -1985,24 +1985,11 @@ function renderFoodsTab() {
                   </div>
                   <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                 </div>
-                <div class="foods-card-stats">
-                  <div class="foods-stat-box foods-stat-box--kcal">
-                    <span class="foods-stat-label">Kalorije</span>
-                    <strong>${roundValue(food.kcal, 0)} kcal</strong>
-                    <span class="foods-stat-meta">na ${roundValue(food.servingBaseGrams, 0)} g</span>
-                  </div>
-                  <div class="foods-stat-box foods-stat-box--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">Protein</span>
-                    <strong>${roundValue(food.protein, 1)} g</strong>
-                  </div>
-                  <div class="foods-stat-box foods-stat-box--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">UH</span>
-                    <strong>${roundValue(food.carbs, 1)} g</strong>
-                  </div>
-                  <div class="foods-stat-box foods-stat-box--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">Masti</span>
-                    <strong>${roundValue(food.fat, 1)} g</strong>
-                  </div>
+                <div class="pill-row foods-macro-row">
+                  <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal / ${roundValue(food.servingBaseGrams, 0)} g</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
                 </div>
                 <div class="entry-actions foods-card-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button
