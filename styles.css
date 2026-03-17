@@ -780,6 +780,34 @@ body.plan-compact .hero-day-picker {
     var(--surface-strong);
 }
 
+.foods-card--proteins {
+  background:
+    radial-gradient(circle at top right, rgba(86, 152, 121, 0.13), transparent 32%),
+    linear-gradient(180deg, rgba(236, 245, 239, 0.84), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.foods-card--carbs {
+  background:
+    radial-gradient(circle at top right, rgba(224, 187, 113, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(249, 240, 220, 0.8), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.foods-card--fats {
+  background:
+    radial-gradient(circle at top right, rgba(156, 168, 108, 0.15), transparent 32%),
+    linear-gradient(180deg, rgba(240, 244, 228, 0.82), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.foods-card--other {
+  background:
+    radial-gradient(circle at top right, rgba(158, 175, 167, 0.13), transparent 32%),
+    linear-gradient(180deg, rgba(242, 245, 243, 0.82), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
 .foods-card::before {
   content: "";
   position: absolute;
@@ -855,6 +883,27 @@ body.plan-compact .hero-day-picker {
   background: rgba(223, 232, 209, 0.92);
   color: #41523b;
   font-weight: 800;
+}
+
+.foods-stat-pill--protein {
+  background: rgba(222, 237, 227, 0.88);
+  color: #355a47;
+}
+
+.foods-stat-pill--carbs {
+  background: rgba(247, 232, 199, 0.9);
+  color: #8a6230;
+}
+
+.foods-stat-pill--fat {
+  background: rgba(229, 236, 214, 0.9);
+  color: #596647;
+}
+
+.foods-stat-pill.is-dominant {
+  border-color: rgba(24, 33, 30, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+  font-weight: 820;
 }
 
 .foods-card-actions {

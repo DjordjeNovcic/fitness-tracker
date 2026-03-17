@@ -1968,20 +1968,28 @@ function renderFoodsTab() {
           .map(
             (food) => {
               const toneClass = macroClassMap[food.macroGroup] || "other";
+              const dominantLabel =
+                food.macroGroup === "Proteini"
+                  ? "dominantno protein"
+                  : food.macroGroup === "UH"
+                    ? "dominantno UH"
+                    : food.macroGroup === "Masti"
+                      ? "dominantno masti"
+                      : "mešovit profil";
               return `
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
                   <div class="foods-title-block">
-                    <div class="foods-card-kicker">${food.category || "Ostalo"}</div>
+                    <div class="foods-card-kicker">${food.category || "Ostalo"} · ${dominantLabel}</div>
                     <h3>${food.name}</h3>
                   </div>
                   <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                 </div>
                 <div class="pill-row foods-macro-row">
                   <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal / ${roundValue(food.servingBaseGrams, 0)} g</span>
-                  <span class="pill">P ${roundValue(food.protein, 1)}</span>
-                  <span class="pill">UH ${roundValue(food.carbs, 1)}</span>
-                  <span class="pill">M ${roundValue(food.fat, 1)}</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
+                  <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
                 </div>
                 <div class="entry-actions foods-card-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button
