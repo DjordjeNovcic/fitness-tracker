@@ -2108,8 +2108,9 @@ body.menu-open .menu-fab {
     gap: 20px;
     max-width: 1360px;
     margin: 0 auto;
-    padding: 20px 20px 44px;
-    align-items: start;
+    min-height: 100vh;
+    padding: 0 20px 32px;
+    align-items: stretch;
   }
 
   .app-main.shell {
@@ -2326,20 +2327,22 @@ body.menu-open .menu-fab {
 
   .mobile-menu {
     position: sticky;
-    top: 20px;
+    top: 0;
     right: auto;
     bottom: auto;
     z-index: auto;
     width: 100%;
-    max-height: calc(100vh - 48px);
-    padding: 12px;
-    border: 1px solid rgba(25, 34, 31, 0.08);
-    border-radius: 20px;
-    box-shadow: 0 16px 30px rgba(25, 34, 31, 0.09);
+    min-height: 100vh;
+    max-height: 100vh;
+    padding: 28px 16px 18px;
+    border: none;
+    border-right: 1px solid rgba(25, 34, 31, 0.06);
+    border-radius: 0;
+    box-shadow: none;
     transform: none;
     transition: none;
     background:
-      linear-gradient(180deg, rgba(255, 252, 247, 0.94), rgba(246, 239, 229, 0.92)),
+      linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(246, 239, 229, 0.94)),
       var(--surface-strong);
   }
 
@@ -2401,8 +2404,9 @@ body.menu-open .menu-fab {
   }
 
   .mobile-menu-footer {
+    margin-top: auto;
     gap: 8px;
-    padding-top: 10px;
+    padding-top: 16px;
   }
 
   .signout-button {
