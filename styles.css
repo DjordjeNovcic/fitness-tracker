@@ -2105,12 +2105,12 @@ body.menu-open .menu-fab {
   .app-frame {
     display: grid;
     grid-template-columns: 252px minmax(0, 1fr);
-    gap: 18px;
+    gap: 28px;
     max-width: none;
     width: 100%;
     margin: 0;
     min-height: 100vh;
-    padding: 0 20px 0 16px;
+    padding: 0 24px 0 28px;
     align-items: stretch;
   }
 
@@ -2118,7 +2118,7 @@ body.menu-open .menu-fab {
     max-width: none;
     width: 100%;
     margin: 0;
-    padding: 18px 28px 44px 0;
+    padding: 30px 28px 44px 0;
     gap: 16px;
     justify-self: stretch;
   }
@@ -2342,7 +2342,7 @@ body.menu-open .menu-fab {
     flex-direction: column;
     min-height: 100vh;
     max-height: 100vh;
-    padding: 28px 16px 18px;
+    padding: 34px 18px 20px;
     border: none;
     border-right: 1px solid rgba(25, 34, 31, 0.07);
     border-radius: 0;
