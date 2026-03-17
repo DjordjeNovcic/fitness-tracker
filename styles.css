@@ -773,40 +773,38 @@ body.plan-compact .hero-day-picker {
 .foods-card {
   position: relative;
   overflow: hidden;
-  padding: 16px;
-  border-radius: 16px;
+  padding: 22px 18px 18px;
+  border-radius: 28px;
   background:
-    linear-gradient(180deg, rgba(246, 245, 242, 0.98), rgba(252, 249, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
-  border: 1px solid rgba(224, 222, 217, 0.92);
-  box-shadow: 0 10px 24px rgba(25, 34, 31, 0.06);
 }
 
 .foods-card--proteins {
   background:
-    radial-gradient(circle at top right, rgba(86, 152, 121, 0.05), transparent 28%),
-    linear-gradient(180deg, rgba(246, 245, 242, 0.98), rgba(252, 249, 244, 0.98)),
+    radial-gradient(circle at top right, rgba(86, 152, 121, 0.09), transparent 30%),
+    linear-gradient(180deg, rgba(246, 249, 244, 0.92), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--carbs {
   background:
-    radial-gradient(circle at top right, rgba(224, 187, 113, 0.05), transparent 30%),
-    linear-gradient(180deg, rgba(246, 245, 242, 0.98), rgba(252, 249, 244, 0.98)),
+    radial-gradient(circle at top right, rgba(224, 187, 113, 0.1), transparent 32%),
+    linear-gradient(180deg, rgba(250, 245, 234, 0.9), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--fats {
   background:
-    radial-gradient(circle at top right, rgba(156, 168, 108, 0.05), transparent 28%),
-    linear-gradient(180deg, rgba(246, 245, 242, 0.98), rgba(252, 249, 244, 0.98)),
+    radial-gradient(circle at top right, rgba(156, 168, 108, 0.1), transparent 30%),
+    linear-gradient(180deg, rgba(246, 248, 238, 0.92), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--other {
   background:
-    radial-gradient(circle at top right, rgba(158, 175, 167, 0.04), transparent 28%),
-    linear-gradient(180deg, rgba(246, 245, 242, 0.98), rgba(252, 249, 244, 0.98)),
+    radial-gradient(circle at top right, rgba(158, 175, 167, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(245, 247, 245, 0.92), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
@@ -814,7 +812,7 @@ body.plan-compact .hero-day-picker {
   content: "";
   position: absolute;
   inset: 0 0 auto;
-  height: 4px;
+  height: 6px;
   border-radius: 999px;
   opacity: 0.9;
 }
@@ -841,46 +839,45 @@ body.plan-compact .hero-day-picker {
 
 .foods-title-block {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
 .foods-card-kicker {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: #8a867d;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
 .foods-group-badge {
   flex-shrink: 0;
-  min-width: 0;
-  min-height: 36px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  min-width: 92px;
+  min-height: 50px;
+  padding: 0 18px;
+  font-size: 0.95rem;
   border-radius: 999px;
-  border: 1px solid #e0ded9;
-  box-shadow: none;
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
 .foods-group-badge--proteins {
-  background: #e6efe8;
+  background: rgba(217, 234, 222, 0.98);
   color: #355a47;
 }
 
 .foods-group-badge--carbs {
-  background: #f0eadb;
+  background: rgba(245, 227, 188, 0.92);
   color: #8a6230;
 }
 
 .foods-group-badge--fats {
-  background: #e6e3da;
+  background: rgba(223, 231, 208, 0.94);
   color: #596647;
 }
 
 .foods-group-badge--other {
-  background: #ece9e2;
+  background: rgba(230, 236, 232, 0.94);
   color: #55625d;
 }
 
@@ -888,102 +885,110 @@ body.plan-compact .hero-day-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  margin-top: 14px;
-  border: 1px solid #e0ded9;
-  border-radius: 12px;
+  margin-top: 16px;
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  border-radius: 22px;
   overflow: hidden;
-  background: #fff;
+  background: rgba(255, 252, 247, 0.88);
 }
 
 .foods-stat-box {
   display: grid;
   gap: 4px;
-  padding: 10px;
-  min-height: 94px;
-  background: #fff;
-  box-shadow: none;
+  padding: 18px 16px 16px;
+  min-height: 96px;
+  background: rgba(255, 252, 247, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
 }
 
 .foods-stat-box strong {
   font-size: 1.05rem;
-  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
 .foods-stat-label,
 .foods-stat-meta {
-  color: #8a867d;
-  font-size: 0.78rem;
-  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 760;
   line-height: 1.2;
 }
 
 .foods-stat-meta {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .foods-stat-box--kcal {
-  background: #fff;
-  border-right: 1px solid #e0ded9;
-  border-bottom: 1px solid #e0ded9;
+  background: linear-gradient(135deg, rgba(247, 251, 241, 0.95), rgba(255, 250, 242, 0.96));
+  border-right: 1px solid rgba(24, 33, 30, 0.08);
+  border-bottom: 1px solid rgba(24, 33, 30, 0.08);
 }
 
 .foods-stat-box--kcal strong {
   color: #27312f;
-  font-size: 1.28rem;
+  font-size: 1.2rem;
 }
 
 .foods-stat-box--protein {
-  background: #fff;
+  background: rgba(244, 248, 243, 0.94);
   color: #355a47;
-  border-bottom: 1px solid #e0ded9;
+  border-bottom: 1px solid rgba(24, 33, 30, 0.08);
 }
 
 .foods-stat-box--carbs {
-  background: #fff;
+  background: rgba(250, 246, 238, 0.94);
   color: #8a6230;
-  border-right: 1px solid #e0ded9;
+  border-right: 1px solid rgba(24, 33, 30, 0.08);
 }
 
 .foods-stat-box--fat {
-  background: #fff;
+  background: rgba(248, 250, 244, 0.94);
   color: #596647;
 }
 
 .foods-stat-box.is-dominant {
-  background: #fcfbf8;
+  border-color: rgba(24, 33, 30, 0.11);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+    0 8px 16px rgba(25, 34, 31, 0.05);
 }
 
 .foods-card-actions {
   margin-top: 16px;
-  padding-top: 14px;
-  gap: 10px;
-  border-top: 1px solid #e9e5de;
+  padding-top: 16px;
+  gap: 12px;
+  border-top: 1px solid rgba(24, 33, 30, 0.08);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .foods-card-actions > button {
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 46px;
+  padding-inline: 16px;
   width: 100%;
-  font-size: 0.82rem;
-  box-shadow: none;
+  box-shadow:
+    0 10px 18px rgba(25, 34, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   justify-content: flex-start;
-  border-radius: 10px;
 }
 
 .foods-card-actions .ghost-button,
 .foods-card-actions .solid-button,
 .foods-card-actions .secondary-button,
 .foods-card-actions .danger-button {
-  border-width: 1px;
+  border-width: 1.5px;
 }
 
 .foods-card-actions .ghost-button {
-  background: #fff;
-  border-color: #e0ded9;
+  background: rgba(255, 252, 247, 0.98);
+}
+
+.foods-card-actions .solid-button,
+.foods-card-actions .secondary-button {
+  box-shadow:
+    0 12px 22px rgba(25, 34, 31, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .foods-editor-card {
