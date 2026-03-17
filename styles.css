@@ -879,6 +879,14 @@ body.plan-compact .hero-day-picker {
   margin-top: 12px;
 }
 
+.foods-macro-row .pill {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .foods-kcal-pill {
   background: rgba(223, 232, 209, 0.92);
   color: #41523b;
@@ -907,11 +915,36 @@ body.plan-compact .hero-day-picker {
 }
 
 .foods-card-actions {
+  margin-top: 16px;
+  padding-top: 14px;
   gap: 10px;
+  border-top: 1px solid rgba(24, 33, 30, 0.08);
 }
 
 .foods-card-actions > button {
-  min-height: 40px;
+  min-height: 46px;
+  padding-inline: 16px;
+  box-shadow:
+    0 10px 18px rgba(25, 34, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.foods-card-actions .ghost-button,
+.foods-card-actions .solid-button,
+.foods-card-actions .secondary-button,
+.foods-card-actions .danger-button {
+  border-width: 1.5px;
+}
+
+.foods-card-actions .ghost-button {
+  background: rgba(255, 252, 247, 0.98);
+}
+
+.foods-card-actions .solid-button,
+.foods-card-actions .secondary-button {
+  box-shadow:
+    0 12px 22px rgba(25, 34, 31, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .foods-editor-card {
