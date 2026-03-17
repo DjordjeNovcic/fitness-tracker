@@ -2143,6 +2143,7 @@ body.menu-open .menu-fab {
   }
 
   .hero {
+    margin-top: 14px;
     padding: 24px 26px 20px;
     border-radius: var(--radius-xl);
   }
