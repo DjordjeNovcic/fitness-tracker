@@ -1369,7 +1369,7 @@ function renderActionIcon(kind) {
     edit: '<path fill="currentColor" d="m4 16.25 9.7-9.7 4 4L8 20.25H4zm11.1-10.4 1.7-1.7a1.5 1.5 0 0 1 2.1 0l.95.95a1.5 1.5 0 0 1 0 2.1l-1.7 1.7-4-4Z"/>',
     delete: '<path fill="currentColor" d="M9 4h6l1 1h4v2H4V5h4l1-1Zm1 5h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Z"/>',
     save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
-    favorite: '<path fill="currentColor" d="m12 3.8 2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 17.1 6.7 19.9l1-5.8-4.2-4.1 5.9-.9L12 3.8Z"/>',
+    favorite: '<path fill="currentColor" d="m12 4.9 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7L12 4.9Zm0 2.7-1.4 2.8-3.1.5 2.2 2.1-.5 3.1 2.8-1.5 2.8 1.5-.5-3.1 2.2-2.1-3.1-.5L12 7.6Z"/>',
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
     undo: '<path fill="currentColor" d="M10 7V4L4 9l6 5v-3c3.7 0 6.1 1.3 7 4-0.1-5.1-2.8-8-7-8Z"/>',
