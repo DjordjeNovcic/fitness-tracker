@@ -1369,7 +1369,6 @@ function renderActionIcon(kind) {
     edit: '<path fill="currentColor" d="m4 16.25 9.7-9.7 4 4L8 20.25H4zm11.1-10.4 1.7-1.7a1.5 1.5 0 0 1 2.1 0l.95.95a1.5 1.5 0 0 1 0 2.1l-1.7 1.7-4-4Z"/>',
     delete: '<path fill="currentColor" d="M9 4h6l1 1h4v2H4V5h4l1-1Zm1 5h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Z"/>',
     save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
-    favorite: '<path fill="currentColor" d="m12 3.8 2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 17.1 6.7 19.9l1-5.8-4.2-4.1 5.9-.9L12 3.8Z"/>',
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
     undo: '<path fill="currentColor" d="M10 7V4L4 9l6 5v-3c3.7 0 6.1 1.3 7 4-0.1-5.1-2.8-8-7-8Z"/>',
@@ -1971,12 +1970,12 @@ function renderFoodsTab() {
               const toneClass = macroClassMap[food.macroGroup] || "other";
               const dominantLabel =
                 food.macroGroup === "Proteini"
-                  ? "Dominantno protein"
+                  ? "dominantno protein"
                   : food.macroGroup === "UH"
-                    ? "Dominantno UH"
+                    ? "dominantno UH"
                     : food.macroGroup === "Masti"
-                      ? "Dominantno masti"
-                      : "Mešovit profil";
+                      ? "dominantno masti"
+                      : "mešovit profil";
               return `
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
@@ -1988,19 +1987,20 @@ function renderFoodsTab() {
                 </div>
                 <div class="foods-card-stats">
                   <div class="foods-stat-box foods-stat-box--kcal">
+                    <span class="foods-stat-label">Kalorije</span>
                     <strong>${roundValue(food.kcal, 0)} kcal</strong>
-                    <span class="foods-stat-meta">/ ${roundValue(food.servingBaseGrams, 0)} g</span>
+                    <span class="foods-stat-meta">na ${roundValue(food.servingBaseGrams, 0)} g</span>
                   </div>
                   <div class="foods-stat-box foods-stat-box--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">Proteini ${roundValue(food.protein, 1)} g</span>
+                    <span class="foods-stat-label">Protein</span>
                     <strong>${roundValue(food.protein, 1)} g</strong>
                   </div>
                   <div class="foods-stat-box foods-stat-box--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">UH ${roundValue(food.carbs, 1)} g</span>
+                    <span class="foods-stat-label">UH</span>
                     <strong>${roundValue(food.carbs, 1)} g</strong>
                   </div>
                   <div class="foods-stat-box foods-stat-box--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">
-                    <span class="foods-stat-label">Masti ${roundValue(food.fat, 1)} g</span>
+                    <span class="foods-stat-label">Masti</span>
                     <strong>${roundValue(food.fat, 1)} g</strong>
                   </div>
                 </div>
@@ -2017,7 +2017,7 @@ function renderFoodsTab() {
                     data-action="toggle-favorite-food"
                     data-food-id="${food.id}"
                   >
-                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Favorit" : "Favorit", "favorite")}
+                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Sačuvaj favorit", "save")}
                   </button>
                 </div>
               </article>
