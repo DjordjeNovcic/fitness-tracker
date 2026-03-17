@@ -2125,6 +2125,7 @@ body.menu-open .menu-fab {
 
   .app-main.shell > * {
     width: min(980px, 100%);
+    margin-left: auto;
     margin-right: auto;
   }
 
