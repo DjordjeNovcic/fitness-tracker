@@ -1980,7 +1980,6 @@ function renderFoodsTab() {
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
                   <div class="foods-title-block">
-                    <div class="foods-card-kicker">${food.category || "Ostalo"} · ${dominantLabel}</div>
                     <h3>${food.name}</h3>
                   </div>
                   <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
