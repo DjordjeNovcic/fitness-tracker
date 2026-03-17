@@ -1985,7 +1985,7 @@ function renderFoodsTab() {
                   <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                 </div>
                 <div class="pill-row foods-macro-row">
-                  <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal / ${roundValue(food.servingBaseGrams, 0)} g</span>
+                  <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal</span>
                   <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
                   <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
                   <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
