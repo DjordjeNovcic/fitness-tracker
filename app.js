@@ -108,6 +108,7 @@ let cloudSaveTimer = null;
 let isHydratingCloudState = false;
 let serviceWorkerRegistration = null;
 let lockedScrollY = 0;
+let feedbackToastTimer = null;
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = getAuth(firebaseApp);
@@ -1335,6 +1336,110 @@ function markUpdateReady(registration) {
   render();
 }
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function dismissFeedbackToast() {
+  const toast = document.querySelector(".feedback-toast");
+  if (!toast) {
+    return;
+  }
+
+  toast.classList.remove("is-visible");
+  toast.classList.add("is-hiding");
+  window.setTimeout(() => {
+    if (toast.isConnected) {
+      toast.remove();
+    }
+  }, 180);
+}
+
+function showFeedbackToast({ title, detail = "", tone = "success", duration = 2400 }) {
+  if (feedbackToastTimer) {
+    window.clearTimeout(feedbackToastTimer);
+    feedbackToastTimer = null;
+  }
+
+  dismissFeedbackToast();
+
+  const toast = document.createElement("div");
+  toast.className = `feedback-toast feedback-toast--${tone}`;
+  if (document.querySelector(".undo-banner, .update-banner")) {
+    toast.classList.add("is-raised");
+  }
+  toast.setAttribute("role", "status");
+  toast.setAttribute("aria-live", "polite");
+  toast.innerHTML = `
+    <div class="feedback-toast-title">${title}</div>
+    ${detail ? `<div class="feedback-toast-detail">${detail}</div>` : ""}
+  `;
+  document.body.appendChild(toast);
+
+  window.requestAnimationFrame(() => {
+    toast.classList.add("is-visible");
+  });
+
+  feedbackToastTimer = window.setTimeout(() => {
+    dismissFeedbackToast();
+    feedbackToastTimer = null;
+  }, duration);
+}
+
+function setButtonBusy(button, busyLabel = "Čuvam...") {
+  if (!(button instanceof HTMLButtonElement)) {
+    return () => {};
+  }
+
+  if (!button.dataset.originalHtml) {
+    button.dataset.originalHtml = button.innerHTML;
+  }
+
+  button.disabled = true;
+  button.classList.add("is-busy");
+  button.innerHTML = renderButtonContent(busyLabel, "spinner");
+
+  return () => {
+    button.disabled = false;
+    button.classList.remove("is-busy");
+    if (button.dataset.originalHtml) {
+      button.innerHTML = button.dataset.originalHtml;
+      delete button.dataset.originalHtml;
+    }
+  };
+}
+
+async function runButtonAction(button, task, options = {}) {
+  const {
+    busyLabel = "Čuvam...",
+    minDuration = 360,
+    successTitle = "",
+    successDetail = "",
+    errorTitle = "Nešto nije uspelo",
+    errorDetail = "",
+  } = options;
+
+  const restoreButton = setButtonBusy(button, busyLabel);
+  const startedAt = Date.now();
+
+  try {
+    const result = await task();
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < minDuration) {
+      await wait(minDuration - elapsed);
+    }
+    restoreButton();
+    if (successTitle) {
+      showFeedbackToast({ title: successTitle, detail: successDetail, tone: "success" });
+    }
+    return result;
+  } catch (error) {
+    restoreButton();
+    showFeedbackToast({ title: errorTitle, detail: errorDetail, tone: "error" });
+    throw error;
+  }
+}
+
 function renderPasswordToggleIcon(isVisible) {
   return isVisible
     ? `
@@ -1375,8 +1480,9 @@ function renderActionIcon(kind) {
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
     apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
+    spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
-  return `<span class="button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
+  return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
 }
 
 function renderButtonContent(label, iconKind, labelClass = "") {
@@ -3591,7 +3697,7 @@ function syncEntryPreview() {
   `;
 }
 
-function handleDocumentClick(event) {
+async function handleDocumentClick(event) {
   const actionTarget = event.target.closest("[data-action]");
   if (!actionTarget) {
     return;
@@ -4090,7 +4196,7 @@ function handleDocumentClick(event) {
     );
 
     if (!draftPreview.favoriteName || !draftPreview.mealLabel) {
-      window.alert("Upiši naziv i tip obroka pre čuvanja.");
+      showFeedbackToast({ title: "Fali naziv ili tip obroka", detail: "Upiši naziv i tip obroka pre čuvanja.", tone: "warning" });
       return;
     }
 
@@ -4105,7 +4211,7 @@ function handleDocumentClick(event) {
         return;
       }
     } else if (!draftPreview.items.length || (!existingFavorite && !state.editingFavoriteItem.favoriteId)) {
-      window.alert("Dodaj bar jednu namirnicu pre čuvanja obroka.");
+      showFeedbackToast({ title: "Obrok još nije spreman", detail: "Dodaj bar jednu namirnicu pre čuvanja obroka.", tone: "warning" });
       return;
     }
 
@@ -4113,7 +4219,7 @@ function handleDocumentClick(event) {
     const savedName = draftPreview.favoriteName;
     resetFavoriteDraft();
     render();
-    window.alert(`Obrok "${savedName}" je sačuvan u Obroci.`);
+    showFeedbackToast({ title: "Obrok je sačuvan", detail: `"${savedName}" je dodat u Obroke.` });
     return;
   }
 
@@ -4359,17 +4465,37 @@ function handleDocumentClick(event) {
   }
 
   if (action === "recalculate-goals") {
-    const weightInput = document.querySelector("#profile-weight");
-    const weightKg = toNumber(weightInput?.value || store.profile.weightKg);
-    document.querySelector("#goal-protein").value = roundValue(weightKg * 2.5, 1);
-    document.querySelector("#goal-carbs").value = roundValue(weightKg * 1.2, 1);
-    document.querySelector("#goal-fat").value = roundValue(weightKg * 0.8, 1);
-    document.querySelector("#goal-calories").value = roundValue(weightKg * 2.5 * 4 + weightKg * 1.2 * 4 + weightKg * 0.8 * 9, 0);
+    await runButtonAction(
+      actionTarget,
+      async () => {
+        const weightInput = document.querySelector("#profile-weight");
+        const weightKg = toNumber(weightInput?.value || store.profile.weightKg);
+        document.querySelector("#goal-protein").value = roundValue(weightKg * 2.5, 1);
+        document.querySelector("#goal-carbs").value = roundValue(weightKg * 1.2, 1);
+        document.querySelector("#goal-fat").value = roundValue(weightKg * 0.8, 1);
+        document.querySelector("#goal-calories").value = roundValue(weightKg * 2.5 * 4 + weightKg * 1.2 * 4 + weightKg * 0.8 * 9, 0);
+      },
+      {
+        busyLabel: "Računam...",
+        successTitle: "Ciljevi su popunjeni",
+        successDetail: "Makroi i kalorije su izračunati iz tvoje težine.",
+      }
+    );
     return;
   }
 
   if (action === "export-data") {
-    exportData();
+    await runButtonAction(
+      actionTarget,
+      async () => {
+        exportData();
+      },
+      {
+        busyLabel: "Spremam...",
+        successTitle: "Backup je spreman",
+        successDetail: "JSON backup je preuzet na uređaj.",
+      }
+    );
     return;
   }
 
@@ -4696,10 +4822,21 @@ async function handleSubmit(event) {
   }
 
   if (event.target.id === "training-burn-form") {
-    const burnKcal = Math.max(0, toNumber(formData.get("burnKcal")));
-    store.trainingBurnByWeekday[state.selectedWeekday] = burnKcal;
-    persist();
-    render();
+    const submitButton = event.submitter instanceof HTMLButtonElement ? event.submitter : null;
+    await runButtonAction(
+      submitButton,
+      async () => {
+        const burnKcal = Math.max(0, toNumber(formData.get("burnKcal")));
+        store.trainingBurnByWeekday[state.selectedWeekday] = burnKcal;
+        persist();
+        render();
+      },
+      {
+        busyLabel: "Čuvam...",
+        successTitle: "Potrošnja je sačuvana",
+        successDetail: `Apple Watch unos za ${state.selectedWeekday} je ažuriran.`,
+      }
+    );
     return;
   }
 
@@ -4796,15 +4933,27 @@ async function handleSubmit(event) {
   }
 
   if (event.target.id === "goals-form") {
-    store.profile.name = String(formData.get("name") || "").trim();
-    store.profile.age = toNumber(formData.get("age"));
-    store.profile.weightKg = toNumber(formData.get("weightKg"));
-    store.goals.calories = toNumber(formData.get("calories"));
-    store.goals.protein = toNumber(formData.get("protein"));
-    store.goals.carbs = toNumber(formData.get("carbs"));
-    store.goals.fat = toNumber(formData.get("fat"));
-    persist();
-    render();
+    const submitButton = event.submitter instanceof HTMLButtonElement ? event.submitter : null;
+    await runButtonAction(
+      submitButton,
+      async () => {
+        store.profile.name = String(formData.get("name") || "").trim();
+        store.profile.age = toNumber(formData.get("age"));
+        store.profile.weightKg = toNumber(formData.get("weightKg"));
+        store.goals.calories = toNumber(formData.get("calories"));
+        store.goals.protein = toNumber(formData.get("protein"));
+        store.goals.carbs = toNumber(formData.get("carbs"));
+        store.goals.fat = toNumber(formData.get("fat"));
+        persist();
+        render();
+      },
+      {
+        busyLabel: "Čuvam...",
+        successTitle: "Ciljevi su sačuvani",
+        successDetail: "Dnevni plan i makroi su ažurirani.",
+      }
+    );
+    return;
   }
 }
 
@@ -4895,8 +5044,9 @@ function handleImport(event) {
       replaceStore(parsed);
       persist();
       render();
+      showFeedbackToast({ title: "Backup je uspešno uvezen", detail: "Podaci iz fajla su sada učitani u app." });
     } catch (error) {
-      window.alert("Backup nije validan JSON.");
+      showFeedbackToast({ title: "Backup nije validan", detail: "Izabrani fajl nije ispravan JSON backup.", tone: "error" });
     }
   };
   reader.readAsText(target.files[0]);

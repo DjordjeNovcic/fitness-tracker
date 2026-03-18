@@ -83,6 +83,10 @@ button:disabled {
   box-shadow: none;
 }
 
+button.is-busy:disabled {
+  opacity: 1;
+}
+
 button:not(:disabled):active {
   transform: translateY(1px) scale(0.992);
 }
@@ -1482,6 +1486,10 @@ body.plan-compact .hero-day-picker {
   flex-shrink: 0;
 }
 
+.button-icon.is-spinning svg {
+  animation: buttonSpin 0.9s linear infinite;
+}
+
 .button-label {
   display: inline;
 }
@@ -2175,6 +2183,72 @@ body.menu-open .menu-fab {
   backdrop-filter: blur(18px);
 }
 
+.feedback-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 53;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  background: rgba(255, 250, 244, 0.96);
+  color: var(--ink);
+  box-shadow: 0 18px 34px rgba(25, 34, 31, 0.14);
+  backdrop-filter: blur(18px);
+  transform: translateY(18px) scale(0.98);
+  opacity: 0;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.feedback-toast.is-raised {
+  bottom: calc(92px + env(safe-area-inset-bottom));
+}
+
+.feedback-toast.is-visible {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.feedback-toast.is-hiding {
+  transform: translateY(12px) scale(0.985);
+  opacity: 0;
+}
+
+.feedback-toast--success {
+  background:
+    linear-gradient(135deg, rgba(221, 233, 220, 0.94), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.feedback-toast--warning {
+  background:
+    linear-gradient(135deg, rgba(245, 232, 198, 0.94), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.feedback-toast--error {
+  background:
+    linear-gradient(135deg, rgba(243, 228, 218, 0.96), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.feedback-toast-title {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.feedback-toast-detail {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .undo-banner {
   position: fixed;
   left: 16px;
@@ -2193,6 +2267,15 @@ body.menu-open .menu-fab {
   color: #fff9f3;
   box-shadow: 0 16px 30px rgba(25, 34, 31, 0.24);
   backdrop-filter: blur(14px);
+}
+
+@keyframes buttonSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty {
