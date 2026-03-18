@@ -1395,61 +1395,71 @@ function renderAuthShell() {
   return `
     <main class="shell auth-shell">
       <section class="section auth-card">
-        <div class="auth-hero">
-          <span class="auth-badge">Cloud sync</span>
-          <h1>${state.authMode === "register" ? "Napravi svoj nalog" : "Prijavi se u svoj tracker"}</h1>
-          <p>Plan, obroci i trening biće sync-ovani između uređaja.</p>
-        </div>
-        <div class="auth-mode-switch" role="tablist" aria-label="Rezim prijave">
-          <button
-            class="auth-mode-chip ${state.authMode === "login" ? "is-active" : ""}"
-            type="button"
-            data-action="set-auth-mode"
-            data-mode="login"
-          >
-            Prijava
-          </button>
-          <button
-            class="auth-mode-chip ${state.authMode === "register" ? "is-active" : ""}"
-            type="button"
-            data-action="set-auth-mode"
-            data-mode="register"
-          >
-            Novi nalog
-          </button>
-        </div>
-        <form id="auth-form" class="form-grid">
-          <div class="field">
-            <label for="auth-email">Email</label>
-            <input id="auth-email" name="email" type="email" placeholder="ime.prezime@email.com" autocomplete="email" required />
+        <div class="auth-layout">
+          <div class="auth-hero">
+            <span class="auth-badge">Cloud sync</span>
+            <h1>${state.authMode === "register" ? "Napravi svoj nalog" : "Prijavi se u svoj tracker"}</h1>
+            <p>Plan, obroci i trening biće sync-ovani između uređaja.</p>
+            <div class="meta-row auth-highlights" aria-label="Prednosti aplikacije">
+              <span class="pill strong">Plan + obroci</span>
+              <span class="pill">Trening i rutina</span>
+              <span class="pill">Sync između uređaja</span>
+            </div>
           </div>
-          <div class="field password-field">
-            <label for="auth-password">Lozinka</label>
-            <div class="password-input-wrap">
-              <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
-              <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikaži lozinku">
-                ${renderPasswordToggleIcon(false)}
+
+          <div class="auth-panel">
+            <div class="auth-mode-switch" role="tablist" aria-label="Rezim prijave">
+              <button
+                class="auth-mode-chip ${state.authMode === "login" ? "is-active" : ""}"
+                type="button"
+                data-action="set-auth-mode"
+                data-mode="login"
+              >
+                Prijava
+              </button>
+              <button
+                class="auth-mode-chip ${state.authMode === "register" ? "is-active" : ""}"
+                type="button"
+                data-action="set-auth-mode"
+                data-mode="register"
+              >
+                Novi nalog
+              </button>
+            </div>
+            <form id="auth-form" class="form-grid auth-form">
+              <div class="field">
+                <label for="auth-email">Email</label>
+                <input id="auth-email" name="email" type="email" placeholder="ime.prezime@email.com" autocomplete="email" required />
+              </div>
+              <div class="field password-field">
+                <label for="auth-password">Lozinka</label>
+                <div class="password-input-wrap">
+                  <input id="auth-password" name="password" type="password" placeholder="Minimum 6 karaktera" autocomplete="${state.authMode === "register" ? "new-password" : "current-password"}" required />
+                  <button class="ghost-button password-toggle" type="button" data-action="toggle-auth-password" aria-controls="auth-password" aria-label="Prikaži lozinku">
+                    ${renderPasswordToggleIcon(false)}
+                  </button>
+                </div>
+              </div>
+              ${
+                state.authError
+                  ? `<div class="auth-feedback auth-feedback--error" role="alert">${state.authError}</div>`
+                  : `<div class="auth-note">Slike ostaju lokalno. Plan, obroci, trening i rutina idu u cloud.</div>`
+              }
+              <button class="solid-button auth-submit" type="submit" ${state.authPending ? "disabled" : ""}>${submitLabel}</button>
+            </form>
+            <div class="meta-row auth-toggle-row">
+              <span class="footer-note">
+                ${
+                  state.authMode === "register"
+                    ? "Već imaš nalog?"
+                    : "Prvi put ovde?"
+                }
+              </span>
+              <button class="ghost-button auth-switch-button" type="button" data-action="set-auth-mode" data-mode="${state.authMode === "register" ? "login" : "register"}">
+                ${state.authMode === "register" ? "Idi na prijavu" : "Napravi nalog"}
               </button>
             </div>
           </div>
-          ${
-            state.authError
-              ? `<div class="auth-feedback auth-feedback--error" role="alert">${state.authError}</div>`
-              : `<div class="auth-note">Slike su za sada lokalno. Ostalo ide u cloud.</div>`
-          }
-          <button class="solid-button" type="submit" ${state.authPending ? "disabled" : ""}>${submitLabel}</button>
-        </form>
-        <div class="meta-row auth-toggle-row">
-          <span class="footer-note">
-            ${
-              state.authMode === "register"
-                ? "Vec imas nalog?"
-                : "Prvi put ovde?"
-            }
-          </span>
-          <button class="ghost-button" type="button" data-action="set-auth-mode" data-mode="${state.authMode === "register" ? "login" : "register"}">
-            ${state.authMode === "register" ? "Idi na prijavu" : "Napravi nalog"}
-          </button>
         </div>
       </section>
     </main>
