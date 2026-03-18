@@ -2339,7 +2339,7 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell > * {
-    width: min(1080px, 100%);
+    width: min(1200px, 100%);
     margin-left: auto;
     margin-right: auto;
   }
@@ -2811,6 +2811,7 @@ body.menu-open .menu-fab {
   .app-frame {
     grid-template-columns: 264px minmax(0, 1fr);
     max-width: none;
+    gap: 34px;
   }
 
   .shell {
@@ -2854,6 +2855,6 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell > * {
-    width: min(1180px, 100%);
+    width: min(1360px, 100%);
   }
 }
