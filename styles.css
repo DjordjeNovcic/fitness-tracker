@@ -2158,10 +2158,198 @@ body.menu-open .menu-fab {
   font-weight: 700;
 }
 
+@media (max-width: 719px) {
+  .shell {
+    max-width: 100%;
+    gap: 22px;
+    padding: 20px 16px 42px;
+  }
+
+  .shell-with-menu {
+    padding-top: 78px;
+  }
+
+  .hero {
+    margin-top: 8px;
+    padding: 22px 20px 18px;
+    border-radius: 30px;
+    box-shadow:
+      0 22px 44px rgba(18, 31, 27, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .shell-with-menu.is-plan-shell {
+    padding-top: 8px;
+  }
+
+  .shell-with-menu.is-plan-shell .hero {
+    padding-top: 22px;
+    border-radius: 30px;
+  }
+
+  .hero h1 {
+    font-size: 1.86rem;
+  }
+
+  .hero p {
+    max-width: 28ch;
+    font-size: 0.96rem;
+  }
+
+  .hero-day-picker {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .section {
+    padding: 20px 18px;
+    border-radius: 24px;
+    box-shadow:
+      0 16px 34px rgba(25, 34, 31, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.56);
+  }
+
+  .section-header {
+    margin-bottom: 16px;
+  }
+
+  .section-header h2 {
+    font-size: 1.28rem;
+  }
+
+  .section-header p {
+    font-size: 0.94rem;
+    max-width: 36ch;
+  }
+
+  .macro-card,
+  .stat-card,
+  .meal-card,
+  .food-card,
+  .training-card,
+  .routine-card,
+  .chart-card,
+  .photo-card,
+  .plan-preview-card,
+  .plan-quick-card,
+  .plan-recipes-card {
+    border-radius: 22px;
+  }
+
+  .macro-card,
+  .stat-card {
+    padding: 18px 16px;
+  }
+
+  .meal-card,
+  .food-card,
+  .training-card {
+    padding: 16px;
+  }
+
+  .plan-meals-section .meal-card {
+    padding: 18px 16px;
+  }
+
+  .meal-title {
+    font-size: 1.16rem;
+  }
+
+  .meal-order {
+    min-width: 36px;
+    height: 36px;
+  }
+
+  .pill {
+    min-height: 31px;
+    padding: 6px 10px;
+    font-size: 0.79rem;
+  }
+
+  .solid-button,
+  .ghost-button,
+  .danger-button {
+    min-height: 46px;
+    padding: 11px 14px;
+    border-radius: 16px;
+    font-size: 0.95rem;
+  }
+
+  .chips {
+    gap: 10px;
+  }
+
+  .chip {
+    padding: 10px 14px;
+  }
+
+  .menu-fab {
+    top: calc(18px + env(safe-area-inset-top));
+    right: 16px;
+    min-width: 50px;
+    min-height: 50px;
+    padding: 12px;
+    border-radius: 17px;
+    box-shadow: 0 18px 34px rgba(25, 34, 31, 0.18);
+  }
+
+  .mobile-menu {
+    width: min(372px, calc(100vw - 18px));
+    padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+    gap: 16px;
+    box-shadow: -20px 0 50px rgba(25, 34, 31, 0.16);
+  }
+
+  .mobile-menu-top {
+    gap: 14px;
+  }
+
+  .mobile-menu-list {
+    gap: 12px;
+  }
+
+  .menu-tab-button {
+    min-height: 58px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    gap: 12px;
+  }
+
+  .menu-tab-button .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: rgba(23, 59, 47, 0.06);
+    font-size: 1rem;
+  }
+
+  .menu-tab-button.is-active .icon {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fffaf2;
+  }
+
+  .mobile-menu-footer {
+    gap: 10px;
+  }
+
+  .auth-card {
+    border-radius: 28px;
+  }
+
+  .auth-hero {
+    padding: 20px 18px 22px;
+    border-radius: 24px;
+  }
+}
+
 @media (max-width: 520px) {
   .shell {
     gap: 18px;
-    padding: 20px 14px 34px;
+    padding: 18px 14px 36px;
   }
 
   .routine-summary-grid {
@@ -2194,7 +2382,7 @@ body.menu-open .menu-fab {
   }
 
   .section {
-    padding: 18px;
+    padding: 18px 16px;
   }
 
   .plan-summary-section::before,
@@ -2206,11 +2394,9 @@ body.menu-open .menu-fab {
   }
 
   .hero {
-    padding: 18px 18px 16px;
-  }
-
-  .hero h1 {
-    font-size: 1.72rem;
+    margin-top: 6px;
+    padding: 18px 16px 16px;
+    border-radius: 28px;
   }
 
   .goal-grid,
@@ -2261,6 +2447,33 @@ body.menu-open .menu-fab {
   .meal-entry-actions .danger-button {
     min-width: 44px;
     padding-inline: 12px;
+  }
+
+  .meal-card {
+    padding: 16px 14px;
+  }
+
+  .food-card,
+  .training-card,
+  .chart-card,
+  .photo-card,
+  .routine-card {
+    padding: 15px;
+  }
+
+  .meal-title {
+    font-size: 1.12rem;
+  }
+
+  .macro-value,
+  .plan-summary-section .macro-value,
+  .plan-secondary-stats .macro-value {
+    font-size: 1.68rem;
+  }
+
+  .menu-tab-button {
+    min-height: 54px;
+    padding: 13px 14px;
   }
 
   .update-banner {
