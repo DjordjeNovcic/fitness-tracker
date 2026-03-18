@@ -476,6 +476,30 @@ body.plan-compact .hero-day-picker {
   margin-bottom: 20px;
 }
 
+.section-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.section-header--eyebrow {
+  margin-bottom: 18px;
+}
+
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(222, 231, 216, 0.75);
+  border: 1px solid rgba(66, 98, 84, 0.08);
+  color: color-mix(in srgb, var(--ink) 82%, var(--muted));
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .section-header h2,
 .section-header p {
   margin: 0;
@@ -1421,6 +1445,10 @@ body.plan-compact .hero-day-picker {
   margin-top: 10px;
 }
 
+.meta-row--compact {
+  margin-top: 0;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -1467,6 +1495,56 @@ body.plan-compact .hero-day-picker {
   background: var(--status-error-bg);
   border-color: var(--status-error-border);
   color: var(--status-error-text);
+}
+
+.settings-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.status-summary-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+  border: 1px solid rgba(24, 33, 30, 0.07);
+  box-shadow:
+    0 12px 26px rgba(25, 34, 31, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.56);
+}
+
+.status-summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.status-summary-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.status-summary-copy .footer-note {
+  margin-top: 0;
+  max-width: 56ch;
+}
+
+.status-summary-pills {
+  margin-top: 0;
+}
+
+.status-summary-actions {
+  align-items: center;
+}
+
+.status-summary-actions > .ghost-button,
+.status-summary-actions > .solid-button,
+.status-summary-actions > label.ghost-button {
+  min-height: 42px;
 }
 
 .entry-actions {
@@ -3237,6 +3315,15 @@ body.menu-open .menu-fab {
 
   .goals-insight-grid {
     margin-bottom: 14px;
+  }
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .status-summary-card {
+    min-height: 100%;
   }
 
   .supplement-weekdays-field {

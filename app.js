@@ -27,6 +27,7 @@ const TABS = [
   { id: "routine", label: "Rutina", icon: "✅" },
   { id: "progress", label: "Napredak", icon: "📏" },
   { id: "goals", label: "Ciljevi", icon: "🎯" },
+  { id: "settings", label: "Podešavanja", icon: "⚙️" },
 ];
 
 const ACTIVITY_LEVELS = [
@@ -1604,6 +1605,48 @@ function getSyncStatusTone(status = state.syncStatus) {
   return "info";
 }
 
+function renderSectionLead(title, description, options = {}) {
+  const { eyebrow = "" } = options;
+  return `
+    <div class="section-header ${eyebrow ? "section-header--eyebrow" : ""}">
+      <div class="section-copy">
+        ${eyebrow ? `<span class="section-eyebrow">${eyebrow}</span>` : ""}
+        <h2>${title}</h2>
+        <p>${description}</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusSummaryCard({ title, detail = "", statusLabel = "", tone = "info", pills = [], actions = "" }) {
+  return `
+    <article class="status-summary-card">
+      <div class="status-summary-top">
+        <div class="status-summary-copy">
+          <strong>${title}</strong>
+          ${detail ? `<div class="footer-note">${detail}</div>` : ""}
+        </div>
+        ${statusLabel ? `<span class="pill strong pill--${tone}">${statusLabel}</span>` : ""}
+      </div>
+      ${
+        pills.length
+          ? `
+            <div class="pill-row status-summary-pills">
+              ${pills
+                .map(
+                  (pill) =>
+                    `<span class="pill ${pill.strong ? "strong" : ""} ${pill.tone ? `pill--${pill.tone}` : ""}">${pill.label}</span>`
+                )
+                .join("")}
+            </div>
+          `
+          : ""
+      }
+      ${actions ? `<div class="meta-row meta-row--compact status-summary-actions">${actions}</div>` : ""}
+    </article>
+  `;
+}
+
 function renderButtonContent(label, iconKind, labelClass = "") {
   return `${renderActionIcon(iconKind)}<span class="button-label ${labelClass}">${label}</span>`;
 }
@@ -3045,7 +3088,6 @@ function renderRoutineTab() {
 
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
-  const syncStatusTone = getSyncStatusTone();
   const goalRecommendation = getGoalRecommendation();
   const editingSupplement = state.editingSupplementId
     ? store.supplements.find((supplement) => supplement.id === state.editingSupplementId)
@@ -3082,31 +3124,8 @@ function renderGoalsTab() {
   ];
 
   return `
-    <section class="section goals-sync-section">
-      <div class="section-header">
-        <div>
-          <h2>Nalog i sync</h2>
-          <p>Cloud sync radi za podatke iz app-a, dok progress slike za sada ostaju lokalno.</p>
-        </div>
-      </div>
-      <div class="goals-sync-card">
-        <div class="goals-sync-top">
-          <strong class="goals-sync-email">${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-          <span class="pill strong pill--${syncStatusTone}">${state.syncStatus}</span>
-        </div>
-        <div class="pill-row goals-sync-pills">
-          <span class="pill pill--info">Slike: lokalno</span>
-        </div>
-      </div>
-    </section>
-
     <section class="section goals-profile-section">
-      <div class="section-header">
-        <div>
-          <h2>Profil i ciljevi</h2>
-          <p>BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.</p>
-        </div>
-      </div>
+      ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
       <div class="stats-grid goals-insight-grid">
         <article class="stat-card">
           <strong>Bazalni metabolizam</strong>
@@ -3190,12 +3209,7 @@ function renderGoalsTab() {
     </section>
 
     <section class="section goals-supplements-section">
-      <div class="section-header">
-        <div>
-          <h2>Vitamini i suplementi</h2>
-          <p>Dodaj šta piješ i kada, pa ćeš u Planu dobiti dnevni checkbox pregled.</p>
-        </div>
-      </div>
+      ${renderSectionLead("Vitamini i suplementi", "Dodaj šta piješ i kada, pa ćeš u Planu dobiti dnevni checkbox pregled.", { eyebrow: "Rutina" })}
       <form id="supplement-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
@@ -3263,12 +3277,7 @@ function renderGoalsTab() {
     </section>
 
     <section class="section goals-weekly-section">
-      <div class="section-header">
-        <div>
-          <h2>Nedeljni nivo</h2>
-          <p>Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.</p>
-        </div>
-      </div>
+      ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.", { eyebrow: "Pregled" })}
       <div class="stats-grid">
         <article class="stat-card">
           <strong>Uneto kcal</strong>
@@ -3297,12 +3306,7 @@ function renderGoalsTab() {
     </section>
 
     <section class="section goals-days-section">
-      <div class="section-header">
-        <div>
-          <h2>Pregled po danima</h2>
-          <p>Svaki dan sa kalorijama i razlikom u odnosu na dnevni cilj.</p>
-        </div>
-      </div>
+      ${renderSectionLead("Pregled po danima", "Svaki dan sa kalorijama i razlikom u odnosu na dnevni cilj.", { eyebrow: "Nedelja" })}
       <div class="stats-grid">
         ${weeklyOverview.days
           .map(
@@ -3317,20 +3321,43 @@ function renderGoalsTab() {
           .join("")}
       </div>
     </section>
+  `;
+}
 
-    <section class="section goals-backup-section">
-      <div class="section-header">
-        <div>
-          <h2>Backup</h2>
-          <p>JSON backup je i dalje dobar kao dodatna sigurnost, iako su glavni podaci sada i u cloud-u.</p>
-        </div>
+function renderSettingsTab() {
+  const syncStatusTone = getSyncStatusTone();
+
+  return `
+    <section class="section settings-account-section">
+      ${renderSectionLead("Nalog i sync", "Ovde su prijava, cloud status i sigurnosne opcije za podatke iz app-a.", { eyebrow: "Podešavanja" })}
+      <div class="settings-grid">
+        ${renderStatusSummaryCard({
+          title: state.authUser?.email || "Nema prijavljenog naloga",
+          detail: "Cloud sync radi za plan, obroke, trening, rutinu i ciljeve. Progress slike za sada ostaju lokalno na uređaju.",
+          statusLabel: state.syncStatus,
+          tone: syncStatusTone,
+          pills: [
+            { label: "Firebase sync", strong: true, tone: syncStatusTone },
+            { label: "Slike: lokalno", tone: "info" },
+          ],
+          actions: `<button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>`,
+        })}
+
+        <article class="status-summary-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Backup i oporavak</strong>
+              <div class="footer-note">JSON backup je dodatna sigurnost. Ako ga uvezeš dok si prijavljen, izmene će se upisati i u cloud.</div>
+            </div>
+            <span class="pill strong pill--info">Lokalni fajl</span>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi backup", "save")}</button>
+            <label class="ghost-button button-with-icon" for="import-json">${renderButtonContent("Uvezi backup", "open")}</label>
+            <input id="import-json" type="file" accept="application/json" hidden />
+          </div>
+        </article>
       </div>
-      <div class="meta-row">
-        <button class="solid-button secondary-button" data-action="export-data">Izvezi backup</button>
-        <label class="ghost-button" for="import-json">Uvezi backup</label>
-        <input id="import-json" type="file" accept="application/json" hidden />
-      </div>
-      <div class="footer-note">Ako uvezeš backup dok si prijavljen, izmene će se upisati i u Firebase.</div>
     </section>
   `;
 }
@@ -3889,6 +3916,7 @@ function render() {
     routine: renderRoutineTab(),
     progress: renderProgressTab(),
     goals: renderGoalsTab(),
+    settings: renderSettingsTab(),
   };
 
   document.querySelector("#app").innerHTML = `
