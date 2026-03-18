@@ -17,6 +17,24 @@
   --secondary-soft: #e8edd8;
   --teal: #2f8076;
   --clay: #efe2d6;
+  --button-primary-bg: linear-gradient(180deg, #20493b, #173b2f);
+  --button-primary-text: #fbf8ef;
+  --button-primary-border: rgba(10, 24, 19, 0.18);
+  --button-secondary-bg: linear-gradient(180deg, #98a66c, #849259);
+  --button-secondary-text: #fbf8ef;
+  --button-secondary-border: rgba(91, 104, 58, 0.16);
+  --button-ghost-bg: rgba(255, 251, 245, 0.98);
+  --button-ghost-text: var(--ink);
+  --button-ghost-border: rgba(25, 34, 31, 0.09);
+  --button-danger-bg: linear-gradient(180deg, #f2e7dc, #ebddd0);
+  --button-danger-text: #7a4e38;
+  --button-danger-border: rgba(122, 78, 56, 0.12);
+  --pill-bg: rgba(243, 236, 226, 0.72);
+  --pill-border: rgba(24, 33, 30, 0.045);
+  --pill-strong-bg: rgba(220, 233, 221, 0.88);
+  --pill-strong-border: rgba(44, 123, 116, 0.1);
+  --pill-note-bg: rgba(233, 238, 219, 0.84);
+  --pill-note-border: rgba(125, 139, 90, 0.1);
   --rail-bg: linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(246, 239, 229, 0.96));
   --shadow: 0 28px 70px rgba(22, 32, 29, 0.12);
   --shadow-soft: 0 18px 40px rgba(25, 34, 31, 0.085);
@@ -352,8 +370,9 @@ body.plan-compact .hero-day-picker {
 }
 
 .auth-mode-chip.is-active {
-  background: var(--surface-strong);
+  background: var(--button-ghost-bg);
   color: var(--accent);
+  border: 1px solid var(--button-ghost-border);
   box-shadow: var(--shadow-tight);
 }
 
@@ -865,9 +884,9 @@ body.plan-compact .hero-day-picker {
   min-height: auto;
   padding: 7px 10px;
   border-radius: 999px;
-  background: rgba(245, 238, 228, 0.88);
+  background: var(--button-ghost-bg);
   color: var(--muted);
-  border: 1px solid rgba(24, 33, 30, 0.08);
+  border: 1px solid var(--button-ghost-border);
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -1096,7 +1115,7 @@ body.plan-compact .hero-day-picker {
 }
 
 .foods-card-actions .ghost-button {
-  background: rgba(255, 252, 247, 0.98);
+  background: var(--button-ghost-bg);
 }
 
 .foods-card-actions .solid-button,
@@ -1396,8 +1415,8 @@ body.plan-compact .hero-day-picker {
   justify-content: center;
   padding: 7px 11px;
   border-radius: 999px;
-  background: rgba(243, 236, 226, 0.72);
-  border: 1px solid rgba(24, 33, 30, 0.045);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   color: rgba(24, 33, 30, 0.9);
   font-size: 0.82rem;
   font-weight: 700;
@@ -1405,13 +1424,13 @@ body.plan-compact .hero-day-picker {
 }
 
 .pill.strong {
-  background: rgba(220, 233, 221, 0.88);
-  border-color: rgba(44, 123, 116, 0.1);
+  background: var(--pill-strong-bg);
+  border-color: var(--pill-strong-border);
 }
 
 .pill.note {
-  background: rgba(233, 238, 219, 0.84);
-  border-color: rgba(125, 139, 90, 0.1);
+  background: var(--pill-note-bg);
+  border-color: var(--pill-note-border);
 }
 
 .entry-actions {
@@ -1495,27 +1514,27 @@ body.plan-compact .hero-day-picker {
 }
 
 .ghost-button {
-  background: rgba(255, 251, 245, 0.98);
-  color: var(--ink);
-  border-color: rgba(25, 34, 31, 0.09);
+  background: var(--button-ghost-bg);
+  color: var(--button-ghost-text);
+  border-color: var(--button-ghost-border);
 }
 
 .danger-button {
-  background: linear-gradient(180deg, #f4e8de, #efe1d5);
-  color: #7a4e38;
-  border-color: rgba(122, 78, 56, 0.12);
+  background: var(--button-danger-bg);
+  color: var(--button-danger-text);
+  border-color: var(--button-danger-border);
 }
 
 .solid-button {
-  background: linear-gradient(180deg, #20493b, #173b2f);
-  color: #fbf8ef;
-  border-color: rgba(10, 24, 19, 0.18);
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border-color: var(--button-primary-border);
 }
 
 .secondary-button {
-  background: linear-gradient(180deg, #9ca86e, #88965d);
-  color: #f8f7ef;
-  border-color: rgba(91, 104, 58, 0.16);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border-color: var(--button-secondary-border);
 }
 
 .solid-button:not(:disabled):hover,
@@ -2124,9 +2143,9 @@ body.menu-open .menu-fab {
   min-height: 54px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--button-ghost-bg);
   color: var(--ink);
-  border: 1px solid rgba(24, 33, 30, 0.06);
+  border: 1px solid var(--button-ghost-border);
   box-shadow: 0 8px 18px rgba(25, 34, 31, 0.05);
   text-align: left;
   font-weight: 800;
@@ -2158,9 +2177,9 @@ body.menu-open .menu-fab {
 
 .signout-button {
   justify-content: center;
-  background: #f1e7de;
-  color: #7a4e38;
-  border: 1px solid rgba(122, 78, 56, 0.12);
+  background: var(--button-danger-bg);
+  color: var(--button-danger-text);
+  border: 1px solid var(--button-danger-border);
 }
 
 .update-banner {
