@@ -2124,7 +2124,7 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell > * {
-    width: min(980px, 100%);
+    width: min(1080px, 100%);
     margin-left: auto;
     margin-right: auto;
   }
@@ -2612,5 +2612,9 @@ body.menu-open .menu-fab {
 
   .app-main.shell {
     max-width: none;
+  }
+
+  .app-main.shell > * {
+    width: min(1180px, 100%);
   }
 }
