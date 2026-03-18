@@ -1974,6 +1974,21 @@ body.plan-compact .hero-day-picker {
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+.supplement-card,
+.supplement-plan-card {
+  border-style: solid;
+}
+
+.supplement-plan-card.is-done {
+  opacity: 0.82;
+}
+
+.supplement-plan-card.is-done .routine-content strong {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(24, 33, 30, 0.32);
+}
+
 .routine-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1989,6 +2004,43 @@ body.plan-compact .hero-day-picker {
   display: block;
   font-size: 1.05rem;
   letter-spacing: -0.02em;
+}
+
+.weekday-choice-grid {
+  gap: 8px;
+}
+
+.supplement-weekdays-field {
+  grid-column: 1 / -1;
+}
+
+.goals-insight-grid,
+.plan-supplement-summary {
+  gap: 12px;
+}
+
+.weekday-choice {
+  position: relative;
+  overflow: hidden;
+}
+
+.weekday-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.weekday-choice span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.weekday-choice:has(input:checked) {
+  background: linear-gradient(180deg, rgba(152, 166, 108, 0.18), rgba(216, 234, 223, 0.88));
+  border-color: rgba(91, 104, 58, 0.14);
+  color: var(--accent);
 }
 
 .routine-check {
@@ -3183,6 +3235,14 @@ body.menu-open .menu-fab {
     gap: 10px;
   }
 
+  .goals-insight-grid {
+    margin-bottom: 14px;
+  }
+
+  .supplement-weekdays-field {
+    grid-column: 1 / -1;
+  }
+
   .goals-profile-section .field input,
   .goals-profile-section .field select,
   .goals-profile-section .field textarea {
@@ -3197,6 +3257,11 @@ body.menu-open .menu-fab {
 
   .goals-backup-section .meta-row {
     gap: 10px;
+  }
+
+  .plan-supplement-summary {
+    gap: 12px;
+    margin-top: 12px;
   }
 
   .plan-summary-section .macro-grid {

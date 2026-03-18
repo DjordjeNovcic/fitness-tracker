@@ -29,6 +29,28 @@ const TABS = [
   { id: "goals", label: "Ciljevi", icon: "🎯" },
 ];
 
+const ACTIVITY_LEVELS = [
+  { id: "sedentary", label: "Sedeći posao", multiplier: 1.2 },
+  { id: "light", label: "Lagana aktivnost", multiplier: 1.375 },
+  { id: "moderate", label: "Umerena aktivnost", multiplier: 1.55 },
+  { id: "active", label: "Aktivan trening", multiplier: 1.725 },
+  { id: "very-active", label: "Vrlo aktivan", multiplier: 1.9 },
+];
+
+const GOAL_MODES = [
+  { id: "lose", label: "Smršaj", calorieFactor: 0.85, proteinFactor: 2.2, fatFactor: 0.8 },
+  { id: "maintain", label: "Održavanje", calorieFactor: 1, proteinFactor: 2, fatFactor: 0.9 },
+  { id: "gain", label: "Ugoji se", calorieFactor: 1.12, proteinFactor: 1.8, fatFactor: 1 },
+];
+
+const SUPPLEMENT_TIMINGS = [
+  { id: "morning", label: "Ujutru" },
+  { id: "breakfast", label: "Uz doručak" },
+  { id: "lunch", label: "Uz ručak" },
+  { id: "postworkout", label: "Posle treninga" },
+  { id: "evening", label: "Uveče" },
+];
+
 const defaultMeals = [
   "1. Doručak",
   "2. Prva užina",
@@ -93,6 +115,7 @@ const state = {
   editingFoodId: "",
   editingHabitId: "",
   editingTaskId: "",
+  editingSupplementId: "",
   authReady: false,
   authPending: false,
   authMode: "login",
@@ -126,11 +149,21 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     },
   };
 
+  const profileDefaults = {
+    sex: "",
+    heightCm: null,
+    activityLevel: "moderate",
+  };
+
+  const goalDefaults = {
+    targetMode: "lose",
+  };
+
   return {
     ...fallback,
     ...rawStore,
-    profile: { ...fallback.profile, ...(rawStore.profile || {}) },
-    goals: { ...fallback.goals, ...(rawStore.goals || {}) },
+    profile: { ...profileDefaults, ...fallback.profile, ...(rawStore.profile || {}) },
+    goals: { ...goalDefaults, ...fallback.goals, ...(rawStore.goals || {}) },
     meta: { ...fallback.meta, ...(rawStore.meta || {}) },
     foods: Array.isArray(rawStore.foods) ? rawStore.foods : fallback.foods,
     weeklyPlanEntries: Array.isArray(rawStore.weeklyPlanEntries)
@@ -152,6 +185,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
+    supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
     ui: {
       ...fallbackUi,
       ...(rawStore.ui || {}),
@@ -195,6 +229,11 @@ function ensureStoreCollections(targetStore) {
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
+  targetStore.supplements = (targetStore.supplements || []).map((supplement) => ({
+    ...supplement,
+    weekdays: Array.isArray(supplement.weekdays) && supplement.weekdays.length ? supplement.weekdays : [...WEEKDAYS],
+    completions: supplement.completions && typeof supplement.completions === "object" ? supplement.completions : {},
+  }));
   targetStore.ui = targetStore.ui || {};
   targetStore.ui.plan = targetStore.ui.plan || {};
   if (typeof targetStore.ui.plan.hideDaySuggestion !== "boolean") {
@@ -625,6 +664,76 @@ function getTasksForDay(weekday) {
       }
       return Number(a.done) - Number(b.done);
     });
+}
+
+function getSupplementTimingLabel(timingId) {
+  return SUPPLEMENT_TIMINGS.find((entry) => entry.id === timingId)?.label || "Kad ti odgovara";
+}
+
+function getSupplements() {
+  const timingOrder = new Map(SUPPLEMENT_TIMINGS.map((entry, index) => [entry.id, index]));
+  return [...store.supplements].sort((a, b) => {
+    const timingDiff = (timingOrder.get(a.timing) ?? 99) - (timingOrder.get(b.timing) ?? 99);
+    if (timingDiff !== 0) {
+      return timingDiff;
+    }
+    return a.name.localeCompare(b.name, "sr");
+  });
+}
+
+function isSupplementScheduledForDay(supplement, weekday) {
+  const weekdays = Array.isArray(supplement?.weekdays) && supplement.weekdays.length ? supplement.weekdays : WEEKDAYS;
+  return weekdays.includes(weekday);
+}
+
+function isSupplementDoneForDay(supplement, weekday) {
+  return Boolean(supplement?.completions?.[weekday]);
+}
+
+function getSupplementsForDay(weekday) {
+  return getSupplements().filter((supplement) => isSupplementScheduledForDay(supplement, weekday));
+}
+
+function getBmrEstimate(profile = store.profile) {
+  const weightKg = toNumber(profile.weightKg);
+  const heightCm = toNumber(profile.heightCm);
+  const age = toNumber(profile.age);
+  const sex = String(profile.sex || "").trim();
+
+  if (!weightKg || !heightCm || !age || !sex) {
+    return null;
+  }
+
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
+  return roundValue(base + (sex === "female" ? -161 : 5), 0);
+}
+
+function getGoalRecommendation(profile = store.profile, goals = store.goals) {
+  const bmr = getBmrEstimate(profile);
+  if (!bmr) {
+    return null;
+  }
+
+  const activity = ACTIVITY_LEVELS.find((entry) => entry.id === profile.activityLevel) || ACTIVITY_LEVELS[2];
+  const goalMode = GOAL_MODES.find((entry) => entry.id === goals.targetMode) || GOAL_MODES[0];
+  const weightKg = Math.max(0, toNumber(profile.weightKg));
+  const maintenance = roundValue(bmr * activity.multiplier, 0);
+  const targetCalories = roundValue(maintenance * goalMode.calorieFactor, 0);
+  const protein = roundValue(weightKg * goalMode.proteinFactor, 1);
+  const fat = roundValue(weightKg * goalMode.fatFactor, 1);
+  const remainingCalories = Math.max(0, targetCalories - protein * 4 - fat * 9);
+  const carbs = roundValue(remainingCalories / 4, 1);
+
+  return {
+    bmr,
+    maintenance,
+    targetCalories,
+    protein,
+    fat,
+    carbs,
+    activity,
+    goalMode,
+  };
 }
 
 function isHabitDoneForDay(habit, weekday) {
@@ -1690,6 +1799,70 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   `;
 }
 
+function renderPlanSupplementsSection() {
+  const supplements = getSupplementsForDay(state.selectedWeekday);
+  const doneCount = supplements.filter((supplement) => isSupplementDoneForDay(supplement, state.selectedWeekday)).length;
+
+  return `
+    <section class="section plan-supplements-section">
+      <div class="section-header">
+        <div>
+          <h2>Vitamini i suplementi</h2>
+          <p>Šta uzimaš za ${state.selectedWeekday}, da možeš brzo da čekiraš kroz dan.</p>
+        </div>
+      </div>
+      <div class="stats-grid plan-supplement-summary">
+        <article class="stat-card">
+          <strong>Za danas</strong>
+          <div class="macro-value">${supplements.length}</div>
+          <div class="footer-note">Planiranih stavki</div>
+        </article>
+        <article class="stat-card">
+          <strong>Označeno</strong>
+          <div class="macro-value">${doneCount}/${supplements.length || 0}</div>
+          <div class="footer-note">Čekirano za ${state.selectedWeekday}</div>
+        </article>
+      </div>
+      <div class="stack" style="margin-top:14px;">
+        ${
+          supplements.length
+            ? supplements
+                .map(
+                  (supplement) => `
+                    <article class="food-card routine-card supplement-plan-card ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "is-done" : ""}">
+                      <div class="routine-row">
+                        <label class="routine-check">
+                          <input
+                            type="checkbox"
+                            class="routine-checkbox"
+                            data-action="toggle-supplement-day"
+                            data-supplement-id="${supplement.id}"
+                            ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "checked" : ""}
+                          />
+                          <span class="routine-check-ui" aria-hidden="true"></span>
+                        </label>
+                        <div class="routine-content">
+                          <strong>${supplement.name}</strong>
+                          <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
+                          <div class="pill-row">
+                            <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
+                            <span class="pill ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "pill--success" : "pill--info"}">
+                              ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "Označeno" : "Čeka danas"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Dodaj vitamine u tabu Ciljevi, pa će se ovde pojaviti dnevna checklist-a.</div>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
@@ -1763,6 +1936,8 @@ function renderPlanTab(entries) {
         }
       </div>
     </section>
+
+    ${renderPlanSupplementsSection()}
 
     <section class="section plan-quick-section">
       <div class="section-header">
@@ -2871,6 +3046,10 @@ function renderRoutineTab() {
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
   const syncStatusTone = getSyncStatusTone();
+  const goalRecommendation = getGoalRecommendation();
+  const editingSupplement = state.editingSupplementId
+    ? store.supplements.find((supplement) => supplement.id === state.editingSupplementId)
+    : null;
   const weeklyMetrics = [
     {
       label: "Kalorije",
@@ -2925,13 +3104,43 @@ function renderGoalsTab() {
       <div class="section-header">
         <div>
           <h2>Profil i ciljevi</h2>
-          <p>Makroi mogu ručno ili iz težine po istoj formuli kao u Excel-u.</p>
+          <p>BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.</p>
         </div>
+      </div>
+      <div class="stats-grid goals-insight-grid">
+        <article class="stat-card">
+          <strong>Bazalni metabolizam</strong>
+          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.bmr} kcal` : "—"}</div>
+          <div class="footer-note">${goalRecommendation ? "Telo troši i u mirovanju" : "Unesi pol, godine, visinu i težinu"}</div>
+        </article>
+        <article class="stat-card">
+          <strong>Održavanje</strong>
+          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.maintenance} kcal` : "—"}</div>
+          <div class="footer-note">${goalRecommendation ? goalRecommendation.activity.label : "Treba i nivo aktivnosti"}</div>
+        </article>
+        <article class="stat-card">
+          <strong>Cilj</strong>
+          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.targetCalories} kcal` : "—"}</div>
+          <div class="footer-note">${goalRecommendation ? goalRecommendation.goalMode.label : "Izaberi cilj"}</div>
+        </article>
+        <article class="stat-card">
+          <strong>Preporučeni makroi</strong>
+          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.protein} / ${goalRecommendation.carbs} / ${goalRecommendation.fat}` : "—"}</div>
+          <div class="footer-note">P / UH / Masti</div>
+        </article>
       </div>
       <form id="goals-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="profile-name">Ime</label>
           <input id="profile-name" name="name" value="${store.profile.name || ""}" />
+        </div>
+        <div class="field">
+          <label for="profile-sex">Pol</label>
+          <select id="profile-sex" name="sex">
+            <option value="">Izaberi</option>
+            <option value="male" ${store.profile.sex === "male" ? "selected" : ""}>Muško</option>
+            <option value="female" ${store.profile.sex === "female" ? "selected" : ""}>Žensko</option>
+          </select>
         </div>
         <div class="field">
           <label for="profile-age">Godine</label>
@@ -2940,6 +3149,22 @@ function renderGoalsTab() {
         <div class="field">
           <label for="profile-weight">Težina (kg)</label>
           <input id="profile-weight" name="weightKg" type="number" step="0.1" min="0" value="${store.profile.weightKg || ""}" />
+        </div>
+        <div class="field">
+          <label for="profile-height">Visina (cm)</label>
+          <input id="profile-height" name="heightCm" type="number" step="1" min="0" value="${store.profile.heightCm || ""}" />
+        </div>
+        <div class="field">
+          <label for="profile-activity">Aktivnost</label>
+          <select id="profile-activity" name="activityLevel">
+            ${ACTIVITY_LEVELS.map((activity) => `<option value="${activity.id}" ${store.profile.activityLevel === activity.id ? "selected" : ""}>${activity.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="goal-target-mode">Cilj</label>
+          <select id="goal-target-mode" name="targetMode">
+            ${GOAL_MODES.map((mode) => `<option value="${mode.id}" ${store.goals.targetMode === mode.id ? "selected" : ""}>${mode.label}</option>`).join("")}
+          </select>
         </div>
         <div class="field">
           <label for="goal-calories">Dnevni cilj kcal</label>
@@ -2958,10 +3183,83 @@ function renderGoalsTab() {
           <input id="goal-fat" name="fat" type="number" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
         <div class="meta-row">
-          <button class="ghost-button" type="button" data-action="recalculate-goals">Popuni iz težine</button>
+          <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
           <button class="solid-button" type="submit">Sačuvaj ciljeve</button>
         </div>
       </form>
+    </section>
+
+    <section class="section goals-supplements-section">
+      <div class="section-header">
+        <div>
+          <h2>Vitamini i suplementi</h2>
+          <p>Dodaj šta piješ i kada, pa ćeš u Planu dobiti dnevni checkbox pregled.</p>
+        </div>
+      </div>
+      <form id="supplement-form" class="form-grid split goals-form-layout">
+        <div class="field">
+          <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
+          <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${editingSupplement?.name || ""}" required />
+        </div>
+        <div class="field">
+          <label for="supplement-timing">Kada se uzima</label>
+          <select id="supplement-timing" name="timing">
+            ${SUPPLEMENT_TIMINGS.map((timing) => `<option value="${timing.id}" ${(editingSupplement?.timing || "breakfast") === timing.id ? "selected" : ""}>${timing.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field supplement-weekdays-field">
+          <label>Za koje dane</label>
+          <div class="chips weekday-choice-grid">
+            ${WEEKDAYS.map((weekday) => {
+              const checked = editingSupplement
+                ? (editingSupplement.weekdays || []).includes(weekday)
+                : true;
+              return `
+                <label class="chip weekday-choice ${checked ? "is-active" : ""}">
+                  <input type="checkbox" name="supplementWeekday" value="${weekday}" ${checked ? "checked" : ""} />
+                  <span>${weekday.slice(0, 3)}</span>
+                </label>
+              `;
+            }).join("")}
+          </div>
+        </div>
+        <div class="field">
+          <label for="supplement-note">Napomena</label>
+          <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${editingSupplement?.note || ""}" />
+        </div>
+        <div class="meta-row">
+          <button class="solid-button secondary-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
+          ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
+        </div>
+      </form>
+      <div class="stack" style="margin-top:14px;">
+        ${
+          getSupplements().length
+            ? getSupplements()
+                .map(
+                  (supplement) => `
+                    <article class="food-card routine-card supplement-card">
+                      <div class="routine-row">
+                        <div class="routine-content">
+                          <strong>${supplement.name}</strong>
+                          <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
+                          <div class="pill-row">
+                            <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
+                            <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekday.slice(0, 3)).join(", ")}</span>
+                          </div>
+                        </div>
+                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
+                          <button class="ghost-button" data-action="edit-supplement" data-supplement-id="${supplement.id}">Izmeni</button>
+                          <button class="danger-button" data-action="delete-supplement" data-supplement-id="${supplement.id}">Obriši</button>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : '<div class="empty">Dodaj prvi vitamin ili suplement, pa će se pojaviti i u dnevnom Planu.</div>'
+        }
+      </div>
     </section>
 
     <section class="section goals-weekly-section">
@@ -3845,6 +4143,18 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-supplement-day") {
+    const supplement = store.supplements.find((entry) => entry.id === actionTarget.dataset.supplementId);
+    if (!supplement) {
+      return;
+    }
+    supplement.completions = supplement.completions || {};
+    supplement.completions[state.selectedWeekday] = !Boolean(supplement.completions[state.selectedWeekday]);
+    persist();
+    render();
+    return;
+  }
+
   if (action === "edit-task") {
     const taskId = actionTarget.dataset.taskId;
     if (!taskId || !store.dayTasks.find((entry) => entry.id === taskId)) {
@@ -3873,6 +4183,42 @@ async function handleDocumentClick(event) {
     }
 
     store.dayTasks = store.dayTasks.filter((entry) => entry.id !== actionTarget.dataset.taskId);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "edit-supplement") {
+    const supplementId = actionTarget.dataset.supplementId;
+    if (!supplementId || !store.supplements.find((entry) => entry.id === supplementId)) {
+      return;
+    }
+    state.editingSupplementId = supplementId;
+    state.activeTab = "goals";
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#supplement-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#supplement-name")?.focus();
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-supplement") {
+    state.editingSupplementId = "";
+    render();
+    return;
+  }
+
+  if (action === "delete-supplement") {
+    const supplement = store.supplements.find((entry) => entry.id === actionTarget.dataset.supplementId);
+    const confirmed = window.confirm(
+      supplement ? `Obriši suplement "${supplement.name}"?` : "Obriši ovaj suplement?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    store.supplements = store.supplements.filter((entry) => entry.id !== actionTarget.dataset.supplementId);
     persist();
     render();
     return;
@@ -4479,17 +4825,36 @@ async function handleDocumentClick(event) {
     await runButtonAction(
       actionTarget,
       async () => {
-        const weightInput = document.querySelector("#profile-weight");
-        const weightKg = toNumber(weightInput?.value || store.profile.weightKg);
-        document.querySelector("#goal-protein").value = roundValue(weightKg * 2.5, 1);
-        document.querySelector("#goal-carbs").value = roundValue(weightKg * 1.2, 1);
-        document.querySelector("#goal-fat").value = roundValue(weightKg * 0.8, 1);
-        document.querySelector("#goal-calories").value = roundValue(weightKg * 2.5 * 4 + weightKg * 1.2 * 4 + weightKg * 0.8 * 9, 0);
+        const profileDraft = {
+          age: toNumber(document.querySelector("#profile-age")?.value || store.profile.age),
+          weightKg: toNumber(document.querySelector("#profile-weight")?.value || store.profile.weightKg),
+          heightCm: toNumber(document.querySelector("#profile-height")?.value || store.profile.heightCm),
+          sex: String(document.querySelector("#profile-sex")?.value || store.profile.sex || "").trim(),
+          activityLevel: String(document.querySelector("#profile-activity")?.value || store.profile.activityLevel || "moderate").trim(),
+        };
+        const goalsDraft = {
+          targetMode: String(document.querySelector("#goal-target-mode")?.value || store.goals.targetMode || "lose").trim(),
+        };
+        const recommendation = getGoalRecommendation(profileDraft, goalsDraft);
+
+        if (!recommendation) {
+          showFeedbackToast({
+            title: "Fali još podataka",
+            detail: "Za obračun unesi pol, godine, visinu i težinu.",
+            tone: "warning",
+          });
+          return;
+        }
+
+        document.querySelector("#goal-protein").value = recommendation.protein;
+        document.querySelector("#goal-carbs").value = recommendation.carbs;
+        document.querySelector("#goal-fat").value = recommendation.fat;
+        document.querySelector("#goal-calories").value = recommendation.targetCalories;
       },
       {
         busyLabel: "Računam...",
         successTitle: "Ciljevi su popunjeni",
-        successDetail: "Makroi i kalorije su izračunati iz tvoje težine.",
+        successDetail: "BMR, cilj kalorija i makroi su izračunati iz profila i izabranog cilja.",
       }
     );
     return;
@@ -4758,6 +5123,51 @@ async function handleSubmit(event) {
     return;
   }
 
+  if (event.target.id === "supplement-form") {
+    const name = String(formData.get("name") || "").trim();
+    const timing = String(formData.get("timing") || "breakfast").trim();
+    const note = String(formData.get("note") || "").trim();
+    const weekdays = formData
+      .getAll("supplementWeekday")
+      .map((entry) => String(entry || "").trim())
+      .filter((weekday) => WEEKDAYS.includes(weekday));
+
+    if (!name) {
+      return;
+    }
+
+    const nextSupplement = {
+      name,
+      timing,
+      note,
+      weekdays: weekdays.length ? weekdays : [...WEEKDAYS],
+    };
+
+    if (state.editingSupplementId) {
+      store.supplements = store.supplements.map((supplement) =>
+        supplement.id === state.editingSupplementId
+          ? {
+              ...supplement,
+              ...nextSupplement,
+            }
+          : supplement
+      );
+      state.editingSupplementId = "";
+    } else {
+      store.supplements.push({
+        id: uid("supplement"),
+        ...nextSupplement,
+        completions: {},
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
   if (event.target.id === "favorite-meal-form") {
     const favoriteName = String(formData.get("favoriteName") || "").trim();
     const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
@@ -4949,8 +5359,12 @@ async function handleSubmit(event) {
       submitButton,
       async () => {
         store.profile.name = String(formData.get("name") || "").trim();
+        store.profile.sex = String(formData.get("sex") || "").trim();
         store.profile.age = toNumber(formData.get("age"));
         store.profile.weightKg = toNumber(formData.get("weightKg"));
+        store.profile.heightCm = toNumber(formData.get("heightCm"));
+        store.profile.activityLevel = String(formData.get("activityLevel") || "moderate").trim();
+        store.goals.targetMode = String(formData.get("targetMode") || "lose").trim();
         store.goals.calories = toNumber(formData.get("calories"));
         store.goals.protein = toNumber(formData.get("protein"));
         store.goals.carbs = toNumber(formData.get("carbs"));
