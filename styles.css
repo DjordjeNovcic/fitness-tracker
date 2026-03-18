@@ -535,6 +535,10 @@ body.plan-compact .hero-day-picker {
     var(--shadow-tight);
 }
 
+.plan-meals-section .meal-card {
+  padding: 20px;
+}
+
 .meal-card.is-editing {
   border-color: rgba(125, 139, 90, 0.34);
   box-shadow:
@@ -551,6 +555,10 @@ body.plan-compact .hero-day-picker {
 
 .meal-card-topline {
   margin-bottom: 12px;
+}
+
+.plan-meals-section .meal-card-topline {
+  margin-bottom: 14px;
 }
 
 .meal-card.is-collapsed .meal-card-topline {
@@ -578,6 +586,10 @@ body.plan-compact .hero-day-picker {
   flex: 1 1 auto;
 }
 
+.plan-meals-section .meal-card-heading .footer-note {
+  margin-top: 4px;
+}
+
 .meal-collapse-toggle {
   display: inline-flex;
   align-items: center;
@@ -593,6 +605,11 @@ body.plan-compact .hero-day-picker {
 .meal-card-content {
   display: grid;
   gap: 0;
+}
+
+.plan-meals-section .meal-card-toolbar {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(24, 33, 30, 0.06);
 }
 
 .meal-card-content.is-hidden {
@@ -613,6 +630,10 @@ body.plan-compact .hero-day-picker {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
+}
+
+.plan-meals-section .meal-title {
+  font-size: 1.24rem;
 }
 
 .meal-order {
@@ -637,7 +658,7 @@ body.plan-compact .hero-day-picker {
 
 .meal-card-toolbar {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .meal-summary-pills {
@@ -655,7 +676,7 @@ body.plan-compact .hero-day-picker {
 
 .plan-summary-layout {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .plan-summary-section::before,
@@ -673,18 +694,74 @@ body.plan-compact .hero-day-picker {
   pointer-events: none;
 }
 
-.plan-secondary-stats .stat-card {
+.plan-summary-section {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 250, 242, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 244, 0.94)),
+    var(--surface);
+}
+
+.plan-summary-section .section-header {
+  margin-bottom: 16px;
+}
+
+.plan-summary-section .macro-grid {
+  gap: 14px;
+}
+
+.plan-summary-section .macro-card,
+.plan-secondary-stats .stat-card {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 250, 242, 0.98)),
     var(--surface-strong);
+}
+
+.plan-summary-section .macro-card::before,
+.plan-secondary-stats .stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(47, 128, 118, 0.14), rgba(139, 153, 97, 0.18), rgba(255, 255, 255, 0));
+}
+
+.plan-summary-section .macro-card h3 {
+  font-size: 1rem;
+}
+
+.plan-summary-section .macro-value,
+.plan-secondary-stats .macro-value {
+  margin-top: 14px;
+  font-size: 1.85rem;
+  letter-spacing: -0.05em;
+}
+
+.plan-summary-section .progress {
+  margin-top: 14px;
+  height: 11px;
 }
 
 .plan-preview-card {
   background:
     linear-gradient(135deg, rgba(228, 234, 211, 0.26), rgba(255, 250, 242, 0.98) 34%),
     var(--surface-strong);
-  border-radius: 22px;
-  box-shadow: 0 8px 18px rgba(25, 34, 31, 0.05);
+  border-radius: 24px;
+  box-shadow: 0 10px 22px rgba(25, 34, 31, 0.05);
+  min-height: 156px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.plan-preview-card .meal-title {
+  font-size: 1.16rem;
+}
+
+.plan-preview-card .pill-row {
+  margin-top: 0;
 }
 
 .plan-quick-section {
@@ -693,8 +770,8 @@ body.plan-compact .hero-day-picker {
 
 .plan-quick-card,
 .plan-recipes-card {
-  padding: 16px;
-  border-radius: 22px;
+  padding: 18px;
+  border-radius: 24px;
 }
 
 .plan-quick-form .solid-button {
@@ -703,7 +780,7 @@ body.plan-compact .hero-day-picker {
 
 .plan-quick-stack {
   margin-top: 14px;
-  gap: 14px;
+  gap: 16px;
 }
 
 .plan-favorite-chips {
@@ -2251,26 +2328,31 @@ body.menu-open .menu-fab {
 
   .plan-summary-layout .macro-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .plan-secondary-stats {
     margin-top: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .plan-preview-section .stack {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
+    gap: 16px;
   }
 
   .plan-meals-section .stack {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    gap: 18px;
   }
 
   .plan-quick-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+    gap: 18px;
   }
 
   .foods-grid {
@@ -2634,6 +2716,14 @@ body.menu-open .menu-fab {
 
   .plan-preview-section .stack {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .plan-summary-layout {
+    gap: 18px;
+  }
+
+  .plan-quick-stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .foods-grid {
