@@ -35,6 +35,18 @@
   --pill-strong-border: rgba(44, 123, 116, 0.1);
   --pill-note-bg: rgba(233, 238, 219, 0.84);
   --pill-note-border: rgba(125, 139, 90, 0.1);
+  --status-success-bg: rgba(220, 234, 221, 0.92);
+  --status-success-border: rgba(63, 121, 87, 0.12);
+  --status-success-text: #234f3c;
+  --status-info-bg: rgba(219, 230, 227, 0.94);
+  --status-info-border: rgba(47, 128, 118, 0.12);
+  --status-info-text: #245850;
+  --status-warning-bg: rgba(243, 232, 203, 0.95);
+  --status-warning-border: rgba(160, 127, 52, 0.14);
+  --status-warning-text: #72571b;
+  --status-error-bg: rgba(242, 229, 218, 0.96);
+  --status-error-border: rgba(122, 78, 56, 0.14);
+  --status-error-text: #7a4e38;
   --rail-bg: linear-gradient(180deg, rgba(255, 251, 245, 0.98), rgba(246, 239, 229, 0.96));
   --shadow: 0 28px 70px rgba(22, 32, 29, 0.12);
   --shadow-soft: 0 18px 40px rgba(25, 34, 31, 0.085);
@@ -389,17 +401,17 @@ body.plan-compact .hero-day-picker {
 }
 
 .auth-feedback--error {
-  background: #f2e5da;
-  color: #7a4e38;
-  border: 1px solid rgba(122, 78, 56, 0.14);
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+  border: 1px solid var(--status-error-border);
 }
 
 .auth-note {
   padding: 12px 14px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(216, 234, 223, 0.55), rgba(255, 250, 242, 0.88));
-  color: var(--muted);
-  border: 1px solid rgba(44, 123, 116, 0.08);
+  background: linear-gradient(135deg, var(--status-info-bg), rgba(255, 250, 242, 0.88));
+  color: color-mix(in srgb, var(--status-info-text) 72%, var(--muted));
+  border: 1px solid var(--status-info-border);
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -1433,6 +1445,30 @@ body.plan-compact .hero-day-picker {
   border-color: var(--pill-note-border);
 }
 
+.pill--success {
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+
+.pill--info {
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+  color: var(--status-info-text);
+}
+
+.pill--warning {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+
+.pill--error {
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
+}
+
 .entry-actions {
   display: flex;
   justify-content: flex-end;
@@ -2240,20 +2276,34 @@ body.menu-open .menu-fab {
 
 .feedback-toast--success {
   background:
-    linear-gradient(135deg, rgba(221, 233, 220, 0.94), rgba(255, 250, 244, 0.98)),
+    linear-gradient(135deg, var(--status-success-bg), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+
+.feedback-toast--info {
+  background:
+    linear-gradient(135deg, var(--status-info-bg), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+  border-color: var(--status-info-border);
+  color: var(--status-info-text);
 }
 
 .feedback-toast--warning {
   background:
-    linear-gradient(135deg, rgba(245, 232, 198, 0.94), rgba(255, 250, 244, 0.98)),
+    linear-gradient(135deg, var(--status-warning-bg), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
 }
 
 .feedback-toast--error {
   background:
-    linear-gradient(135deg, rgba(243, 228, 218, 0.96), rgba(255, 250, 244, 0.98)),
+    linear-gradient(135deg, var(--status-error-bg), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
 }
 
 .feedback-toast-title {

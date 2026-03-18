@@ -1485,6 +1485,16 @@ function renderActionIcon(kind) {
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
 }
 
+function getSyncStatusTone(status = state.syncStatus) {
+  const value = `${status || ""}`.toLowerCase();
+  if (!value) return "info";
+  if (value.includes("uspeo")) return "error";
+  if (value.includes("nije dostupan") || value.includes("radis lokalno")) return "warning";
+  if (value.includes("prijavi se") || value.includes("cuvam") || value.includes("učitavam") || value.includes("ucitavam")) return "info";
+  if (value.includes("ukljucen") || value.includes("zavrsen") || value.includes("završen")) return "success";
+  return "info";
+}
+
 function renderButtonContent(label, iconKind, labelClass = "") {
   return `${renderActionIcon(iconKind)}<span class="button-label ${labelClass}">${label}</span>`;
 }
@@ -2860,6 +2870,7 @@ function renderRoutineTab() {
 
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
+  const syncStatusTone = getSyncStatusTone();
   const weeklyMetrics = [
     {
       label: "Kalorije",
@@ -2902,10 +2913,10 @@ function renderGoalsTab() {
       <div class="goals-sync-card">
         <div class="goals-sync-top">
           <strong class="goals-sync-email">${state.authUser?.email || "Nema prijavljenog naloga"}</strong>
-          <span class="pill strong">${state.syncStatus}</span>
+          <span class="pill strong pill--${syncStatusTone}">${state.syncStatus}</span>
         </div>
         <div class="pill-row goals-sync-pills">
-          <span class="pill">Slike: lokalno</span>
+          <span class="pill pill--info">Slike: lokalno</span>
         </div>
       </div>
     </section>
@@ -3614,7 +3625,7 @@ function render() {
         </div>
         <div class="mobile-menu-footer">
           <div class="pill-row app-sidebar-status-row">
-            <span class="pill strong">${state.syncStatus}</span>
+            <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
           </div>
           <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
         </div>
