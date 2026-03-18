@@ -3477,10 +3477,10 @@ function render() {
 
       <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
         <div class="mobile-menu-top">
-          <div>
+          <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
             <strong>Fit tracker</strong>
-            <div class="footer-note" style="margin-top:6px;">${state.authUser?.email || ""}</div>
+            <div class="footer-note app-sidebar-email">${state.authUser?.email || ""}</div>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
             ${renderMenuToggleIcon(true)}
@@ -3497,7 +3497,7 @@ function render() {
           ).join("")}
         </div>
         <div class="mobile-menu-footer">
-          <div class="pill-row" style="margin-top:0;">
+          <div class="pill-row app-sidebar-status-row">
             <span class="pill strong">${state.syncStatus}</span>
           </div>
           <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
