@@ -2074,7 +2074,7 @@ function renderRecipesTab() {
   const draftPreview = getFavoriteDraftPreview();
 
   return `
-    <section class="section">
+    <section class="section recipes-builder-section">
       <div class="section-header">
         <div>
           <h2>Omiljeni obroci</h2>
@@ -2162,7 +2162,7 @@ function renderRecipesTab() {
       </article>
     </section>
 
-    <section class="section">
+    <section class="section recipes-library-section">
       <div class="section-header">
         <div>
           <h2>Sačuvani obroci</h2>
@@ -2242,7 +2242,7 @@ function renderTrainingTab() {
     .slice(0, 10);
 
   return `
-    <section class="section">
+    <section class="section routine-overview-section">
       <div class="section-header">
         <div>
           <h2>Nedeljni plan treninga</h2>
@@ -2270,7 +2270,7 @@ function renderTrainingTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-habits-section">
       <div class="section-header">
         <div>
           <h2>Trening za ${state.selectedWeekday}</h2>
@@ -2343,7 +2343,7 @@ function renderTrainingTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
           <h2>Omiljeni treninzi</h2>
@@ -2379,7 +2379,7 @@ function renderTrainingTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-weekly-section">
       <div class="section-header">
         <div>
           <h2>Dodaj trening sablon</h2>
