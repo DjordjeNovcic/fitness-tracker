@@ -146,6 +146,11 @@ textarea::placeholder {
   position: relative;
 }
 
+.app-main.shell.is-plan-shell {
+  --plan-hero-bleed-left: 18px;
+  --plan-hero-bleed-right: 18px;
+}
+
 .auth-shell {
   min-height: 100vh;
   align-content: center;
@@ -787,6 +792,7 @@ body.plan-compact .hero-day-picker {
 
 .plan-summary-section,
 .plan-preview-section,
+.plan-recipes-section,
 .plan-quick-section,
 .plan-meals-section {
   position: relative;
@@ -800,6 +806,7 @@ body.plan-compact .hero-day-picker {
 
 .plan-summary-section::before,
 .plan-preview-section::before,
+.plan-recipes-section::before,
 .plan-quick-section::before,
 .plan-meals-section::before {
   content: "";
@@ -816,6 +823,12 @@ body.plan-compact .hero-day-picker {
 .plan-summary-section {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 250, 244, 0.94)),
+    var(--surface);
+}
+
+.plan-recipes-section {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(249, 244, 235, 0.96)),
     var(--surface);
 }
 
@@ -891,6 +904,112 @@ body.plan-compact .hero-day-picker {
 .plan-recipes-card {
   padding: 18px;
   border-radius: 24px;
+}
+
+.plan-recipes-groups {
+  gap: 18px;
+}
+
+.plan-recipes-group {
+  display: grid;
+  gap: 14px;
+}
+
+.plan-recipes-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-recipes-grid {
+  gap: 14px;
+}
+
+.plan-recipe-card {
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 118, 0.12), transparent 28%),
+    linear-gradient(135deg, rgba(219, 232, 220, 0.4), rgba(255, 250, 242, 0.98)),
+    var(--surface-strong);
+}
+
+.plan-recipe-top,
+.recipe-draft-top,
+.recipe-library-top {
+  align-items: flex-start;
+}
+
+.plan-recipe-copy,
+.recipe-draft-copy,
+.recipe-library-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.plan-recipe-copy p,
+.recipe-draft-copy p,
+.recipe-library-copy p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 58ch;
+}
+
+.plan-recipe-pills {
+  margin-top: 12px;
+}
+
+.plan-recipe-ingredient-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.plan-recipe-ingredient {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.86);
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.plan-recipe-ingredient strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.plan-recipe-ingredient--more {
+  background: rgba(227, 235, 219, 0.92);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.plan-recipe-method,
+.recipe-draft-method,
+.recipe-library-method {
+  margin-top: 14px;
+  padding: 14px 15px;
+  border-radius: 18px;
+  background: rgba(255, 252, 248, 0.8);
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  color: color-mix(in srgb, var(--ink) 72%, var(--muted));
+  line-height: 1.55;
+}
+
+.plan-recipe-actions {
+  margin-top: 14px;
+}
+
+.plan-recipe-actions > button {
+  flex: 1 1 168px;
+  min-width: 168px;
 }
 
 .plan-quick-form .solid-button {
@@ -1993,6 +2112,31 @@ body.plan-compact .hero-day-picker {
   margin-bottom: 0;
 }
 
+.recipe-studio-card {
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 118, 0.14), transparent 30%),
+    linear-gradient(135deg, rgba(222, 234, 220, 0.5), rgba(255, 250, 242, 0.98)),
+    var(--surface-strong);
+}
+
+.recipe-builder-form {
+  margin-bottom: 0;
+}
+
+.recipe-builder-field-wide {
+  grid-column: 1 / -1;
+}
+
+.recipe-builder-actions {
+  margin-top: 2px;
+}
+
+.recipe-builder-note {
+  margin-top: 14px;
+}
+
 .recipe-draft-card {
   padding: 20px;
   border-radius: 24px;
@@ -2007,6 +2151,21 @@ body.plan-compact .hero-day-picker {
 
 .recipes-library-section .food-card {
   padding: 20px;
+}
+
+.recipes-library-stack {
+  gap: 16px;
+}
+
+.recipe-library-card {
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.15), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.recipe-library-ingredients {
+  gap: 10px;
 }
 
 .recipes-library-section .suggestion-row,
@@ -2185,6 +2344,16 @@ body.plan-compact .hero-day-picker {
 
 .shell-with-menu.is-plan-shell .hero-top {
   padding-right: 76px;
+}
+
+.app-main.shell.is-plan-shell > .hero {
+  width: auto;
+  max-width: none;
+  justify-self: stretch;
+  margin-top: 0;
+  margin-left: calc(-1 * var(--plan-hero-bleed-left));
+  margin-right: calc(-1 * var(--plan-hero-bleed-right));
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
 .menu-fab {
@@ -2501,6 +2670,11 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 719px) {
+  .app-main.shell.is-plan-shell {
+    --plan-hero-bleed-left: 16px;
+    --plan-hero-bleed-right: 16px;
+  }
+
   .shell {
     max-width: 100%;
     gap: 22px;
@@ -2748,6 +2922,7 @@ body.menu-open .menu-fab {
 
   .plan-summary-section::before,
   .plan-preview-section::before,
+  .plan-recipes-section::before,
   .plan-quick-section::before,
   .plan-meals-section::before {
     left: 16px;
@@ -2780,6 +2955,11 @@ body.menu-open .menu-fab {
 
   .meal-card-actions,
   .plan-inline-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan-recipe-actions {
+    display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -2941,6 +3121,11 @@ body.menu-open .menu-fab {
     align-items: stretch;
   }
 
+  .app-main.shell.is-plan-shell {
+    --plan-hero-bleed-left: 0px;
+    --plan-hero-bleed-right: 28px;
+  }
+
   .app-main.shell {
     max-width: none;
     width: 100%;
@@ -2948,6 +3133,10 @@ body.menu-open .menu-fab {
     padding: 30px 28px 44px 0;
     gap: 16px;
     justify-self: stretch;
+  }
+
+  .app-main.shell.is-plan-shell {
+    padding-top: 0;
   }
 
   .app-main.shell > * {
@@ -2974,6 +3163,10 @@ body.menu-open .menu-fab {
     margin-top: 14px;
     padding: 24px 26px 20px;
     border-radius: var(--radius-xl);
+  }
+
+  .app-main.shell.is-plan-shell .hero {
+    margin-top: 0;
   }
 
   body.plan-compact .hero {

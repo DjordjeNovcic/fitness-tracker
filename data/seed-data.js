@@ -1547,6 +1547,136 @@ window.SEED_DATA = {
       "grams": 200.0
     }
   ],
+  "favoriteMeals": [
+    {
+      "id": "favorite-meal-seed-1",
+      "name": "Tortilja sa jajima i piletinom",
+      "mealLabel": "1. Dorucak",
+      "description": "Brz dorucak sa dosta proteina i malo vise volumena.",
+      "prepTimeMinutes": 12,
+      "instructions": "Ispeci jaja, zagrej tortilju, dodaj piletinu i paradajz pa sve preklopi ili urolaj.",
+      "createdAt": "2026-03-28T09:00:00.000Z",
+      "items": [
+        {
+          "id": "favorite-item-seed-1",
+          "foodId": "food-85",
+          "foodName": "Integralna tortilja",
+          "grams": 65.0
+        },
+        {
+          "id": "favorite-item-seed-2",
+          "foodId": "food-23",
+          "foodName": "Przeno jaje",
+          "grams": 100.0
+        },
+        {
+          "id": "favorite-item-seed-3",
+          "foodId": "food-75",
+          "foodName": "Pileca prsa",
+          "grams": 120.0
+        },
+        {
+          "id": "favorite-item-seed-4",
+          "foodId": "food-13",
+          "foodName": "Paradajz",
+          "grams": 80.0
+        }
+      ]
+    },
+    {
+      "id": "favorite-meal-seed-2",
+      "name": "Ovseni balans mix",
+      "mealLabel": "2. Uzina",
+      "description": "Lagani recept za uzinu kada hoces nesto slatko ali kontrolisano.",
+      "prepTimeMinutes": 5,
+      "instructions": "U ciniju sipaj jogurt, dodaj ovsene i maline, pa preko pospi badem.",
+      "createdAt": "2026-03-28T09:05:00.000Z",
+      "items": [
+        {
+          "id": "favorite-item-seed-5",
+          "foodId": "food-7",
+          "foodName": "Ovsene pahuljice",
+          "grams": 50.0
+        },
+        {
+          "id": "favorite-item-seed-6",
+          "foodId": "food-71",
+          "foodName": "Balans jogurt",
+          "grams": 180.0
+        },
+        {
+          "id": "favorite-item-seed-7",
+          "foodId": "food-19",
+          "foodName": "Maline",
+          "grams": 80.0
+        },
+        {
+          "id": "favorite-item-seed-8",
+          "foodId": "food-18",
+          "foodName": "Badem",
+          "grams": 15.0
+        }
+      ]
+    },
+    {
+      "id": "favorite-meal-seed-3",
+      "name": "Junetina sa spagetama",
+      "mealLabel": "3. Obrok 2h pre treninga",
+      "description": "Klasicna kombinacija za dan kada hoces konkretniji obrok pre treninga.",
+      "prepTimeMinutes": 20,
+      "instructions": "Isprzi junetinu, skuvaj spagete, dodaj Tomatino i sjedini sve dok sos ne oblozi testeninu.",
+      "createdAt": "2026-03-28T09:10:00.000Z",
+      "items": [
+        {
+          "id": "favorite-item-seed-9",
+          "foodId": "food-4",
+          "foodName": "Mlevena junetina",
+          "grams": 150.0
+        },
+        {
+          "id": "favorite-item-seed-10",
+          "foodId": "food-77",
+          "foodName": "Spagete",
+          "grams": 100.0
+        },
+        {
+          "id": "favorite-item-seed-11",
+          "foodId": "food-44",
+          "foodName": "Tomatino",
+          "grams": 100.0
+        }
+      ]
+    },
+    {
+      "id": "favorite-meal-seed-4",
+      "name": "Tuna salata brzinski",
+      "mealLabel": "5. Vecera",
+      "description": "Vecernji recept koji je lagan za stomak i gotov za par minuta.",
+      "prepTimeMinutes": 7,
+      "instructions": "Pomesaj tunjevinu sa salatom, prelij maslinovim uljem i serviraj hladno.",
+      "createdAt": "2026-03-28T09:15:00.000Z",
+      "items": [
+        {
+          "id": "favorite-item-seed-12",
+          "foodId": "food-20",
+          "foodName": "Tunjevina",
+          "grams": 160.0
+        },
+        {
+          "id": "favorite-item-seed-13",
+          "foodId": "food-86",
+          "foodName": "Icebarg salata",
+          "grams": 200.0
+        },
+        {
+          "id": "favorite-item-seed-14",
+          "foodId": "food-28",
+          "foodName": "Maslinovo ulje",
+          "grams": 10.0
+        }
+      ]
+    }
+  ],
   "trainingTemplates": [
     {
       "id": "template-osnovni",

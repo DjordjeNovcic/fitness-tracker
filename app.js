@@ -10,6 +10,7 @@ import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
 const CLOUD_SCHEMA_VERSION = 1;
+const DEMO_RECIPE_SEED_VERSION = 1;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBvfd2HVPJlfA1XvXaEKf8_FpvQZcESPzg",
   authDomain: "fitness-tracker-c90f7.firebaseapp.com",
@@ -21,7 +22,7 @@ const FIREBASE_CONFIG = {
 const WEEKDAYS = ["Ponedeljak", "Utorak", "Sreda", "Cetvrtak", "Petak", "Subota", "Nedelja"];
 const TABS = [
   { id: "plan", label: "Plan", icon: "🍽" },
-  { id: "recipes", label: "Obroci", icon: "🥣" },
+  { id: "recipes", label: "Recepti", icon: "🥣" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
   { id: "routine", label: "Rutina", icon: "✅" },
@@ -105,6 +106,9 @@ const state = {
   favoriteDraft: {
     favoriteName: "",
     mealLabel: "",
+    description: "",
+    prepTimeMinutes: "",
+    instructions: "",
     foodId: "",
     grams: "",
   },
@@ -184,7 +188,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
         : {},
     measurements: Array.isArray(rawStore.measurements) ? rawStore.measurements : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
-    favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : [],
+    favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
     ui: {
@@ -248,10 +252,8 @@ function ensureStoreCollections(targetStore) {
     mealLabel: normalizeMealLabel(entry.mealLabel),
     done: Boolean(entry.done),
   }));
-  targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => ({
-    ...favorite,
-    mealLabel: normalizeMealLabel(favorite.mealLabel),
-  }));
+  targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => normalizeFavoriteMealRecord(favorite));
+  seedDemoFavoriteMeals(targetStore);
 }
 
 function replaceStore(nextStore) {
@@ -460,6 +462,28 @@ function toNumber(value) {
 function normalizeMealLabel(label) {
   const normalized = String(label || "").trim();
   return MEAL_LABEL_MAP[normalized] || normalized;
+}
+
+function normalizeFavoriteMealRecord(favorite = {}) {
+  const prepTimeMinutes = toNumber(favorite.prepTimeMinutes);
+  return {
+    ...favorite,
+    mealLabel: normalizeMealLabel(favorite.mealLabel),
+    description: String(favorite.description || "").trim(),
+    instructions: String(favorite.instructions || "").trim(),
+    prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
+  };
+}
+
+function seedDemoFavoriteMeals(targetStore) {
+  const seedFavorites = Array.isArray(window.SEED_DATA?.favoriteMeals) ? cloneSeed().favoriteMeals || [] : [];
+  targetStore.meta = targetStore.meta || {};
+  const alreadySeeded = Number(targetStore.meta.favoriteRecipesSeedVersion || 0) >= DEMO_RECIPE_SEED_VERSION;
+  if (targetStore.favoriteMeals.length || alreadySeeded || !seedFavorites.length) {
+    return;
+  }
+  targetStore.favoriteMeals = seedFavorites.map((favorite) => normalizeFavoriteMealRecord(favorite));
+  targetStore.meta.favoriteRecipesSeedVersion = DEMO_RECIPE_SEED_VERSION;
 }
 
 function roundValue(value, digits = 1) {
@@ -862,23 +886,81 @@ function getTrainingProgressGroups() {
 }
 
 function getFavoriteMealsDetailed() {
-  return store.favoriteMeals.map((favorite) => {
-    const items = favorite.items.map((item) => {
-      const food = getFoodById(item.foodId) || store.foods.find((entry) => entry.name === item.foodName);
-      const totals = food ? calculateEntry(food, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-      return {
-        ...item,
-        food,
-        totals,
-      };
-    });
+  return [...store.favoriteMeals]
+    .map((favorite) => {
+      const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
+      const items = (normalizedFavorite.items || []).map((item) => {
+        const food = getFoodById(item.foodId) || store.foods.find((entry) => entry.name === item.foodName);
+        const totals = food ? calculateEntry(food, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+        return {
+          ...item,
+          food,
+          totals,
+        };
+      });
 
+      return {
+        ...normalizedFavorite,
+        items,
+        totals: getDayTotals(items),
+      };
+    })
+    .sort((a, b) => {
+      const dateDiff = new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return a.name.localeCompare(b.name, "sr");
+    });
+}
+
+function getFavoriteMealByName(name) {
+  const normalizedName = String(name || "").trim().toLowerCase();
+  if (!normalizedName) {
+    return null;
+  }
+  return store.favoriteMeals.find((favorite) => String(favorite.name || "").trim().toLowerCase() === normalizedName) || null;
+}
+
+function buildRecipeSignature(items = []) {
+  return [...items]
+    .map((item) => `${item.foodId || item.foodName}:${roundValue(item.grams, 0)}`)
+    .sort((a, b) => a.localeCompare(b, "sr"))
+    .join("|");
+}
+
+function getRecipeMatchState(favorite, mealEntries = []) {
+  if (!mealEntries.length) {
     return {
-      ...favorite,
-      items,
-      totals: getDayTotals(items),
+      label: "Spremno za ubacivanje",
+      tone: "info",
+      mode: "append",
+      actionLabel: "Ubaci u plan",
     };
-  });
+  }
+
+  const currentSignature = buildRecipeSignature(mealEntries);
+  const favoriteSignature = buildRecipeSignature(favorite.items);
+  if (currentSignature && currentSignature === favoriteSignature) {
+    return {
+      label: "Već je u planu",
+      tone: "success",
+      mode: "append",
+      actionLabel: "Ubaci opet",
+    };
+  }
+
+  return {
+    label: "Može kao zamena",
+    tone: "warning",
+    mode: "replace",
+    actionLabel: "Zameni obrok",
+  };
+}
+
+function getRecipesForMealLabel(mealLabel, favorites = getFavoriteMealsDetailed()) {
+  const normalizedMealLabel = normalizeMealLabel(mealLabel);
+  return favorites.filter((favorite) => normalizeMealLabel(favorite.mealLabel || favorite.name) === normalizedMealLabel);
 }
 
 function getFavoriteFoodsDetailed() {
@@ -891,29 +973,47 @@ function getFavoriteFoodsDetailed() {
     }));
 }
 
-function resetFavoriteDraft() {
+function resetFavoriteDraft(options = {}) {
+  const { preserveRecipeMeta = false } = options;
+  const preservedDraft = preserveRecipeMeta
+    ? {
+        favoriteName: state.favoriteDraft.favoriteName,
+        mealLabel: state.favoriteDraft.mealLabel,
+        description: state.favoriteDraft.description,
+        prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+        instructions: state.favoriteDraft.instructions,
+      }
+    : null;
+
   state.editingFavoriteItem = {
     favoriteId: "",
     itemId: "",
     itemIndex: -1,
   };
   state.favoriteDraft = {
-    favoriteName: "",
-    mealLabel: "",
+    favoriteName: preservedDraft?.favoriteName || "",
+    mealLabel: preservedDraft?.mealLabel || "",
+    description: preservedDraft?.description || "",
+    prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
+    instructions: preservedDraft?.instructions || "",
     foodId: "",
     grams: "",
   };
 }
 
 function setFavoriteDraftFromItem(favorite, item) {
+  const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
   state.editingFavoriteItem = {
     favoriteId: favorite.id,
     itemId: item.id || "",
     itemIndex: favorite.items.findIndex((entry) => entry === item),
   };
   state.favoriteDraft = {
-    favoriteName: favorite.name || "",
-    mealLabel: favorite.mealLabel || "",
+    favoriteName: normalizedFavorite.name || "",
+    mealLabel: normalizedFavorite.mealLabel || "",
+    description: normalizedFavorite.description || "",
+    prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
+    instructions: normalizedFavorite.instructions || "",
     foodId: item.foodId || "",
     grams: item.grams ? String(roundValue(item.grams, 0)) : "",
   };
@@ -922,11 +1022,17 @@ function setFavoriteDraftFromItem(favorite, item) {
 function getFavoriteDraftPreview() {
   const favoriteName = String(state.favoriteDraft.favoriteName || "").trim();
   const mealLabel = String(state.favoriteDraft.mealLabel || "").trim();
+  const hasDraftDescription = state.favoriteDraft.description !== "";
+  const hasDraftInstructions = state.favoriteDraft.instructions !== "";
+  const hasDraftPrepTime = state.favoriteDraft.prepTimeMinutes !== "";
+  const description = String(state.favoriteDraft.description || "").trim();
+  const instructions = String(state.favoriteDraft.instructions || "").trim();
+  const prepTimeMinutes = toNumber(state.favoriteDraft.prepTimeMinutes);
   const food = getFoodById(state.favoriteDraft.foodId);
   const grams = toNumber(state.favoriteDraft.grams);
   const existingFavorite = state.editingFavoriteItem.favoriteId
     ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId)
-    : store.favoriteMeals.find((entry) => entry.name.toLowerCase() === favoriteName.toLowerCase());
+    : getFavoriteMealByName(favoriteName);
 
   let items = existingFavorite
     ? existingFavorite.items.map((item) => ({
@@ -957,19 +1063,63 @@ function getFavoriteDraftPreview() {
   return {
     favoriteName,
     mealLabel: mealLabel || existingFavorite?.mealLabel || "",
+    description: hasDraftDescription ? description : existingFavorite?.description || "",
+    instructions: hasDraftInstructions ? instructions : existingFavorite?.instructions || "",
+    prepTimeMinutes: hasDraftPrepTime ? (prepTimeMinutes || null) : existingFavorite?.prepTimeMinutes || null,
     items,
     totals: getDayTotals(items.map((item) => ({ totals: item.totals }))),
   };
 }
 
-function saveFavoriteMealItem(favoriteName, mealLabel, foodId, grams) {
-  const normalizedFavoriteName = String(favoriteName || "").trim();
-  const normalizedMealLabel = String(mealLabel || "").trim();
-  const normalizedFoodId = String(foodId || "").trim();
-  const normalizedGrams = toNumber(grams);
+function saveFavoriteMealMetadata(payload = {}) {
+  const normalizedFavoriteName = String(payload.favoriteName || "").trim();
+  const normalizedMealLabel = normalizeMealLabel(String(payload.mealLabel || "").trim());
+  const normalizedDescription = String(payload.description || "").trim();
+  const normalizedInstructions = String(payload.instructions || "").trim();
+  const normalizedPrepTimeMinutes = toNumber(payload.prepTimeMinutes);
+
+  if (!normalizedFavoriteName || !normalizedMealLabel) {
+    return null;
+  }
+
+  const recipeDetails = {
+    name: normalizedFavoriteName,
+    mealLabel: normalizedMealLabel,
+    description: normalizedDescription,
+    instructions: normalizedInstructions,
+    prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const existingFavorite = state.editingFavoriteItem.favoriteId
+    ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId)
+    : getFavoriteMealByName(normalizedFavoriteName);
+
+  if (existingFavorite) {
+    Object.assign(existingFavorite, recipeDetails);
+    if (!Array.isArray(existingFavorite.items)) {
+      existingFavorite.items = [];
+    }
+    return existingFavorite;
+  }
+
+  const nextFavorite = {
+    id: uid("favorite-meal"),
+    ...recipeDetails,
+    createdAt: new Date().toISOString(),
+    items: [],
+  };
+  store.favoriteMeals.unshift(nextFavorite);
+  return nextFavorite;
+}
+
+function saveFavoriteMealItem(payload = {}) {
+  const favorite = saveFavoriteMealMetadata(payload);
+  const normalizedFoodId = String(payload.foodId || "").trim();
+  const normalizedGrams = toNumber(payload.grams);
   const food = getFoodById(normalizedFoodId);
 
-  if (!normalizedFavoriteName || !normalizedMealLabel || !food || !normalizedGrams) {
+  if (!favorite || !food || !normalizedGrams) {
     return false;
   }
 
@@ -981,37 +1131,16 @@ function saveFavoriteMealItem(favoriteName, mealLabel, foodId, grams) {
   };
 
   if (state.editingFavoriteItem.favoriteId) {
-    const favorite = store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId);
-    if (!favorite) {
-      return false;
-    }
-    favorite.name = normalizedFavoriteName;
-    favorite.mealLabel = normalizedMealLabel;
-    favorite.items = favorite.items.map((item, index) =>
-      index === state.editingFavoriteItem.itemIndex ? nextItem : item
-    );
+    favorite.items =
+      state.editingFavoriteItem.itemIndex >= 0 && state.editingFavoriteItem.itemIndex < favorite.items.length
+        ? favorite.items.map((item, index) => (index === state.editingFavoriteItem.itemIndex ? nextItem : item))
+        : [...favorite.items, nextItem];
     favorite.updatedAt = new Date().toISOString();
     return true;
   }
 
-  const existingFavorite = store.favoriteMeals.find(
-    (favorite) => favorite.name.toLowerCase() === normalizedFavoriteName.toLowerCase()
-  );
-
-  if (existingFavorite) {
-    existingFavorite.mealLabel = normalizedMealLabel;
-    existingFavorite.items = [...existingFavorite.items, nextItem];
-    existingFavorite.updatedAt = new Date().toISOString();
-    return true;
-  }
-
-  store.favoriteMeals.unshift({
-    id: uid("favorite-meal"),
-    name: normalizedFavoriteName,
-    mealLabel: normalizedMealLabel,
-    items: [nextItem],
-    createdAt: new Date().toISOString(),
-  });
+  favorite.items = [...favorite.items, nextItem];
+  favorite.updatedAt = new Date().toISOString();
   return true;
 }
 
@@ -1064,6 +1193,50 @@ function getMealEntriesForWeekday(weekday, mealLabel) {
   return store.weeklyPlanEntries.filter(
     (entry) => entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === normalizedMealLabel
   );
+}
+
+function applyFavoriteMealToDay(favorite, options = {}) {
+  if (!favorite?.items?.length) {
+    return false;
+  }
+
+  const weekday = options.weekday || state.selectedWeekday;
+  const targetMealLabel = normalizeMealLabel(options.mealLabel || favorite.mealLabel || favorite.name);
+  const mode = options.mode || "append";
+  const existingEntries = getMealEntriesForWeekday(weekday, targetMealLabel);
+
+  if (isMealCompletedForWeekday(weekday, targetMealLabel)) {
+    showFeedbackToast({
+      title: "Obrok je zaključan",
+      detail: "Skini čekiranje sa tog obroka pa onda ubaci ili zameni recept.",
+      tone: "warning",
+    });
+    return false;
+  }
+
+  if (mode === "replace" && existingEntries.length) {
+    const confirmed = window.confirm(`Da li želiš da zameniš sve stavke za "${targetMealLabel}" receptom "${favorite.name}"?`);
+    if (!confirmed) {
+      return false;
+    }
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
+      (entry) => !(entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === targetMealLabel)
+    );
+  }
+
+  favorite.items.forEach((item) => {
+    store.weeklyPlanEntries.push({
+      id: uid("plan"),
+      weekday,
+      mealLabel: targetMealLabel,
+      foodId: item.foodId,
+      foodName: item.foodName,
+      grams: item.grams,
+      done: false,
+    });
+  });
+
+  return true;
 }
 
 function isMealCompletedForWeekday(weekday, mealLabel) {
@@ -1842,6 +2015,150 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   `;
 }
 
+function truncateText(value, maxLength = 140) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function renderPlanRecipesSection(planMeals, favorites) {
+  const recipeGroups = planMeals
+    .map(([mealLabel, mealEntries]) => ({
+      mealLabel,
+      mealEntries,
+      recipes: getRecipesForMealLabel(mealLabel, favorites),
+    }))
+    .filter((group) => group.recipes.length);
+
+  return `
+    <section class="section plan-recipes-section">
+      <div class="section-header">
+        <div>
+          <h2>Recepti u planu</h2>
+          <p>Za svaki tip obroka imaš recepte koje možeš da ubaciš odmah ili da njima zameniš postojeći sastav.</p>
+        </div>
+      </div>
+      ${
+        recipeGroups.length
+          ? `
+            <div class="stack plan-recipes-groups">
+              ${recipeGroups
+                .map((group) => {
+                  const mealParts = getMealDisplayParts(group.mealLabel);
+                  return `
+                    <div class="plan-recipes-group">
+                      <div class="plan-recipes-group-head">
+                        <div class="meal-heading-block">
+                          ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
+                          <div>
+                            <h3 class="meal-title">${mealParts.title || group.mealLabel}</h3>
+                            <div class="footer-note">${group.recipes.length} ${group.recipes.length === 1 ? "recept" : "recepta"} za ovaj obrok</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="stack plan-recipes-grid">
+                        ${group.recipes
+                          .map((favorite) => {
+                            const matchState = getRecipeMatchState(favorite, group.mealEntries);
+                            const hasExistingMeal = group.mealEntries.length > 0;
+                            return `
+                              <article class="food-card suggestion-surface plan-recipe-card">
+                                <div class="food-card-top plan-recipe-top">
+                                  <div class="plan-recipe-copy">
+                                    <h3>${favorite.name}</h3>
+                                    <p>${truncateText(favorite.description || favorite.instructions || "Sačuvan recept koji možeš brzo da ubaciš u plan.", 132)}</p>
+                                  </div>
+                                  <span class="pill strong pill--${matchState.tone}">${matchState.label}</span>
+                                </div>
+                                <div class="pill-row plan-recipe-pills">
+                                  <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                                  ${
+                                    favorite.prepTimeMinutes
+                                      ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
+                                      : `<span class="pill note">${favorite.items.length} sastojka</span>`
+                                  }
+                                  <span class="pill">P ${roundValue(favorite.totals.protein, 1)} g</span>
+                                  <span class="pill">UH ${roundValue(favorite.totals.carbs, 1)} g</span>
+                                  <span class="pill">M ${roundValue(favorite.totals.fat, 1)} g</span>
+                                </div>
+                                <div class="plan-recipe-ingredient-list">
+                                  ${favorite.items
+                                    .slice(0, 4)
+                                    .map(
+                                      (item) => `
+                                        <span class="plan-recipe-ingredient">
+                                          <strong>${item.foodName}</strong>
+                                          <span>${roundValue(item.grams, 0)} g</span>
+                                        </span>
+                                      `
+                                    )
+                                    .join("")}
+                                  ${
+                                    favorite.items.length > 4
+                                      ? `<span class="plan-recipe-ingredient plan-recipe-ingredient--more">+${favorite.items.length - 4} još</span>`
+                                      : ""
+                                  }
+                                </div>
+                                ${
+                                  favorite.instructions
+                                    ? `<div class="plan-recipe-method">${truncateText(favorite.instructions, 170)}</div>`
+                                    : ""
+                                }
+                                <div class="entry-actions entry-actions--start plan-recipe-actions">
+                                  <button
+                                    class="solid-button secondary-button button-with-icon"
+                                    data-action="apply-recipe-to-meal"
+                                    data-favorite-id="${favorite.id}"
+                                    data-meal-label="${group.mealLabel}"
+                                    data-mode="append"
+                                  >
+                                    ${renderButtonContent("Dodaj u obrok", "add")}
+                                  </button>
+                                  ${
+                                    hasExistingMeal
+                                      ? `
+                                        <button
+                                          class="ghost-button button-with-icon"
+                                          data-action="apply-recipe-to-meal"
+                                          data-favorite-id="${favorite.id}"
+                                          data-meal-label="${group.mealLabel}"
+                                          data-mode="replace"
+                                        >
+                                          ${renderButtonContent("Zameni", "apply")}
+                                        </button>
+                                      `
+                                      : ""
+                                  }
+                                  <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
+                                    ${renderButtonContent("Izmeni", "edit")}
+                                  </button>
+                                  <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
+                                    ${renderButtonContent("Obriši", "delete")}
+                                  </button>
+                                </div>
+                              </article>
+                            `;
+                          })
+                          .join("")}
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+          `
+          : `
+            <div class="empty">
+              Još nema sačuvanih recepata po tipu obroka. Sačuvaj obrok iz plana ili otvori Recepti tab da napraviš prvi.
+            </div>
+          `
+      }
+    </section>
+  `;
+}
+
 function renderPlanSupplementsSection() {
   const supplements = getSupplementsForDay(state.selectedWeekday);
   const doneCount = supplements.filter((supplement) => isSupplementDoneForDay(supplement, state.selectedWeekday)).length;
@@ -1911,9 +2228,15 @@ function renderPlanTab(entries) {
   const totals = getDayTotals(entries);
   const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
   const netCalories = roundValue(totals.kcal - trainingBurn, 0);
-  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
-  const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
   const favorites = getFavoriteMealsDetailed();
+  const meals = [
+    ...new Set([
+      ...defaultMeals,
+      ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel)),
+      ...favorites.map((favorite) => normalizeMealLabel(favorite.mealLabel || favorite.name)),
+    ]),
+  ];
+  const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
   const favoriteFoods = getFavoriteFoodsDetailed();
   const mealPreviewRows = getMealPreviewRows(groupedEntries);
   const daySuggestion = generateDaySuggestion();
@@ -1926,7 +2249,7 @@ function renderPlanTab(entries) {
       <div class="section-header">
         <div>
           <h2>Dnevni pregled</h2>
-          <p>Tvoj plan po obrocima sa istom logikom kao u Excel-u.</p>
+          <p>Tvoj plan po obrocima, makroi i recepti na jednom mestu.</p>
         </div>
       </div>
       <div class="plan-summary-layout">
@@ -2084,22 +2407,24 @@ function renderPlanTab(entries) {
         }
         <article class="food-card suggestion-surface plan-recipes-card">
           <div class="food-card-top">
-            <h3>Omiljeni obroci i recepti</h3>
+            <h3>Sačuvani recepti</h3>
             <span class="pill strong">${favorites.length}</span>
           </div>
-          <div class="footer-note">Kad ti zatreba gotov recept, otvori Obroke i ubaci ga u ${state.selectedWeekday}.</div>
+          <div class="footer-note">Kad ti zatreba gotov recept, otvori Recepti i ubaci ga direktno u ${state.selectedWeekday}.</div>
           <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-            <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Obroke", "open")}</button>
+            <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Recepti", "open")}</button>
           </div>
         </article>
       </div>
     </section>
 
+    ${renderPlanRecipesSection(planMeals, favorites)}
+
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
           <h2>Obroci za ${state.selectedWeekday}</h2>
-          <p>${entries.length ? "Sve za taj dan je ovde: dodavanje, izmene i brzo čuvanje u obroke." : "Još nema stavki za ovaj dan."}</p>
+          <p>${entries.length ? "Sve za taj dan je ovde: dodavanje, izmene i brzo čuvanje kao recept." : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
       <div class="stack">
@@ -2175,7 +2500,7 @@ function renderPlanTab(entries) {
                                     mealEntries.length
                                       ? `
                                         <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
-                                          ${renderButtonContent("Sačuvaj u Obroke", "save")}
+                                          ${renderButtonContent("Sačuvaj kao recept", "save")}
                                         </button>
                                       `
                                       : ""
@@ -2414,64 +2739,106 @@ function renderFoodsTab() {
 
 function renderRecipesTab() {
   const favorites = getFavoriteMealsDetailed();
-  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
+  const meals = [
+    ...new Set([
+      ...defaultMeals,
+      ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel)),
+      ...favorites.map((favorite) => normalizeMealLabel(favorite.mealLabel || favorite.name)),
+    ]),
+  ];
   const draftPreview = getFavoriteDraftPreview();
 
   return `
     <section class="section recipes-builder-section">
       <div class="section-header">
         <div>
-          <h2>Omiljeni obroci</h2>
-          <p>Ovde praviš CEO obrok tako što dodaješ namirnicu po namirnicu, svaku sa svojom gramažom.</p>
+          <h2>Studio za recepte</h2>
+          <p>Sačuvaj obrok kao pravi recept: sastojci, vreme pripreme i kratko uputstvo koje ćeš posle videti i u Plan tabu.</p>
         </div>
       </div>
-      <form id="favorite-meal-form" class="form-grid split" style="margin-bottom:14px;">
-        <div class="field">
-          <label for="favorite-name">Naziv celog obroka</label>
-          <input id="favorite-name" name="favoriteName" placeholder="npr. Ovseni dorucak" list="favorite-meal-options" value="${state.favoriteDraft.favoriteName}" required />
-          <datalist id="favorite-meal-options">
-            ${favorites.map((favorite) => `<option value="${favorite.name}"></option>`).join("")}
-          </datalist>
+      <article class="food-card suggestion-surface recipe-studio-card">
+        <form id="favorite-meal-form" class="form-grid split recipe-builder-form">
+          <div class="field">
+            <label for="favorite-name">Naziv recepta</label>
+            <input id="favorite-name" name="favoriteName" placeholder="npr. Tortilja sa jajima i piletinom" list="favorite-meal-options" value="${state.favoriteDraft.favoriteName}" required />
+            <datalist id="favorite-meal-options">
+              ${favorites.map((favorite) => `<option value="${favorite.name}"></option>`).join("")}
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="favorite-meal-label">Tip obroka</label>
+            <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${state.favoriteDraft.mealLabel}" required />
+            <datalist id="recipe-meal-options">
+              ${meals.map((meal) => `<option value="${meal}"></option>`).join("")}
+            </datalist>
+          </div>
+          <div class="field recipe-builder-field-wide">
+            <label for="favorite-description">Kratak opis</label>
+            <input
+              id="favorite-description"
+              name="description"
+              placeholder="npr. brz proteinski doručak koji drži sitost do treninga"
+              value="${state.favoriteDraft.description}"
+            />
+          </div>
+          <div class="field">
+            <label for="favorite-prep-time">Vreme pripreme</label>
+            <input id="favorite-prep-time" name="prepTimeMinutes" type="number" min="1" step="1" placeholder="15" value="${state.favoriteDraft.prepTimeMinutes}" />
+          </div>
+          <div class="field recipe-builder-field-wide">
+            <label for="favorite-instructions">Priprema</label>
+            <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${state.favoriteDraft.instructions}</textarea>
+          </div>
+          <div class="field">
+            <label for="favorite-food-id">Sastojak</label>
+            <select id="favorite-food-id" name="foodId" required>
+              <option value="">Izaberi namirnicu</option>
+              ${getFoods()
+                .map((food) => `<option value="${food.id}" ${food.id === state.favoriteDraft.foodId ? "selected" : ""}>${food.name}</option>`)
+                .join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label for="favorite-grams">Količina u gramima</label>
+            <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.favoriteDraft.grams}" required />
+          </div>
+          <div class="entry-actions entry-actions--start recipe-builder-actions">
+            <button class="solid-button secondary-button button-with-icon" type="submit">
+              ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj sastojak" : "Dodaj sastojak", state.editingFavoriteItem.itemId ? "save" : "add")}
+            </button>
+            ${state.editingFavoriteItem.itemId ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-favorite-item">${renderButtonContent("Odustani", "close")}</button>` : ""}
+          </div>
+        </form>
+        <div class="footer-note recipe-builder-note">
+          Svaki klik na Dodaj sastojak ubacuje novu stavku u recept, a polja za opis i pripremu ostaju vezana za isti recept.
         </div>
-        <div class="field">
-          <label for="favorite-meal-label">Tip obroka</label>
-          <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${state.favoriteDraft.mealLabel}" required />
-          <datalist id="recipe-meal-options">
-            ${meals.map((meal) => `<option value="${meal}"></option>`).join("")}
-          </datalist>
-        </div>
-        <div class="field">
-          <label for="favorite-food-id">Namirnica</label>
-          <select id="favorite-food-id" name="foodId" required>
-            <option value="">Izaberi namirnicu</option>
-            ${getFoods()
-              .map((food) => `<option value="${food.id}" ${food.id === state.favoriteDraft.foodId ? "selected" : ""}>${food.name}</option>`)
-              .join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="favorite-grams">Gramaza</label>
-          <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.favoriteDraft.grams}" required />
-        </div>
-        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button secondary-button" type="submit">${state.editingFavoriteItem.itemId ? "Sačuvaj izmenu" : "Dodaj stavku u obrok"}</button>
-          ${state.editingFavoriteItem.itemId ? `<button class="ghost-button" type="button" data-action="cancel-edit-favorite-item">Odustani</button>` : ""}
-        </div>
-      </form>
-      <div class="footer-note">Kad klikneš Dodaj namirnicu u obrok, ta stavka ulazi u taj recept. Ako upišeš isti naziv obroka, dodaješ novu namirnicu u isti obrok.</div>
+      </article>
       <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
-        <div class="food-card-top">
-          <h3>${draftPreview.favoriteName || "Obrok u izradi"}</h3>
-          <span class="pill strong">${draftPreview.items.length} stavki</span>
+        <div class="food-card-top recipe-draft-top">
+          <div class="recipe-draft-copy">
+            <h3>${draftPreview.favoriteName || "Recept u izradi"}</h3>
+            <p>${draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta."}</p>
+          </div>
+          <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
         </div>
-        <div class="pill-row">
+        <div class="pill-row recipe-draft-pills">
           <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
+          ${
+            draftPreview.prepTimeMinutes
+              ? `<span class="pill note">${draftPreview.prepTimeMinutes} min pripreme</span>`
+              : ""
+          }
           <span class="pill note">${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
           <span class="pill">P ${roundValue(draftPreview.totals.protein, 1)} g</span>
           <span class="pill">UH ${roundValue(draftPreview.totals.carbs, 1)} g</span>
           <span class="pill">M ${roundValue(draftPreview.totals.fat, 1)} g</span>
         </div>
-        <div class="footer-note" style="margin-top:10px;">Sastav obroka koji pravis:</div>
+        ${
+          draftPreview.instructions
+            ? `<div class="recipe-draft-method">${draftPreview.instructions}</div>`
+            : ""
+        }
+        <div class="footer-note" style="margin-top:10px;">Sastojci recepta koji praviš:</div>
         <div class="stack" style="margin-top:12px;">
           ${
             draftPreview.items.length
@@ -2491,16 +2858,16 @@ function renderRecipesTab() {
                     `
                   )
                   .join("")
-              : `<div class="empty">Dodaj prvu namirnicu i gramažu, pa ćeš ovde odmah videti sastavljen obrok.</div>`
+              : `<div class="empty">Dodaj prvi sastojak i gramažu, pa ćeš ovde odmah videti kompletan recept.</div>`
           }
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:14px;">
           <button
-            class="solid-button"
+            class="solid-button button-with-icon"
             data-action="save-favorite-meal-draft"
             ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
           >
-            Sačuvaj obrok
+            ${renderButtonContent("Sačuvaj recept", "save")}
           </button>
         </div>
       </article>
@@ -2509,30 +2876,43 @@ function renderRecipesTab() {
     <section class="section recipes-library-section">
       <div class="section-header">
         <div>
-          <h2>Sačuvani obroci</h2>
-          <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih obroka.` : "Još nema sačuvanih obroka."}</p>
+          <h2>Biblioteka recepata</h2>
+          <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih recepata.` : "Još nema sačuvanih recepata."}</p>
         </div>
       </div>
-      <div class="stack">
+      <div class="stack recipes-library-stack">
         ${
           favorites.length
             ? favorites
                 .map(
                   (favorite) => `
-                    <article class="food-card">
-                      <div class="food-card-top">
-                        <h3>${favorite.name}</h3>
-                        <span class="pill strong">${favorite.items.length} namirnica</span>
+                    <article class="food-card recipe-library-card">
+                      <div class="food-card-top recipe-library-top">
+                        <div class="recipe-library-copy">
+                          <h3>${favorite.name}</h3>
+                          <p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>
+                        </div>
+                        <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
                       </div>
-                      <div class="pill-row">
+                      <div class="pill-row recipe-library-pills">
                         <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                        ${
+                          favorite.prepTimeMinutes
+                            ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
+                            : ""
+                        }
                         <span class="pill note">${roundValue(favorite.totals.kcal, 0)} kcal</span>
                         <span class="pill">P ${roundValue(favorite.totals.protein, 1)} g</span>
                         <span class="pill">UH ${roundValue(favorite.totals.carbs, 1)} g</span>
                         <span class="pill">M ${roundValue(favorite.totals.fat, 1)} g</span>
                       </div>
-                      <div class="footer-note" style="margin-top:10px;">Sastav obroka:</div>
-                      <div class="stack" style="margin-top:12px;">
+                      ${
+                        favorite.instructions
+                          ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                          : ""
+                      }
+                      <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
+                      <div class="stack recipe-library-ingredients" style="margin-top:12px;">
                         ${favorite.items
                           .map(
                             (item, index) => `
@@ -2552,15 +2932,21 @@ function renderRecipesTab() {
                           .join("")}
                       </div>
                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
-                        <button class="solid-button secondary-button" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">Ubaci u ${state.selectedWeekday}</button>
-                        <button class="ghost-button" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">Dodaj stavku</button>
-                        <button class="danger-button" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">Obriši obrok</button>
+                        <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">
+                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
+                        </button>
+                        <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
+                          ${renderButtonContent("Izmeni recept", "edit")}
+                        </button>
+                        <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
+                          ${renderButtonContent("Obriši recept", "delete")}
+                        </button>
                       </div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Napravi prvi omiljeni obrok ovde, pa ćeš ga posle dodavati u dane jednim tapom.</div>`
+            : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
         }
       </div>
     </section>
@@ -4503,25 +4889,27 @@ async function handleDocumentClick(event) {
     }
 
     const suggestedName = mealLabel;
-    const favoriteName = window.prompt("Naziv omiljenog obroka:", suggestedName);
+    const favoriteName = window.prompt("Naziv recepta:", suggestedName);
     if (!favoriteName || !favoriteName.trim()) {
       return;
     }
 
     const normalizedName = favoriteName.trim();
-    const existingFavorite = store.favoriteMeals.find(
-      (favorite) => favorite.name.toLowerCase() === normalizedName.toLowerCase()
-    );
+    const existingFavorite = getFavoriteMealByName(normalizedName);
 
     if (existingFavorite) {
       existingFavorite.name = normalizedName;
+      existingFavorite.mealLabel = normalizeMealLabel(mealLabel);
       existingFavorite.items = mealEntries;
       existingFavorite.updatedAt = new Date().toISOString();
     } else {
       store.favoriteMeals.unshift({
         id: uid("favorite-meal"),
         name: normalizedName,
-        mealLabel,
+        mealLabel: normalizeMealLabel(mealLabel),
+        description: "",
+        instructions: "",
+        prepTimeMinutes: null,
         items: mealEntries,
         createdAt: new Date().toISOString(),
       });
@@ -4537,15 +4925,19 @@ async function handleDocumentClick(event) {
     if (!favorite) {
       return;
     }
+    const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
     state.activeTab = "recipes";
-    state.favoriteDraft.favoriteName = favorite.name || "";
-    state.favoriteDraft.mealLabel = favorite.mealLabel || "";
+    state.favoriteDraft.favoriteName = normalizedFavorite.name || "";
+    state.favoriteDraft.mealLabel = normalizedFavorite.mealLabel || "";
+    state.favoriteDraft.description = normalizedFavorite.description || "";
+    state.favoriteDraft.prepTimeMinutes = normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "";
+    state.favoriteDraft.instructions = normalizedFavorite.instructions || "";
     state.favoriteDraft.foodId = "";
     state.favoriteDraft.grams = "";
-    state.editingFavoriteItem = { favoriteId: "", itemId: "", itemIndex: -1 };
+    state.editingFavoriteItem = { favoriteId: favorite.id, itemId: "", itemIndex: -1 };
     render();
     window.requestAnimationFrame(() => {
-      document.querySelector("#favorite-food-id")?.focus();
+      document.querySelector("#favorite-name")?.focus();
     });
     return;
   }
@@ -4576,35 +4968,44 @@ async function handleDocumentClick(event) {
   if (action === "save-favorite-meal-draft") {
     const draftPreview = getFavoriteDraftPreview();
     const hasPendingItem = state.favoriteDraft.foodId && toNumber(state.favoriteDraft.grams) > 0;
-    const existingFavorite = store.favoriteMeals.find(
-      (favorite) => favorite.name.toLowerCase() === draftPreview.favoriteName.toLowerCase()
-    );
+    const existingFavorite = getFavoriteMealByName(draftPreview.favoriteName);
 
     if (!draftPreview.favoriteName || !draftPreview.mealLabel) {
-      showFeedbackToast({ title: "Fali naziv ili tip obroka", detail: "Upiši naziv i tip obroka pre čuvanja.", tone: "warning" });
+      showFeedbackToast({ title: "Fali naziv ili tip obroka", detail: "Upiši naziv i tip obroka pre čuvanja recepta.", tone: "warning" });
       return;
     }
 
     if (hasPendingItem) {
-      const saved = saveFavoriteMealItem(
-        state.favoriteDraft.favoriteName,
-        state.favoriteDraft.mealLabel,
-        state.favoriteDraft.foodId,
-        state.favoriteDraft.grams
-      );
+      const saved = saveFavoriteMealItem({
+        favoriteName: state.favoriteDraft.favoriteName,
+        mealLabel: state.favoriteDraft.mealLabel,
+        description: state.favoriteDraft.description,
+        prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+        instructions: state.favoriteDraft.instructions,
+        foodId: state.favoriteDraft.foodId,
+        grams: state.favoriteDraft.grams,
+      });
       if (!saved) {
         return;
       }
     } else if (!draftPreview.items.length || (!existingFavorite && !state.editingFavoriteItem.favoriteId)) {
-      showFeedbackToast({ title: "Obrok još nije spreman", detail: "Dodaj bar jednu namirnicu pre čuvanja obroka.", tone: "warning" });
+      showFeedbackToast({ title: "Recept još nije spreman", detail: "Dodaj bar jedan sastojak pre čuvanja recepta.", tone: "warning" });
       return;
+    } else {
+      saveFavoriteMealMetadata({
+        favoriteName: state.favoriteDraft.favoriteName,
+        mealLabel: state.favoriteDraft.mealLabel,
+        description: state.favoriteDraft.description,
+        prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+        instructions: state.favoriteDraft.instructions,
+      });
     }
 
     persist();
     const savedName = draftPreview.favoriteName;
     resetFavoriteDraft();
     render();
-    showFeedbackToast({ title: "Obrok je sačuvan", detail: `"${savedName}" je dodat u Obroke.` });
+    showFeedbackToast({ title: "Recept je sačuvan", detail: `"${savedName}" je dodat u biblioteku recepata.` });
     return;
   }
 
@@ -4613,21 +5014,32 @@ async function handleDocumentClick(event) {
     if (!favorite) {
       return;
     }
-
-    favorite.items.forEach((item) => {
-      store.weeklyPlanEntries.push({
-        id: uid("plan"),
-        weekday: state.selectedWeekday,
-        mealLabel: normalizeMealLabel(favorite.mealLabel || favorite.name),
-        foodId: item.foodId,
-        foodName: item.foodName,
-        grams: item.grams,
-        done: false,
-      });
-    });
+    if (!applyFavoriteMealToDay(favorite)) {
+      return;
+    }
 
     persist();
     render();
+    return;
+  }
+
+  if (action === "apply-recipe-to-meal") {
+    const favorite = store.favoriteMeals.find((entry) => entry.id === actionTarget.dataset.favoriteId);
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    const mode = String(actionTarget.dataset.mode || "append").trim();
+    if (!favorite || !mealLabel) {
+      return;
+    }
+    if (!applyFavoriteMealToDay(favorite, { mealLabel, mode })) {
+      return;
+    }
+
+    persist();
+    render();
+    showFeedbackToast({
+      title: mode === "replace" ? "Obrok je zamenjen receptom" : "Recept je dodat u plan",
+      detail: `"${favorite.name}" je sada vezan za ${mealLabel}.`,
+    });
     return;
   }
 
@@ -4639,10 +5051,20 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    const targetMealLabel = normalizeMealLabel(favorite.mealLabel || favorite.name);
+    if (isMealCompletedForWeekday(state.selectedWeekday, targetMealLabel)) {
+      showFeedbackToast({
+        title: "Obrok je zaključan",
+        detail: "Skini čekiranje sa tog obroka pa onda ubaci novi sastojak iz recepta.",
+        tone: "warning",
+      });
+      return;
+    }
+
     store.weeklyPlanEntries.push({
       id: uid("plan"),
       weekday: state.selectedWeekday,
-      mealLabel: normalizeMealLabel(favorite.mealLabel || favorite.name),
+      mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
       grams: item.grams,
@@ -4662,7 +5084,7 @@ async function handleDocumentClick(event) {
       return;
     }
 
-    const confirmed = window.confirm(`Obriši "${item.foodName}" iz omiljenog obroka "${favorite.name}"?`);
+    const confirmed = window.confirm(`Obriši "${item.foodName}" iz recepta "${favorite.name}"?`);
     if (!confirmed) {
       return;
     }
@@ -4683,6 +5105,11 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-favorite-meal") {
+    const favorite = store.favoriteMeals.find((entry) => entry.id === actionTarget.dataset.favoriteId);
+    const confirmed = window.confirm(favorite ? `Obriši recept "${favorite.name}"?` : "Obriši ovaj recept?");
+    if (!confirmed) {
+      return;
+    }
     store.favoriteMeals = store.favoriteMeals.filter((entry) => entry.id !== actionTarget.dataset.favoriteId);
     if (state.editingFavoriteItem.favoriteId === actionTarget.dataset.favoriteId) {
       resetFavoriteDraft();
@@ -5199,17 +5626,27 @@ async function handleSubmit(event) {
   if (event.target.id === "favorite-meal-form") {
     const favoriteName = String(formData.get("favoriteName") || "").trim();
     const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
+    const description = String(formData.get("description") || "").trim();
+    const prepTimeMinutes = String(formData.get("prepTimeMinutes") || "").trim();
+    const instructions = String(formData.get("instructions") || "").trim();
     const foodId = String(formData.get("foodId") || "").trim();
     const grams = toNumber(formData.get("grams"));
-    const saved = saveFavoriteMealItem(favoriteName, mealLabel, foodId, grams);
+    const saved = saveFavoriteMealItem({
+      favoriteName,
+      mealLabel,
+      description,
+      prepTimeMinutes,
+      instructions,
+      foodId,
+      grams,
+    });
 
     if (!saved) {
       return;
     }
 
     persist();
-    resetFavoriteDraft();
-    event.target.reset();
+    resetFavoriteDraft({ preserveRecipeMeta: true });
     render();
     return;
   }
@@ -5429,6 +5866,16 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLInputElement && target.id === "favorite-description") {
+    state.favoriteDraft.description = target.value;
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.id === "favorite-prep-time") {
+    state.favoriteDraft.prepTimeMinutes = target.value;
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "mealLabel") {
     state.planDraft.mealLabel = target.value;
     syncEntryPreview();
@@ -5444,6 +5891,11 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "favorite-grams") {
     state.favoriteDraft.grams = target.value;
     render();
+    return;
+  }
+
+  if (target instanceof HTMLTextAreaElement && target.id === "favorite-instructions") {
+    state.favoriteDraft.instructions = target.value;
     return;
   }
 
