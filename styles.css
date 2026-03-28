@@ -2066,6 +2066,7 @@ body.plan-compact .hero-day-picker {
 
 .routine-overview-section,
 .routine-habits-section,
+.routine-streak-section,
 .routine-tasks-section,
 .routine-weekly-section,
 .recipes-builder-section,
@@ -2076,6 +2077,7 @@ body.plan-compact .hero-day-picker {
 
 .routine-overview-section::before,
 .routine-habits-section::before,
+.routine-streak-section::before,
 .routine-tasks-section::before,
 .routine-weekly-section::before,
 .recipes-builder-section::before,
@@ -2101,6 +2103,7 @@ body.plan-compact .hero-day-picker {
 .recipes-library-section .section-header,
 .routine-overview-section .section-header,
 .routine-habits-section .section-header,
+.routine-streak-section .section-header,
 .routine-tasks-section .section-header,
 .routine-weekly-section .section-header {
   margin-bottom: 16px;
@@ -2209,6 +2212,140 @@ body.plan-compact .hero-day-picker {
   box-shadow:
     0 12px 24px rgba(25, 34, 31, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.routine-habit-form {
+  align-items: end;
+}
+
+.routine-habit-form-note {
+  grid-column: 1 / -1;
+  margin-top: -2px;
+}
+
+.routine-streak-section {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.9), rgba(248, 243, 235, 0.96)),
+    var(--surface);
+}
+
+.routine-streak-spotlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px 24px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 118, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(216, 234, 223, 0.72), rgba(255, 250, 242, 0.98)),
+    var(--surface-strong);
+  border: 1px solid rgba(44, 123, 116, 0.12);
+  box-shadow:
+    0 18px 36px rgba(25, 34, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.routine-streak-spotlight-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(44, 123, 116, 0.72);
+}
+
+.routine-streak-spotlight h3 {
+  margin: 6px 0 2px;
+  font-size: 1.6rem;
+  letter-spacing: -0.04em;
+}
+
+.routine-streak-spotlight p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.routine-streak-spotlight-metric {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 112px;
+}
+
+.routine-streak-spotlight-metric span {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.92;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  color: var(--accent);
+}
+
+.routine-streak-spotlight-metric small {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(24, 33, 30, 0.52);
+}
+
+.routine-streak-stack {
+  gap: 16px;
+}
+
+.routine-streak-card {
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.routine-streak-card-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.routine-streak-meter {
+  min-width: 104px;
+  padding: 16px 14px;
+  border-radius: 22px;
+  display: grid;
+  justify-items: center;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(216, 234, 223, 0.9)),
+    var(--surface);
+  border: 1px solid rgba(44, 123, 116, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 10px 18px rgba(25, 34, 31, 0.05);
+}
+
+.routine-streak-value {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.88;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  color: var(--accent);
+}
+
+.routine-streak-unit {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(24, 33, 30, 0.56);
+}
+
+.routine-streak-content .pill-row {
+  margin-top: 12px;
+}
+
+.routine-streak-actions {
+  align-self: stretch;
+  flex-wrap: wrap;
+  align-content: center;
 }
 
 .supplement-card,
@@ -2898,6 +3035,22 @@ body.menu-open .menu-fab {
   .routine-row .danger-button {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .routine-streak-spotlight,
+  .routine-streak-card-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .routine-streak-spotlight-metric,
+  .routine-streak-actions {
+    justify-items: start;
+    justify-content: flex-start;
+  }
+
+  .routine-streak-meter {
+    min-width: 0;
+    width: 100%;
   }
 
   .menu-fab {

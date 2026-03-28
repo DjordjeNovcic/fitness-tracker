@@ -11,6 +11,7 @@ import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.
 const STORAGE_KEY = "fitness-tracker-state-v1";
 const CLOUD_SCHEMA_VERSION = 1;
 const DEMO_RECIPE_SEED_VERSION = 1;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBvfd2HVPJlfA1XvXaEKf8_FpvQZcESPzg",
   authDomain: "fitness-tracker-c90f7.firebaseapp.com",
@@ -202,6 +203,50 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
   };
 }
 
+function normalizeDateValue(value) {
+  if (!value) {
+    return "";
+  }
+
+  const normalizedValue = String(value).trim();
+  if (!normalizedValue) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T/.test(normalizedValue)) {
+    return normalizedValue.slice(0, 10);
+  }
+
+  const parsedDate = new Date(normalizedValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}-${String(
+    parsedDate.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function normalizeHabitRecord(habit = {}) {
+  const trackingMode = habit?.trackingMode === "streak" ? "streak" : "weekly";
+  const fallbackStartDate = normalizeDateValue(habit?.createdAt) || getTodayDateValue();
+
+  return {
+    ...habit,
+    trackingMode,
+    note: String(habit?.note || "").trim(),
+    completions: trackingMode === "weekly" && habit?.completions && typeof habit.completions === "object" ? habit.completions : {},
+    streakStartDate: trackingMode === "streak" ? normalizeDateValue(habit?.streakStartDate) || fallbackStartDate : "",
+    bestStreakDays: Math.max(0, toNumber(habit?.bestStreakDays)),
+    resetCount: Math.max(0, toNumber(habit?.resetCount)),
+    lastResetAt: trackingMode === "streak" ? normalizeDateValue(habit?.lastResetAt) : "",
+  };
+}
+
 function readLocalSnapshot() {
   const seed = cloneSeed();
   const storedRaw = localStorage.getItem(STORAGE_KEY);
@@ -226,7 +271,7 @@ function hydrateStore() {
 function ensureStoreCollections(targetStore) {
   targetStore.trainingLogs = targetStore.trainingLogs || [];
   targetStore.favoriteTrainings = targetStore.favoriteTrainings || [];
-  targetStore.habits = targetStore.habits || [];
+  targetStore.habits = (targetStore.habits || []).map((habit) => normalizeHabitRecord(habit));
   targetStore.dayTasks = targetStore.dayTasks || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
@@ -680,6 +725,14 @@ function getHabits() {
   return [...store.habits].sort((a, b) => a.name.localeCompare(b.name, "sr"));
 }
 
+function getWeeklyHabits() {
+  return getHabits().filter((habit) => habit.trackingMode !== "streak");
+}
+
+function getStreakHabits() {
+  return getHabits().filter((habit) => habit.trackingMode === "streak");
+}
+
 function getTasksForDay(weekday) {
   return store.dayTasks
     .filter((task) => task.weekday === weekday)
@@ -769,27 +822,99 @@ function getHabitWeeklyCount(habit) {
   return WEEKDAYS.reduce((count, weekday) => count + (isHabitDoneForDay(habit, weekday) ? 1 : 0), 0);
 }
 
+function getDateValueAsLocalDate(dateValue) {
+  if (!dateValue) {
+    return null;
+  }
+
+  const [year, month, day] = String(dateValue)
+    .split("-")
+    .map((part) => Number(part));
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getDayCountLabel(value) {
+  const days = Math.max(0, Number(value) || 0);
+  return `${days} ${days === 1 ? "dan" : "dana"}`;
+}
+
+function getHabitCurrentStreakDays(habit, referenceDateValue = getTodayDateValue()) {
+  if (habit?.trackingMode !== "streak") {
+    return 0;
+  }
+
+  const startDate = getDateValueAsLocalDate(normalizeDateValue(habit.streakStartDate) || referenceDateValue);
+  const referenceDate = getDateValueAsLocalDate(normalizeDateValue(referenceDateValue) || getTodayDateValue());
+  if (!startDate || !referenceDate) {
+    return 0;
+  }
+
+  const diffInDays = Math.floor((referenceDate.getTime() - startDate.getTime()) / DAY_IN_MS);
+  return Math.max(1, diffInDays + 1);
+}
+
+function getHabitBestStreakDays(habit) {
+  return Math.max(Math.max(0, toNumber(habit?.bestStreakDays)), getHabitCurrentStreakDays(habit));
+}
+
+function formatDateValueLabel(dateValue) {
+  const parsedDate = getDateValueAsLocalDate(normalizeDateValue(dateValue));
+  if (!parsedDate) {
+    return "";
+  }
+
+  return parsedDate.toLocaleDateString("sr-RS", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function getHabitStreakSentence(habit) {
+  const currentStreakDays = getHabitCurrentStreakDays(habit);
+  const habitLabel = String(habit?.name || "").trim();
+  if (!habitLabel) {
+    return getDayCountLabel(currentStreakDays);
+  }
+
+  const normalizedLabel = `${habitLabel.charAt(0).toLowerCase()}${habitLabel.slice(1)}`;
+  return `${getDayCountLabel(currentStreakDays)} ${normalizedLabel}`;
+}
+
 function getRoutineSummaryForDay(weekday) {
-  const habits = getHabits();
+  const habits = getWeeklyHabits();
+  const streakHabits = getStreakHabits();
   const tasks = getTasksForDay(weekday);
   const doneHabits = habits.filter((habit) => isHabitDoneForDay(habit, weekday)).length;
   const doneTasks = tasks.filter((task) => task.done).length;
   const totalItems = habits.length + tasks.length;
   const doneItems = doneHabits + doneTasks;
+  const longestStreakDays = streakHabits.reduce(
+    (maxStreak, habit) => Math.max(maxStreak, getHabitCurrentStreakDays(habit)),
+    0
+  );
 
   return {
     habits,
+    streakHabits,
     tasks,
     doneHabits,
     doneTasks,
     totalItems,
     doneItems,
+    longestStreakDays,
     progress: totalItems ? roundValue((doneItems / totalItems) * 100, 0) : 0,
   };
 }
 
 function getTodayDateValue() {
-  return new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
 function getWeeklyTrainingPlan() {
@@ -3266,6 +3391,7 @@ function renderRoutineTab() {
   const summary = getRoutineSummaryForDay(state.selectedWeekday);
   const editingHabit = state.editingHabitId ? store.habits.find((habit) => habit.id === state.editingHabitId) : null;
   const editingTask = state.editingTaskId ? store.dayTasks.find((task) => task.id === state.editingTaskId) : null;
+  const habitTrackingMode = editingHabit?.trackingMode === "streak" ? "streak" : "weekly";
   const selectedDayIndex = WEEKDAYS.indexOf(state.selectedWeekday);
   const previousWeekday = selectedDayIndex > 0 ? WEEKDAYS[selectedDayIndex - 1] : "";
   const previousDayTaskCount = previousWeekday ? getTasksForDay(previousWeekday).length : 0;
@@ -3278,13 +3404,16 @@ function renderRoutineTab() {
       progress: summary.habits.length ? roundValue((doneCount / summary.habits.length) * 100, 0) : 0,
     };
   });
+  const topStreakHabit = [...summary.streakHabits].sort(
+    (left, right) => getHabitCurrentStreakDays(right) - getHabitCurrentStreakDays(left)
+  )[0];
 
   return `
-    <section class="section">
+    <section class="section routine-overview-section">
       <div class="section-header">
         <div>
           <h2>Rutina za ${state.selectedWeekday}</h2>
-          <p>Velike navike i sitni taskovi za taj dan, sve na jednom mestu.</p>
+          <p>Velike navike, sitni taskovi i dugoročni streakovi, sve na jednom mestu.</p>
         </div>
       </div>
       <div class="hero-day-picker routine-day-picker">
@@ -3306,7 +3435,7 @@ function renderRoutineTab() {
           <div class="footer-note">${summary.doneItems} od ${summary.totalItems || 0} čekirano</div>
         </article>
         <article class="stat-card">
-          <strong>Navike</strong>
+          <strong>Nedeljne navike</strong>
           <div class="macro-value">${summary.doneHabits}/${summary.habits.length}</div>
           <div class="footer-note">Završeno za ${state.selectedWeekday}</div>
         </article>
@@ -3315,24 +3444,61 @@ function renderRoutineTab() {
           <div class="macro-value">${summary.doneTasks}/${summary.tasks.length}</div>
           <div class="footer-note">Dnevne obaveze</div>
         </article>
+        <article class="stat-card">
+          <strong>Dugoročni streakovi</strong>
+          <div class="macro-value">${summary.streakHabits.length}</div>
+          <div class="footer-note">
+            ${
+              summary.longestStreakDays
+                ? `Najduži aktivni ${getDayCountLabel(summary.longestStreakDays)}`
+                : "Dodaj prvi streak i kreni da brojiš"
+            }
+          </div>
+        </article>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-habits-section">
       <div class="section-header">
         <div>
-          <h2>Navike</h2>
-          <p>Npr. 10k koraka, čitanje, bez slatkiša. Čekiraš kad ispuniš.</p>
+          <h2>Nedeljne navike</h2>
+          <p>Npr. 10k koraka, čitanje ili bez slatkiša. Čekiraš kad ispuniš za izabrani dan.</p>
         </div>
       </div>
-      <form id="habit-form" class="form-grid split">
+      <form id="habit-form" class="form-grid split routine-habit-form">
         <div class="field">
-          <label for="habit-name">${editingHabit ? "Izmena navike" : "Nova navika"}</label>
-          <input id="habit-name" name="name" placeholder="npr. 10k koraka" value="${editingHabit?.name || ""}" required />
+          <label for="habit-name">${editingHabit ? "Naziv navike" : "Nova navika"}</label>
+          <input
+            id="habit-name"
+            name="name"
+            placeholder="npr. 10k koraka ili bez alkohola"
+            value="${editingHabit?.name || ""}"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="habit-tracking-mode">Tip praćenja</label>
+          <select id="habit-tracking-mode" name="trackingMode">
+            <option value="weekly" ${habitTrackingMode === "weekly" ? "selected" : ""}>Nedeljna navika</option>
+            <option value="streak" ${habitTrackingMode === "streak" ? "selected" : ""}>Dugoročni streak</option>
+          </select>
         </div>
         <div class="field">
           <label for="habit-note">Opis / cilj</label>
           <input id="habit-note" name="note" placeholder="npr. svaki dan, makar 10 min" value="${editingHabit?.note || ""}" />
+        </div>
+        <div class="field">
+          <label for="habit-start-date">Brojanje od</label>
+          <input
+            id="habit-start-date"
+            name="streakStartDate"
+            type="date"
+            value="${editingHabit?.trackingMode === "streak" ? editingHabit.streakStartDate || "" : ""}"
+          />
+        </div>
+        <div class="footer-note routine-habit-form-note">
+          Za streak naviku upiši naziv onako kako želiš da piše u evidenciji, npr. "bez alkohola". Ako ostane
+          nedeljna navika, datum se ignoriše.
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
           <button class="solid-button" type="submit">${editingHabit ? "Sačuvaj izmenu" : "Dodaj naviku"}</button>
@@ -3374,12 +3540,79 @@ function renderRoutineTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Dodaj prvu naviku i prati je kroz dane u nedelji.</div>`
+            : `<div class="empty">Dodaj prvu nedeljnu naviku i prati je kroz dane u nedelji.</div>`
         }
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-streak-section">
+      <div class="section-header">
+        <div>
+          <h2>Dugoročni streakovi</h2>
+          <p>Za stvari koje meriš na duže staze, tipa bez alkohola, bez cigareta ili doslednost mesecima.</p>
+        </div>
+      </div>
+      ${
+        topStreakHabit
+          ? `
+            <article class="routine-streak-spotlight">
+              <div>
+                <div class="routine-streak-spotlight-label">Najduži aktivni streak</div>
+                <h3>${topStreakHabit.name}</h3>
+                <p>${getHabitStreakSentence(topStreakHabit)}</p>
+              </div>
+              <div class="routine-streak-spotlight-metric">
+                <span>${getHabitCurrentStreakDays(topStreakHabit)}</span>
+                <small>${getHabitCurrentStreakDays(topStreakHabit) === 1 ? "dan" : "dana"}</small>
+              </div>
+            </article>
+          `
+          : ""
+      }
+      <div class="stack routine-streak-stack" style="margin-top:${topStreakHabit ? "16px" : "0"};">
+        ${
+          summary.streakHabits.length
+            ? summary.streakHabits
+                .map((habit) => {
+                  const currentStreakDays = getHabitCurrentStreakDays(habit);
+                  const bestStreakDays = getHabitBestStreakDays(habit);
+                  const startedLabel = formatDateValueLabel(habit.streakStartDate);
+                  const lastResetLabel = formatDateValueLabel(habit.lastResetAt);
+
+                  return `
+                    <article class="food-card routine-card routine-streak-card">
+                      <div class="routine-streak-card-layout">
+                        <div class="routine-streak-meter">
+                          <span class="routine-streak-value">${currentStreakDays}</span>
+                          <span class="routine-streak-unit">${currentStreakDays === 1 ? "dan" : "dana"}</span>
+                        </div>
+                        <div class="routine-content routine-streak-content">
+                          <strong>${habit.name}</strong>
+                          <div class="footer-note">${habit.note || "Dugoročna evidencija je uključena za ovu naviku."}</div>
+                          <div class="pill-row">
+                            <span class="pill strong">${getHabitStreakSentence(habit)}</span>
+                            ${startedLabel ? `<span class="pill">Od ${startedLabel}</span>` : ""}
+                            <span class="pill">Najduže ${getDayCountLabel(bestStreakDays)}</span>
+                            <span class="pill note">${habit.resetCount ? `Resetovano ${habit.resetCount}x` : "Bez reseta"}</span>
+                            ${lastResetLabel ? `<span class="pill note">Poslednji reset ${lastResetLabel}</span>` : ""}
+                          </div>
+                        </div>
+                        <div class="entry-actions routine-streak-actions" style="justify-content:flex-start; margin-top:0;">
+                          <button class="ghost-button" data-action="reset-habit-streak" data-habit-id="${habit.id}">Resetuj</button>
+                          <button class="ghost-button" data-action="edit-habit" data-habit-id="${habit.id}">Izmeni</button>
+                          <button class="danger-button" data-action="delete-habit" data-habit-id="${habit.id}">Obriši</button>
+                        </div>
+                      </div>
+                    </article>
+                  `;
+                })
+                .join("")
+            : `<div class="empty">Dodaj prvi streak i dobićeš brojač tipa "90 dana bez alkohola".</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
           <h2>Taskovi za ${state.selectedWeekday}</h2>
@@ -3448,26 +3681,32 @@ function renderRoutineTab() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section routine-weekly-section">
       <div class="section-header">
         <div>
           <h2>Nedeljni pregled navika</h2>
-          <p>Kratak pregled koliko si navika ispunio po danima.</p>
+          <p>Kratak pregled koliko si nedeljnih navika ispunio po danima.</p>
         </div>
       </div>
-      <div class="stats-grid">
-        ${weeklyHabitProgress
-          .map(
-            (day) => `
-              <article class="stat-card">
-                <strong>${day.weekday}</strong>
-                <div class="macro-value">${day.progress}%</div>
-                <div class="footer-note">${day.doneCount}/${day.totalCount} navika</div>
-              </article>
-            `
-          )
-          .join("")}
-      </div>
+      ${
+        summary.habits.length
+          ? `
+            <div class="stats-grid">
+              ${weeklyHabitProgress
+                .map(
+                  (day) => `
+                    <article class="stat-card">
+                      <strong>${day.weekday}</strong>
+                      <div class="macro-value">${day.progress}%</div>
+                      <div class="footer-note">${day.doneCount}/${day.totalCount} navika</div>
+                    </article>
+                  `
+                )
+                .join("")}
+            </div>
+          `
+          : `<div class="empty">Kad dodaš nedeljne navike, ovde ćeš videti pregled po danima.</div>`
+      }
     </section>
   `;
 }
@@ -4498,12 +4737,36 @@ async function handleDocumentClick(event) {
   if (action === "toggle-habit-day") {
     const habitId = actionTarget.dataset.habitId;
     const habit = store.habits.find((entry) => entry.id === habitId);
-    if (!habit) {
+    if (!habit || habit.trackingMode === "streak") {
       return;
     }
 
     habit.completions = habit.completions || {};
     habit.completions[state.selectedWeekday] = !Boolean(habit.completions[state.selectedWeekday]);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "reset-habit-streak") {
+    const habit = store.habits.find((entry) => entry.id === actionTarget.dataset.habitId);
+    if (!habit || habit.trackingMode !== "streak") {
+      return;
+    }
+
+    const currentStreakDays = getHabitCurrentStreakDays(habit);
+    const confirmed = window.confirm(
+      `Resetuj streak za "${habit.name}"? Trenutno broji ${getDayCountLabel(currentStreakDays)}.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    habit.bestStreakDays = Math.max(Math.max(0, toNumber(habit.bestStreakDays)), currentStreakDays);
+    habit.resetCount = Math.max(0, toNumber(habit.resetCount)) + 1;
+    habit.lastResetAt = getTodayDateValue();
+    habit.streakStartDate = getTodayDateValue();
+    habit.updatedAt = new Date().toISOString();
     persist();
     render();
     return;
@@ -5514,6 +5777,9 @@ async function handleSubmit(event) {
   if (event.target.id === "habit-form") {
     const name = String(formData.get("name") || "").trim();
     const note = String(formData.get("note") || "").trim();
+    const trackingMode = String(formData.get("trackingMode") || "weekly").trim() === "streak" ? "streak" : "weekly";
+    const streakStartDate =
+      trackingMode === "streak" ? normalizeDateValue(String(formData.get("streakStartDate") || "").trim()) || getTodayDateValue() : "";
     if (!name) {
       return;
     }
@@ -5525,6 +5791,23 @@ async function handleSubmit(event) {
               ...habit,
               name,
               note,
+              trackingMode,
+              completions: trackingMode === "weekly" ? habit.completions || {} : {},
+              streakStartDate,
+              bestStreakDays:
+                trackingMode === "streak"
+                  ? Math.max(
+                      Math.max(0, toNumber(habit.bestStreakDays)),
+                      getHabitCurrentStreakDays({
+                        ...habit,
+                        trackingMode,
+                        streakStartDate,
+                      })
+                    )
+                  : 0,
+              resetCount: trackingMode === "streak" ? Math.max(0, toNumber(habit.resetCount)) : 0,
+              lastResetAt: trackingMode === "streak" ? normalizeDateValue(habit.lastResetAt) : "",
+              updatedAt: new Date().toISOString(),
             }
           : habit
       );
@@ -5534,7 +5817,12 @@ async function handleSubmit(event) {
         id: uid("habit"),
         name,
         note,
-        completions: {},
+        trackingMode,
+        completions: trackingMode === "weekly" ? {} : {},
+        streakStartDate,
+        bestStreakDays: 0,
+        resetCount: 0,
+        lastResetAt: "",
         createdAt: new Date().toISOString(),
       });
     }
