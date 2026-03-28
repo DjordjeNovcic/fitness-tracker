@@ -2395,6 +2395,36 @@ function shouldHidePendingImportedFood(food = {}) {
   return food.importSource === "nutrition-import" && getFoodNutritionStatus(food).needsAttention;
 }
 
+function getImportedFoodLinkCandidates(importedFood) {
+  if (!importedFood?.id) {
+    return [];
+  }
+
+  const importedCanonicalName = normalizeLookupValue(canonicalizeImportedFoodName(importedFood.name) || importedFood.name);
+
+  return getSelectableFoods()
+    .filter((food) => food.id !== importedFood.id)
+    .sort((left, right) => {
+      const scoreCandidate = (food) => {
+        const canonicalName = normalizeLookupValue(canonicalizeImportedFoodName(food.name) || food.name);
+        const hasNutrition = Number(toNumber(food.kcal) > 0 || toNumber(food.protein) > 0 || toNumber(food.carbs) > 0 || toNumber(food.fat) > 0);
+        const exactCanonicalMatch = Number(Boolean(importedCanonicalName) && canonicalName === importedCanonicalName);
+        const partialCanonicalMatch = Number(
+          Boolean(importedCanonicalName) &&
+            canonicalName &&
+            importedCanonicalName !== canonicalName &&
+            (canonicalName.includes(importedCanonicalName) || importedCanonicalName.includes(canonicalName))
+        );
+        const sameCategory = Number(String(food.category || "").trim() === String(importedFood.category || "").trim());
+        const isBaseFood = Number(food.importSource !== "nutrition-import");
+
+        return exactCanonicalMatch * 100 + partialCanonicalMatch * 40 + hasNutrition * 20 + sameCategory * 5 + isBaseFood * 3;
+      };
+
+      return scoreCandidate(right) - scoreCandidate(left) || String(left.name || "").localeCompare(String(right.name || ""), "sr");
+    });
+}
+
 function resetFoodEditing() {
   state.editingFoodId = "";
   state.nutritionEditingFoodId = "";
@@ -2463,6 +2493,25 @@ function syncFoodReferenceAcrossCollections(targetStore, fromFoodId, nextFoodId,
   targetStore.favoriteFoods = mergeUniqueStrings(
     (targetStore.favoriteFoods || []).map((foodId) => (foodId === fromFoodId ? nextFoodId : foodId)).filter(Boolean)
   );
+}
+
+function linkImportedFoodToExisting(targetStore, importedFoodId, existingFoodId) {
+  const importedFood = (targetStore.foods || []).find((food) => food.id === importedFoodId);
+  const existingFood = (targetStore.foods || []).find((food) => food.id === existingFoodId);
+  if (!importedFood || !existingFood || importedFood.id === existingFood.id) {
+    return null;
+  }
+
+  mergeNutritionFoodData(existingFood, importedFood);
+  syncFoodReferenceAcrossCollections(targetStore, importedFood.id, existingFood.id, existingFood.name);
+
+  targetStore.foods = (targetStore.foods || []).filter((food) => food.id !== importedFood.id);
+  targetStore.favoriteFoods = mergeUniqueStrings((targetStore.favoriteFoods || []).filter((foodId) => foodId !== importedFood.id));
+  targetStore.nutritionLibrary.importedFoodIds = mergeUniqueStrings(
+    (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import").map((food) => food.id)
+  );
+
+  return existingFood;
 }
 
 function mergeNutritionFoodData(targetFood, sourceFood) {
@@ -6018,6 +6067,7 @@ function renderNutritionTab() {
   const importedRecipes = getNutritionImportedRecipesDetailed();
   const importedFoodsMissingValues = importedFoods.filter((food) => food.nutritionStatus.needsAttention).length;
   const nutritionEditingFood = importedFoods.find((food) => food.id === state.nutritionEditingFoodId) || null;
+  const nutritionLinkCandidates = nutritionEditingFood ? getImportedFoodLinkCandidates(nutritionEditingFood) : [];
   const lastImportedAt = store.nutritionLibrary?.lastImportedAt
     ? new Date(store.nutritionLibrary.lastImportedAt).toLocaleString("sr-RS")
     : "";
@@ -6182,6 +6232,31 @@ function renderNutritionTab() {
                 </div>
                 <form id="nutrition-food-form" class="form-grid split nutrition-food-form">
                   <input type="hidden" name="foodId" value="${nutritionEditingFood.id}" />
+                  ${
+                    nutritionLinkCandidates.length
+                      ? `
+                        <div class="field" style="grid-column:1 / -1;">
+                          <label for="nutrition-food-link-target">Poveži sa postojećom namirnicom</label>
+                          <select id="nutrition-food-link-target" name="linkedFoodId">
+                            <option value="">Ne povezuj, uneću ručno vrednosti</option>
+                            ${nutritionLinkCandidates
+                              .map(
+                                (food) => `
+                                  <option value="${food.id}">${escapeHtml(food.name)} · ${escapeHtml(food.category || "Bez kategorije")} · ${roundValue(
+                                    food.kcal || 0,
+                                    0
+                                  )} kcal</option>
+                                `
+                              )
+                              .join("")}
+                          </select>
+                          <div class="footer-note">
+                            Ako namirnica već postoji u tvojoj bazi, izaberi je ovde i recepti će odmah povući njene postojeće kcal i makroe.
+                          </div>
+                        </div>
+                      `
+                      : ""
+                  }
                   <div class="field">
                     <label for="nutrition-food-kcal">Kalorije na 100 g</label>
                     <input
@@ -8211,6 +8286,29 @@ async function handleSubmit(event) {
     const foodId = String(formData.get("foodId") || "").trim();
     const food = getFoodById(foodId);
     if (!food) {
+      return;
+    }
+
+    const linkedFoodId = String(formData.get("linkedFoodId") || "").trim();
+    if (linkedFoodId) {
+      const linkedFood = linkImportedFoodToExisting(store, foodId, linkedFoodId);
+      if (!linkedFood) {
+        showFeedbackToast({
+          title: "Povezivanje nije uspelo",
+          detail: "Izabrana namirnica nije pronađena u bazi.",
+          tone: "warning",
+        });
+        return;
+      }
+
+      state.nutritionEditingFoodId = "";
+      persist();
+      render();
+      showFeedbackToast({
+        title: "Namirnica je povezana",
+        detail: `${food.name} sada koristi vrednosti iz stavke "${linkedFood.name}". Recepti su odmah preračunati.`,
+        tone: "success",
+      });
       return;
     }
 
