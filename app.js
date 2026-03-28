@@ -688,7 +688,7 @@ function getNutritionImportedRecipesDetailed() {
   return getFavoriteMealsDetailed().filter((recipe) => importedIds.has(recipe.id));
 }
 
-function findFoodByName(name) {
+function findFoodByExactName(name) {
   const normalizedName = normalizeLookupValue(name);
   if (!normalizedName) {
     return null;
@@ -1195,7 +1195,7 @@ function upsertNutritionFood(foodDraft = {}, documentRecord) {
     return null;
   }
 
-  const existingFood = findFoodByName(foodName);
+  const existingFood = findFoodByExactName(foodName);
   const nextFoodFields = {
     name: foodName,
     category: String(foodDraft.category || existingFood?.category || "Nutri import").trim() || "Nutri import",
