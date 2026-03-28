@@ -2286,6 +2286,61 @@ body.plan-compact .hero-day-picker {
   flex: 1 1 180px;
 }
 
+.nutrition-food-card.is-needs-review {
+  border-color: rgba(160, 127, 52, 0.22);
+  box-shadow: 0 16px 30px rgba(160, 127, 52, 0.08);
+}
+
+.nutrition-food-meta {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.nutrition-food-editor-card {
+  padding: 22px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 249, 242, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-food-editor-card--hint {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(252, 247, 239, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-food-editor-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.nutrition-food-editor-head h3 {
+  margin: 6px 0 4px;
+}
+
+.nutrition-food-editor-head p {
+  margin: 0;
+  max-width: 560px;
+  color: var(--muted);
+}
+
+.nutrition-food-form {
+  margin-top: 4px;
+}
+
+.nutrition-food-form-note {
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(233, 238, 219, 0.52);
+  color: var(--muted);
+}
+
 .nutrition-doc-card .footer-note:last-child {
   margin-top: 2px;
 }

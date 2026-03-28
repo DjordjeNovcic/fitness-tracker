@@ -109,6 +109,7 @@ const state = {
     favoriteName: "",
     mealLabel: "",
     description: "",
+    servings: "1",
     prepTimeMinutes: "",
     instructions: "",
     foodId: "",
@@ -120,6 +121,7 @@ const state = {
   progressCompareRightId: "",
   deletedPlanEntry: null,
   editingFoodId: "",
+  nutritionEditingFoodId: "",
   editingHabitId: "",
   editingTaskId: "",
   editingSupplementId: "",
@@ -542,11 +544,13 @@ function normalizeMealLabel(label) {
 
 function normalizeFavoriteMealRecord(favorite = {}) {
   const prepTimeMinutes = toNumber(favorite.prepTimeMinutes);
+  const servings = Math.max(1, roundValue(toNumber(favorite.servings || favorite.portions || 1), 0)) || 1;
   return {
     ...favorite,
     mealLabel: normalizeMealLabel(favorite.mealLabel),
     description: String(favorite.description || "").trim(),
     instructions: String(favorite.instructions || "").trim(),
+    servings,
     prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
   };
 }
@@ -1046,6 +1050,7 @@ function parseStructuredNutritionJson(text) {
             mealLabel: inferMealLabelFromText(entry.mealLabel || entry.name),
             description: String(entry.description || "").trim(),
             instructions: String(entry.instructions || "").trim(),
+            servings: Math.max(1, roundValue(parseDecimal(entry.servings || entry.portions || 1), 0)),
             prepTimeMinutes: Math.max(0, roundValue(parseDecimal(entry.prepTimeMinutes), 0)),
             items: Array.isArray(entry.items)
               ? entry.items
@@ -1109,6 +1114,7 @@ function parseNutritionTextPayload(text) {
         recipeNameBase ||
         `${mealLabel} ${recipes.length + 1}`;
       const prepTimeMatch = block.match(/(\d{1,3})\s*(min|minuta)/i);
+      const servingsMatch = block.match(/(\d{1,2})\s*(?:porcij[aeiou]?|porcije|porcija|servings?|serving)/i);
       const instructionLines = lines.filter((line) => {
         const normalizedLine = cleanImportLine(line);
         return normalizedLine && !parseIngredientCandidate(normalizedLine) && normalizedLine !== recipeNameBase;
@@ -1124,6 +1130,7 @@ function parseNutritionTextPayload(text) {
           mealLabel,
           description: instructionLines[0] && instructionLines[0].length <= 140 ? cleanImportLine(instructionLines[0]) : "",
           instructions: instructionLines.join("\n"),
+          servings: servingsMatch ? Math.max(1, roundValue(parseDecimal(servingsMatch[1]), 0)) : 1,
           prepTimeMinutes: prepTimeMatch ? roundValue(parseDecimal(prepTimeMatch[1]), 0) : 0,
           items: ingredients.map((item) => ({ name: item.name, grams: item.grams })),
         });
@@ -1274,6 +1281,7 @@ function upsertNutritionRecipe(recipeDraft = {}, documentRecord) {
     mealLabel: normalizeMealLabel(recipeDraft.mealLabel || inferMealLabelFromText(recipeName)),
     description: String(recipeDraft.description || "").trim(),
     instructions: String(recipeDraft.instructions || "").trim(),
+    servings: Math.max(1, roundValue(parseDecimal(recipeDraft.servings || recipeDraft.portions || existingRecipe?.servings || 1), 0)),
     prepTimeMinutes: Math.max(0, roundValue(parseDecimal(recipeDraft.prepTimeMinutes), 0)) || null,
     items,
     importSource: "nutrition-import",
@@ -1443,8 +1451,73 @@ function getFoodById(foodId) {
   return store.foods.find((food) => food.id === foodId);
 }
 
+function getFoodNutritionStatus(food = {}) {
+  const kcal = toNumber(food.kcal);
+  const protein = toNumber(food.protein);
+  const carbs = toNumber(food.carbs);
+  const fat = toNumber(food.fat);
+  const hasKcal = kcal > 0;
+  const hasAnyMacros = protein > 0 || carbs > 0 || fat > 0;
+  const estimatedKcal = hasAnyMacros ? roundValue(protein * 4 + carbs * 4 + fat * 9, 0) : 0;
+
+  if (!hasKcal && !hasAnyMacros) {
+    return {
+      hasKcal,
+      hasAnyMacros,
+      displayKcal: 0,
+      estimatedKcal,
+      isEstimatedKcal: false,
+      needsAttention: true,
+      statusLabel: "Fale vrednosti",
+      statusDetail: "Dodaj kcal ili makroe da namirnica bude upotrebljiva u planu.",
+      tone: "warning",
+    };
+  }
+
+  if (!hasAnyMacros) {
+    return {
+      hasKcal,
+      hasAnyMacros,
+      displayKcal: roundValue(kcal, 0),
+      estimatedKcal,
+      isEstimatedKcal: false,
+      needsAttention: true,
+      statusLabel: "Samo kcal",
+      statusDetail: "Dodaj i P/UH/M kad ih nađeš, da plan i recepti budu precizniji.",
+      tone: "warning",
+    };
+  }
+
+  if (!hasKcal) {
+    return {
+      hasKcal,
+      hasAnyMacros,
+      displayKcal: estimatedKcal,
+      estimatedKcal,
+      isEstimatedKcal: true,
+      needsAttention: false,
+      statusLabel: "Kcal procena",
+      statusDetail: `Koristim ${estimatedKcal} kcal iz upisanih makroa.`,
+      tone: "info",
+    };
+  }
+
+  return {
+    hasKcal,
+    hasAnyMacros,
+    displayKcal: roundValue(kcal, 0),
+    estimatedKcal,
+    isEstimatedKcal: false,
+    needsAttention: false,
+    statusLabel: "Kompletno",
+    statusDetail: "Kcal i makroi su sačuvani na 100 g.",
+    tone: "success",
+  };
+}
+
 function resetFoodEditing() {
   state.editingFoodId = "";
+  state.nutritionEditingFoodId = "";
 }
 
 function resetRoutineEditing() {
@@ -1507,6 +1580,20 @@ function calculateEntry(food, grams) {
     protein: roundValue(food.protein * ratio, 1),
     carbs: roundValue(food.carbs * ratio, 1),
     fat: roundValue(food.fat * ratio, 1),
+  };
+}
+
+function getRecipeServingCount(recipe = {}) {
+  return Math.max(1, roundValue(toNumber(recipe.servings || recipe.portions || 1), 0)) || 1;
+}
+
+function divideTotals(totals = {}, divisor = 1) {
+  const safeDivisor = Math.max(1, toNumber(divisor) || 1);
+  return {
+    kcal: roundValue(toNumber(totals.kcal) / safeDivisor, 1),
+    protein: roundValue(toNumber(totals.protein) / safeDivisor, 1),
+    carbs: roundValue(toNumber(totals.carbs) / safeDivisor, 1),
+    fat: roundValue(toNumber(totals.fat) / safeDivisor, 1),
   };
 }
 
@@ -1903,6 +1990,7 @@ function getFavoriteMealsDetailed() {
   return [...store.favoriteMeals]
     .map((favorite) => {
       const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
+      const servings = getRecipeServingCount(normalizedFavorite);
       const items = (normalizedFavorite.items || []).map((item) => {
         const food = getFoodById(item.foodId) || store.foods.find((entry) => entry.name === item.foodName);
         const totals = food ? calculateEntry(food, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
@@ -1912,11 +2000,15 @@ function getFavoriteMealsDetailed() {
           totals,
         };
       });
+      const totals = getDayTotals(items);
 
       return {
         ...normalizedFavorite,
+        servings,
         items,
-        totals: getDayTotals(items),
+        totals,
+        perServingTotals: divideTotals(totals, servings),
+        totalWeightGrams: roundValue(items.reduce((sum, item) => sum + toNumber(item.grams), 0), 1),
       };
     })
     .sort((a, b) => {
@@ -1994,6 +2086,7 @@ function resetFavoriteDraft(options = {}) {
         favoriteName: state.favoriteDraft.favoriteName,
         mealLabel: state.favoriteDraft.mealLabel,
         description: state.favoriteDraft.description,
+        servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         instructions: state.favoriteDraft.instructions,
       }
@@ -2008,6 +2101,7 @@ function resetFavoriteDraft(options = {}) {
     favoriteName: preservedDraft?.favoriteName || "",
     mealLabel: preservedDraft?.mealLabel || "",
     description: preservedDraft?.description || "",
+    servings: preservedDraft?.servings || "1",
     prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
     instructions: preservedDraft?.instructions || "",
     foodId: "",
@@ -2026,6 +2120,7 @@ function setFavoriteDraftFromItem(favorite, item) {
     favoriteName: normalizedFavorite.name || "",
     mealLabel: normalizedFavorite.mealLabel || "",
     description: normalizedFavorite.description || "",
+    servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     instructions: normalizedFavorite.instructions || "",
     foodId: item.foodId || "",
@@ -2038,9 +2133,11 @@ function getFavoriteDraftPreview() {
   const mealLabel = String(state.favoriteDraft.mealLabel || "").trim();
   const hasDraftDescription = state.favoriteDraft.description !== "";
   const hasDraftInstructions = state.favoriteDraft.instructions !== "";
+  const hasDraftServings = state.favoriteDraft.servings !== "";
   const hasDraftPrepTime = state.favoriteDraft.prepTimeMinutes !== "";
   const description = String(state.favoriteDraft.description || "").trim();
   const instructions = String(state.favoriteDraft.instructions || "").trim();
+  const servings = Math.max(1, roundValue(toNumber(state.favoriteDraft.servings || 1), 0)) || 1;
   const prepTimeMinutes = toNumber(state.favoriteDraft.prepTimeMinutes);
   const food = getFoodById(state.favoriteDraft.foodId);
   const grams = toNumber(state.favoriteDraft.grams);
@@ -2074,14 +2171,19 @@ function getFavoriteDraftPreview() {
     ];
   }
 
+  const totals = getDayTotals(items.map((item) => ({ totals: item.totals })));
+  const effectiveServings = hasDraftServings ? servings : existingFavorite?.servings || 1;
+
   return {
     favoriteName,
     mealLabel: mealLabel || existingFavorite?.mealLabel || "",
     description: hasDraftDescription ? description : existingFavorite?.description || "",
     instructions: hasDraftInstructions ? instructions : existingFavorite?.instructions || "",
+    servings: effectiveServings,
     prepTimeMinutes: hasDraftPrepTime ? (prepTimeMinutes || null) : existingFavorite?.prepTimeMinutes || null,
     items,
-    totals: getDayTotals(items.map((item) => ({ totals: item.totals }))),
+    totals,
+    perServingTotals: divideTotals(totals, effectiveServings),
   };
 }
 
@@ -2090,6 +2192,7 @@ function saveFavoriteMealMetadata(payload = {}) {
   const normalizedMealLabel = normalizeMealLabel(String(payload.mealLabel || "").trim());
   const normalizedDescription = String(payload.description || "").trim();
   const normalizedInstructions = String(payload.instructions || "").trim();
+  const normalizedServings = Math.max(1, roundValue(toNumber(payload.servings || 1), 0)) || 1;
   const normalizedPrepTimeMinutes = toNumber(payload.prepTimeMinutes);
 
   if (!normalizedFavoriteName || !normalizedMealLabel) {
@@ -2101,6 +2204,7 @@ function saveFavoriteMealMetadata(payload = {}) {
     mealLabel: normalizedMealLabel,
     description: normalizedDescription,
     instructions: normalizedInstructions,
+    servings: normalizedServings,
     prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
     updatedAt: new Date().toISOString(),
   };
@@ -2217,6 +2321,7 @@ function applyFavoriteMealToDay(favorite, options = {}) {
   const weekday = options.weekday || state.selectedWeekday;
   const targetMealLabel = normalizeMealLabel(options.mealLabel || favorite.mealLabel || favorite.name);
   const mode = options.mode || "append";
+  const servings = getRecipeServingCount(favorite);
   const existingEntries = getMealEntriesForWeekday(weekday, targetMealLabel);
 
   if (isMealCompletedForWeekday(weekday, targetMealLabel)) {
@@ -2245,7 +2350,7 @@ function applyFavoriteMealToDay(favorite, options = {}) {
       mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
-      grams: item.grams,
+      grams: Math.max(0.1, roundValue(toNumber(item.grams) / servings, 1)),
       done: false,
     });
   });
@@ -3088,14 +3193,16 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                 </div>
                                 <div class="pill-row plan-recipe-pills">
                                   <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                                  <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
                                   ${
                                     favorite.prepTimeMinutes
                                       ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
                                       : `<span class="pill note">${favorite.items.length} sastojka</span>`
                                   }
-                                  <span class="pill">P ${roundValue(favorite.totals.protein, 1)} g</span>
-                                  <span class="pill">UH ${roundValue(favorite.totals.carbs, 1)} g</span>
-                                  <span class="pill">M ${roundValue(favorite.totals.fat, 1)} g</span>
+                                  <span class="pill note">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
+                                  <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
+                                  <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
+                                  <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
                                 </div>
                                 <div class="plan-recipe-ingredient-list">
                                   ${favorite.items
@@ -3128,7 +3235,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                     data-meal-label="${group.mealLabel}"
                                     data-mode="append"
                                   >
-                                    ${renderButtonContent("Dodaj u obrok", "add")}
+                                    ${renderButtonContent(favorite.servings > 1 ? "Dodaj 1 porciju" : "Dodaj u obrok", "add")}
                                   </button>
                                   ${
                                     hasExistingMeal
@@ -3796,6 +3903,10 @@ function renderRecipesTab() {
             />
           </div>
           <div class="field">
+            <label for="favorite-servings">Broj porcija</label>
+            <input id="favorite-servings" name="servings" type="number" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
+          </div>
+          <div class="field">
             <label for="favorite-prep-time">Vreme pripreme</label>
             <input id="favorite-prep-time" name="prepTimeMinutes" type="number" min="1" step="1" placeholder="15" value="${state.favoriteDraft.prepTimeMinutes}" />
           </div>
@@ -3837,15 +3948,17 @@ function renderRecipesTab() {
         </div>
         <div class="pill-row recipe-draft-pills">
           <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
+          <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
           ${
             draftPreview.prepTimeMinutes
               ? `<span class="pill note">${draftPreview.prepTimeMinutes} min pripreme</span>`
               : ""
           }
-          <span class="pill note">${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
-          <span class="pill">P ${roundValue(draftPreview.totals.protein, 1)} g</span>
-          <span class="pill">UH ${roundValue(draftPreview.totals.carbs, 1)} g</span>
-          <span class="pill">M ${roundValue(draftPreview.totals.fat, 1)} g</span>
+          <span class="pill note">Ukupno ${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
+          <span class="pill">Po porciji ${roundValue(draftPreview.perServingTotals.kcal, 0)} kcal</span>
+          <span class="pill">P ${roundValue(draftPreview.perServingTotals.protein, 1)} g</span>
+          <span class="pill">UH ${roundValue(draftPreview.perServingTotals.carbs, 1)} g</span>
+          <span class="pill">M ${roundValue(draftPreview.perServingTotals.fat, 1)} g</span>
         </div>
         ${
           draftPreview.instructions
@@ -3910,15 +4023,17 @@ function renderRecipesTab() {
                       </div>
                       <div class="pill-row recipe-library-pills">
                         <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                        <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
                         ${
                           favorite.prepTimeMinutes
                             ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
                             : ""
                         }
-                        <span class="pill note">${roundValue(favorite.totals.kcal, 0)} kcal</span>
-                        <span class="pill">P ${roundValue(favorite.totals.protein, 1)} g</span>
-                        <span class="pill">UH ${roundValue(favorite.totals.carbs, 1)} g</span>
-                        <span class="pill">M ${roundValue(favorite.totals.fat, 1)} g</span>
+                        <span class="pill note">Ukupno ${roundValue(favorite.totals.kcal, 0)} kcal</span>
+                        <span class="pill">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
+                        <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
+                        <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
+                        <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
                       </div>
                       ${
                         favorite.instructions
@@ -3947,7 +4062,7 @@ function renderRecipesTab() {
                       </div>
                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
                         <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">
-                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
+                          ${renderButtonContent(favorite.servings > 1 ? `Ubaci 1 porciju` : `Ubaci u ${state.selectedWeekday}`, "apply")}
                         </button>
                         <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
                           ${renderButtonContent("Izmeni recept", "edit")}
@@ -4854,8 +4969,19 @@ function renderNutritionSourcePills(sourceDocNames = []) {
 function renderNutritionTab() {
   const documents = getNutritionDocuments();
   const recommendations = getNutritionRecommendations();
-  const importedFoods = getNutritionImportedFoodsDetailed();
+  const importedFoods = getNutritionImportedFoodsDetailed()
+    .map((food) => ({
+      ...food,
+      nutritionStatus: getFoodNutritionStatus(food),
+    }))
+    .sort(
+      (left, right) =>
+        Number(right.nutritionStatus.needsAttention) - Number(left.nutritionStatus.needsAttention) ||
+        left.name.localeCompare(right.name, "sr")
+    );
   const importedRecipes = getNutritionImportedRecipesDetailed();
+  const importedFoodsMissingValues = importedFoods.filter((food) => food.nutritionStatus.needsAttention).length;
+  const nutritionEditingFood = importedFoods.find((food) => food.id === state.nutritionEditingFoodId) || null;
   const lastImportedAt = store.nutritionLibrary?.lastImportedAt
     ? new Date(store.nutritionLibrary.lastImportedAt).toLocaleString("sr-RS")
     : "";
@@ -4907,6 +5033,7 @@ function renderNutritionTab() {
             { label: `${recommendations.length} preporuka`, tone: "info" },
             { label: `${importedRecipes.length} recepata`, tone: "success" },
             { label: `${importedFoods.length} namirnica`, tone: "warning" },
+            { label: `${importedFoodsMissingValues} čeka kcal/makroe`, tone: importedFoodsMissingValues ? "warning" : "success" },
           ],
           actions: `
             <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">
@@ -4963,8 +5090,13 @@ function renderNutritionTab() {
                       <div class="footer-note">${escapeHtml(recipe.description || "Importovano iz dokumenta nutricioniste.")}</div>
                       <div class="pill-row">
                         <span class="pill">${recipe.items.length} sastojka</span>
+                        <span class="pill">${recipe.servings || 1} ${recipe.servings === 1 ? "porcija" : recipe.servings < 5 ? "porcije" : "porcija"}</span>
                         <span class="pill">${recipe.prepTimeMinutes ? `${recipe.prepTimeMinutes} min` : "Vreme nije nađeno"}</span>
-                        <span class="pill note">${roundValue(recipe.totals.kcal, 0)} kcal</span>
+                        <span class="pill note">Ukupno ${roundValue(recipe.totals.kcal, 0)} kcal</span>
+                        <span class="pill">Po porciji ${roundValue(recipe.perServingTotals.kcal, 0)} kcal</span>
+                        <span class="pill">P ${roundValue(recipe.perServingTotals.protein, 1)} g</span>
+                        <span class="pill">UH ${roundValue(recipe.perServingTotals.carbs, 1)} g</span>
+                        <span class="pill">M ${roundValue(recipe.perServingTotals.fat, 1)} g</span>
                       </div>
                       ${renderNutritionSourcePills(recipe.importSourceDocNames)}
                       <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
@@ -4976,7 +5108,7 @@ function renderNutritionTab() {
                       </div>
                       <div class="entry-actions nutrition-card-actions">
                         <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${recipe.id}">
-                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
+                          ${renderButtonContent(recipe.servings > 1 ? "Ubaci 1 porciju" : `Ubaci u ${state.selectedWeekday}`, "apply")}
                         </button>
                         <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${recipe.id}">
                           ${renderButtonContent("Izmeni recept", "edit")}
@@ -4997,11 +5129,92 @@ function renderNutritionTab() {
       })}
       <div class="stack nutrition-foods-stack">
         ${
+          nutritionEditingFood
+            ? `
+              <article class="food-card suggestion-surface nutrition-food-editor-card">
+                <div class="nutrition-food-editor-head">
+                  <div>
+                    <div class="foods-card-kicker">Brzi unos nutritivnih vrednosti</div>
+                    <h3>${escapeHtml(nutritionEditingFood.name)}</h3>
+                    <p>Unesi ono što nađeš na deklaraciji ili netu. Sve vrednosti se čuvaju na 100 g i odmah važe svuda u app-u.</p>
+                  </div>
+                  <div class="pill-row">
+                    <span class="pill strong pill--${nutritionEditingFood.nutritionStatus.tone}">${nutritionEditingFood.nutritionStatus.statusLabel}</span>
+                    <span class="pill">${roundValue(nutritionEditingFood.servingBaseGrams || 100, 0)} g baza</span>
+                  </div>
+                </div>
+                <form id="nutrition-food-form" class="form-grid split nutrition-food-form">
+                  <input type="hidden" name="foodId" value="${nutritionEditingFood.id}" />
+                  <div class="field">
+                    <label for="nutrition-food-kcal">Kalorije na 100 g</label>
+                    <input
+                      id="nutrition-food-kcal"
+                      name="kcal"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value="${toNumber(nutritionEditingFood.kcal) > 0 ? roundValue(nutritionEditingFood.kcal, 1) : ""}"
+                      placeholder="${
+                        nutritionEditingFood.nutritionStatus.estimatedKcal
+                          ? `npr. ${nutritionEditingFood.nutritionStatus.estimatedKcal}`
+                          : "npr. 135"
+                      }"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="nutrition-food-protein">Proteini na 100 g</label>
+                    <input id="nutrition-food-protein" name="protein" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.protein) > 0 ? roundValue(nutritionEditingFood.protein, 1) : ""}" />
+                  </div>
+                  <div class="field">
+                    <label for="nutrition-food-carbs">Ugljeni hidrati na 100 g</label>
+                    <input id="nutrition-food-carbs" name="carbs" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.carbs) > 0 ? roundValue(nutritionEditingFood.carbs, 1) : ""}" />
+                  </div>
+                  <div class="field">
+                    <label for="nutrition-food-fat">Masti na 100 g</label>
+                    <input id="nutrition-food-fat" name="fat" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.fat) > 0 ? roundValue(nutritionEditingFood.fat, 1) : ""}" />
+                  </div>
+                  <div class="field" style="grid-column:1 / -1;">
+                    <label for="nutrition-food-source">Izvor</label>
+                    <input
+                      id="nutrition-food-source"
+                      name="nutritionSource"
+                      placeholder="npr. USDA, deklaracija proizvoda, sajt proizvođača"
+                      value="${escapeHtml(nutritionEditingFood.nutritionSource || "")}"
+                    />
+                  </div>
+                  <div class="nutrition-food-form-note">
+                    Ako ostaviš kcal prazno, app će ga izračunati iz P/UH/M. Slobodno unesi i samo ono što si uspeo da nađeš.
+                  </div>
+                  <div class="entry-actions nutrition-card-actions">
+                    <button class="solid-button secondary-button button-with-icon" type="submit">
+                      ${renderButtonContent("Sačuvaj vrednosti", "save")}
+                    </button>
+                    <button class="ghost-button button-with-icon" type="button" data-action="cancel-nutrition-food">
+                      ${renderButtonContent("Odustani", "close")}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            `
+            : importedFoods.length
+              ? `
+                <article class="status-summary-card nutrition-food-editor-card nutrition-food-editor-card--hint">
+                  <div class="status-summary-copy">
+                    <strong>Brza dopuna kcal i makroa</strong>
+                    <div class="footer-note">
+                      Klikni na <em>Dodaj vrednosti</em> kod namirnice i odmah unesi kcal, proteine, ugljene hidrate i masti koje nađeš online ili na deklaraciji.
+                    </div>
+                  </div>
+                </article>
+              `
+              : ""
+        }
+        ${
           importedFoods.length
             ? importedFoods
                 .map(
                   (food) => `
-                    <article class="status-summary-card nutrition-food-card">
+                    <article class="status-summary-card nutrition-food-card ${food.nutritionStatus.needsAttention ? "is-needs-review" : ""}">
                       <div class="status-summary-top">
                         <div class="status-summary-copy">
                           <strong>${escapeHtml(food.name)}</strong>
@@ -5010,13 +5223,21 @@ function renderNutritionTab() {
                         <span class="pill strong pill--warning">${roundValue(food.servingBaseGrams || 100, 0)} g baza</span>
                       </div>
                       <div class="pill-row">
-                        <span class="pill">${roundValue(food.kcal, 0)} kcal</span>
+                        <span class="pill">${food.nutritionStatus.displayKcal || 0} kcal${food.nutritionStatus.isEstimatedKcal ? "*" : ""}</span>
                         <span class="pill">P ${roundValue(food.protein, 1)} g</span>
                         <span class="pill">UH ${roundValue(food.carbs, 1)} g</span>
                         <span class="pill">M ${roundValue(food.fat, 1)} g</span>
+                        <span class="pill strong pill--${food.nutritionStatus.tone}">${food.nutritionStatus.statusLabel}</span>
+                      </div>
+                      <div class="footer-note nutrition-food-meta">
+                        ${escapeHtml(food.nutritionStatus.statusDetail)}
+                        ${food.nutritionSource ? ` Izvor: ${escapeHtml(food.nutritionSource)}.` : ""}
                       </div>
                       ${renderNutritionSourcePills(food.importSourceDocNames)}
                       <div class="entry-actions nutrition-card-actions">
+                        <button class="solid-button secondary-button button-with-icon" data-action="edit-imported-food-nutrition" data-food-id="${food.id}">
+                          ${renderButtonContent(food.nutritionStatus.needsAttention ? "Dodaj vrednosti" : "Izmeni vrednosti", "edit")}
+                        </button>
                         <button class="ghost-button button-with-icon" data-action="edit-food" data-food-id="${food.id}">
                           ${renderButtonContent("Otvori namirnicu", "edit")}
                         </button>
@@ -6082,12 +6303,34 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-imported-food-nutrition") {
+    const foodId = actionTarget.dataset.foodId;
+    if (!foodId || !getFoodById(foodId)) {
+      return;
+    }
+    state.activeTab = "nutrition";
+    state.nutritionEditingFoodId = foodId;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#nutrition-food-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#nutrition-food-kcal")?.focus();
+    });
+    return;
+  }
+
+  if (action === "cancel-nutrition-food") {
+    state.nutritionEditingFoodId = "";
+    render();
+    return;
+  }
+
   if (action === "edit-food") {
     const foodId = actionTarget.dataset.foodId;
     if (!foodId || !getFoodById(foodId)) {
       return;
     }
     state.activeTab = "foods";
+    state.nutritionEditingFoodId = "";
     state.editingFoodId = foodId;
     render();
     window.requestAnimationFrame(() => {
@@ -6313,6 +6556,7 @@ async function handleDocumentClick(event) {
         mealLabel: normalizeMealLabel(mealLabel),
         description: "",
         instructions: "",
+        servings: 1,
         prepTimeMinutes: null,
         items: mealEntries,
         createdAt: new Date().toISOString(),
@@ -6334,6 +6578,7 @@ async function handleDocumentClick(event) {
     state.favoriteDraft.favoriteName = normalizedFavorite.name || "";
     state.favoriteDraft.mealLabel = normalizedFavorite.mealLabel || "";
     state.favoriteDraft.description = normalizedFavorite.description || "";
+    state.favoriteDraft.servings = String(normalizedFavorite.servings || 1);
     state.favoriteDraft.prepTimeMinutes = normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "";
     state.favoriteDraft.instructions = normalizedFavorite.instructions || "";
     state.favoriteDraft.foodId = "";
@@ -6384,6 +6629,7 @@ async function handleDocumentClick(event) {
         favoriteName: state.favoriteDraft.favoriteName,
         mealLabel: state.favoriteDraft.mealLabel,
         description: state.favoriteDraft.description,
+        servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         instructions: state.favoriteDraft.instructions,
         foodId: state.favoriteDraft.foodId,
@@ -6400,6 +6646,7 @@ async function handleDocumentClick(event) {
         favoriteName: state.favoriteDraft.favoriteName,
         mealLabel: state.favoriteDraft.mealLabel,
         description: state.favoriteDraft.description,
+        servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         instructions: state.favoriteDraft.instructions,
       });
@@ -6424,6 +6671,10 @@ async function handleDocumentClick(event) {
 
     persist();
     render();
+    showFeedbackToast({
+      title: "Recept je dodat u plan",
+      detail: favorite.servings > 1 ? `"${favorite.name}" je dodat kao 1 porcija.` : `"${favorite.name}" je dodat u plan.`,
+    });
     return;
   }
 
@@ -6442,7 +6693,10 @@ async function handleDocumentClick(event) {
     render();
     showFeedbackToast({
       title: mode === "replace" ? "Obrok je zamenjen receptom" : "Recept je dodat u plan",
-      detail: `"${favorite.name}" je sada vezan za ${mealLabel}.`,
+      detail:
+        favorite.servings > 1
+          ? `"${favorite.name}" je sada vezan za ${mealLabel} kao 1 porcija.`
+          : `"${favorite.name}" je sada vezan za ${mealLabel}.`,
     });
     return;
   }
@@ -6456,6 +6710,7 @@ async function handleDocumentClick(event) {
     }
 
     const targetMealLabel = normalizeMealLabel(favorite.mealLabel || favorite.name);
+    const servings = getRecipeServingCount(favorite);
     if (isMealCompletedForWeekday(state.selectedWeekday, targetMealLabel)) {
       showFeedbackToast({
         title: "Obrok je zaključan",
@@ -6471,7 +6726,7 @@ async function handleDocumentClick(event) {
       mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
-      grams: item.grams,
+      grams: Math.max(0.1, roundValue(toNumber(item.grams) / servings, 1)),
       done: false,
     });
 
@@ -6915,6 +7170,55 @@ async function handleSubmit(event) {
     return;
   }
 
+  if (event.target.id === "nutrition-food-form") {
+    const foodId = String(formData.get("foodId") || "").trim();
+    const food = getFoodById(foodId);
+    if (!food) {
+      return;
+    }
+
+    const protein = toNumber(formData.get("protein"));
+    const carbs = toNumber(formData.get("carbs"));
+    const fat = toNumber(formData.get("fat"));
+    const hasAnyMacros = protein > 0 || carbs > 0 || fat > 0;
+    const kcalInput = String(formData.get("kcal") || "").trim();
+    const kcal = kcalInput ? toNumber(kcalInput) : hasAnyMacros ? roundValue(protein * 4 + carbs * 4 + fat * 9, 1) : 0;
+
+    if (!(kcal > 0 || hasAnyMacros)) {
+      showFeedbackToast({
+        title: "Dodaj makar jednu vrednost",
+        detail: "Unesi kcal ili barem neki od makroa da bih sačuvao namirnicu.",
+        tone: "warning",
+      });
+      return;
+    }
+
+    const nutritionSource = String(formData.get("nutritionSource") || "").trim();
+    store.foods = store.foods.map((entry) =>
+      entry.id === foodId
+        ? {
+            ...entry,
+            kcal,
+            protein,
+            carbs,
+            fat,
+            nutritionSource,
+            nutritionUpdatedAt: new Date().toISOString(),
+          }
+        : entry
+    );
+
+    state.nutritionEditingFoodId = "";
+    persist();
+    render();
+    showFeedbackToast({
+      title: "Nutritivne vrednosti su sačuvane",
+      detail: `${food.name} sada ima ažurirane kcal i makroe u bazi namirnica.`,
+      tone: "success",
+    });
+    return;
+  }
+
   if (event.target.id === "habit-form") {
     const name = String(formData.get("name") || "").trim();
     const note = String(formData.get("note") || "").trim();
@@ -7056,6 +7360,7 @@ async function handleSubmit(event) {
     const favoriteName = String(formData.get("favoriteName") || "").trim();
     const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
     const description = String(formData.get("description") || "").trim();
+    const servings = String(formData.get("servings") || "1").trim();
     const prepTimeMinutes = String(formData.get("prepTimeMinutes") || "").trim();
     const instructions = String(formData.get("instructions") || "").trim();
     const foodId = String(formData.get("foodId") || "").trim();
@@ -7064,6 +7369,7 @@ async function handleSubmit(event) {
       favoriteName,
       mealLabel,
       description,
+      servings,
       prepTimeMinutes,
       instructions,
       foodId,
@@ -7297,6 +7603,12 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "favorite-description") {
     state.favoriteDraft.description = target.value;
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.id === "favorite-servings") {
+    state.favoriteDraft.servings = target.value;
+    render();
     return;
   }
 
