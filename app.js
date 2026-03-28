@@ -76,6 +76,10 @@ const measurementFields = [
 
 const PHOTO_TAGS = ["front", "side", "back"];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
+const IMPORT_AMOUNT_PATTERN =
+  "(?:\\d+(?:[.,]\\d+)?\\s*-\\s*\\d+(?:[.,]\\d+)?|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|[¼½¾])";
+const IMPORT_UNIT_PATTERN =
+  "kg|g|gr|grama?|ml|l|dl|litr[aeu]?|kom(?:ada)?|ka[sš]ik(?:a|e|om|u)|ka[sš]i?[čc]ic(?:a|e|om|u)|meric(?:a|e|om)|šolj[ae]|solj[ae]|ča[sš](?:a|e|i)?|cup|kri[sš]k(?:a|e)|pakovanj(?:e|a)|kesic(?:a|e)|konzerv(?:a|e)|par[cč]e|par[cč]eta|glavic(?:a|e)|čena?|cena?|komad(?:a)?|list(?:a|ova)?|kolut(?:a|ova)?";
 const MEAL_LABEL_MAP = {
   "1. Dorucak": "1. Doručak",
   "2. Uzina": "2. Prva užina",
@@ -596,10 +600,41 @@ function mergeUniqueStrings(...collections) {
 }
 
 function parseDecimal(value) {
-  const normalizedValue = String(value || "")
-    .replace(/\s+/g, "")
-    .replace(",", ".");
-  const parsed = Number(normalizedValue);
+  const normalizedValue = String(value ?? "")
+    .replace(/½/g, " 1/2")
+    .replace(/¼/g, " 1/4")
+    .replace(/¾/g, " 3/4")
+    .replace(",", ".")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  if (/^\d+(?:\.\d+)?\s*-\s*\d+(?:\.\d+)?$/.test(normalizedValue)) {
+    const [fromValue, toValue] = normalizedValue.split("-").map((entry) => Number(entry.trim()));
+    if (Number.isFinite(fromValue) && Number.isFinite(toValue)) {
+      return (fromValue + toValue) / 2;
+    }
+  }
+
+  if (/^\d+\s+\d+\/\d+$/.test(normalizedValue)) {
+    const [whole, fraction] = normalizedValue.split(" ");
+    const [numerator, denominator] = fraction.split("/").map(Number);
+    if (denominator) {
+      return Number(whole) + numerator / denominator;
+    }
+  }
+
+  if (/^\d+\/\d+$/.test(normalizedValue)) {
+    const [numerator, denominator] = normalizedValue.split("/").map(Number);
+    if (denominator) {
+      return numerator / denominator;
+    }
+  }
+
+  const parsed = Number(normalizedValue.replace(/\s+/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
@@ -642,6 +677,177 @@ function cleanImportLine(line) {
     .replace(/^(?:[\u2022*•\-–—]+|\d+[.)])\s*/, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeImportedIngredientName(name) {
+  return cleanImportLine(name)
+    .replace(/\([^)]*\)/g, "")
+    .replace(
+      /^(?:u\s+[a-zčćžšđ]+\s+)?(?:izgnjavimo|dodati|dodamo|staviti|stavimo|preko(?:\s+toga)?\s+staviti|premazati|napraviti(?:\s+omlet)?\s+od|napraviti|umutiti|pome[sš]ati|prome[sš]ati|posuti|preliti|poređati|poredjati|iseci|iseći|iseckati|isjeći|izgrilovati|spremiti|salata sa|preko)\s+/i,
+      ""
+    )
+    .replace(/\bpo ukusu\b.*$/i, "")
+    .replace(/\bpo želji\b.*$/i, "")
+    .replace(/\bukoliko.*$/i, "")
+    .replace(/\bkada\b.*$/i, "")
+    .replace(/\bdok\b.*$/i, "")
+    .replace(/\bda\s+(?:se|bi)\b.*$/i, "")
+    .replace(
+      /\bi\s+(?:dodati|dodamo|staviti|stavimo|umešati|umesati|izmešati|izmesati|pomešati|promešati|poređati|poredjati|peći|peci|kuvati|premazati|posuti|preliti|spremiti)\b.*$/i,
+      ""
+    )
+    .replace(/\bili\b.+$/i, "")
+    .replace(/\bna\s+(?:kockice|kolutove|rebarca|listiće|listice|veće komade|manje delove)\b.*$/i, "")
+    .replace(/\biseckan(?:e|og|a|o)?\b.*$/i, "")
+    .replace(/\bglavice\s+glavice\b/gi, "glavice")
+    .replace(/\bsitno\b/gi, "")
+    .replace(/[/"“”]+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[;:,.]+$/, "")
+    .trim();
+}
+
+function extractEmbeddedWeight(name) {
+  const match = String(name || "").match(new RegExp(`(${IMPORT_AMOUNT_PATTERN})\\s*(kg|g|gr|grama?|ml|l|dl)\\b`, "i"));
+  if (!match) {
+    return null;
+  }
+  return {
+    amount: parseDecimal(match[1]),
+    unit: match[2],
+  };
+}
+
+function extractRecipeServings(text) {
+  const normalizedText = String(text || "");
+  const directMatch = normalizedText.match(
+    /(?:za\s*)?(\d+(?:[.,]\d+)?)\s*(?:obroka?|porcij[aeu]?|par[cč]i[cć]a|pala[cč]inki|mafina|servings?|serving)\b/i
+  );
+  if (directMatch) {
+    return Math.max(1, roundValue(parseDecimal(directMatch[1]), 0));
+  }
+  return 1;
+}
+
+function isMealHeadingLine(line) {
+  const normalizedLine = normalizeLookupValue(line);
+  return (
+    normalizedLine.startsWith("dorucak") ||
+    normalizedLine.startsWith("rucak") ||
+    normalizedLine.startsWith("vecera") ||
+    normalizedLine.startsWith("uzina1") ||
+    normalizedLine.startsWith("uzina 1") ||
+    normalizedLine.startsWith("uzina2") ||
+    normalizedLine.startsWith("uzina 2") ||
+    normalizedLine.startsWith("uzina")
+  );
+}
+
+function formatImportedDayMealName(dayTitle, mealTitle) {
+  const normalizedDayTitle = cleanImportLine(dayTitle).replace(/\s+/g, " ").trim();
+  const normalizedMealTitle = cleanImportLine(mealTitle).replace(/\s+/g, " ").trim();
+  return `${normalizedDayTitle} · ${normalizedMealTitle}`;
+}
+
+function mergeImportedIngredientCandidates(primary = [], supplemental = []) {
+  const merged = new Map();
+
+  [...primary, ...supplemental].forEach((candidate) => {
+    const key = normalizeLookupValue(candidate?.name || "");
+    if (!key || !candidate?.grams || merged.has(key)) {
+      return;
+    }
+
+    merged.set(key, {
+      name: candidate.name,
+      grams: candidate.grams,
+    });
+  });
+
+  return [...merged.values()];
+}
+
+function isLikelyCleanImportedIngredient(candidate) {
+  const originalName = String(candidate?.name || "").trim();
+  const normalizedName = normalizeLookupValue(originalName);
+  if (!normalizedName || normalizedName.length < 2) {
+    return false;
+  }
+
+  if (["1", "int", "u tiganj po", "preko", "salata sa", "posuti", "pa preko toga", "u", "m"].includes(normalizedName)) {
+    return false;
+  }
+
+  if (
+    /(videti recept|na bilo koji od dozvoljenih|iseci|iseći|iseckati|spremiti|preko|pore[dđ]ati|pome[sš]ati|iscekati|izgrilovati|napraviti)/i.test(
+      originalName
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function extractEmbeddedIngredientsFromText(text) {
+  const normalizedText = normalizeNutritionImportText(text)
+    .replace(
+      new RegExp(`([A-Za-zČĆŽŠĐčćžšđ% .,\"“”'()/-]{3,}?)\\s*-\\s*(${IMPORT_AMOUNT_PATTERN})\\s*(${IMPORT_UNIT_PATTERN})?\\b`, "gi"),
+      (_, rawName, rawAmount, rawUnit = "") => `${rawAmount}${rawUnit ? ` ${rawUnit}` : ""} ${cleanImportLine(rawName)}`
+    )
+    .replace(/\bpo\s+(?=\d|[¼½¾])/gi, "")
+    .replace(/\s+-\s+/g, "; ");
+  const splitPattern = new RegExp(
+    `\\s*;\\s*|\\s*\\+\\s*|(?<!\\d),\\s*(?=(?:${IMPORT_AMOUNT_PATTERN}|malo|so|biber|cimet|origano|bosiljak|za[cč]ini)\\b)|\\s+i\\s+(?=(?:${IMPORT_AMOUNT_PATTERN}|malo)\\b)`,
+    "i"
+  );
+  const candidatePattern = new RegExp(
+    `(?:^|\\b(?:od|sa|dodati|dodamo|staviti|stavimo|uzeti|napraviti|izgnjavimo|premazati|preko(?:\\s+toga)?\\s+staviti|pome[sš]ati\\s+sa|pome[sš]ati|umutiti|naliti\\s+sa)\\s+)(?<candidate>(?:${IMPORT_AMOUNT_PATTERN}|malo)\\s*(?:${IMPORT_UNIT_PATTERN})?\\s+[^.;\\n]+)`,
+    "gi"
+  );
+  const candidates = [];
+
+  normalizedText
+    .split(/\n|[;]+|(?<=[.!?])\s+/)
+    .map((part) => cleanImportLine(part))
+    .filter(Boolean)
+    .forEach((fragment) => {
+      const colonParts = fragment.split(/\s*:\s*/).filter(Boolean);
+      const candidateFragment =
+        colonParts.length > 1 && new RegExp(IMPORT_AMOUNT_PATTERN).test(colonParts.slice(1).join(" : "))
+          ? colonParts.slice(1).join(" : ")
+          : fragment;
+      const shouldTryDirectCandidate =
+        new RegExp(`^(?:${IMPORT_AMOUNT_PATTERN}|malo)\\b`, "i").test(candidateFragment) ||
+        /^(so|biber|cimet|origano|bosiljak|za[cč]ini|lovorov list)\b/i.test(candidateFragment);
+      const hasCompoundSeparators =
+        /[+,]/.test(candidateFragment) || new RegExp(`\\s+i\\s+(?=(?:${IMPORT_AMOUNT_PATTERN}|malo)\\b)`, "i").test(candidateFragment);
+      const directCandidate = shouldTryDirectCandidate && !hasCompoundSeparators ? parseIngredientCandidate(candidateFragment) : null;
+      if (directCandidate) {
+        candidates.push(directCandidate);
+        return;
+      }
+
+      [...candidateFragment.matchAll(candidatePattern)].forEach((match) => {
+        const candidateText = cleanImportLine(match.groups?.candidate || "");
+        if (!candidateText) {
+          return;
+        }
+
+        candidateText
+          .split(splitPattern)
+          .map((part) => cleanImportLine(part))
+          .filter(Boolean)
+          .forEach((part) => {
+            const parsedCandidate = parseIngredientCandidate(part);
+            if (parsedCandidate) {
+              candidates.push(parsedCandidate);
+            }
+          });
+      });
+    });
+
+  return mergeImportedIngredientCandidates(candidates).filter((candidate) => isLikelyCleanImportedIngredient(candidate));
 }
 
 function inferMealLabelFromText(text) {
@@ -706,6 +912,102 @@ function getImportValueOrFallback(nextValue, currentValue) {
     return roundValue(normalizedNextValue, 1);
   }
   return roundValue(toNumber(currentValue), 1);
+}
+
+function matchesImportedDocumentName(value, documentName) {
+  return normalizeLookupValue(value) === normalizeLookupValue(documentName);
+}
+
+function collectReferencedFoodIds() {
+  const referencedFoodIds = new Set();
+
+  (store.weeklyPlanEntries || []).forEach((entry) => {
+    if (entry?.foodId) {
+      referencedFoodIds.add(entry.foodId);
+    }
+  });
+
+  (store.favoriteMeals || []).forEach((favorite) => {
+    (favorite.items || []).forEach((item) => {
+      if (item?.foodId) {
+        referencedFoodIds.add(item.foodId);
+      }
+    });
+  });
+
+  return referencedFoodIds;
+}
+
+function pruneNutritionImportIndexes() {
+  const validFoodIds = new Set(store.foods.filter((food) => food.importSource === "nutrition-import").map((food) => food.id));
+  const validRecipeIds = new Set(
+    store.favoriteMeals.filter((recipe) => recipe.importSource === "nutrition-import").map((recipe) => recipe.id)
+  );
+
+  store.nutritionLibrary.importedFoodIds = (store.nutritionLibrary.importedFoodIds || []).filter((foodId) => validFoodIds.has(foodId));
+  store.nutritionLibrary.importedRecipeIds = (store.nutritionLibrary.importedRecipeIds || []).filter((recipeId) => validRecipeIds.has(recipeId));
+}
+
+function removeNutritionImportDataForDocument(documentName) {
+  const normalizedDocumentName = normalizeLookupValue(documentName);
+  if (!normalizedDocumentName) {
+    return;
+  }
+
+  const removedDocumentIds = new Set(
+    (store.nutritionLibrary.documents || [])
+      .filter((documentRecord) => matchesImportedDocumentName(documentRecord.name, documentName))
+      .map((documentRecord) => documentRecord.id)
+  );
+
+  const removedRecipeIds = new Set();
+  store.favoriteMeals = (store.favoriteMeals || []).filter((recipe) => {
+    const hasDocumentMatch = (recipe.importSourceDocNames || []).some((entry) => matchesImportedDocumentName(entry, documentName));
+    if (recipe.importSource === "nutrition-import" && hasDocumentMatch) {
+      removedRecipeIds.add(recipe.id);
+      return false;
+    }
+    return true;
+  });
+
+  const referencedFoodIds = collectReferencedFoodIds();
+  const removedFoodIds = new Set();
+  store.foods = (store.foods || []).filter((food) => {
+    const hasDocumentMatch = (food.importSourceDocNames || []).some((entry) => matchesImportedDocumentName(entry, documentName));
+    if (!(food.importSource === "nutrition-import" && hasDocumentMatch)) {
+      return true;
+    }
+
+    const remainingDocNames = (food.importSourceDocNames || []).filter((entry) => !matchesImportedDocumentName(entry, documentName));
+    const remainingDocIds = (food.importSourceDocIds || []).filter((docId) => !removedDocumentIds.has(docId));
+
+    if (remainingDocNames.length || referencedFoodIds.has(food.id)) {
+      food.importSourceDocNames = remainingDocNames;
+      food.importSourceDocIds = remainingDocIds;
+      return true;
+    }
+
+    removedFoodIds.add(food.id);
+    return false;
+  });
+
+  store.favoriteFoods = (store.favoriteFoods || []).filter((foodId) => !removedFoodIds.has(foodId));
+  store.nutritionLibrary.documents = (store.nutritionLibrary.documents || []).filter(
+    (documentRecord) => !matchesImportedDocumentName(documentRecord.name, documentName)
+  );
+  store.nutritionLibrary.recommendations = (store.nutritionLibrary.recommendations || [])
+    .map((recommendation) => {
+      const sourceDocNames = (recommendation.sourceDocNames || []).filter((entry) => !matchesImportedDocumentName(entry, documentName));
+      const sourceDocIds = (recommendation.sourceDocIds || []).filter((docId) => !removedDocumentIds.has(docId));
+      return {
+        ...recommendation,
+        sourceDocNames,
+        sourceDocIds,
+      };
+    })
+    .filter((recommendation) => recommendation.sourceDocNames.length || recommendation.sourceDocIds.length);
+
+  pruneNutritionImportIndexes();
 }
 
 function loadExternalScript(src, globalName) {
@@ -832,14 +1134,28 @@ function convertImportedPortionToGrams(amount, unit, ingredientName) {
     return 0;
   }
 
+  const embeddedWeight = extractEmbeddedWeight(ingredientName);
+  if (embeddedWeight && /(pakov|kesic|konzerv)/.test(normalizedUnit)) {
+    return convertImportedPortionToGrams(amount * embeddedWeight.amount, embeddedWeight.unit, ingredientName);
+  }
+
   if (["g", "gr", "gram", "grama", "grami"].includes(normalizedUnit)) {
     return roundValue(amount, 0);
   }
   if (normalizedUnit === "kg") {
     return roundValue(amount * 1000, 0);
   }
-  if (["ml", "l"].includes(normalizedUnit)) {
-    return roundValue(normalizedUnit === "l" ? amount * 1000 : amount, 0);
+  if (["ml", "l", "dl", "litar", "litra", "litre"].includes(normalizedUnit)) {
+    if (normalizedUnit === "l") {
+      return roundValue(amount * 1000, 0);
+    }
+    if (normalizedUnit.startsWith("litr")) {
+      return roundValue(amount * 1000, 0);
+    }
+    if (normalizedUnit === "dl") {
+      return roundValue(amount * 100, 0);
+    }
+    return roundValue(amount, 0);
   }
   if (normalizedUnit.includes("kasic")) {
     return roundValue(amount * 5, 0);
@@ -853,14 +1169,51 @@ function convertImportedPortionToGrams(amount, unit, ingredientName) {
   if (normalizedUnit.includes("solj") || normalizedUnit === "cup") {
     return roundValue(amount * 240, 0);
   }
+  if (normalizedUnit.includes("cas") || normalizedUnit.includes("čaš")) {
+    return roundValue(amount * 200, 0);
+  }
   if (normalizedUnit.includes("krisk")) {
     return roundValue(amount * 30, 0);
   }
+  if (normalizedUnit.includes("parce") || normalizedUnit.includes("parče")) {
+    if (normalizedName.includes("hleb") || normalizedName.includes("tonus") || normalizedName.includes("vitas")) {
+      return roundValue(amount * 20, 0);
+    }
+    return roundValue(amount * 35, 0);
+  }
+  if (normalizedUnit.includes("pakov") || normalizedUnit.includes("kesic")) {
+    if (normalizedName.includes("puding")) return roundValue(amount * 200, 0);
+    if (normalizedName.includes("cottage")) return roundValue(amount * 180, 0);
+    return roundValue(amount * 200, 0);
+  }
+  if (normalizedUnit.includes("konzerv")) {
+    if (normalizedName.includes("tunjev")) return roundValue(amount * 120, 0);
+    return roundValue(amount * 150, 0);
+  }
+  if (normalizedUnit.includes("glavic")) {
+    if (normalizedName.includes("luk")) return roundValue(amount * 120, 0);
+    if (normalizedName.includes("kupus")) return roundValue(amount * 800, 0);
+    return roundValue(amount * 100, 0);
+  }
+  if (normalizedUnit === "cen" || normalizedUnit === "cena" || normalizedUnit.includes("čen")) {
+    return roundValue(amount * 5, 0);
+  }
+  if (normalizedUnit.includes("list")) {
+    return roundValue(amount * 3, 0);
+  }
+  if (normalizedUnit.includes("kolut")) {
+    if (normalizedName.includes("pilec")) return roundValue(amount * 15, 0);
+    return roundValue(amount * 10, 0);
+  }
   if (normalizedUnit.includes("kom")) {
     if (normalizedName.includes("jaje")) return roundValue(amount * 60, 0);
+    if (normalizedName.includes("belance")) return roundValue(amount * 33, 0);
     if (normalizedName.includes("banana")) return roundValue(amount * 120, 0);
     if (normalizedName.includes("jabuk")) return roundValue(amount * 180, 0);
     if (normalizedName.includes("tortilj")) return roundValue(amount * 60, 0);
+    if (normalizedName.includes("avokad")) return roundValue(amount * 150, 0);
+    if (normalizedName.includes("mandarin")) return roundValue(amount * 80, 0);
+    if (normalizedName.includes("limun")) return roundValue(amount * 100, 0);
     return roundValue(amount * 50, 0);
   }
 
@@ -873,9 +1226,37 @@ function parseIngredientCandidate(rawLine) {
     return null;
   }
 
+  if (/^malo\b/i.test(line)) {
+    const name = normalizeImportedIngredientName(line.replace(/^malo\b/i, "").trim());
+    const grams = /(so|biber|za[cč]in|cimet|soda|pra[sš]ak|ren|susam|lan)/i.test(name)
+      ? 2
+      : /(mlek|voda|jogurt|sok)/i.test(name)
+        ? 30
+        : 15;
+    if (!name) {
+      return null;
+    }
+    return {
+      name,
+      grams,
+    };
+  }
+
+  if (/^(so|biber|cimet|origano|bosiljak|za[cč]ini(?: po [a-zčćžšđ]+)?|lovorov list)$/i.test(line)) {
+    return {
+      name: normalizeImportedIngredientName(line),
+      grams: /lovor/i.test(line) ? 3 : 2,
+    };
+  }
+
   const patterns = [
-    /^(?<name>.+?)\s*(?:[-–:x×]|=)?\s*(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>kg|g|gr|grama?|ml|l|kom(?:ada)?|ka[sš]ika|ka[sš]i?čica|merica|merice|šolja|solja|cup|kri[sš]ka|kri[sš]ke)\b/i,
-    /^(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>kg|g|gr|grama?|ml|l|kom(?:ada)?|ka[sš]ika|ka[sš]i?čica|merica|merice|šolja|solja|cup|kri[sš]ka|kri[sš]ke)\s+(?<name>.+)$/i,
+    new RegExp(`^(?<amount>${IMPORT_AMOUNT_PATTERN})\\s*(?<unit>${IMPORT_UNIT_PATTERN})\\s+(?<name>.+)$`, "i"),
+    new RegExp(
+      `^(?<amount>${IMPORT_AMOUNT_PATTERN})\\s+(?<name>(?:celo|cela|cela?\\s+)?(?:jaje|jaja|jajeta|belance|belanca|avokado|avokada|limun|limuna|banana|banane|jabuka|jabuke|tortilja|tortilje|mandarina|mandarine|puding|glavica\\s+[^,;]+|glavice\\s+[^,;]+|čen\\s+[^,;]+|list\\s+[^,;]+|koluta\\s+[^,;]+).+?)$`,
+      "i"
+    ),
+    new RegExp(`^(?<name>.+?)\\s*(?:[-–:x×]|=)?\\s*(?<amount>${IMPORT_AMOUNT_PATTERN})\\s*(?<unit>${IMPORT_UNIT_PATTERN})\\b`, "i"),
+    new RegExp(`^(?<amount>${IMPORT_AMOUNT_PATTERN})\\s+(?<name>.+)$`, "i"),
   ];
 
   for (const pattern of patterns) {
@@ -885,13 +1266,27 @@ function parseIngredientCandidate(rawLine) {
     }
 
     const amount = parseDecimal(match.groups.amount);
-    const name = String(match.groups.name || "")
-      .replace(/^[\-\u2022*•]+/, "")
-      .replace(/[.,;:]+$/, "")
-      .trim();
-    const grams = convertImportedPortionToGrams(amount, match.groups.unit || "", name);
+    const rawName = String(match.groups.name || "");
+    const name = normalizeImportedIngredientName(rawName);
+    const inferredUnit =
+      match.groups.unit ||
+      (amount >= 20 && /(vod|mlek|jogurt|bra[sš]n|sir|pirin|testenin|krompir|pe[cč]ur|tikvic|kupus|mandarin|jabuk|kivi)/i.test(name)
+        ? "g"
+        : /lovor/i.test(name)
+          ? "list"
+          : "kom");
+    const grams = convertImportedPortionToGrams(amount, inferredUnit, rawName);
 
-    if (!name || !grams) {
+    if (/(stepeni|minuta?|ringl|pe[cč]i|staviti|sa[cč]ekati|dodati|izme[sš]ati|prome[sš]ati|ostaviti|proklju[cč]a|skloniti|kuvati)/i.test(name)) {
+      continue;
+    }
+
+    if (
+      !name ||
+      !grams ||
+      /^[\d/.]+$/.test(name) ||
+      new RegExp(`${IMPORT_AMOUNT_PATTERN}\\s*(?:${IMPORT_UNIT_PATTERN})\\b`, "i").test(name)
+    ) {
       continue;
     }
 
@@ -914,8 +1309,19 @@ function parseIngredientCandidatesFromBlock(block) {
     .filter(Boolean);
 
   lines.forEach((line) => {
-    const normalizedLine = line.replace(/^[\-\u2022*•\d.)]+\s*/, "").trim();
-    const parts = normalizedLine.split(/\s*(?:,|;|\+|\/)\s*/).filter(Boolean);
+    let normalizedLine = line.replace(/^(?:[\-\u2022*•]+\s*|\d+[.)]\s*)/, "").trim();
+    const colonParts = normalizedLine.split(/\s*:\s*/).filter(Boolean);
+    if (colonParts.length > 1 && colonParts.slice(1).some((part) => new RegExp(IMPORT_AMOUNT_PATTERN).test(part))) {
+      normalizedLine = colonParts.slice(1).join(" : ");
+    }
+    const parts = normalizedLine
+      .split(
+        new RegExp(
+          `\\s*;\\s*|\\s*\\+\\s*|(?<!\\d),\\s*(?=(?:${IMPORT_AMOUNT_PATTERN}|malo|so|biber|cimet|origano|bosiljak|za[cč]ini)\\b)|\\s+i\\s+(?=(?:${IMPORT_AMOUNT_PATTERN}|malo)\\b)`,
+          "i"
+        )
+      )
+      .filter(Boolean);
     if (parts.length > 1) {
       parts.forEach((part) => {
         const candidate = parseIngredientCandidate(part);
@@ -932,14 +1338,7 @@ function parseIngredientCandidatesFromBlock(block) {
     }
   });
 
-  const deduped = new Map();
-  candidates.forEach((candidate) => {
-    const key = `${normalizeLookupValue(candidate.name)}:${roundValue(candidate.grams, 0)}`;
-    if (!deduped.has(key)) {
-      deduped.set(key, candidate);
-    }
-  });
-  return [...deduped.values()];
+  return mergeImportedIngredientCandidates(candidates).filter((candidate) => isLikelyCleanImportedIngredient(candidate));
 }
 
 function parseMacroValue(line, labelPattern) {
@@ -1008,6 +1407,300 @@ function createRecommendationRecord(text, documentRecord) {
     sourceDocIds: [documentRecord.id],
     sourceDocNames: [documentRecord.name],
     importedAt: new Date().toISOString(),
+  };
+}
+
+function detectNutritionDocumentKind(file, text) {
+  const normalizedFileName = normalizeLookupValue(file?.name || "");
+  const normalizedText = normalizeLookupValue(String(text || "").slice(0, 1200));
+
+  if (normalizedFileName.includes("recept") || normalizedText.startsWith("recepti")) {
+    return "recipes";
+  }
+  if (normalizedFileName.includes("preporuk") || normalizedText.includes("preporuke")) {
+    return "recommendations";
+  }
+  if (normalizedFileName.includes("jelovnik") || normalizedText.startsWith("jelovnik za")) {
+    return "meal-plan";
+  }
+  return "generic";
+}
+
+function parseRecommendationsDocument(text) {
+  const lines = normalizeNutritionImportText(text)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const startIndex = lines.findIndex((line) => /^preporuke:?$/i.test(cleanImportLine(line)));
+  const relevantLines = startIndex >= 0 ? lines.slice(startIndex + 1) : lines;
+  const recommendations = [];
+  let currentTitle = "";
+  let buffer = [];
+
+  const flush = () => {
+    const textValue = buffer.map((entry) => cleanImportLine(entry)).filter(Boolean).join(" ");
+    if (!textValue) {
+      buffer = [];
+      return;
+    }
+    recommendations.push({
+      title: currentTitle || textValue.split(/[:.]/)[0].trim().slice(0, 80),
+      text: textValue,
+    });
+    buffer = [];
+  };
+
+  relevantLines.forEach((line) => {
+    const trimmedLine = line.trim();
+    const cleanLine = cleanImportLine(trimmedLine);
+    if (!cleanLine) {
+      return;
+    }
+
+    const isHeading =
+      /^[A-ZČĆŽŠĐ0-9 .()\/,-]{5,}:?$/.test(trimmedLine) ||
+      /:$/.test(trimmedLine) ||
+      /^HIDRATACIJA:?$/i.test(cleanLine) ||
+      /^SUPLEMENTACIJA:?$/i.test(cleanLine) ||
+      /^FIZIČKA AKTIVNOST:?$/i.test(cleanLine) ||
+      /^OPŠTE SMERNICE:?$/i.test(cleanLine);
+
+    if (isHeading) {
+      flush();
+      currentTitle = cleanLine.replace(/[:.]+$/, "").trim();
+      return;
+    }
+
+    buffer.push(cleanLine);
+  });
+
+  flush();
+
+  return {
+    recommendations,
+    foods: [],
+    recipes: [],
+  };
+}
+
+function getImportedRecipeFallbackItems(recipeName, body) {
+  const normalizedRecipeName = normalizeLookupValue(recipeName);
+  if (!normalizedRecipeName.includes("sirni namaz")) {
+    return [];
+  }
+
+  const fallbackItems = [];
+  if (/semenki susama/i.test(body)) {
+    fallbackItems.push({ name: "susama", grams: 15 });
+  }
+  if (/suncokreta/i.test(body)) {
+    fallbackItems.push({ name: "suncokreta", grams: 15 });
+  }
+  if (/mlevenog lana/i.test(body)) {
+    fallbackItems.push({ name: "mlevenog lana", grams: 15 });
+  }
+  if (/zrnasti sir/i.test(body)) {
+    fallbackItems.push({ name: "zrnasti sir", grams: 100 });
+  }
+  if (/gr[čc]ki jogurt\s*-\s*100g/i.test(body)) {
+    fallbackItems.push({ name: "grčki jogurt", grams: 100 });
+  }
+
+  return fallbackItems;
+}
+
+function parseRecipesDocument(text) {
+  const normalizedText = normalizeNutritionImportText(text);
+  const recipes = [];
+  const sectionPattern =
+    /(?:^|\n)(\d+\.\s*(?:[A-ZČĆŽŠĐ0-9][A-ZČĆŽŠĐ0-9 .,:\-\/]*)(?:\s*\([^)\n]*\))?:?)\n([\s\S]*?)(?=\n\d+\.\s*(?:[A-ZČĆŽŠĐ0-9][A-ZČĆŽŠĐ0-9 .,:\-\/]*)(?:\s*\([^)\n]*\))?:?\n|\s*$)/g;
+  let match;
+
+  while ((match = sectionPattern.exec(normalizedText))) {
+    const rawHeading = cleanImportLine(match[1]);
+    const body = String(match[2] || "").trim();
+    if (!rawHeading || !body) {
+      continue;
+    }
+
+    const servings = extractRecipeServings(`${rawHeading}\n${body}`);
+    const name = rawHeading
+      .replace(/\(\s*[^)]*(?:obroka?|porcij[aeu]?|par[cč]i[cć]a|pala[cč]inki|mafina|servings?)\s*\)\s*$/i, "")
+      .replace(/[:.]+$/, "")
+      .trim();
+    const lines = body
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const hasExplicitIngredientsHeading = lines.some((line) => /^sastojci:?$/i.test(cleanImportLine(line)));
+    const ingredientLines = [];
+    const instructionLines = [];
+    let inIngredients = false;
+    let inInstructions = false;
+
+    lines.forEach((line) => {
+      const cleanLine = cleanImportLine(line);
+      if (!cleanLine) {
+        return;
+      }
+      if (/^sastojci:?$/i.test(cleanLine)) {
+        inIngredients = true;
+        return;
+      }
+      if (/^priprema:?$/i.test(cleanLine)) {
+        inIngredients = false;
+        inInstructions = true;
+        return;
+      }
+
+      if (/:$/.test(cleanLine) && !new RegExp(IMPORT_AMOUNT_PATTERN).test(cleanLine) && !/^sastojci:?$/i.test(cleanLine)) {
+        return;
+      }
+
+      if (
+        hasExplicitIngredientsHeading &&
+        inIngredients &&
+        !/^[\-\u2022*•]/.test(line) &&
+        !new RegExp(`^${IMPORT_AMOUNT_PATTERN}\\s*(?:${IMPORT_UNIT_PATTERN})?\\b`, "i").test(cleanLine)
+      ) {
+        inIngredients = false;
+        inInstructions = true;
+      }
+
+      if (
+        !inInstructions &&
+        ((inIngredients && (/^[\-\u2022*•]/.test(line) || new RegExp(`^${IMPORT_AMOUNT_PATTERN}`, "i").test(cleanLine))) ||
+          (!hasExplicitIngredientsHeading && parseIngredientCandidate(cleanLine)))
+      ) {
+        ingredientLines.push(line);
+        return;
+      }
+
+      inInstructions = true;
+      instructionLines.push(cleanLine);
+    });
+
+    let items = mergeImportedIngredientCandidates(
+      parseIngredientCandidatesFromBlock(ingredientLines.join("\n")),
+      extractEmbeddedIngredientsFromText(
+        `${!hasExplicitIngredientsHeading ? body : ""}\n${instructionLines
+          .filter((line) => /:\s*(?:\d|[¼½¾]|malo\b)/i.test(line))
+          .join("\n")}`
+      )
+    );
+    items = mergeImportedIngredientCandidates(items, getImportedRecipeFallbackItems(name, body));
+    if (!items.length) {
+      continue;
+    }
+
+    recipes.push({
+      name,
+      mealLabel: inferMealLabelFromText(name),
+      description: instructionLines[0] && instructionLines[0].length <= 140 ? instructionLines[0] : "",
+      instructions: instructionLines.join("\n"),
+      servings,
+      prepTimeMinutes: (() => {
+        const prepMatch = body.match(/(\d{1,3})\s*(?:min|minuta)/i);
+        return prepMatch ? roundValue(parseDecimal(prepMatch[1]), 0) : 0;
+      })(),
+      items: items.map((item) => ({ name: item.name, grams: item.grams })),
+    });
+  }
+
+  return {
+    recommendations: [],
+    foods: [],
+    recipes,
+  };
+}
+
+function parseMealPlanDocument(text) {
+  const normalizedText = normalizeNutritionImportText(text);
+  const daySections = normalizedText
+    .split(/(?=^\d+\.\s*DAN\b)/im)
+    .map((section) => section.trim())
+    .filter(Boolean);
+  const recommendations = [];
+
+  daySections.forEach((section) => {
+    const lines = section
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!lines.length) {
+      return;
+    }
+
+    const dayHeaderMatch = lines[0].match(/^(\d+)\.\s*DAN\s*\(([^)]+)\)/i);
+    const dayTitle = dayHeaderMatch
+      ? `${dayHeaderMatch[1]}. dan (${dayHeaderMatch[2].trim()})`
+      : lines[0].replace(/\s+/g, " ").trim();
+    let currentMealTitle = "";
+    let mealBuffer = [];
+    let noteBuffer = [];
+
+    const flushNotes = () => {
+      const noteText = noteBuffer.map((line) => cleanImportLine(line)).filter(Boolean).join(" ");
+      if (noteText) {
+        recommendations.push({
+          title: `${dayTitle} · Napomene`,
+          text: noteText,
+        });
+      }
+      noteBuffer = [];
+    };
+
+    const flushMeal = () => {
+      if (!currentMealTitle || !mealBuffer.length) {
+        mealBuffer = [];
+        return;
+      }
+
+      const mealText = mealBuffer.map((line) => cleanImportLine(line)).filter(Boolean).join("\n");
+      recommendations.push({
+        title: formatImportedDayMealName(dayTitle, currentMealTitle),
+        text: mealText.replace(/\n+/g, " "),
+      });
+
+      mealBuffer = [];
+    };
+
+    lines.slice(1).forEach((line) => {
+      const cleanLine = cleanImportLine(line);
+      if (!cleanLine) {
+        return;
+      }
+
+      if (/^(predlog satnice|pošto imaš|posto imas|prve dve nedelje|druge dve nedelje)/i.test(cleanLine)) {
+        flushMeal();
+        currentMealTitle = "";
+        noteBuffer.push(cleanLine);
+        return;
+      }
+
+      if (isMealHeadingLine(cleanLine)) {
+        flushNotes();
+        flushMeal();
+        currentMealTitle = cleanLine.replace(/\s*\d{1,2}:\d{2}\s*h?$/i, "").replace(/[:.]+$/, "").trim();
+        mealBuffer = [];
+        return;
+      }
+
+      if (currentMealTitle) {
+        mealBuffer.push(cleanLine);
+      } else {
+        noteBuffer.push(cleanLine);
+      }
+    });
+
+    flushNotes();
+    flushMeal();
+  });
+
+  return {
+    recommendations,
+    foods: [],
+    recipes: [],
   };
 }
 
@@ -1178,6 +1871,41 @@ function parseNutritionTextPayload(text) {
   });
 
   return { recommendations, foods, recipes };
+}
+
+function parseNutritionImportPayload(file, text) {
+  const extension = getFileExtension(file?.name || "");
+  if (extension === "json") {
+    return parseStructuredNutritionJson(text) || { recommendations: [], foods: [], recipes: [] };
+  }
+
+  const documentKind = detectNutritionDocumentKind(file, text);
+  if (documentKind === "recipes") {
+    const parsedRecipes = parseRecipesDocument(text);
+    if (parsedRecipes.recipes.length || parsedRecipes.recommendations.length || parsedRecipes.foods.length) {
+      return parsedRecipes;
+    }
+  }
+
+  if (documentKind === "recommendations") {
+    const parsedRecommendations = parseRecommendationsDocument(text);
+    if (
+      parsedRecommendations.recipes.length ||
+      parsedRecommendations.recommendations.length ||
+      parsedRecommendations.foods.length
+    ) {
+      return parsedRecommendations;
+    }
+  }
+
+  if (documentKind === "meal-plan") {
+    const parsedMealPlan = parseMealPlanDocument(text);
+    if (parsedMealPlan.recipes.length || parsedMealPlan.recommendations.length || parsedMealPlan.foods.length) {
+      return parsedMealPlan;
+    }
+  }
+
+  return parseNutritionTextPayload(text);
 }
 
 function buildNutritionDocumentRecord(file, text, parserLabel) {
@@ -1375,14 +2103,14 @@ async function importNutritionFiles(files = []) {
 
   for (const file of files) {
     try {
+      removeNutritionImportDataForDocument(file.name);
       const { text, parser } = await extractNutritionTextFromFile(file);
       if (!text) {
         throw new Error("U fajlu nema dovoljno teksta za obradu.");
       }
 
       const documentRecord = buildNutritionDocumentRecord(file, text, parser);
-      const structuredJson = getFileExtension(file.name) === "json" ? parseStructuredNutritionJson(text) : null;
-      const parsedResult = structuredJson || parseNutritionTextPayload(text);
+      const parsedResult = parseNutritionImportPayload(file, text);
       const mergeResult = mergeNutritionImportResult(parsedResult, documentRecord);
 
       documentRecord.recommendationCount = mergeResult.importedRecommendationIds.length;
