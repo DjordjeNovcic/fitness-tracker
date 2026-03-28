@@ -710,6 +710,25 @@ function normalizeImportedIngredientName(name) {
     .trim();
 }
 
+function getImportedIngredientDisplayName(name) {
+  return cleanImportLine(name)
+    .replace(
+      /^(?:u\s+[a-zčćžšđ]+\s+)?(?:izgnjavimo|dodati|dodamo|staviti|stavimo|preko(?:\s+toga)?\s+staviti|premazati|napraviti(?:\s+omlet)?\s+od|napraviti|umutiti|pome[sš]ati|prome[sš]ati|posuti|preliti|poređati|poredjati|iseci|iseći|iseckati|isjeći|izgrilovati|spremiti)\s+/i,
+      ""
+    )
+    .replace(/\bpo ukusu\b.*$/i, "")
+    .replace(/\bpo želji\b.*$/i, "")
+    .replace(/\bukoliko.*$/i, "")
+    .replace(/\bkada\b.*$/i, "")
+    .replace(/\bdok\b.*$/i, "")
+    .replace(/\bda\s+(?:se|bi)\b.*$/i, "")
+    .replace(/\bglavice\s+glavice\b/gi, "glavice")
+    .replace(/\bsitno\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[;:,.]+$/, "")
+    .trim();
+}
+
 function canonicalizeImportedFoodName(name) {
   const cleanedName = normalizeImportedIngredientName(name) || cleanImportLine(name);
   const normalizedName = normalizeLookupValue(cleanedName);
@@ -871,6 +890,7 @@ function mergeImportedIngredientCandidates(primary = [], supplemental = []) {
 
     merged.set(key, {
       name: candidate.name,
+      displayName: candidate.displayName || candidate.name,
       grams: candidate.grams,
     });
   });
@@ -1353,6 +1373,7 @@ function parseIngredientCandidate(rawLine) {
     }
     return {
       name,
+      displayName: getImportedIngredientDisplayName(line) || name,
       grams,
     };
   }
@@ -1360,6 +1381,7 @@ function parseIngredientCandidate(rawLine) {
   if (/^(so|biber|cimet|origano|bosiljak|za[cč]ini(?: po [a-zčćžšđ]+)?|lovorov list)$/i.test(line)) {
     return {
       name: normalizeImportedIngredientName(line),
+      displayName: getImportedIngredientDisplayName(line) || normalizeImportedIngredientName(line),
       grams: /lovor/i.test(line) ? 3 : 2,
     };
   }
@@ -1407,6 +1429,7 @@ function parseIngredientCandidate(rawLine) {
 
     return {
       name,
+      displayName: getImportedIngredientDisplayName(rawName) || name,
       grams,
       sourceAmount: amount,
       sourceUnit: String(match.groups.unit || "").trim(),
@@ -1718,7 +1741,7 @@ function parseRecipesDocument(text) {
         const prepMatch = body.match(/(\d{1,3})\s*(?:min|minuta)/i);
         return prepMatch ? roundValue(parseDecimal(prepMatch[1]), 0) : 0;
       })(),
-      items: items.map((item) => ({ name: item.name, grams: item.grams })),
+      items: items.map((item) => ({ name: item.name, displayName: item.displayName || item.name, grams: item.grams })),
     });
   }
 
@@ -1865,6 +1888,7 @@ function parseStructuredNutritionJson(text) {
                   .filter((item) => String(item?.foodName || item?.name || "").trim())
                   .map((item) => ({
                     name: String(item.foodName || item.name || "").trim(),
+                    displayName: String(item.displayName || item.foodDisplayName || item.foodName || item.name || "").trim(),
                     grams: Math.max(1, roundValue(parseDecimal(item.grams || item.amount || 0), 0)),
                   }))
               : [],
@@ -2114,6 +2138,7 @@ function upsertNutritionRecipe(recipeDraft = {}, documentRecord) {
         id: uid("favorite-item"),
         foodId: food.id,
         foodName: food.name,
+        displayName: String(item.displayName || item.name || food.name || "").trim(),
         grams: Math.max(1, roundValue(parseDecimal(item.grams), 0)),
       };
     })
@@ -4219,7 +4244,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                     .map(
                                       (item) => `
                                         <span class="plan-recipe-ingredient">
-                                          <strong>${item.foodName}</strong>
+                                          <strong>${item.displayName || item.foodName}</strong>
                                           <span>${roundValue(item.grams, 0)} g</span>
                                         </span>
                                       `
@@ -5058,7 +5083,7 @@ function renderRecipesTab() {
                             (item, index) => `
                               <div class="suggestion-row">
                                 <div>
-                                  <strong>${item.foodName}</strong>
+                                  <strong>${item.displayName || item.foodName}</strong>
                                   <div class="footer-note">${roundValue(item.grams, 0)} g</div>
                                 </div>
                                 <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
@@ -6113,7 +6138,8 @@ function renderNutritionTab() {
                       <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
                         ${recipe.items
                           .map(
-                            (item) => `<span class="pill">${escapeHtml(item.foodName)} · ${roundValue(item.grams, 0)} g</span>`
+                            (item) =>
+                              `<span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${roundValue(item.grams, 0)} g</span>`
                           )
                           .join("")}
                       </div>
