@@ -336,6 +336,7 @@ function ensureStoreCollections(targetStore) {
   }));
   targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => normalizeFavoriteMealRecord(favorite));
   seedDemoFavoriteMeals(targetStore);
+  cleanupNutritionImportedFoods(targetStore);
 }
 
 function replaceStore(nextStore) {
@@ -581,6 +582,8 @@ function escapeHtml(value) {
 
 function normalizeLookupValue(value) {
   return String(value || "")
+    .replace(/đ/g, "dj")
+    .replace(/Đ/g, "Dj")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -705,6 +708,114 @@ function normalizeImportedIngredientName(name) {
     .replace(/\s{2,}/g, " ")
     .replace(/[;:,.]+$/, "")
     .trim();
+}
+
+function canonicalizeImportedFoodName(name) {
+  const cleanedName = normalizeImportedIngredientName(name) || cleanImportLine(name);
+  const normalizedName = normalizeLookupValue(cleanedName);
+
+  if (!normalizedName) {
+    return "";
+  }
+
+  const directMappings = [
+    { pattern: /^(?:celo jaje|jaje|jaja|jajeta)$/, value: "jaje" },
+    { pattern: /^(?:belance|belanca)$/, value: "belance" },
+    { pattern: /^(?:piletine|pileceg belog mesa|pilecih prsa|pileceg mesa)$/, value: "piletina" },
+    { pattern: /^(?:mlevenog juneceg mesa)$/, value: "mleveno juneće meso" },
+    { pattern: /^(?:crnog luka|glavice crnog luka|crnog luka isecenog|luka)$/, value: "crni luk" },
+    { pattern: /^(?:belog luka|seckanog belog luka)$/, value: "beli luk" },
+    { pattern: /^(?:ovsenih pahuljica|samlevenih ovsenih pahuljica)$/, value: "ovsene pahuljice" },
+    { pattern: /^(?:jogurta)$/, value: "jogurt" },
+    { pattern: /^(?:sargarepe|sargarepe isecene)$/, value: "šargarepa" },
+    { pattern: /^(?:paradajza)$/, value: "paradajz" },
+    { pattern: /^(?:paradajz soka|soka od paradajza)$/, value: "sok od paradajza" },
+    { pattern: /^(?:pecuraka)$/, value: "pečurke" },
+    { pattern: /^(?:mleka)$/, value: "mleko" },
+    { pattern: /^(?:krompira)$/, value: "krompir" },
+    { pattern: /^(?:kupusa)$/, value: "kupus" },
+    { pattern: /^(?:korena persuna)$/, value: "koren peršuna" },
+    { pattern: /^(?:gaude)$/, value: "gauda" },
+    { pattern: /^(?:fete)$/, value: "feta" },
+    { pattern: /^(?:sira)$/, value: "sir" },
+    { pattern: /^(?:susama)$/, value: "susam" },
+    { pattern: /^(?:suncokreta)$/, value: "suncokret" },
+    { pattern: /^(?:mlevenog lana)$/, value: "mleveni lan" },
+    { pattern: /^(?:soli)$/, value: "so" },
+    { pattern: /^(?:vode)$/, value: "voda" },
+    { pattern: /^(?:ulja od kospica grozdja)$/, value: "ulje od košpica grožđa" },
+    { pattern: /^(?:maslinovog ulja)$/, value: "maslinovo ulje" },
+    { pattern: /^(?:speltinog brasna)$/, value: "speltino brašno" },
+    { pattern: /^(?:integralnog speltinog)$/, value: "integralno speltino brašno" },
+    { pattern: /^(?:int pirinca)$/, value: "integralni pirinač" },
+    { pattern: /^(?:kisele vode)$/, value: "kisela voda" },
+    { pattern: /^(?:lovora|lovorov list)$/, value: "lovorov list" },
+    { pattern: /^(?:zacini)$/, value: "začini" },
+  ];
+
+  const directMatch = directMappings.find(({ pattern }) => pattern.test(normalizedName));
+  if (directMatch) {
+    return directMatch.value;
+  }
+
+  if (normalizedName.includes("grcki jogurt")) {
+    return "grčki jogurt";
+  }
+  if (normalizedName.includes("krem sira meggle classic") || normalizedName.includes("sirni namaz meggle classik")) {
+    return "meggle cream cheese classic";
+  }
+  if (normalizedName.includes("president 5 m m")) {
+    return "president 5% m.m.";
+  }
+  if (normalizedName.includes("cottage sira")) {
+    return "cottage sir";
+  }
+  if (normalizedName.includes("mocarel")) {
+    return "mocarela";
+  }
+  if (normalizedName.includes("protein")) {
+    return "protein";
+  }
+
+  return cleanedName.replace(/\s+/g, " ").trim();
+}
+
+function inferImportedFoodCategory(name, existingFood) {
+  const existingCategory = String(existingFood?.category || "").trim();
+  if (existingCategory && normalizeLookupValue(existingCategory) !== "nutri import") {
+    return existingCategory;
+  }
+
+  const normalizedName = normalizeLookupValue(name);
+  if (!normalizedName) {
+    return "Ostalo";
+  }
+
+  if (
+    /(pilet|june|riba|losos|pastrm|orada|brancin|oslic|bakalar|tunjev|skamp|jaje|belance|sir|jogurt|mocarel|cottage|gaud|feta|protein|puding|mleko)/.test(
+      normalizedName
+    )
+  ) {
+    return "Proteini";
+  }
+
+  if (
+    /(ovs|pirin|testen|brasn|krompir|hleb|tortil|grasak|banana|jabuk|mandarin|kivi|visnj|bobicast|paradajz pire|sok od paradajza|agava|kakao)/.test(
+      normalizedName
+    )
+  ) {
+    return "UH";
+  }
+
+  if (
+    /(maslinovo ulje|ulje od kospica|kikiriki puter|badem|lesnik|orah|lan|susam|suncokret|chia|kokos|avokad)/.test(
+      normalizedName
+    )
+  ) {
+    return "Masti";
+  }
+
+  return "Ostalo";
 }
 
 function extractEmbeddedWeight(name) {
@@ -899,11 +1010,15 @@ function getNutritionImportedRecipesDetailed() {
 }
 
 function findFoodByExactName(name) {
-  const normalizedName = normalizeLookupValue(name);
+  const normalizedName = normalizeLookupValue(canonicalizeImportedFoodName(name) || name);
   if (!normalizedName) {
     return null;
   }
-  return store.foods.find((food) => normalizeLookupValue(food.name) === normalizedName) || null;
+  return (
+    store.foods.find(
+      (food) => normalizeLookupValue(canonicalizeImportedFoodName(food.name) || food.name) === normalizedName
+    ) || null
+  );
 }
 
 function getImportValueOrFallback(nextValue, currentValue) {
@@ -1930,10 +2045,15 @@ function upsertNutritionFood(foodDraft = {}, documentRecord) {
     return null;
   }
 
-  const existingFood = findFoodByExactName(foodName);
+  const canonicalFoodName = canonicalizeImportedFoodName(foodName) || foodName;
+  const existingFood = findFoodByExactName(canonicalFoodName);
+  const draftCategory = String(foodDraft.category || "").trim();
+  const inferredCategory = inferImportedFoodCategory(canonicalFoodName, existingFood);
   const nextFoodFields = {
-    name: foodName,
-    category: String(foodDraft.category || existingFood?.category || "Nutri import").trim() || "Nutri import",
+    name: existingFood && existingFood.importSource !== "nutrition-import" ? existingFood.name : canonicalFoodName,
+    category:
+      (draftCategory && normalizeLookupValue(draftCategory) !== "nutri import" ? draftCategory : existingFood?.category || inferredCategory) ||
+      inferredCategory,
     servingBaseGrams: Math.max(1, roundValue(parseDecimal(foodDraft.servingBaseGrams || existingFood?.servingBaseGrams || 100), 0)),
     kcal: getImportValueOrFallback(foodDraft.kcal, existingFood?.kcal),
     protein: getImportValueOrFallback(foodDraft.protein, existingFood?.protein),
@@ -1982,7 +2102,6 @@ function upsertNutritionRecipe(recipeDraft = {}, documentRecord) {
       const food = upsertNutritionFood(
         {
           name: item.name,
-          category: "Nutri import",
           servingBaseGrams: 100,
         },
         documentRecord
@@ -2175,6 +2294,10 @@ function getFoods() {
   return [...store.foods].sort((a, b) => a.name.localeCompare(b.name, "sr"));
 }
 
+function getSelectableFoods() {
+  return getFoods().filter((food) => !shouldHidePendingImportedFood(food));
+}
+
 function getFoodById(foodId) {
   return store.foods.find((food) => food.id === foodId);
 }
@@ -2243,6 +2366,10 @@ function getFoodNutritionStatus(food = {}) {
   };
 }
 
+function shouldHidePendingImportedFood(food = {}) {
+  return food.importSource === "nutrition-import" && getFoodNutritionStatus(food).needsAttention;
+}
+
 function resetFoodEditing() {
   state.editingFoodId = "";
   state.nutritionEditingFoodId = "";
@@ -2254,7 +2381,11 @@ function resetRoutineEditing() {
 }
 
 function syncFoodNameAcrossStore(foodId, foodName) {
-  store.weeklyPlanEntries = store.weeklyPlanEntries.map((entry) =>
+  syncFoodNameAcrossCollections(store, foodId, foodName);
+}
+
+function syncFoodNameAcrossCollections(targetStore, foodId, foodName) {
+  targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) =>
     entry.foodId === foodId
       ? {
           ...entry,
@@ -2263,9 +2394,9 @@ function syncFoodNameAcrossStore(foodId, foodName) {
       : entry
   );
 
-  store.favoriteMeals = store.favoriteMeals.map((favorite) => ({
+  targetStore.favoriteMeals = (targetStore.favoriteMeals || []).map((favorite) => ({
     ...favorite,
-    items: favorite.items.map((item) =>
+    items: (favorite.items || []).map((item) =>
       item.foodId === foodId
         ? {
             ...item,
@@ -2274,6 +2405,155 @@ function syncFoodNameAcrossStore(foodId, foodName) {
         : item
     ),
   }));
+}
+
+function syncFoodReferenceAcrossCollections(targetStore, fromFoodId, nextFoodId, nextFoodName) {
+  if (!fromFoodId || !nextFoodId) {
+    return;
+  }
+
+  targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) =>
+    entry.foodId === fromFoodId
+      ? {
+          ...entry,
+          foodId: nextFoodId,
+          foodName: nextFoodName,
+        }
+      : entry
+  );
+
+  targetStore.favoriteMeals = (targetStore.favoriteMeals || []).map((favorite) => ({
+    ...favorite,
+    items: (favorite.items || []).map((item) =>
+      item.foodId === fromFoodId
+        ? {
+            ...item,
+            foodId: nextFoodId,
+            foodName: nextFoodName,
+          }
+        : item
+    ),
+  }));
+
+  targetStore.favoriteFoods = mergeUniqueStrings(
+    (targetStore.favoriteFoods || []).map((foodId) => (foodId === fromFoodId ? nextFoodId : foodId)).filter(Boolean)
+  );
+}
+
+function mergeNutritionFoodData(targetFood, sourceFood) {
+  if (!(toNumber(targetFood.kcal) > 0) && toNumber(sourceFood.kcal) > 0) {
+    targetFood.kcal = roundValue(toNumber(sourceFood.kcal), 1);
+  }
+  if (!(toNumber(targetFood.protein) > 0) && toNumber(sourceFood.protein) > 0) {
+    targetFood.protein = roundValue(toNumber(sourceFood.protein), 1);
+  }
+  if (!(toNumber(targetFood.carbs) > 0) && toNumber(sourceFood.carbs) > 0) {
+    targetFood.carbs = roundValue(toNumber(sourceFood.carbs), 1);
+  }
+  if (!(toNumber(targetFood.fat) > 0) && toNumber(sourceFood.fat) > 0) {
+    targetFood.fat = roundValue(toNumber(sourceFood.fat), 1);
+  }
+  if (!(toNumber(targetFood.servingBaseGrams) > 0) && toNumber(sourceFood.servingBaseGrams) > 0) {
+    targetFood.servingBaseGrams = Math.max(1, roundValue(toNumber(sourceFood.servingBaseGrams), 0));
+  }
+  if (!String(targetFood.nutritionSource || "").trim() && String(sourceFood.nutritionSource || "").trim()) {
+    targetFood.nutritionSource = String(sourceFood.nutritionSource).trim();
+  }
+
+  targetFood.importSourceDocIds = mergeUniqueStrings(targetFood.importSourceDocIds || [], sourceFood.importSourceDocIds || []);
+  targetFood.importSourceDocNames = mergeUniqueStrings(
+    targetFood.importSourceDocNames || [],
+    sourceFood.importSourceDocNames || []
+  );
+}
+
+function scoreFoodForNutritionCleanup(food = {}) {
+  return (
+    Number(toNumber(food.kcal) > 0) * 4 +
+    Number(toNumber(food.protein) > 0) +
+    Number(toNumber(food.carbs) > 0) +
+    Number(toNumber(food.fat) > 0) +
+    Number(Boolean(String(food.nutritionSource || "").trim())) * 2 +
+    (Array.isArray(food.importSourceDocNames) ? food.importSourceDocNames.length : 0) * 0.1
+  );
+}
+
+function cleanupNutritionImportedFoods(targetStore = store) {
+  const importedFoods = (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import");
+  if (!importedFoods.length) {
+    return false;
+  }
+
+  const baseFoodsByCanonicalName = new Map();
+  (targetStore.foods || []).forEach((food) => {
+    if (food.importSource === "nutrition-import") {
+      return;
+    }
+
+    const canonicalName = canonicalizeImportedFoodName(food.name) || food.name;
+    const canonicalKey = normalizeLookupValue(canonicalName);
+    if (canonicalKey && !baseFoodsByCanonicalName.has(canonicalKey)) {
+      baseFoodsByCanonicalName.set(canonicalKey, food);
+    }
+  });
+
+  const importedByCanonicalName = new Map();
+  const removedFoodIds = new Set();
+  let didChange = false;
+
+  importedFoods
+    .sort((left, right) => scoreFoodForNutritionCleanup(right) - scoreFoodForNutritionCleanup(left))
+    .forEach((food) => {
+      const canonicalName = canonicalizeImportedFoodName(food.name) || food.name;
+      const canonicalKey = normalizeLookupValue(canonicalName);
+      const inferredCategory = inferImportedFoodCategory(canonicalName, food);
+
+      if (food.name !== canonicalName) {
+        food.name = canonicalName;
+        didChange = true;
+      }
+
+      if (String(food.category || "").trim() !== inferredCategory) {
+        food.category = inferredCategory;
+        didChange = true;
+      }
+
+      syncFoodNameAcrossCollections(targetStore, food.id, food.name);
+
+      const matchingBaseFood = canonicalKey ? baseFoodsByCanonicalName.get(canonicalKey) : null;
+      if (matchingBaseFood) {
+        syncFoodReferenceAcrossCollections(targetStore, food.id, matchingBaseFood.id, matchingBaseFood.name);
+        removedFoodIds.add(food.id);
+        didChange = true;
+        return;
+      }
+
+      if (!canonicalKey) {
+        return;
+      }
+
+      const keeper = importedByCanonicalName.get(canonicalKey);
+      if (!keeper) {
+        importedByCanonicalName.set(canonicalKey, food);
+        return;
+      }
+
+      mergeNutritionFoodData(keeper, food);
+      syncFoodReferenceAcrossCollections(targetStore, food.id, keeper.id, keeper.name);
+      removedFoodIds.add(food.id);
+      didChange = true;
+    });
+
+  if (removedFoodIds.size) {
+    targetStore.foods = (targetStore.foods || []).filter((food) => !removedFoodIds.has(food.id));
+  }
+
+  targetStore.favoriteFoods = mergeUniqueStrings((targetStore.favoriteFoods || []).filter((foodId) => !removedFoodIds.has(foodId)));
+  targetStore.nutritionLibrary.importedFoodIds = mergeUniqueStrings(
+    (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import").map((food) => food.id)
+  );
+
+  return didChange;
 }
 
 function getFoodMacroGroup(food) {
@@ -3149,12 +3429,12 @@ function getMealDisplayParts(mealLabel) {
 
 function findFoodByName(preferredNames = [], fallbackGroup) {
   const lowered = preferredNames.map((name) => name.toLowerCase());
-  const exact = getFoods().find((food) => lowered.some((name) => food.name.toLowerCase().includes(name)));
+  const exact = getSelectableFoods().find((food) => lowered.some((name) => food.name.toLowerCase().includes(name)));
   if (exact) {
     return exact;
   }
   if (fallbackGroup) {
-    return getFoods().find((food) => getFoodMacroGroup(food) === fallbackGroup) || null;
+    return getSelectableFoods().find((food) => getFoodMacroGroup(food) === fallbackGroup) || null;
   }
   return null;
 }
@@ -3787,6 +4067,7 @@ function renderMacroCards(totals) {
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const mealParts = getMealDisplayParts(activeMealLabel);
+  const selectableFoods = getSelectableFoods();
 
   return `
     <form id="plan-entry-form" class="form-grid split meal-composer">
@@ -3804,7 +4085,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         <label for="foodId">Namirnica</label>
         <select id="foodId" name="foodId" required>
           <option value="">Izaberi namirnicu</option>
-          ${getFoods()
+          ${selectableFoods
             .map((food) => `<option value="${food.id}" ${food.id === state.planDraft.foodId ? "selected" : ""}>${food.name}</option>`)
             .join("")}
         </select>
@@ -4424,7 +4705,9 @@ function renderPlanTab(entries) {
 function renderFoodsTab() {
   const query = state.foodSearch.trim().toLowerCase();
   const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
-  const foods = getFoods()
+  const selectableFoods = getSelectableFoods();
+  const pendingNutritionFoods = getFoods().filter((food) => shouldHidePendingImportedFood(food));
+  const foods = selectableFoods
     .map((food) => ({
       ...food,
       macroGroup: getFoodMacroGroup(food),
@@ -4442,8 +4725,8 @@ function renderFoodsTab() {
   const filterCounts = FOOD_MACRO_FILTERS.reduce((acc, filter) => {
     acc[filter] =
       filter === "Sve"
-        ? store.foods.length
-        : store.foods.filter((food) => getFoodMacroGroup(food) === filter).length;
+        ? selectableFoods.length
+        : selectableFoods.filter((food) => getFoodMacroGroup(food) === filter).length;
     return acc;
   }, {});
   const macroClassMap = {
@@ -4461,7 +4744,12 @@ function renderFoodsTab() {
       <div class="section-header">
         <div>
           <h2>Baza namirnica</h2>
-          <p>Trenutno imas ${store.foods.length} namirnica iz Excel-a i nove koje uneses preko telefona.</p>
+          <p>Trenutno imaš ${selectableFoods.length} spremnih namirnica u glavnoj bazi.</p>
+          ${
+            pendingNutritionFoods.length
+              ? `<p class="footer-note">${pendingNutritionFoods.length} importovanih sastojaka još čeka kcal/makroe i ostaje u tabu Nutricionista dok ih ne dopuniš.</p>`
+              : ""
+          }
         </div>
       </div>
       <div class="chips foods-filter-bar" style="margin-bottom:14px;">
@@ -4482,19 +4770,12 @@ function renderFoodsTab() {
         <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinac..." />
       </div>
       <div class="food-list foods-grid" style="margin-top:14px;">
-        ${foods
-          .map(
-            (food) => {
-              const toneClass = macroClassMap[food.macroGroup] || "other";
-              const dominantLabel =
-                food.macroGroup === "Proteini"
-                  ? "dominantno protein"
-                  : food.macroGroup === "UH"
-                    ? "dominantno UH"
-                    : food.macroGroup === "Masti"
-                      ? "dominantno masti"
-                      : "mešovit profil";
-              return `
+        ${
+          foods.length
+            ? foods
+                .map((food) => {
+                  const toneClass = macroClassMap[food.macroGroup] || "other";
+                  return `
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
                   <div class="foods-title-block">
@@ -4526,9 +4807,10 @@ function renderFoodsTab() {
                 </div>
               </article>
             `;
-            }
-          )
-          .join("")}
+                })
+                .join("")
+            : `<div class="empty">Nema namirnica za ovaj filter. Nedovršeni nutrition import ostaje u tabu Nutricionista dok mu ne dodaš vrednosti.</div>`
+        }
       </div>
     </section>
 
@@ -4588,6 +4870,7 @@ function renderFoodsTab() {
 
 function renderRecipesTab() {
   const favorites = getFavoriteMealsDetailed();
+  const selectableFoods = getSelectableFoods();
   const meals = [
     ...new Set([
       ...defaultMeals,
@@ -4646,7 +4929,7 @@ function renderRecipesTab() {
             <label for="favorite-food-id">Sastojak</label>
             <select id="favorite-food-id" name="foodId" required>
               <option value="">Izaberi namirnicu</option>
-              ${getFoods()
+              ${selectableFoods
                 .map((food) => `<option value="${food.id}" ${food.id === state.favoriteDraft.foodId ? "selected" : ""}>${food.name}</option>`)
                 .join("")}
             </select>
