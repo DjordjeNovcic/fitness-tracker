@@ -2069,6 +2069,11 @@ body.plan-compact .hero-day-picker {
 .routine-streak-section,
 .routine-tasks-section,
 .routine-weekly-section,
+.nutrition-overview-section,
+.nutrition-recommendations-section,
+.nutrition-recipes-section,
+.nutrition-foods-section,
+.nutrition-documents-section,
 .recipes-builder-section,
 .recipes-library-section {
   position: relative;
@@ -2080,6 +2085,11 @@ body.plan-compact .hero-day-picker {
 .routine-streak-section::before,
 .routine-tasks-section::before,
 .routine-weekly-section::before,
+.nutrition-overview-section::before,
+.nutrition-recommendations-section::before,
+.nutrition-recipes-section::before,
+.nutrition-foods-section::before,
+.nutrition-documents-section::before,
 .recipes-builder-section::before,
 .recipes-library-section::before {
   content: "";
@@ -2105,7 +2115,12 @@ body.plan-compact .hero-day-picker {
 .routine-habits-section .section-header,
 .routine-streak-section .section-header,
 .routine-tasks-section .section-header,
-.routine-weekly-section .section-header {
+.routine-weekly-section .section-header,
+.nutrition-overview-section .section-header,
+.nutrition-recommendations-section .section-header,
+.nutrition-recipes-section .section-header,
+.nutrition-foods-section .section-header,
+.nutrition-documents-section .section-header {
   margin-bottom: 16px;
 }
 
@@ -2221,6 +2236,64 @@ body.plan-compact .hero-day-picker {
 .routine-habit-form-note {
   grid-column: 1 / -1;
   margin-top: -2px;
+}
+
+.nutrition-overview-section {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 249, 0.92), rgba(246, 241, 232, 0.98)),
+    var(--surface);
+}
+
+.nutrition-summary-grid {
+  gap: 14px;
+}
+
+.nutrition-note-card,
+.nutrition-food-card,
+.nutrition-doc-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-import-card {
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 118, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-recommendations-stack,
+.nutrition-recipes-stack,
+.nutrition-foods-stack,
+.nutrition-documents-stack {
+  gap: 16px;
+}
+
+.nutrition-inline-list {
+  padding: 14px 0 4px;
+}
+
+.nutrition-card-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nutrition-card-actions > button,
+.nutrition-card-actions > label {
+  flex: 1 1 180px;
+}
+
+.nutrition-doc-card .footer-note:last-child {
+  margin-top: 2px;
+}
+
+.solid-button.is-disabled,
+.ghost-button.is-disabled {
+  pointer-events: none;
+  opacity: 0.58;
 }
 
 .routine-streak-section {

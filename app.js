@@ -24,6 +24,7 @@ const WEEKDAYS = ["Ponedeljak", "Utorak", "Sreda", "Cetvrtak", "Petak", "Subota"
 const TABS = [
   { id: "plan", label: "Plan", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
+  { id: "nutrition", label: "Nutricionista", icon: "🗂" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
   { id: "routine", label: "Rutina", icon: "✅" },
@@ -122,6 +123,8 @@ const state = {
   editingHabitId: "",
   editingTaskId: "",
   editingSupplementId: "",
+  nutritionImportPending: false,
+  nutritionImportStatus: "",
   authReady: false,
   authPending: false,
   authMode: "login",
@@ -138,6 +141,7 @@ let isHydratingCloudState = false;
 let serviceWorkerRegistration = null;
 let lockedScrollY = 0;
 let feedbackToastTimer = null;
+const externalScriptPromises = new Map();
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = getAuth(firebaseApp);
@@ -192,6 +196,19 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
+    nutritionLibrary: {
+      documents: Array.isArray(rawStore.nutritionLibrary?.documents) ? rawStore.nutritionLibrary.documents : [],
+      recommendations: Array.isArray(rawStore.nutritionLibrary?.recommendations)
+        ? rawStore.nutritionLibrary.recommendations
+        : [],
+      importedFoodIds: Array.isArray(rawStore.nutritionLibrary?.importedFoodIds)
+        ? rawStore.nutritionLibrary.importedFoodIds
+        : [],
+      importedRecipeIds: Array.isArray(rawStore.nutritionLibrary?.importedRecipeIds)
+        ? rawStore.nutritionLibrary.importedRecipeIds
+        : [],
+      lastImportedAt: String(rawStore.nutritionLibrary?.lastImportedAt || ""),
+    },
     ui: {
       ...fallbackUi,
       ...(rawStore.ui || {}),
@@ -279,6 +296,20 @@ function ensureStoreCollections(targetStore) {
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
+  targetStore.nutritionLibrary = targetStore.nutritionLibrary || {};
+  targetStore.nutritionLibrary.documents = Array.isArray(targetStore.nutritionLibrary.documents)
+    ? targetStore.nutritionLibrary.documents
+    : [];
+  targetStore.nutritionLibrary.recommendations = Array.isArray(targetStore.nutritionLibrary.recommendations)
+    ? targetStore.nutritionLibrary.recommendations
+    : [];
+  targetStore.nutritionLibrary.importedFoodIds = Array.isArray(targetStore.nutritionLibrary.importedFoodIds)
+    ? targetStore.nutritionLibrary.importedFoodIds
+    : [];
+  targetStore.nutritionLibrary.importedRecipeIds = Array.isArray(targetStore.nutritionLibrary.importedRecipeIds)
+    ? targetStore.nutritionLibrary.importedRecipeIds
+    : [];
+  targetStore.nutritionLibrary.lastImportedAt = String(targetStore.nutritionLibrary.lastImportedAt || "");
   targetStore.supplements = (targetStore.supplements || []).map((supplement) => ({
     ...supplement,
     weekdays: Array.isArray(supplement.weekdays) && supplement.weekdays.length ? supplement.weekdays : [...WEEKDAYS],
@@ -529,6 +560,864 @@ function seedDemoFavoriteMeals(targetStore) {
   }
   targetStore.favoriteMeals = seedFavorites.map((favorite) => normalizeFavoriteMealRecord(favorite));
   targetStore.meta.favoriteRecipesSeedVersion = DEMO_RECIPE_SEED_VERSION;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normalizeLookupValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function mergeUniqueStrings(...collections) {
+  const merged = new Set();
+  collections.flat().forEach((value) => {
+    const normalizedValue = String(value || "").trim();
+    if (normalizedValue) {
+      merged.add(normalizedValue);
+    }
+  });
+  return [...merged];
+}
+
+function parseDecimal(value) {
+  const normalizedValue = String(value || "")
+    .replace(/\s+/g, "")
+    .replace(",", ".");
+  const parsed = Number(normalizedValue);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getFileExtension(name) {
+  const parts = String(name || "").toLowerCase().split(".");
+  return parts.length > 1 ? parts.pop() : "";
+}
+
+function getFileSizeLabel(size) {
+  const bytes = Math.max(0, Number(size) || 0);
+  if (bytes >= 1024 * 1024) {
+    return `${roundValue(bytes / (1024 * 1024), 1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${roundValue(bytes / 1024, 1)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+function normalizeNutritionImportText(rawText) {
+  return String(rawText || "")
+    .replace(/\u0000/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function trimDocumentSnippet(text, limit = 220) {
+  const normalizedText = normalizeNutritionImportText(text).replace(/\n+/g, " ");
+  if (normalizedText.length <= limit) {
+    return normalizedText;
+  }
+  return `${normalizedText.slice(0, Math.max(0, limit - 1)).trim()}…`;
+}
+
+function cleanImportLine(line) {
+  return String(line || "")
+    .replace(/^(?:[\u2022*•\-–—]+|\d+[.)])\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferMealLabelFromText(text) {
+  const normalizedText = normalizeLookupValue(text);
+
+  if (normalizedText.includes("dorucak") || normalizedText.includes("breakfast")) {
+    return defaultMeals[0];
+  }
+  if (normalizedText.includes("uzina") || normalizedText.includes("snack")) {
+    return defaultMeals[1];
+  }
+  if (normalizedText.includes("pre trening") || normalizedText.includes("pred trening") || normalizedText.includes("pre workout")) {
+    return defaultMeals[2];
+  }
+  if (normalizedText.includes("posle trening") || normalizedText.includes("nakon trening") || normalizedText.includes("post workout")) {
+    return defaultMeals[3];
+  }
+  if (normalizedText.includes("vecera") || normalizedText.includes("dinner")) {
+    return defaultMeals[4];
+  }
+  if (normalizedText.includes("rucak") || normalizedText.includes("lunch")) {
+    return "Ručak";
+  }
+
+  const cleanText = String(text || "").trim();
+  return cleanText && cleanText.length <= 34 ? cleanText : defaultMeals[0];
+}
+
+function getNutritionDocuments() {
+  return [...(store.nutritionLibrary?.documents || [])].sort(
+    (left, right) => new Date(right.importedAt || 0) - new Date(left.importedAt || 0)
+  );
+}
+
+function getNutritionRecommendations() {
+  return [...(store.nutritionLibrary?.recommendations || [])].sort(
+    (left, right) => new Date(right.importedAt || 0) - new Date(left.importedAt || 0)
+  );
+}
+
+function getNutritionImportedFoodsDetailed() {
+  const importedIds = new Set(store.nutritionLibrary?.importedFoodIds || []);
+  return getFoods().filter((food) => importedIds.has(food.id));
+}
+
+function getNutritionImportedRecipesDetailed() {
+  const importedIds = new Set(store.nutritionLibrary?.importedRecipeIds || []);
+  return getFavoriteMealsDetailed().filter((recipe) => importedIds.has(recipe.id));
+}
+
+function findFoodByName(name) {
+  const normalizedName = normalizeLookupValue(name);
+  if (!normalizedName) {
+    return null;
+  }
+  return store.foods.find((food) => normalizeLookupValue(food.name) === normalizedName) || null;
+}
+
+function getImportValueOrFallback(nextValue, currentValue) {
+  const normalizedNextValue = parseDecimal(nextValue);
+  if (normalizedNextValue > 0) {
+    return roundValue(normalizedNextValue, 1);
+  }
+  return roundValue(toNumber(currentValue), 1);
+}
+
+function loadExternalScript(src, globalName) {
+  if (globalName && window[globalName]) {
+    return Promise.resolve(window[globalName]);
+  }
+
+  if (externalScriptPromises.has(src)) {
+    return externalScriptPromises.get(src);
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(`script[data-external-src="${src}"]`);
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(globalName ? window[globalName] : true), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error(`Učitavanje biblioteke nije uspelo: ${src}`)), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.dataset.externalSrc = src;
+    script.onload = () => resolve(globalName ? window[globalName] : true);
+    script.onerror = () => reject(new Error(`Učitavanje biblioteke nije uspelo: ${src}`));
+    document.head.appendChild(script);
+  }).catch((error) => {
+    externalScriptPromises.delete(src);
+    throw error;
+  });
+
+  externalScriptPromises.set(src, promise);
+  return promise;
+}
+
+async function ensureMammoth() {
+  const mammoth = await loadExternalScript("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js", "mammoth");
+  if (!mammoth) {
+    throw new Error("DOCX parser nije dostupan.");
+  }
+  return mammoth;
+}
+
+async function ensurePdfJs() {
+  const pdfjsLib = await loadExternalScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", "pdfjsLib");
+  if (!pdfjsLib) {
+    throw new Error("PDF parser nije dostupan.");
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  return pdfjsLib;
+}
+
+async function extractTextFromDocxFile(file) {
+  const mammoth = await ensureMammoth();
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return normalizeNutritionImportText(result?.value || "");
+}
+
+async function extractTextFromPdfFile(file) {
+  const pdfjsLib = await ensurePdfJs();
+  const pdfDocument = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const pageTexts = [];
+
+  for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
+    const page = await pdfDocument.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+    let previousY = null;
+    const lines = [];
+
+    textContent.items.forEach((item) => {
+      const fragment = String(item.str || "").trim();
+      if (!fragment) {
+        return;
+      }
+      const y = Math.round(item.transform?.[5] || 0);
+      if (previousY !== null && Math.abs(previousY - y) > 4) {
+        lines.push("\n");
+      } else if (lines.length) {
+        lines.push(" ");
+      }
+      lines.push(fragment);
+      previousY = y;
+    });
+
+    pageTexts.push(lines.join("").replace(/\n{3,}/g, "\n\n"));
+  }
+
+  return normalizeNutritionImportText(pageTexts.join("\n\n"));
+}
+
+async function extractNutritionTextFromFile(file) {
+  const extension = getFileExtension(file.name);
+
+  if (["txt", "md", "csv", "json", "html", "htm"].includes(extension)) {
+    return {
+      text: normalizeNutritionImportText(await file.text()),
+      parser: extension.toUpperCase(),
+    };
+  }
+
+  if (extension === "docx") {
+    return {
+      text: await extractTextFromDocxFile(file),
+      parser: "DOCX",
+    };
+  }
+
+  if (extension === "pdf") {
+    return {
+      text: await extractTextFromPdfFile(file),
+      parser: "PDF",
+    };
+  }
+
+  throw new Error("Format trenutno nije podržan. Uvezi PDF, DOCX, TXT, MD, CSV ili JSON.");
+}
+
+function convertImportedPortionToGrams(amount, unit, ingredientName) {
+  const normalizedUnit = normalizeLookupValue(unit);
+  const normalizedName = normalizeLookupValue(ingredientName);
+  if (!amount) {
+    return 0;
+  }
+
+  if (["g", "gr", "gram", "grama", "grami"].includes(normalizedUnit)) {
+    return roundValue(amount, 0);
+  }
+  if (normalizedUnit === "kg") {
+    return roundValue(amount * 1000, 0);
+  }
+  if (["ml", "l"].includes(normalizedUnit)) {
+    return roundValue(normalizedUnit === "l" ? amount * 1000 : amount, 0);
+  }
+  if (normalizedUnit.includes("kasic")) {
+    return roundValue(amount * 5, 0);
+  }
+  if (normalizedUnit.includes("kasik")) {
+    return roundValue(amount * 15, 0);
+  }
+  if (normalizedUnit.includes("meric")) {
+    return roundValue(amount * 30, 0);
+  }
+  if (normalizedUnit.includes("solj") || normalizedUnit === "cup") {
+    return roundValue(amount * 240, 0);
+  }
+  if (normalizedUnit.includes("krisk")) {
+    return roundValue(amount * 30, 0);
+  }
+  if (normalizedUnit.includes("kom")) {
+    if (normalizedName.includes("jaje")) return roundValue(amount * 60, 0);
+    if (normalizedName.includes("banana")) return roundValue(amount * 120, 0);
+    if (normalizedName.includes("jabuk")) return roundValue(amount * 180, 0);
+    if (normalizedName.includes("tortilj")) return roundValue(amount * 60, 0);
+    return roundValue(amount * 50, 0);
+  }
+
+  return roundValue(amount, 0);
+}
+
+function parseIngredientCandidate(rawLine) {
+  const line = cleanImportLine(rawLine);
+  if (!line || /kcal|protein|proteini|uh|ugljeni|masti/i.test(line)) {
+    return null;
+  }
+
+  const patterns = [
+    /^(?<name>.+?)\s*(?:[-–:x×]|=)?\s*(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>kg|g|gr|grama?|ml|l|kom(?:ada)?|ka[sš]ika|ka[sš]i?čica|merica|merice|šolja|solja|cup|kri[sš]ka|kri[sš]ke)\b/i,
+    /^(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>kg|g|gr|grama?|ml|l|kom(?:ada)?|ka[sš]ika|ka[sš]i?čica|merica|merice|šolja|solja|cup|kri[sš]ka|kri[sš]ke)\s+(?<name>.+)$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = line.match(pattern);
+    if (!match?.groups) {
+      continue;
+    }
+
+    const amount = parseDecimal(match.groups.amount);
+    const name = String(match.groups.name || "")
+      .replace(/^[\-\u2022*•]+/, "")
+      .replace(/[.,;:]+$/, "")
+      .trim();
+    const grams = convertImportedPortionToGrams(amount, match.groups.unit || "", name);
+
+    if (!name || !grams) {
+      continue;
+    }
+
+    return {
+      name,
+      grams,
+      sourceAmount: amount,
+      sourceUnit: String(match.groups.unit || "").trim(),
+    };
+  }
+
+  return null;
+}
+
+function parseIngredientCandidatesFromBlock(block) {
+  const candidates = [];
+  const lines = String(block || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  lines.forEach((line) => {
+    const normalizedLine = line.replace(/^[\-\u2022*•\d.)]+\s*/, "").trim();
+    const parts = normalizedLine.split(/\s*(?:,|;|\+|\/)\s*/).filter(Boolean);
+    if (parts.length > 1) {
+      parts.forEach((part) => {
+        const candidate = parseIngredientCandidate(part);
+        if (candidate) {
+          candidates.push(candidate);
+        }
+      });
+      return;
+    }
+
+    const directCandidate = parseIngredientCandidate(normalizedLine);
+    if (directCandidate) {
+      candidates.push(directCandidate);
+    }
+  });
+
+  const deduped = new Map();
+  candidates.forEach((candidate) => {
+    const key = `${normalizeLookupValue(candidate.name)}:${roundValue(candidate.grams, 0)}`;
+    if (!deduped.has(key)) {
+      deduped.set(key, candidate);
+    }
+  });
+  return [...deduped.values()];
+}
+
+function parseMacroValue(line, labelPattern) {
+  const match = line.match(new RegExp(`${labelPattern}\\s*[:=]?\\s*(\\d+(?:[.,]\\d+)?)`, "i"));
+  return match ? parseDecimal(match[1]) : 0;
+}
+
+function parseFoodFromMacroLine(rawLine) {
+  const line = cleanImportLine(rawLine);
+  if (!line || !/(kcal|protein|proteini|uh|ugljeni|masti|fat)/i.test(line)) {
+    return null;
+  }
+
+  const servingMatch = line.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grama?|ml|l)\b/i);
+  const servingBaseGrams = servingMatch
+    ? convertImportedPortionToGrams(parseDecimal(servingMatch[1]), servingMatch[2], "")
+    : 100;
+  const kcalMatch = line.match(/(\d+(?:[.,]\d+)?)\s*kcal/i);
+  const protein = parseMacroValue(line, "(?:P|protein(?:i)?|proteini)");
+  const carbs = parseMacroValue(line, "(?:UH|ugljeni(?:\\s*hidrati)?)");
+  const fat = parseMacroValue(line, "(?:M|mast(?:i)?|masti|fat)");
+  let name = line
+    .split(/(?:\d+(?:[.,]\d+)?\s*kcal|\bP\b|\bUH\b|\bM\b|protein|proteini|ugljeni|masti|fat)/i)[0]
+    .replace(/[|•]/g, " ")
+    .replace(/\d+(?:[.,]\d+)?\s*(kg|g|gr|grama?|ml|l)\b/gi, " ")
+    .replace(/[.,;:]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!name || name.length < 2) {
+    const fallbackParts = line.split("|").map((part) => cleanImportLine(part)).filter(Boolean);
+    name = fallbackParts[0] || "";
+  }
+
+  if (!name || name.length < 2) {
+    return null;
+  }
+
+  return {
+    name,
+    category: "Nutri import",
+    servingBaseGrams: servingBaseGrams || 100,
+    kcal: kcalMatch ? parseDecimal(kcalMatch[1]) : 0,
+    protein,
+    carbs,
+    fat,
+  };
+}
+
+function createRecommendationRecord(text, documentRecord) {
+  const normalizedText = cleanImportLine(text);
+  if (!normalizedText) {
+    return null;
+  }
+
+  const titleCandidate = normalizedText.split(/[:.]/)[0].trim();
+  const title =
+    titleCandidate.length >= 6 && titleCandidate.length <= 58
+      ? titleCandidate
+      : normalizedText.split(/\s+/).slice(0, 6).join(" ");
+
+  return {
+    id: uid("nutrition-rec"),
+    title,
+    text: normalizedText,
+    sourceDocIds: [documentRecord.id],
+    sourceDocNames: [documentRecord.name],
+    importedAt: new Date().toISOString(),
+  };
+}
+
+function parseStructuredNutritionJson(text) {
+  try {
+    const payload = JSON.parse(text);
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    const recommendations = Array.isArray(payload.recommendations)
+      ? payload.recommendations
+          .map((entry) => (typeof entry === "string" ? { text: entry } : entry))
+          .filter((entry) => String(entry?.text || entry?.note || "").trim())
+          .map((entry) => ({
+            title: String(entry.title || entry.label || entry.text || entry.note).trim().slice(0, 80),
+            text: String(entry.text || entry.note || "").trim(),
+          }))
+      : [];
+
+    const foods = Array.isArray(payload.foods)
+      ? payload.foods
+          .filter((entry) => String(entry?.name || "").trim())
+          .map((entry) => ({
+            name: String(entry.name || "").trim(),
+            category: String(entry.category || "Nutri import").trim() || "Nutri import",
+            servingBaseGrams: Math.max(1, roundValue(parseDecimal(entry.servingBaseGrams || entry.grams || 100), 0)),
+            kcal: parseDecimal(entry.kcal),
+            protein: parseDecimal(entry.protein),
+            carbs: parseDecimal(entry.carbs),
+            fat: parseDecimal(entry.fat),
+          }))
+      : [];
+
+    const recipes = Array.isArray(payload.recipes)
+      ? payload.recipes
+          .filter((entry) => String(entry?.name || "").trim())
+          .map((entry) => ({
+            name: String(entry.name || "").trim(),
+            mealLabel: inferMealLabelFromText(entry.mealLabel || entry.name),
+            description: String(entry.description || "").trim(),
+            instructions: String(entry.instructions || "").trim(),
+            prepTimeMinutes: Math.max(0, roundValue(parseDecimal(entry.prepTimeMinutes), 0)),
+            items: Array.isArray(entry.items)
+              ? entry.items
+                  .filter((item) => String(item?.foodName || item?.name || "").trim())
+                  .map((item) => ({
+                    name: String(item.foodName || item.name || "").trim(),
+                    grams: Math.max(1, roundValue(parseDecimal(item.grams || item.amount || 0), 0)),
+                  }))
+              : [],
+          }))
+          .filter((recipe) => recipe.items.length)
+      : [];
+
+    if (!recommendations.length && !foods.length && !recipes.length) {
+      return null;
+    }
+
+    return { recommendations, foods, recipes };
+  } catch (error) {
+    return null;
+  }
+}
+
+function parseNutritionTextPayload(text) {
+  const blocks = normalizeNutritionImportText(text)
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  const recipes = [];
+  const foods = [];
+  const recommendations = [];
+  const consumedBlockIndexes = new Set();
+  const recipeKeys = new Set();
+
+  blocks.forEach((block, index) => {
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!lines.length) {
+      return;
+    }
+
+    const firstLine = cleanImportLine(lines[0]);
+    const inlineMealMatch = firstLine.match(/^([^:]{2,40})\s*:\s*(.+)$/);
+    const inlineIngredients = inlineMealMatch ? parseIngredientCandidatesFromBlock(inlineMealMatch[2]) : [];
+    const blockIngredients = parseIngredientCandidatesFromBlock(block);
+    const ingredients = inlineIngredients.length >= 2 ? inlineIngredients : blockIngredients;
+    const hasRecipeSignal = /(sastojci|priprema|recept|obrok|dorucak|doručak|ručak|rucak|večera|vecera|užina|uzina|smoothie|salata|omlet|kaša|kasa)/i.test(
+      block
+    );
+
+    if (ingredients.length >= 2 && (hasRecipeSignal || firstLine.length <= 56)) {
+      const recipeNameBase = inlineMealMatch
+        ? cleanImportLine(inlineMealMatch[1])
+        : !parseIngredientCandidate(firstLine) && firstLine.length <= 56
+          ? firstLine
+          : "";
+      const mealLabel = inferMealLabelFromText(recipeNameBase || firstLine);
+      const recipeName =
+        recipeNameBase ||
+        `${mealLabel} ${recipes.length + 1}`;
+      const prepTimeMatch = block.match(/(\d{1,3})\s*(min|minuta)/i);
+      const instructionLines = lines.filter((line) => {
+        const normalizedLine = cleanImportLine(line);
+        return normalizedLine && !parseIngredientCandidate(normalizedLine) && normalizedLine !== recipeNameBase;
+      });
+      const recipeKey = `${normalizeLookupValue(recipeName)}::${ingredients
+        .map((item) => `${normalizeLookupValue(item.name)}:${roundValue(item.grams, 0)}`)
+        .sort((left, right) => left.localeCompare(right))
+        .join("|")}`;
+
+      if (!recipeKeys.has(recipeKey)) {
+        recipes.push({
+          name: recipeName,
+          mealLabel,
+          description: instructionLines[0] && instructionLines[0].length <= 140 ? cleanImportLine(instructionLines[0]) : "",
+          instructions: instructionLines.join("\n"),
+          prepTimeMinutes: prepTimeMatch ? roundValue(parseDecimal(prepTimeMatch[1]), 0) : 0,
+          items: ingredients.map((item) => ({ name: item.name, grams: item.grams })),
+        });
+        recipeKeys.add(recipeKey);
+      }
+      consumedBlockIndexes.add(index);
+    }
+
+    lines.forEach((line) => {
+      const food = parseFoodFromMacroLine(line);
+      if (food) {
+        foods.push(food);
+      }
+    });
+  });
+
+  blocks.forEach((block, index) => {
+    if (consumedBlockIndexes.has(index)) {
+      return;
+    }
+
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const bulletLines = lines.filter((line) => /^(?:[\u2022*•\-–—]|\d+[.)])\s*/.test(line));
+    const candidates = bulletLines.length ? bulletLines : [block];
+
+    candidates.forEach((candidate) => {
+      const normalizedCandidate = cleanImportLine(candidate);
+      if (!normalizedCandidate) {
+        return;
+      }
+      if (parseIngredientCandidate(normalizedCandidate) || parseFoodFromMacroLine(normalizedCandidate)) {
+        return;
+      }
+      if (normalizedCandidate.split(/\s+/).length < 4) {
+        return;
+      }
+      recommendations.push({
+        title: normalizedCandidate.split(/[:.]/)[0].trim().slice(0, 80),
+        text: normalizedCandidate,
+      });
+    });
+  });
+
+  return { recommendations, foods, recipes };
+}
+
+function buildNutritionDocumentRecord(file, text, parserLabel) {
+  return {
+    id: uid("nutrition-doc"),
+    name: String(file.name || "Dokument"),
+    type: (file.type || getFileExtension(file.name) || "text").toLowerCase(),
+    parserLabel,
+    size: Number(file.size) || 0,
+    importedAt: new Date().toISOString(),
+    excerpt: trimDocumentSnippet(text),
+    recommendationCount: 0,
+    foodCount: 0,
+    recipeCount: 0,
+    status: "Obrađeno",
+  };
+}
+
+function upsertNutritionFood(foodDraft = {}, documentRecord) {
+  const foodName = String(foodDraft.name || "").trim();
+  if (!foodName) {
+    return null;
+  }
+
+  const existingFood = findFoodByName(foodName);
+  const nextFoodFields = {
+    name: foodName,
+    category: String(foodDraft.category || existingFood?.category || "Nutri import").trim() || "Nutri import",
+    servingBaseGrams: Math.max(1, roundValue(parseDecimal(foodDraft.servingBaseGrams || existingFood?.servingBaseGrams || 100), 0)),
+    kcal: getImportValueOrFallback(foodDraft.kcal, existingFood?.kcal),
+    protein: getImportValueOrFallback(foodDraft.protein, existingFood?.protein),
+    carbs: getImportValueOrFallback(foodDraft.carbs, existingFood?.carbs),
+    fat: getImportValueOrFallback(foodDraft.fat, existingFood?.fat),
+    importSource: "nutrition-import",
+    importSourceDocIds: mergeUniqueStrings(existingFood?.importSourceDocIds || [], [documentRecord.id]),
+    importSourceDocNames: mergeUniqueStrings(existingFood?.importSourceDocNames || [], [documentRecord.name]),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (existingFood) {
+    Object.assign(existingFood, nextFoodFields);
+    return existingFood;
+  }
+
+  const nextFood = {
+    id: uid("food"),
+    ...nextFoodFields,
+    createdAt: new Date().toISOString(),
+  };
+  store.foods.push(nextFood);
+  return nextFood;
+}
+
+function getUniqueImportedRecipeName(baseName, documentRecord) {
+  const normalizedBaseName = String(baseName || "").trim() || "Nutri recept";
+  const existingRecipe = getFavoriteMealByName(normalizedBaseName);
+  if (!existingRecipe) {
+    return normalizedBaseName;
+  }
+
+  if (existingRecipe.importSource === "nutrition-import") {
+    return normalizedBaseName;
+  }
+
+  const suffixBase = documentRecord?.name ? documentRecord.name.replace(/\.[^.]+$/, "") : "Import";
+  return `${normalizedBaseName} · ${suffixBase}`;
+}
+
+function upsertNutritionRecipe(recipeDraft = {}, documentRecord) {
+  const recipeName = getUniqueImportedRecipeName(recipeDraft.name, documentRecord);
+  const existingRecipe = getFavoriteMealByName(recipeName);
+  const items = (recipeDraft.items || [])
+    .map((item) => {
+      const food = upsertNutritionFood(
+        {
+          name: item.name,
+          category: "Nutri import",
+          servingBaseGrams: 100,
+        },
+        documentRecord
+      );
+      if (!food) {
+        return null;
+      }
+
+      return {
+        id: uid("favorite-item"),
+        foodId: food.id,
+        foodName: food.name,
+        grams: Math.max(1, roundValue(parseDecimal(item.grams), 0)),
+      };
+    })
+    .filter(Boolean);
+
+  if (!items.length) {
+    return null;
+  }
+
+  const nextRecipeFields = {
+    name: recipeName,
+    mealLabel: normalizeMealLabel(recipeDraft.mealLabel || inferMealLabelFromText(recipeName)),
+    description: String(recipeDraft.description || "").trim(),
+    instructions: String(recipeDraft.instructions || "").trim(),
+    prepTimeMinutes: Math.max(0, roundValue(parseDecimal(recipeDraft.prepTimeMinutes), 0)) || null,
+    items,
+    importSource: "nutrition-import",
+    importSourceDocIds: mergeUniqueStrings(existingRecipe?.importSourceDocIds || [], [documentRecord.id]),
+    importSourceDocNames: mergeUniqueStrings(existingRecipe?.importSourceDocNames || [], [documentRecord.name]),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (existingRecipe) {
+    Object.assign(existingRecipe, nextRecipeFields);
+    return existingRecipe;
+  }
+
+  const nextRecipe = {
+    id: uid("favorite-meal"),
+    ...nextRecipeFields,
+    createdAt: new Date().toISOString(),
+  };
+  store.favoriteMeals.unshift(nextRecipe);
+  return nextRecipe;
+}
+
+function mergeNutritionImportResult(parsedResult, documentRecord) {
+  const importedFoodIds = [];
+  const importedRecipeIds = [];
+  const importedRecommendationIds = [];
+
+  (parsedResult.foods || []).forEach((foodDraft) => {
+    const importedFood = upsertNutritionFood(foodDraft, documentRecord);
+    if (importedFood) {
+      importedFoodIds.push(importedFood.id);
+    }
+  });
+
+  (parsedResult.recipes || []).forEach((recipeDraft) => {
+    const importedRecipe = upsertNutritionRecipe(recipeDraft, documentRecord);
+    if (importedRecipe) {
+      importedRecipeIds.push(importedRecipe.id);
+      importedRecipe.items.forEach((item) => {
+        if (item.foodId) {
+          importedFoodIds.push(item.foodId);
+        }
+      });
+    }
+  });
+
+  (parsedResult.recommendations || []).forEach((entry) => {
+    const recommendation = createRecommendationRecord(entry.text || entry, documentRecord);
+    if (!recommendation) {
+      return;
+    }
+
+    const existingRecommendation = (store.nutritionLibrary?.recommendations || []).find(
+      (item) => normalizeLookupValue(item.text) === normalizeLookupValue(recommendation.text)
+    );
+
+    if (existingRecommendation) {
+      existingRecommendation.sourceDocIds = mergeUniqueStrings(existingRecommendation.sourceDocIds || [], [documentRecord.id]);
+      existingRecommendation.sourceDocNames = mergeUniqueStrings(
+        existingRecommendation.sourceDocNames || [],
+        [documentRecord.name]
+      );
+      importedRecommendationIds.push(existingRecommendation.id);
+      return;
+    }
+
+    store.nutritionLibrary.recommendations.unshift(recommendation);
+    importedRecommendationIds.push(recommendation.id);
+  });
+
+  store.nutritionLibrary.importedFoodIds = mergeUniqueStrings(store.nutritionLibrary.importedFoodIds || [], importedFoodIds);
+  store.nutritionLibrary.importedRecipeIds = mergeUniqueStrings(
+    store.nutritionLibrary.importedRecipeIds || [],
+    importedRecipeIds
+  );
+  store.nutritionLibrary.lastImportedAt = new Date().toISOString();
+
+  return {
+    importedFoodIds: mergeUniqueStrings(importedFoodIds),
+    importedRecipeIds: mergeUniqueStrings(importedRecipeIds),
+    importedRecommendationIds: mergeUniqueStrings(importedRecommendationIds),
+  };
+}
+
+async function importNutritionFiles(files = []) {
+  const importedDocuments = [];
+  const errors = [];
+  let totalRecommendations = 0;
+  let totalFoods = 0;
+  let totalRecipes = 0;
+
+  for (const file of files) {
+    try {
+      const { text, parser } = await extractNutritionTextFromFile(file);
+      if (!text) {
+        throw new Error("U fajlu nema dovoljno teksta za obradu.");
+      }
+
+      const documentRecord = buildNutritionDocumentRecord(file, text, parser);
+      const structuredJson = getFileExtension(file.name) === "json" ? parseStructuredNutritionJson(text) : null;
+      const parsedResult = structuredJson || parseNutritionTextPayload(text);
+      const mergeResult = mergeNutritionImportResult(parsedResult, documentRecord);
+
+      documentRecord.recommendationCount = mergeResult.importedRecommendationIds.length;
+      documentRecord.foodCount = mergeResult.importedFoodIds.length;
+      documentRecord.recipeCount = mergeResult.importedRecipeIds.length;
+      documentRecord.status =
+        documentRecord.recipeCount || documentRecord.foodCount || documentRecord.recommendationCount
+          ? "Spremno za korišćenje"
+          : "Sačuvan dokument";
+
+      store.nutritionLibrary.documents.unshift(documentRecord);
+      importedDocuments.push(documentRecord);
+      totalRecommendations += documentRecord.recommendationCount;
+      totalFoods += documentRecord.foodCount;
+      totalRecipes += documentRecord.recipeCount;
+    } catch (error) {
+      errors.push({
+        fileName: file.name,
+        message: error instanceof Error ? error.message : "Import nije uspeo.",
+      });
+      store.nutritionLibrary.documents.unshift({
+        id: uid("nutrition-doc"),
+        name: String(file.name || "Dokument"),
+        type: (file.type || getFileExtension(file.name) || "file").toLowerCase(),
+        parserLabel: "Greška",
+        size: Number(file.size) || 0,
+        importedAt: new Date().toISOString(),
+        excerpt: trimDocumentSnippet(error instanceof Error ? error.message : "Import nije uspeo."),
+        recommendationCount: 0,
+        foodCount: 0,
+        recipeCount: 0,
+        status: "Import nije uspeo",
+      });
+    }
+  }
+
+  return {
+    importedDocuments,
+    totalRecommendations,
+    totalFoods,
+    totalRecipes,
+    errors,
+  };
 }
 
 function roundValue(value, digits = 1) {
@@ -3949,6 +4838,235 @@ function renderGoalsTab() {
   `;
 }
 
+function renderNutritionSourcePills(sourceDocNames = []) {
+  const names = mergeUniqueStrings(sourceDocNames);
+  if (!names.length) {
+    return "";
+  }
+
+  return `
+    <div class="pill-row">
+      ${names.map((name) => `<span class="pill note">${escapeHtml(name)}</span>`).join("")}
+    </div>
+  `;
+}
+
+function renderNutritionTab() {
+  const documents = getNutritionDocuments();
+  const recommendations = getNutritionRecommendations();
+  const importedFoods = getNutritionImportedFoodsDetailed();
+  const importedRecipes = getNutritionImportedRecipesDetailed();
+  const lastImportedAt = store.nutritionLibrary?.lastImportedAt
+    ? new Date(store.nutritionLibrary.lastImportedAt).toLocaleString("sr-RS")
+    : "";
+  const importStatus = state.nutritionImportPending
+    ? state.nutritionImportStatus || "Obrađujem dokumente..."
+    : documents.length
+      ? "Import arhiva"
+      : "Spremno za prvi unos";
+
+  return `
+    <section class="section nutrition-overview-section">
+      ${renderSectionLead(
+        "Nutricionista desk",
+        "Uvezi PDF, DOCX ili tekstualne planove i app će izvući preporuke, recepte i namirnice koje možeš odmah da koristiš.",
+        { eyebrow: "Nutricionista" }
+      )}
+      <div class="settings-grid nutrition-summary-grid">
+        ${renderStatusSummaryCard({
+          title: state.nutritionImportPending ? "Obrada je u toku" : "Import centar",
+          detail: state.nutritionImportPending
+            ? state.nutritionImportStatus || "Sačekaj da pročitam dokumente i rasporedim ih po sekcijama."
+            : "Import ne briše postojeće recepte i namirnice. Samo dodaje ili osvežava ono što prepozna iz dokumenata.",
+          statusLabel: importStatus,
+          tone: state.nutritionImportPending ? "warning" : "info",
+          pills: [
+            { label: "PDF / DOCX / TXT / MD / CSV / JSON", strong: true, tone: "info" },
+            { label: "Više fajlova odjednom", tone: "success" },
+            ...(lastImportedAt ? [{ label: `Poslednji import ${lastImportedAt}`, tone: "warning" }] : []),
+          ],
+          actions: `
+            <label class="solid-button secondary-button button-with-icon ${state.nutritionImportPending ? "is-disabled" : ""}" for="nutrition-import-files">
+              ${renderButtonContent("Uvezi dokumente", "open")}
+            </label>
+            <button class="ghost-button button-with-icon" type="button" data-action="clear-nutrition-imports" ${
+              !documents.length || state.nutritionImportPending ? "disabled" : ""
+            }>
+              ${renderButtonContent("Očisti arhivu", "delete")}
+            </button>
+            <input id="nutrition-import-files" type="file" accept=".pdf,.docx,.txt,.md,.csv,.json" multiple hidden />
+          `,
+        })}
+
+        ${renderStatusSummaryCard({
+          title: `${documents.length} dokumenata u arhivi`,
+          detail: "Svaki import pamti izvor, kratak sažetak i koliko je recepata, namirnica i preporuka izvučeno.",
+          statusLabel: documents.length ? "Arhiva živa" : "Još prazno",
+          tone: documents.length ? "success" : "warning",
+          pills: [
+            { label: `${recommendations.length} preporuka`, tone: "info" },
+            { label: `${importedRecipes.length} recepata`, tone: "success" },
+            { label: `${importedFoods.length} namirnica`, tone: "warning" },
+          ],
+          actions: `
+            <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">
+              ${renderButtonContent("Otvori recepte", "open")}
+            </button>
+            <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">
+              ${renderButtonContent("Otvori namirnice", "open")}
+            </button>
+          `,
+        })}
+      </div>
+    </section>
+
+    <section class="section nutrition-recommendations-section">
+      ${renderSectionLead("Preporuke i smernice", "Sve što je parser prepoznao kao savet, okvir ili napomenu nutricioniste.", {
+        eyebrow: "Preporuke",
+      })}
+      <div class="stack nutrition-recommendations-stack">
+        ${
+          recommendations.length
+            ? recommendations
+                .map(
+                  (entry) => `
+                    <article class="status-summary-card nutrition-note-card">
+                      <div class="status-summary-copy">
+                        <strong>${escapeHtml(entry.title || "Preporuka")}</strong>
+                        <div class="footer-note">${escapeHtml(entry.text)}</div>
+                      </div>
+                      ${renderNutritionSourcePills(entry.sourceDocNames)}
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Kad uvezeš dokumente, ovde će se pojaviti saveti, smernice i napomene nutricioniste.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section nutrition-recipes-section">
+      ${renderSectionLead("Uvezeni recepti", "Recipe blokovi iz dokumenata odmah ulaze u tvoju biblioteku recepata i odavde ih možeš ubaciti u plan.", {
+        eyebrow: "Recepti",
+      })}
+      <div class="stack nutrition-recipes-stack">
+        ${
+          importedRecipes.length
+            ? importedRecipes
+                .map(
+                  (recipe) => `
+                    <article class="food-card recipe-library-card nutrition-import-card">
+                      <div class="food-card-top">
+                        <strong>${escapeHtml(recipe.name)}</strong>
+                        <span class="pill strong pill--success">${escapeHtml(recipe.mealLabel || "Recept")}</span>
+                      </div>
+                      <div class="footer-note">${escapeHtml(recipe.description || "Importovano iz dokumenta nutricioniste.")}</div>
+                      <div class="pill-row">
+                        <span class="pill">${recipe.items.length} sastojka</span>
+                        <span class="pill">${recipe.prepTimeMinutes ? `${recipe.prepTimeMinutes} min` : "Vreme nije nađeno"}</span>
+                        <span class="pill note">${roundValue(recipe.totals.kcal, 0)} kcal</span>
+                      </div>
+                      ${renderNutritionSourcePills(recipe.importSourceDocNames)}
+                      <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
+                        ${recipe.items
+                          .map(
+                            (item) => `<span class="pill">${escapeHtml(item.foodName)} · ${roundValue(item.grams, 0)} g</span>`
+                          )
+                          .join("")}
+                      </div>
+                      <div class="entry-actions nutrition-card-actions">
+                        <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${recipe.id}">
+                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
+                        </button>
+                        <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${recipe.id}">
+                          ${renderButtonContent("Izmeni recept", "edit")}
+                        </button>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Ovde ćeš videti recepte koje izvučem iz dokumenata, zajedno sa sastojcima i gramažom.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section nutrition-foods-section">
+      ${renderSectionLead("Uvezene namirnice", "Namirnice prepoznate iz tabela, recepata i lista odmah idu u tvoju bazu hrane.", {
+        eyebrow: "Namirnice",
+      })}
+      <div class="stack nutrition-foods-stack">
+        ${
+          importedFoods.length
+            ? importedFoods
+                .map(
+                  (food) => `
+                    <article class="status-summary-card nutrition-food-card">
+                      <div class="status-summary-top">
+                        <div class="status-summary-copy">
+                          <strong>${escapeHtml(food.name)}</strong>
+                          <div class="footer-note">${escapeHtml(food.category || "Nutri import")}</div>
+                        </div>
+                        <span class="pill strong pill--warning">${roundValue(food.servingBaseGrams || 100, 0)} g baza</span>
+                      </div>
+                      <div class="pill-row">
+                        <span class="pill">${roundValue(food.kcal, 0)} kcal</span>
+                        <span class="pill">P ${roundValue(food.protein, 1)} g</span>
+                        <span class="pill">UH ${roundValue(food.carbs, 1)} g</span>
+                        <span class="pill">M ${roundValue(food.fat, 1)} g</span>
+                      </div>
+                      ${renderNutritionSourcePills(food.importSourceDocNames)}
+                      <div class="entry-actions nutrition-card-actions">
+                        <button class="ghost-button button-with-icon" data-action="edit-food" data-food-id="${food.id}">
+                          ${renderButtonContent("Otvori namirnicu", "edit")}
+                        </button>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Kad parser prepozna namirnice i tabelarne vrednosti, pojaviće se ovde.</div>`
+        }
+      </div>
+    </section>
+
+    <section class="section nutrition-documents-section">
+      ${renderSectionLead("Arhiva dokumenata", "Kratak pregled svega što si importovao, da znaš iz kog dokumenta je šta došlo.", {
+        eyebrow: "Dokumenti",
+      })}
+      <div class="stack nutrition-documents-stack">
+        ${
+          documents.length
+            ? documents
+                .map(
+                  (doc) => `
+                    <article class="status-summary-card nutrition-doc-card">
+                      <div class="status-summary-top">
+                        <div class="status-summary-copy">
+                          <strong>${escapeHtml(doc.name)}</strong>
+                          <div class="footer-note">${escapeHtml(doc.excerpt || "Bez sažetka")}</div>
+                        </div>
+                        <span class="pill strong pill--info">${escapeHtml(doc.status || "Sačuvano")}</span>
+                      </div>
+                      <div class="pill-row">
+                        <span class="pill">${escapeHtml(doc.parserLabel || "Tekst")}</span>
+                        <span class="pill">${getFileSizeLabel(doc.size)}</span>
+                        <span class="pill">${doc.recipeCount || 0} recepata</span>
+                        <span class="pill">${doc.foodCount || 0} namirnica</span>
+                        <span class="pill">${doc.recommendationCount || 0} preporuka</span>
+                      </div>
+                      <div class="footer-note">Uvezeno ${new Date(doc.importedAt).toLocaleString("sr-RS")}</div>
+                    </article>
+                  `
+                )
+                .join("")
+            : `<div class="empty">Još nema uvezenih dokumenata. Klikni na "Uvezi dokumente" i ubaci planove nutricioniste.</div>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 function renderSettingsTab() {
   const syncStatusTone = getSyncStatusTone();
 
@@ -4536,6 +5654,7 @@ function render() {
   const sections = {
     plan: renderPlanTab(entries),
     recipes: renderRecipesTab(),
+    nutrition: renderNutritionTab(),
     foods: renderFoodsTab(),
     training: renderTrainingTab(),
     routine: renderRoutineTab(),
@@ -4676,6 +5795,28 @@ async function handleDocumentClick(event) {
     window.location.hash = state.activeTab;
     render();
     window.requestAnimationFrame(() => scrollPageTop("auto"));
+    return;
+  }
+
+  if (action === "clear-nutrition-imports") {
+    if (!(store.nutritionLibrary?.documents?.length || store.nutritionLibrary?.recommendations?.length)) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Obriši arhivu importovanih dokumenata i preporuka? Recepti i namirnice koji su već ubačeni ostaće sačuvani."
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    store.nutritionLibrary.documents = [];
+    store.nutritionLibrary.recommendations = [];
+    store.nutritionLibrary.importedFoodIds = [];
+    store.nutritionLibrary.importedRecipeIds = [];
+    store.nutritionLibrary.lastImportedAt = "";
+    persist();
+    render();
     return;
   }
 
@@ -6219,21 +7360,20 @@ function handleInput(event) {
   }
 }
 
-function handleImport(event) {
+async function handleImport(event) {
   const target = event.target;
   if (target instanceof HTMLInputElement && target.id === "grams") {
     render();
     return;
   }
 
-  if (!(target instanceof HTMLInputElement) || target.id !== "import-json" || !target.files?.[0]) {
+  if (!(target instanceof HTMLInputElement) || !target.files?.length) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = () => {
+  if (target.id === "import-json") {
     try {
-      const parsed = JSON.parse(String(reader.result));
+      const parsed = JSON.parse(await target.files[0].text());
       replaceStore(parsed);
       persist();
       render();
@@ -6241,9 +7381,44 @@ function handleImport(event) {
     } catch (error) {
       showFeedbackToast({ title: "Backup nije validan", detail: "Izabrani fajl nije ispravan JSON backup.", tone: "error" });
     }
-  };
-  reader.readAsText(target.files[0]);
-  target.value = "";
+    target.value = "";
+    return;
+  }
+
+  if (target.id !== "nutrition-import-files") {
+    return;
+  }
+
+  const files = [...target.files];
+  state.nutritionImportPending = true;
+  state.nutritionImportStatus =
+    files.length === 1 ? `Obrađujem "${files[0].name}"...` : `Obrađujem ${files.length} dokumenta...`;
+  render();
+
+  try {
+    const result = await importNutritionFiles(files);
+    persist();
+    showFeedbackToast({
+      title: result.importedDocuments.length ? "Dokumenti su uvezeni" : "Import je završen",
+      detail: `${result.importedDocuments.length} dok. · ${result.totalRecommendations} preporuka · ${result.totalRecipes} recepata · ${result.totalFoods} namirnica${
+        result.errors.length ? ` · ${result.errors.length} grešaka` : ""
+      }`,
+      tone: result.errors.length ? "warning" : "success",
+      duration: result.errors.length ? 4200 : 2800,
+    });
+  } catch (error) {
+    showFeedbackToast({
+      title: "Import nije uspeo",
+      detail: error instanceof Error ? error.message : "Pokušaj ponovo sa drugim dokumentom.",
+      tone: "error",
+      duration: 3600,
+    });
+  } finally {
+    state.nutritionImportPending = false;
+    state.nutritionImportStatus = "";
+    target.value = "";
+    render();
+  }
 }
 
 document.addEventListener("click", handleDocumentClick);
