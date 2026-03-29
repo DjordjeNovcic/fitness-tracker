@@ -1735,7 +1735,8 @@ function buildNutritionPlanMeal(mealTitle, mealText) {
   const items = rawItems.map((item) => {
     const itemName = item.displayName || item.name || "";
     const exactFood = item.foodId ? getFoodById(item.foodId) : null;
-    const matchedFood = exactFood || findFoodByExactName(canonicalizeImportedFoodName(item.name) || itemName) || null;
+    const canonicalItemName = canonicalizeImportedFoodName(item.name) || itemName;
+    const matchedFood = exactFood || findFoodByExactName(canonicalItemName) || findBestFoodMatchByName(canonicalItemName) || null;
     const totals = matchedFood ? calculateEntry(matchedFood, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
 
     return {
@@ -2831,6 +2832,25 @@ function linkImportedFoodToExisting(targetStore, importedFoodId, existingFoodId)
   return existingFood;
 }
 
+function promoteImportedFoodToLibrary(targetStore, importedFoodId) {
+  const importedFood = (targetStore.foods || []).find((food) => food.id === importedFoodId);
+  if (!importedFood) {
+    return null;
+  }
+
+  if (importedFood.importSource === "nutrition-import") {
+    importedFood.importSource = "";
+    importedFood.importSourceDocIds = [];
+    importedFood.importSourceDocNames = [];
+  }
+
+  targetStore.nutritionLibrary.importedFoodIds = mergeUniqueStrings(
+    (targetStore.nutritionLibrary.importedFoodIds || []).filter((foodId) => foodId !== importedFood.id)
+  );
+
+  return importedFood;
+}
+
 function dismissImportedFoodReview(targetStore, importedFoodId) {
   const importedFood = (targetStore.foods || []).find((food) => food.id === importedFoodId);
   if (!importedFood) {
@@ -3421,7 +3441,12 @@ function getFavoriteMealsDetailed() {
       const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
       const servings = getRecipeServingCount(normalizedFavorite);
       const items = (normalizedFavorite.items || []).map((item) => {
-        const food = getFoodById(item.foodId) || store.foods.find((entry) => entry.name === item.foodName);
+        const fallbackFoodName = item.foodName || item.displayName || "";
+        const food =
+          getFoodById(item.foodId) ||
+          findFoodByExactName(fallbackFoodName) ||
+          findBestFoodMatchByName(fallbackFoodName) ||
+          store.foods.find((entry) => entry.name === item.foodName);
         const totals = food ? calculateEntry(food, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
         return {
           ...item,
@@ -8934,13 +8959,15 @@ async function handleSubmit(event) {
           }
         : entry
     );
+    const savedFood = promoteImportedFoodToLibrary(store, foodId);
+    pruneNutritionImportIndexes();
 
     state.nutritionEditingFoodId = "";
     persist();
     render();
     showFeedbackToast({
       title: "Nutritivne vrednosti su sačuvane",
-      detail: `${food.name} sada ima ažurirane kcal i makroe u bazi namirnica.`,
+      detail: `${savedFood?.name || food.name} sada je regularna stavka u Namirnicama i neće se vraćati u nutrition review.`,
       tone: "success",
     });
     return;
