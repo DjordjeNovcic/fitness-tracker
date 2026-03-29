@@ -691,6 +691,10 @@ function normalizeImportedIngredientName(name) {
   return cleanImportLine(name)
     .replace(/\([^)]*\)/g, "")
     .replace(
+      /\b(?:samlevenih|samlevene|samleveno|samleven|mlevenih|mlevene|mleveno|mleven|seckanih|seckane|seckano|seckan|isecenih|isecene|iseceno|isecen|iseckanih|iseckane|iseckano|iseckan|usitnjenih|usitnjene|usitnjeno|usitnjen|krupno|sitno|domaci|domaca|domace|domaćih|domacih)\b/gi,
+      ""
+    )
+    .replace(
       /^(?:u\s+[a-zčćžšđ]+\s+)?(?:izgnjavimo|dodati|dodamo|staviti|stavimo|preko(?:\s+toga)?\s+staviti|premazati|napraviti(?:\s+omlet)?\s+od|napraviti|umutiti|pome[sš]ati|prome[sš]ati|posuti|preliti|poređati|poredjati|iseci|iseći|iseckati|isjeći|izgrilovati|spremiti|salata sa|preko)\s+/i,
       ""
     )
@@ -784,6 +788,41 @@ function canonicalizeImportedFoodName(name) {
 
   if (normalizedName.includes("grcki jogurt")) {
     return "grčki jogurt";
+  }
+  if (normalizedName.includes("ovs") && normalizedName.includes("pahulj")) {
+    return "ovsene pahuljice";
+  }
+  if (normalizedName.includes("piletin")) {
+    return normalizedName.includes("prsa") ? "pileća prsa" : "piletina";
+  }
+  if (normalizedName.includes("pecur")) {
+    return "pečurke";
+  }
+  if (normalizedName.includes("paradajz") && normalizedName.includes("sok")) {
+    return "sok od paradajza";
+  }
+  if (normalizedName.includes("paradajz")) {
+    return "paradajz";
+  }
+  if (normalizedName.includes("sargarep")) {
+    return "šargarepa";
+  }
+  if (normalizedName.includes("kupus")) {
+    return "kupus";
+  }
+  if (normalizedName.includes("luk")) {
+    if (normalizedName.includes("beli")) {
+      return "beli luk";
+    }
+    if (normalizedName.includes("crni")) {
+      return "crni luk";
+    }
+  }
+  if (normalizedName === "so" || normalizedName.includes(" soli")) {
+    return "so";
+  }
+  if (normalizedName.includes("voda")) {
+    return normalizedName.includes("kisela") ? "kisela voda" : "voda";
   }
   if (normalizedName.includes("krem sira meggle classic") || normalizedName.includes("sirni namaz meggle classik")) {
     return "meggle cream cheese classic";
