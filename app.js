@@ -3829,17 +3829,23 @@ function renderMetricsGrid(metrics) {
 
 function renderHero(entries, totals) {
   return `
-    <section class="hero">
+    <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
-        <div>
+        <div class="hero-copy">
           <span class="hero-tag">Plan</span>
-          <h1>Nedeljni jelovnik</h1>
-          <p>Izaberi dan i sredi obroke za taj plan.</p>
+          <div class="hero-copy-text">
+            <h1>Nedeljni jelovnik</h1>
+            <p>Izaberi dan i odmah sredi obroke za taj plan.</p>
+          </div>
+        </div>
+        <div class="hero-status" aria-label="Aktivan dan">
+          <span class="hero-status-label">Aktivan dan</span>
+          <strong>${escapeHtml(state.selectedWeekday)}</strong>
         </div>
       </div>
       <div class="hero-day-picker">
-        <div class="hero-picker-label">Dan u nedelji</div>
-        <div class="chips" style="margin-top:12px;">
+        <div class="hero-picker-label">Promeni dan</div>
+        <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
             <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
