@@ -126,6 +126,7 @@ const state = {
   deletedPlanEntry: null,
   editingFoodId: "",
   nutritionEditingFoodId: "",
+  nutritionSelectedPlanId: "",
   editingHabitId: "",
   editingTaskId: "",
   editingSupplementId: "",
@@ -209,6 +210,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       recommendations: Array.isArray(rawStore.nutritionLibrary?.recommendations)
         ? rawStore.nutritionLibrary.recommendations
         : [],
+      plans: Array.isArray(rawStore.nutritionLibrary?.plans) ? rawStore.nutritionLibrary.plans : [],
       importedFoodIds: Array.isArray(rawStore.nutritionLibrary?.importedFoodIds)
         ? rawStore.nutritionLibrary.importedFoodIds
         : [],
@@ -311,6 +313,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.nutritionLibrary.recommendations = Array.isArray(targetStore.nutritionLibrary.recommendations)
     ? targetStore.nutritionLibrary.recommendations
     : [];
+  targetStore.nutritionLibrary.plans = Array.isArray(targetStore.nutritionLibrary.plans) ? targetStore.nutritionLibrary.plans : [];
   targetStore.nutritionLibrary.importedFoodIds = Array.isArray(targetStore.nutritionLibrary.importedFoodIds)
     ? targetStore.nutritionLibrary.importedFoodIds
     : [];
@@ -1021,6 +1024,73 @@ function getNutritionRecommendations() {
   );
 }
 
+function getNutritionPlans() {
+  return [...(store.nutritionLibrary?.plans || [])].sort((left, right) => {
+    const dayDiff = toNumber(left.dayNumber) - toNumber(right.dayNumber);
+    if (dayDiff !== 0) {
+      return dayDiff;
+    }
+    return String(left.title || "").localeCompare(String(right.title || ""), "sr");
+  });
+}
+
+function getNutritionPlanById(planId) {
+  return getNutritionPlans().find((plan) => plan.id === planId) || null;
+}
+
+function getNutritionPlanMealApplyItems(meal) {
+  if (Array.isArray(meal.items) && meal.items.length) {
+    return meal.items.filter((item) => item.foodId);
+  }
+
+  if (meal.linkedRecipeId) {
+    const linkedRecipe = getFavoriteMealsDetailed().find((recipe) => recipe.id === meal.linkedRecipeId);
+    if (linkedRecipe) {
+      return (linkedRecipe.items || []).filter((item) => item.foodId);
+    }
+  }
+
+  return [];
+}
+
+function applyNutritionPlanDayToSelectedWeekday(planId, mode = "replace") {
+  const plan = getNutritionPlanById(planId);
+  if (!plan) {
+    return { appliedCount: 0, skippedMeals: 0 };
+  }
+
+  if (mode === "replace") {
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => entry.weekday !== state.selectedWeekday);
+  }
+
+  let appliedCount = 0;
+  let skippedMeals = 0;
+
+  (plan.meals || []).forEach((meal) => {
+    const mealLabel = normalizeMealLabel(meal.mealLabel || meal.title);
+    const applyItems = getNutritionPlanMealApplyItems(meal);
+    if (!applyItems.length) {
+      skippedMeals += 1;
+      return;
+    }
+
+    applyItems.forEach((item) => {
+      store.weeklyPlanEntries.push({
+        id: uid("plan"),
+        weekday: state.selectedWeekday,
+        mealLabel,
+        foodId: item.foodId,
+        foodName: item.foodName || item.displayName || "",
+        grams: roundValue(item.grams, 1),
+        done: false,
+      });
+      appliedCount += 1;
+    });
+  });
+
+  return { appliedCount, skippedMeals };
+}
+
 function getNutritionImportedFoodsDetailed() {
   const importedIds = new Set(store.nutritionLibrary?.importedFoodIds || []);
   return getFoods().filter((food) => importedIds.has(food.id));
@@ -1132,6 +1202,13 @@ function removeNutritionImportDataForDocument(documentName) {
   store.nutritionLibrary.documents = (store.nutritionLibrary.documents || []).filter(
     (documentRecord) => !matchesImportedDocumentName(documentRecord.name, documentName)
   );
+  store.nutritionLibrary.plans = (store.nutritionLibrary.plans || [])
+    .map((plan) => ({
+      ...plan,
+      sourceDocNames: (plan.sourceDocNames || []).filter((entry) => !matchesImportedDocumentName(entry, documentName)),
+      sourceDocIds: (plan.sourceDocIds || []).filter((docId) => !removedDocumentIds.has(docId)),
+    }))
+    .filter((plan) => (plan.sourceDocNames || []).length || (plan.sourceDocIds || []).length);
   store.nutritionLibrary.recommendations = (store.nutritionLibrary.recommendations || [])
     .map((recommendation) => {
       const sourceDocNames = (recommendation.sourceDocNames || []).filter((entry) => !matchesImportedDocumentName(entry, documentName));
@@ -1165,6 +1242,7 @@ function resetNutritionImportWorkspace(targetStore) {
   targetStore.foods = (targetStore.foods || []).filter((food) => !importedFoodIds.has(food.id));
   targetStore.favoriteFoods = (targetStore.favoriteFoods || []).filter((foodId) => !importedFoodIds.has(foodId));
   targetStore.nutritionLibrary.documents = [];
+  targetStore.nutritionLibrary.plans = [];
   targetStore.nutritionLibrary.recommendations = [];
   targetStore.nutritionLibrary.importedFoodIds = [];
   targetStore.nutritionLibrary.importedRecipeIds = [];
@@ -1574,6 +1652,100 @@ function createRecommendationRecord(text, documentRecord) {
   };
 }
 
+function findNutritionRecipeMatch(mealTitle, mealText = "") {
+  const normalizedMealTitle = normalizeLookupValue(mealTitle);
+  const normalizedMealText = normalizeLookupValue(mealText);
+  if (!normalizedMealTitle && !normalizedMealText) {
+    return null;
+  }
+
+  const favorites = getFavoriteMealsDetailed();
+  return (
+    favorites.find((favorite) => {
+      const normalizedName = normalizeLookupValue(favorite.name);
+      if (!normalizedName) {
+        return false;
+      }
+
+      return (
+        normalizedName === normalizedMealTitle ||
+        (normalizedMealTitle && normalizedMealTitle.includes(normalizedName)) ||
+        (normalizedMealText && normalizedMealText.includes(normalizedName))
+      );
+    }) || null
+  );
+}
+
+function buildNutritionPlanMeal(mealTitle, mealText) {
+  const normalizedText = mealText
+    .split("\n")
+    .map((line) => cleanImportLine(line))
+    .filter(Boolean)
+    .join("\n");
+  const linkedRecipe = findNutritionRecipeMatch(mealTitle, normalizedText);
+  const parsedItems = mergeImportedIngredientCandidates(
+    parseIngredientCandidatesFromBlock(normalizedText),
+    extractEmbeddedIngredientsFromText(normalizedText)
+  );
+  const recipeItems =
+    !parsedItems.length && linkedRecipe
+      ? (linkedRecipe.items || []).map((item) => ({
+          name: item.foodName || item.displayName,
+          displayName: item.displayName || item.foodName,
+          grams: item.grams,
+          foodId: item.foodId || "",
+        }))
+      : [];
+  const rawItems = parsedItems.length ? parsedItems : recipeItems;
+  const items = rawItems.map((item) => {
+    const itemName = item.displayName || item.name || "";
+    const exactFood = item.foodId ? getFoodById(item.foodId) : null;
+    const matchedFood = exactFood || findFoodByExactName(canonicalizeImportedFoodName(item.name) || itemName) || null;
+    const totals = matchedFood ? calculateEntry(matchedFood, item.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+
+    return {
+      foodId: matchedFood?.id || item.foodId || "",
+      foodName: matchedFood?.name || itemName,
+      displayName: itemName,
+      grams: roundValue(item.grams, 1),
+      totals,
+    };
+  });
+
+  return {
+    id: uid("nutrition-plan-meal"),
+    mealLabel: normalizeMealLabel(mealTitle),
+    title: mealTitle,
+    text: normalizedText,
+    notes: normalizedText.replace(/\n+/g, " "),
+    linkedRecipeId: linkedRecipe?.id || "",
+    linkedRecipeName: linkedRecipe?.name || "",
+    instructions: linkedRecipe?.instructions || "",
+    servings: linkedRecipe?.servings || 0,
+    items,
+    totals: linkedRecipe && !parsedItems.length ? linkedRecipe.perServingTotals : getDayTotals(items),
+  };
+}
+
+function createNutritionPlanRecord(planDraft, documentRecord) {
+  const meals = (planDraft.meals || []).map((meal) => buildNutritionPlanMeal(meal.title, meal.text)).filter((meal) => meal.title);
+  if (!meals.length && !(planDraft.notes || []).length) {
+    return null;
+  }
+
+  return {
+    id: uid("nutrition-plan"),
+    dayNumber: toNumber(planDraft.dayNumber),
+    title: planDraft.title,
+    weekdayLabel: planDraft.weekdayLabel || "",
+    notes: (planDraft.notes || []).map((note) => cleanImportLine(note)).filter(Boolean),
+    meals,
+    sourceDocIds: [documentRecord.id],
+    sourceDocNames: [documentRecord.name],
+    importedAt: new Date().toISOString(),
+  };
+}
+
 function detectNutritionDocumentKind(file, text) {
   const normalizedFileName = normalizeLookupValue(file?.name || "");
   const normalizedText = normalizeLookupValue(String(text || "").slice(0, 1200));
@@ -1785,6 +1957,7 @@ function parseMealPlanDocument(text) {
     .map((section) => section.trim())
     .filter(Boolean);
   const recommendations = [];
+  const plans = [];
 
   daySections.forEach((section) => {
     const lines = section
@@ -1796,9 +1969,18 @@ function parseMealPlanDocument(text) {
     }
 
     const dayHeaderMatch = lines[0].match(/^(\d+)\.\s*DAN\s*\(([^)]+)\)/i);
+    const dayNumber = dayHeaderMatch ? parseInt(dayHeaderMatch[1], 10) : plans.length + 1;
+    const weekdayLabel = dayHeaderMatch ? dayHeaderMatch[2].trim() : "";
     const dayTitle = dayHeaderMatch
       ? `${dayHeaderMatch[1]}. dan (${dayHeaderMatch[2].trim()})`
       : lines[0].replace(/\s+/g, " ").trim();
+    const dayPlan = {
+      dayNumber,
+      weekdayLabel,
+      title: dayTitle,
+      meals: [],
+      notes: [],
+    };
     let currentMealTitle = "";
     let mealBuffer = [];
     let noteBuffer = [];
@@ -1806,6 +1988,7 @@ function parseMealPlanDocument(text) {
     const flushNotes = () => {
       const noteText = noteBuffer.map((line) => cleanImportLine(line)).filter(Boolean).join(" ");
       if (noteText) {
+        dayPlan.notes.push(noteText);
         recommendations.push({
           title: `${dayTitle} · Napomene`,
           text: noteText,
@@ -1821,9 +2004,9 @@ function parseMealPlanDocument(text) {
       }
 
       const mealText = mealBuffer.map((line) => cleanImportLine(line)).filter(Boolean).join("\n");
-      recommendations.push({
-        title: formatImportedDayMealName(dayTitle, currentMealTitle),
-        text: mealText.replace(/\n+/g, " "),
+      dayPlan.meals.push({
+        title: currentMealTitle,
+        text: mealText,
       });
 
       mealBuffer = [];
@@ -1859,10 +2042,14 @@ function parseMealPlanDocument(text) {
 
     flushNotes();
     flushMeal();
+    if (dayPlan.meals.length || dayPlan.notes.length) {
+      plans.push(dayPlan);
+    }
   });
 
   return {
     recommendations,
+    plans,
     foods: [],
     recipes: [],
   };
@@ -2206,6 +2393,7 @@ function mergeNutritionImportResult(parsedResult, documentRecord) {
   const importedFoodIds = [];
   const importedRecipeIds = [];
   const importedRecommendationIds = [];
+  const importedPlanIds = [];
 
   (parsedResult.foods || []).forEach((foodDraft) => {
     const importedFood = upsertNutritionFood(foodDraft, documentRecord);
@@ -2250,6 +2438,29 @@ function mergeNutritionImportResult(parsedResult, documentRecord) {
     importedRecommendationIds.push(recommendation.id);
   });
 
+  (parsedResult.plans || []).forEach((planDraft) => {
+    const nextPlan = createNutritionPlanRecord(planDraft, documentRecord);
+    if (!nextPlan) {
+      return;
+    }
+
+    const existingPlan = (store.nutritionLibrary?.plans || []).find(
+      (item) =>
+        toNumber(item.dayNumber) === toNumber(nextPlan.dayNumber) &&
+        normalizeLookupValue(item.title) === normalizeLookupValue(nextPlan.title) &&
+        (item.sourceDocNames || []).some((entry) => matchesImportedDocumentName(entry, documentRecord.name))
+    );
+
+    if (existingPlan) {
+      Object.assign(existingPlan, nextPlan, { id: existingPlan.id });
+      importedPlanIds.push(existingPlan.id);
+      return;
+    }
+
+    store.nutritionLibrary.plans.unshift(nextPlan);
+    importedPlanIds.push(nextPlan.id);
+  });
+
   store.nutritionLibrary.importedFoodIds = mergeUniqueStrings(store.nutritionLibrary.importedFoodIds || [], importedFoodIds);
   store.nutritionLibrary.importedRecipeIds = mergeUniqueStrings(
     store.nutritionLibrary.importedRecipeIds || [],
@@ -2261,6 +2472,7 @@ function mergeNutritionImportResult(parsedResult, documentRecord) {
     importedFoodIds: mergeUniqueStrings(importedFoodIds),
     importedRecipeIds: mergeUniqueStrings(importedRecipeIds),
     importedRecommendationIds: mergeUniqueStrings(importedRecommendationIds),
+    importedPlanIds: mergeUniqueStrings(importedPlanIds),
   };
 }
 
@@ -2284,10 +2496,11 @@ async function importNutritionFiles(files = []) {
       const mergeResult = mergeNutritionImportResult(parsedResult, documentRecord);
 
       documentRecord.recommendationCount = mergeResult.importedRecommendationIds.length;
+      documentRecord.planCount = mergeResult.importedPlanIds.length;
       documentRecord.foodCount = mergeResult.importedFoodIds.length;
       documentRecord.recipeCount = mergeResult.importedRecipeIds.length;
       documentRecord.status =
-        documentRecord.recipeCount || documentRecord.foodCount || documentRecord.recommendationCount
+        documentRecord.recipeCount || documentRecord.foodCount || documentRecord.recommendationCount || documentRecord.planCount
           ? "Spremno za korišćenje"
           : "Sačuvan dokument";
 
@@ -6143,9 +6356,122 @@ function renderNutritionSourcePills(sourceDocNames = []) {
   `;
 }
 
+function renderNutritionPlansSection(plans) {
+  if (!plans.length) {
+    return `
+      <section class="section nutrition-plan-section">
+        ${renderSectionLead("Jelovnik nutricioniste", "Kad uvezeš jelovnik po danima, ovde ćeš dobiti pregled kao mini plan koji možeš da prebaciš u svoj dnevni Plan.", {
+          eyebrow: "Plan",
+        })}
+        <div class="empty">Još nema uvezenog jelovnika po danima. Ubaci dokument tipa "JELOVNIK ZA 14 DANA" da ovde dobiješ pregled po danima i obrocima.</div>
+      </section>
+    `;
+  }
+
+  const selectedPlan = getNutritionPlanById(state.nutritionSelectedPlanId) || plans[0];
+  const selectedPlanNotes = (selectedPlan?.notes || []).filter(Boolean);
+  const readyMealCount = (selectedPlan?.meals || []).filter((meal) => getNutritionPlanMealApplyItems(meal).length).length;
+
+  return `
+    <section class="section nutrition-plan-section">
+      ${renderSectionLead("Jelovnik nutricioniste", "Pregled 14-dnevnog jelovnika po danima. Kad želiš, ceo dan možeš da prebaciš u svoj Plan i onda ga dalje menjaš.", {
+        eyebrow: "Plan",
+      })}
+      <div class="chips nutrition-plan-chips">
+        ${plans
+          .map(
+            (plan) => `
+              <button class="chip ${plan.id === selectedPlan.id ? "is-active" : "is-light"}" data-action="select-nutrition-plan-day" data-plan-id="${plan.id}">
+                ${escapeHtml(plan.dayNumber ? `${plan.dayNumber}. dan` : plan.title)}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+      <article class="food-card nutrition-plan-day-card">
+        <div class="food-card-top nutrition-plan-day-top">
+          <div>
+            <strong>${escapeHtml(selectedPlan.title)}</strong>
+            <div class="footer-note">${escapeHtml(selectedPlan.weekdayLabel || "Dan iz jelovnika nutricioniste")}</div>
+          </div>
+          <div class="pill-row">
+            <span class="pill strong">${selectedPlan.meals.length} ${selectedPlan.meals.length === 1 ? "obrok" : "obroka"}</span>
+            <span class="pill ${readyMealCount ? "pill--success" : "pill--warning"}">${readyMealCount} spremno za prebacivanje</span>
+          </div>
+        </div>
+        ${
+          selectedPlanNotes.length
+            ? `
+              <div class="empty nutrition-plan-notes">
+                ${selectedPlanNotes.map((note) => `<div>${escapeHtml(note)}</div>`).join("")}
+              </div>
+            `
+            : ""
+        }
+        <div class="entry-actions entry-actions--start nutrition-plan-actions">
+          <button class="solid-button secondary-button button-with-icon" data-action="apply-nutrition-plan-day" data-plan-id="${selectedPlan.id}" data-mode="replace">
+            ${renderButtonContent(`Primeni u ${state.selectedWeekday}`, "apply")}
+          </button>
+          <button class="ghost-button button-with-icon" data-action="apply-nutrition-plan-day" data-plan-id="${selectedPlan.id}" data-mode="append">
+            ${renderButtonContent(`Dodaj u ${state.selectedWeekday}`, "add")}
+          </button>
+        </div>
+      </article>
+      <div class="stack nutrition-plan-meals">
+        ${selectedPlan.meals
+          .map((meal) => {
+            const applyItems = getNutritionPlanMealApplyItems(meal);
+            const mealTotals = meal.totals || { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+            return `
+              <article class="meal-card nutrition-plan-meal-card">
+                <div class="meal-card-topline">
+                  <div class="meal-card-heading">
+                    <h3 class="meal-title">${escapeHtml(meal.title)}</h3>
+                    <div class="footer-note">${escapeHtml(meal.linkedRecipeName ? `Povezano sa receptom: ${meal.linkedRecipeName}` : "Obrok iz jelovnika nutricioniste")}</div>
+                  </div>
+                  <span class="pill ${applyItems.length ? "pill--success" : "pill--warning"}">${applyItems.length ? "Može u plan" : "Samo kao hint"}</span>
+                </div>
+                <div class="pill-row">
+                  <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
+                  <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
+                  <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
+                  <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
+                </div>
+                ${
+                  meal.items?.length
+                    ? `
+                      <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
+                        ${meal.items
+                          .map(
+                            (item) => `
+                              <span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${roundValue(item.grams, 0)} g</span>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                    `
+                    : ""
+                }
+                <div class="footer-note">${escapeHtml(meal.notes || meal.text || "")}</div>
+                ${
+                  meal.instructions
+                    ? `<div class="footer-note nutrition-plan-instructions">Priprema: ${escapeHtml(truncateText(meal.instructions, 220))}</div>`
+                    : ""
+                }
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+      ${renderNutritionSourcePills(selectedPlan.sourceDocNames)}
+    </section>
+  `;
+}
+
 function renderNutritionTab() {
   const documents = getNutritionDocuments();
   const recommendations = getNutritionRecommendations();
+  const plans = getNutritionPlans();
   const importedFoods = getNutritionImportedFoodsDetailed()
     .map((food) => ({
       ...food,
@@ -6162,7 +6488,7 @@ function renderNutritionTab() {
   const importedFoodsReviewedCount = Math.max(importedFoods.length - reviewImportedFoods.length, 0);
   const nutritionEditingFood = importedFoods.find((food) => food.id === state.nutritionEditingFoodId) || null;
   const nutritionLinkCandidates = nutritionEditingFood ? getImportedFoodLinkCandidates(nutritionEditingFood) : [];
-  const hasImportArchiveContent = Boolean(documents.length || recommendations.length || importedFoods.length || importedRecipes.length);
+  const hasImportArchiveContent = Boolean(documents.length || plans.length || recommendations.length || importedFoods.length || importedRecipes.length);
   const lastImportedAt = store.nutritionLibrary?.lastImportedAt
     ? new Date(store.nutritionLibrary.lastImportedAt).toLocaleString("sr-RS")
     : "";
@@ -6211,6 +6537,7 @@ function renderNutritionTab() {
           statusLabel: documents.length ? "Arhiva živa" : "Još prazno",
           tone: documents.length ? "success" : "warning",
           pills: [
+            { label: `${plans.length} dana u planu`, tone: "success" },
             { label: `${recommendations.length} preporuka`, tone: "info" },
             { label: `${importedRecipes.length} recepata`, tone: "success" },
             { label: `${importedFoods.length} ukupno uvezenih namirnica`, tone: "warning" },
@@ -6228,6 +6555,8 @@ function renderNutritionTab() {
         })}
       </div>
     </section>
+
+    ${renderNutritionPlansSection(plans)}
 
     <section class="section nutrition-recommendations-section">
       ${renderSectionLead("Preporuke i smernice", "Sve što je parser prepoznao kao savet, okvir ili napomenu nutricioniste.", {
@@ -6498,6 +6827,7 @@ function renderNutritionTab() {
                       <div class="pill-row">
                         <span class="pill">${escapeHtml(doc.parserLabel || "Tekst")}</span>
                         <span class="pill">${getFileSizeLabel(doc.size)}</span>
+                        <span class="pill">${doc.planCount || 0} dana</span>
                         <span class="pill">${doc.recipeCount || 0} recepata</span>
                         <span class="pill">${doc.foodCount || 0} namirnica</span>
                         <span class="pill">${doc.recommendationCount || 0} preporuka</span>
@@ -7248,6 +7578,7 @@ async function handleDocumentClick(event) {
   if (action === "clear-nutrition-imports") {
     const hasImportArchiveContent = Boolean(
       store.nutritionLibrary?.documents?.length ||
+        store.nutritionLibrary?.plans?.length ||
         store.nutritionLibrary?.recommendations?.length ||
         (store.nutritionLibrary?.importedFoodIds || []).length ||
         (store.nutritionLibrary?.importedRecipeIds || []).length ||
@@ -7546,6 +7877,45 @@ async function handleDocumentClick(event) {
     window.requestAnimationFrame(() => {
       document.querySelector("#nutrition-food-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelector("#nutrition-food-kcal")?.focus();
+    });
+    return;
+  }
+
+  if (action === "select-nutrition-plan-day") {
+    const planId = actionTarget.dataset.planId;
+    if (!planId || !getNutritionPlanById(planId)) {
+      return;
+    }
+    state.nutritionSelectedPlanId = planId;
+    render();
+    return;
+  }
+
+  if (action === "apply-nutrition-plan-day") {
+    const planId = actionTarget.dataset.planId;
+    const mode = String(actionTarget.dataset.mode || "replace").trim() === "append" ? "append" : "replace";
+    const plan = planId ? getNutritionPlanById(planId) : null;
+    if (!plan) {
+      return;
+    }
+
+    if (mode === "replace") {
+      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${state.selectedWeekday} dnevnim planom "${plan.title}"?`);
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const result = applyNutritionPlanDayToSelectedWeekday(planId, mode);
+    persist();
+    render();
+    showFeedbackToast({
+      title: "Nutricionista dan je prebačen",
+      detail:
+        result.skippedMeals > 0
+          ? `${result.appliedCount} stavki je ubačeno u ${state.selectedWeekday}, a ${result.skippedMeals} obroka je ostalo samo kao hint jer nema dovoljno podataka za automatsko prebacivanje.`
+          : `${result.appliedCount} stavki je ubačeno u ${state.selectedWeekday}.`,
+      tone: result.appliedCount ? "success" : "warning",
     });
     return;
   }

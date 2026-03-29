@@ -2204,6 +2204,7 @@ textarea::placeholder {
 .routine-tasks-section .section-header,
 .routine-weekly-section .section-header,
 .nutrition-overview-section .section-header,
+.nutrition-plan-section .section-header,
 .nutrition-recommendations-section .section-header,
 .nutrition-recipes-section .section-header,
 .nutrition-foods-section .section-header,
@@ -2357,6 +2358,53 @@ textarea::placeholder {
 .nutrition-foods-stack,
 .nutrition-documents-stack {
   gap: 16px;
+}
+
+.nutrition-plan-section {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.92), rgba(246, 241, 232, 0.98)),
+    var(--surface);
+}
+
+.nutrition-plan-chips {
+  margin-bottom: 14px;
+}
+
+.nutrition-plan-day-card {
+  padding: 20px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-plan-day-top {
+  align-items: flex-start;
+}
+
+.nutrition-plan-notes {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.nutrition-plan-actions {
+  margin-top: 14px;
+}
+
+.nutrition-plan-meals {
+  margin-top: 14px;
+}
+
+.nutrition-plan-meal-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 250, 244, 0.98)),
+    var(--surface-strong);
+}
+
+.nutrition-plan-instructions {
+  padding-top: 6px;
 }
 
 .nutrition-inline-list {
