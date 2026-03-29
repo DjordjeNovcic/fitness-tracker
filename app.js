@@ -130,6 +130,7 @@ const state = {
     favoriteName: "",
     mealLabel: "",
     description: "",
+    imageUrl: "",
     servings: "1",
     prepTimeMinutes: "",
     instructions: "",
@@ -612,6 +613,7 @@ function normalizeFavoriteMealRecord(favorite = {}) {
     mealLabel: normalizeMealLabel(favorite.mealLabel),
     description: String(favorite.description || "").trim(),
     instructions: String(favorite.instructions || "").trim(),
+    imageUrl: String(favorite.imageUrl || "").trim(),
     servings,
     prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
   };
@@ -3823,6 +3825,7 @@ function resetFavoriteDraft(options = {}) {
         favoriteName: state.favoriteDraft.favoriteName,
         mealLabel: state.favoriteDraft.mealLabel,
         description: state.favoriteDraft.description,
+        imageUrl: state.favoriteDraft.imageUrl,
         servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         instructions: state.favoriteDraft.instructions,
@@ -3839,6 +3842,7 @@ function resetFavoriteDraft(options = {}) {
     favoriteName: preservedDraft?.favoriteName || "",
     mealLabel: preservedDraft?.mealLabel || "",
     description: preservedDraft?.description || "",
+    imageUrl: preservedDraft?.imageUrl || "",
     servings: preservedDraft?.servings || "1",
     prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
     instructions: preservedDraft?.instructions || "",
@@ -3869,6 +3873,7 @@ function setFavoriteDraftFromItem(favorite, item) {
     favoriteName: normalizedFavorite.name || "",
     mealLabel: normalizedFavorite.mealLabel || "",
     description: normalizedFavorite.description || "",
+    imageUrl: normalizedFavorite.imageUrl || "",
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     instructions: normalizedFavorite.instructions || "",
@@ -3884,6 +3889,7 @@ function setFavoriteDraftFromRecipe(favorite) {
     favoriteName: normalizedFavorite.name || "",
     mealLabel: normalizedFavorite.mealLabel || "",
     description: normalizedFavorite.description || "",
+    imageUrl: normalizedFavorite.imageUrl || "",
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     instructions: normalizedFavorite.instructions || "",
@@ -3898,10 +3904,12 @@ function getFavoriteDraftPreview() {
   const favoriteName = String(state.favoriteDraft.favoriteName || "").trim();
   const mealLabel = String(state.favoriteDraft.mealLabel || "").trim();
   const hasDraftDescription = state.favoriteDraft.description !== "";
+  const hasDraftImage = state.favoriteDraft.imageUrl !== "";
   const hasDraftInstructions = state.favoriteDraft.instructions !== "";
   const hasDraftServings = state.favoriteDraft.servings !== "";
   const hasDraftPrepTime = state.favoriteDraft.prepTimeMinutes !== "";
   const description = String(state.favoriteDraft.description || "").trim();
+  const imageUrl = String(state.favoriteDraft.imageUrl || "").trim();
   const instructions = String(state.favoriteDraft.instructions || "").trim();
   const servings = Math.max(1, roundValue(toNumber(state.favoriteDraft.servings || 1), 0)) || 1;
   const prepTimeMinutes = toNumber(state.favoriteDraft.prepTimeMinutes);
@@ -3952,6 +3960,7 @@ function getFavoriteDraftPreview() {
     favoriteName,
     mealLabel: mealLabel || existingFavorite?.mealLabel || "",
     description: hasDraftDescription ? description : existingFavorite?.description || "",
+    imageUrl: hasDraftImage ? imageUrl : existingFavorite?.imageUrl || "",
     instructions: hasDraftInstructions ? instructions : existingFavorite?.instructions || "",
     servings: effectiveServings,
     prepTimeMinutes: hasDraftPrepTime ? (prepTimeMinutes || null) : existingFavorite?.prepTimeMinutes || null,
@@ -4036,6 +4045,7 @@ function saveFavoriteMealMetadata(payload = {}) {
   const normalizedFavoriteName = String(payload.favoriteName || "").trim();
   const normalizedMealLabel = normalizeMealLabel(String(payload.mealLabel || "").trim());
   const normalizedDescription = String(payload.description || "").trim();
+  const normalizedImageUrl = String(payload.imageUrl || "").trim();
   const normalizedInstructions = String(payload.instructions || "").trim();
   const normalizedServings = Math.max(1, roundValue(toNumber(payload.servings || 1), 0)) || 1;
   const normalizedPrepTimeMinutes = toNumber(payload.prepTimeMinutes);
@@ -4048,6 +4058,7 @@ function saveFavoriteMealMetadata(payload = {}) {
     name: normalizedFavoriteName,
     mealLabel: normalizedMealLabel,
     description: normalizedDescription,
+    imageUrl: normalizedImageUrl,
     instructions: normalizedInstructions,
     servings: normalizedServings,
     prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
@@ -6038,6 +6049,23 @@ function renderRecipesTab() {
               value="${state.favoriteDraft.description}"
             />
           </div>
+          <div class="field recipe-builder-field-wide">
+            <label for="favorite-image">Slika obroka</label>
+            <input id="favorite-image" name="image" type="file" accept="image/*" />
+            <div class="footer-note">Opcionalno. Dodaj jednu fotku obroka i recept kartica će odmah izgledati bogatije.</div>
+            ${
+              state.favoriteDraft.imageUrl
+                ? `
+                  <div class="recipe-upload-preview">
+                    <img src="${escapeHtml(state.favoriteDraft.imageUrl)}" alt="Preview recepta" />
+                    <button class="ghost-button button-with-icon" type="button" data-action="clear-favorite-image">
+                      ${renderButtonContent("Ukloni sliku", "close")}
+                    </button>
+                  </div>
+                `
+                : ""
+            }
+          </div>
           <div class="field">
             <label for="favorite-servings">Broj porcija</label>
             <input id="favorite-servings" name="servings" type="number" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
@@ -6082,6 +6110,11 @@ function renderRecipesTab() {
           </div>
           <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
         </div>
+        ${
+          draftPreview.imageUrl
+            ? `<div class="recipe-draft-media"><img src="${escapeHtml(draftPreview.imageUrl)}" alt="${escapeHtml(draftPreview.favoriteName || "Preview recepta")}" /></div>`
+            : ""
+        }
         <div class="pill-row recipe-draft-pills">
           <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
           <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
@@ -6230,84 +6263,97 @@ function renderRecipesTab() {
                   const isExpanded = isRecipeExpanded(favorite.id);
                   return `
                     <article class="food-card recipe-library-card ${isExpanded ? "" : "is-collapsed"}">
-                      <div class="food-card-top recipe-library-top">
-                        <div class="recipe-library-copy">
-                          <h3>${favorite.name}</h3>
-                          ${
-                            isExpanded
-                              ? `<p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>`
-                              : ""
-                          }
-                        </div>
-                        <div class="entry-actions" style="gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap;">
-                          <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
-                          <button
-                            class="ghost-button meal-collapse-toggle"
-                            data-action="toggle-recipe-expanded"
-                            data-favorite-id="${favorite.id}"
-                            aria-expanded="${isExpanded}"
-                            aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}"
-                          >
-                            ${isExpanded ? "▾" : "▸"}
-                          </button>
-                        </div>
-                      </div>
-                      <div class="pill-row recipe-library-pills">
-                        <span class="pill">${favorite.mealLabel || favorite.name}</span>
-                        <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
+                      <div class="recipe-library-shell ${favorite.imageUrl ? "has-media" : "no-media"}">
                         ${
-                          favorite.prepTimeMinutes
-                            ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
+                          favorite.imageUrl
+                            ? `
+                              <div class="recipe-library-media">
+                                <img src="${escapeHtml(favorite.imageUrl)}" alt="${escapeHtml(favorite.name)}" />
+                              </div>
+                            `
                             : ""
                         }
-                        <span class="pill note">Ukupno ${roundValue(favorite.totals.kcal, 0)} kcal</span>
-                        <span class="pill">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
-                        <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
-                        <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
-                        <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
-                      </div>
-                      ${
-                        isExpanded
-                          ? `
+                        <div class="recipe-library-body">
+                          <div class="food-card-top recipe-library-top">
+                            <div class="recipe-library-copy">
+                              <h3>${favorite.name}</h3>
+                              ${
+                                isExpanded
+                                  ? `<p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>`
+                                  : ""
+                              }
+                            </div>
+                            <div class="entry-actions" style="gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap;">
+                              <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
+                              <button
+                                class="ghost-button meal-collapse-toggle"
+                                data-action="toggle-recipe-expanded"
+                                data-favorite-id="${favorite.id}"
+                                aria-expanded="${isExpanded}"
+                                aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}"
+                              >
+                                ${isExpanded ? "▾" : "▸"}
+                              </button>
+                            </div>
+                          </div>
+                          <div class="pill-row recipe-library-pills">
+                            <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                            <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
                             ${
-                              favorite.instructions
-                                ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                              favorite.prepTimeMinutes
+                                ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
                                 : ""
                             }
-                            <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
-                            <div class="stack recipe-library-ingredients" style="margin-top:12px;">
-                              ${favorite.items
-                                .map(
-                                  (item) => `
-                                    <div class="recipe-library-ingredient-card">
-                                    <div class="recipe-library-ingredient-head">
-                                        <strong>${item.displayName || item.foodName}</strong>
-                                        <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
-                                      </div>
-                                      <div class="pill-row recipe-library-ingredient-macros">
-                                        <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
-                                        <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
-                                        <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
-                                        <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
-                                      </div>
-                                    </div>
-                                  `
-                                )
-                                .join("")}
-                            </div>
-                          `
-                          : ""
-                      }
-                      <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
-                        <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
-                          ${renderButtonContent("Dodaj u plan", "apply")}
-                        </button>
-                        <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
-                          ${renderButtonContent("Izmeni recept", "edit")}
-                        </button>
-                        <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
-                          ${renderButtonContent("Obriši recept", "delete")}
-                        </button>
+                            <span class="pill note">Ukupno ${roundValue(favorite.totals.kcal, 0)} kcal</span>
+                            <span class="pill">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
+                            <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
+                            <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
+                            <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
+                          </div>
+                          ${
+                            isExpanded
+                              ? `
+                                ${
+                                  favorite.instructions
+                                    ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                                    : ""
+                                }
+                                <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
+                                <div class="stack recipe-library-ingredients" style="margin-top:12px;">
+                                  ${favorite.items
+                                    .map(
+                                      (item) => `
+                                        <div class="recipe-library-ingredient-card">
+                                        <div class="recipe-library-ingredient-head">
+                                            <strong>${item.displayName || item.foodName}</strong>
+                                            <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
+                                          </div>
+                                          <div class="pill-row recipe-library-ingredient-macros">
+                                            <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
+                                            <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
+                                            <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
+                                            <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
+                                          </div>
+                                        </div>
+                                      `
+                                    )
+                                    .join("")}
+                                </div>
+                              `
+                              : ""
+                          }
+                          <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
+                            <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
+                              ${renderButtonContent("Dodaj u plan", "apply")}
+                            </button>
+                            <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
+                              ${renderButtonContent("Izmeni recept", "edit")}
+                            </button>
+                            <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
+                              ${renderButtonContent("Obriši recept", "delete")}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </article>
                   `
@@ -8599,6 +8645,16 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "clear-favorite-image") {
+    state.favoriteDraft.imageUrl = "";
+    const imageInput = document.querySelector("#favorite-image");
+    if (imageInput instanceof HTMLInputElement) {
+      imageInput.value = "";
+    }
+    render();
+    return;
+  }
+
   if (action === "set-food-nutrition-filter") {
     state.foodNutritionFilter = actionTarget.dataset.filter || "Sve";
     render();
@@ -9353,6 +9409,7 @@ async function handleDocumentClick(event) {
       favoriteName: state.favoriteDraft.favoriteName,
       mealLabel: state.favoriteDraft.mealLabel,
       description: state.favoriteDraft.description,
+      imageUrl: state.favoriteDraft.imageUrl,
       servings: state.favoriteDraft.servings,
       prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
       instructions: state.favoriteDraft.instructions,
@@ -10411,6 +10468,10 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLInputElement && target.id === "favorite-image") {
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "favorite-servings") {
     state.favoriteDraft.servings = target.value;
     return;
@@ -10550,6 +10611,30 @@ async function handleImport(event) {
       showFeedbackToast({ title: "Backup nije validan", detail: "Izabrani fajl nije ispravan JSON backup.", tone: "error" });
     }
     target.value = "";
+    return;
+  }
+
+  if (target.id === "favorite-image") {
+    const file = target.files[0];
+    if (!file) {
+      return;
+    }
+
+    createOptimizedPhoto(file)
+      .then((optimized) => {
+        state.favoriteDraft.imageUrl = optimized.previewUrl;
+        render();
+      })
+      .catch(() => {
+        showFeedbackToast({
+          title: "Slika nije učitana",
+          detail: "Probaj ponovo sa drugim JPG ili PNG fajlom.",
+          tone: "error",
+        });
+      })
+      .finally(() => {
+        target.value = "";
+      });
     return;
   }
 
