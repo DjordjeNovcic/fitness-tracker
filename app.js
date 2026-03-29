@@ -4531,7 +4531,6 @@ function renderPlanTab(entries) {
     ...new Set([
       ...defaultMeals,
       ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel)),
-      ...favorites.map((favorite) => normalizeMealLabel(favorite.mealLabel || favorite.name)),
     ]),
   ];
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
