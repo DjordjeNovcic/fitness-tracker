@@ -2425,6 +2425,29 @@ function getImportedFoodLinkCandidates(importedFood) {
     });
 }
 
+function getImportedFoodSuggestedLink(importedFood) {
+  const [suggestedFood] = getImportedFoodLinkCandidates(importedFood);
+  if (!suggestedFood) {
+    return null;
+  }
+
+  const importedCanonicalName = normalizeLookupValue(canonicalizeImportedFoodName(importedFood.name) || importedFood.name);
+  const suggestedCanonicalName = normalizeLookupValue(canonicalizeImportedFoodName(suggestedFood.name) || suggestedFood.name);
+  const hasNutrition = toNumber(suggestedFood.kcal) > 0 || toNumber(suggestedFood.protein) > 0 || toNumber(suggestedFood.carbs) > 0 || toNumber(suggestedFood.fat) > 0;
+  const exactCanonicalMatch = Boolean(importedCanonicalName) && importedCanonicalName === suggestedCanonicalName;
+  const partialCanonicalMatch =
+    Boolean(importedCanonicalName) &&
+    Boolean(suggestedCanonicalName) &&
+    importedCanonicalName !== suggestedCanonicalName &&
+    (suggestedCanonicalName.includes(importedCanonicalName) || importedCanonicalName.includes(suggestedCanonicalName));
+
+  if (!(hasNutrition && (exactCanonicalMatch || partialCanonicalMatch))) {
+    return null;
+  }
+
+  return suggestedFood;
+}
+
 function resetFoodEditing() {
   state.editingFoodId = "";
   state.nutritionEditingFoodId = "";
@@ -6358,7 +6381,9 @@ function renderNutritionTab() {
           reviewImportedFoods.length
             ? reviewImportedFoods
                 .map(
-                  (food) => `
+                  (food) => {
+                    const suggestedLink = getImportedFoodSuggestedLink(food);
+                    return `
                     <article class="status-summary-card nutrition-food-card ${food.nutritionStatus.needsAttention ? "is-needs-review" : ""}">
                       <div class="status-summary-top">
                         <div class="status-summary-copy">
@@ -6378,6 +6403,18 @@ function renderNutritionTab() {
                         ${escapeHtml(food.nutritionStatus.statusDetail)}
                         ${food.nutritionSource ? ` Izvor: ${escapeHtml(food.nutritionSource)}.` : ""}
                       </div>
+                      ${
+                        suggestedLink
+                          ? `
+                            <div class="footer-note nutrition-food-meta">
+                              Predlog poklapanja: <strong>${escapeHtml(suggestedLink.name)}</strong> · ${roundValue(
+                                suggestedLink.kcal || 0,
+                                0
+                              )} kcal
+                            </div>
+                          `
+                          : ""
+                      }
                       ${renderNutritionSourcePills(food.importSourceDocNames)}
                       <div class="entry-actions nutrition-card-actions">
                         <button class="solid-button secondary-button button-with-icon" data-action="edit-imported-food-nutrition" data-food-id="${food.id}">
@@ -6391,7 +6428,8 @@ function renderNutritionTab() {
                         </button>
                       </div>
                     </article>
-                  `
+                  `;
+                  }
                 )
                 .join("")
             : `<div class="empty">Review inbox je čist. Kad parser izvuče nove nerešene namirnice, pojaviće se ovde dok ih ne dopuniš ili ukloniš kao duplikat.</div>`
