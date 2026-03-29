@@ -116,6 +116,7 @@ const state = {
     servings: "1",
     prepTimeMinutes: "",
     instructions: "",
+    items: [],
     foodId: "",
     grams: "",
   },
@@ -3590,6 +3591,7 @@ function resetFavoriteDraft(options = {}) {
         servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         instructions: state.favoriteDraft.instructions,
+        items: [...(state.favoriteDraft.items || [])],
       }
     : null;
 
@@ -3605,9 +3607,20 @@ function resetFavoriteDraft(options = {}) {
     servings: preservedDraft?.servings || "1",
     prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
     instructions: preservedDraft?.instructions || "",
+    items: preservedDraft?.items || [],
     foodId: "",
     grams: "",
   };
+}
+
+function buildFavoriteDraftItems(items = []) {
+  return (items || []).map((item) => ({
+    id: item.id || uid("favorite-item"),
+    foodId: item.foodId || "",
+    foodName: item.foodName || "",
+    displayName: item.displayName || item.foodName || "",
+    grams: item.grams ? String(roundValue(item.grams, 0)) : "",
+  }));
 }
 
 function setFavoriteDraftFromItem(favorite, item) {
@@ -3624,6 +3637,7 @@ function setFavoriteDraftFromItem(favorite, item) {
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     instructions: normalizedFavorite.instructions || "",
+    items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
     grams: item.grams ? String(roundValue(item.grams, 0)) : "",
   };
@@ -3645,6 +3659,7 @@ function setFavoriteDraftFromRecipe(favorite) {
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     instructions: normalizedFavorite.instructions || "",
+    items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: "",
     grams: "",
   };
@@ -3664,20 +3679,26 @@ function getFavoriteDraftPreview() {
   const prepTimeMinutes = toNumber(state.favoriteDraft.prepTimeMinutes);
   const food = getFoodById(state.favoriteDraft.foodId);
   const grams = toNumber(state.favoriteDraft.grams);
-  const existingFavorite = state.editingFavoriteItem.favoriteId
-    ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId)
-    : getFavoriteMealByName(favoriteName);
+  const existingFavorite =
+    (state.editingFavoriteItem.favoriteId ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId) : null) ||
+    getFavoriteMealByName(favoriteName);
 
-  let items = existingFavorite
-    ? existingFavorite.items.map((item) => ({
-        ...item,
-        totals: calculateEntry(getFoodById(item.foodId) || { kcal: 0, protein: 0, carbs: 0, fat: 0, servingBaseGrams: 100 }, item.grams),
-        isPending: false,
-      }))
-    : [];
+  let items = (state.favoriteDraft.items || []).map((item) => {
+    const matchedFood = getFoodById(item.foodId);
+    const normalizedGrams = toNumber(item.grams);
+    return {
+      ...item,
+      foodName: matchedFood?.name || item.foodName || item.displayName || "",
+      displayName: item.displayName || item.foodName || matchedFood?.name || "",
+      grams: normalizedGrams,
+      totals: matchedFood ? calculateEntry(matchedFood, normalizedGrams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+      isPending: false,
+      isMatched: Boolean(matchedFood),
+    };
+  });
 
-  if (state.editingFavoriteItem.favoriteId && existingFavorite) {
-    items = items.filter((_, index) => index !== state.editingFavoriteItem.itemIndex);
+  if (state.editingFavoriteItem.itemId) {
+    items = items.filter((item) => item.id !== state.editingFavoriteItem.itemId);
   }
 
   if (food && grams) {
@@ -3687,9 +3708,11 @@ function getFavoriteDraftPreview() {
         id: "pending",
         foodId: food.id,
         foodName: food.name,
+        displayName: food.name,
         grams,
         totals: calculateEntry(food, grams),
         isPending: true,
+        isMatched: true,
       },
     ];
   }
@@ -3708,6 +3731,62 @@ function getFavoriteDraftPreview() {
     totals,
     perServingTotals: divideTotals(totals, effectiveServings),
   };
+}
+
+function buildFavoriteItemsPayload(includePendingDraft = false) {
+  const recipeItems = (state.favoriteDraft.items || [])
+    .map((item) => {
+      const normalizedFoodId = String(item.foodId || "").trim();
+      const normalizedGrams = toNumber(item.grams);
+      const food = getFoodById(normalizedFoodId);
+      if (!food || !normalizedGrams) {
+        return null;
+      }
+
+      return {
+        id: item.id || uid("favorite-item"),
+        foodId: food.id,
+        foodName: food.name,
+        displayName: item.displayName || item.foodName || food.name,
+        grams: normalizedGrams,
+      };
+    })
+    .filter(Boolean);
+
+  if (!includePendingDraft) {
+    return recipeItems;
+  }
+
+  const pendingFood = getFoodById(state.favoriteDraft.foodId);
+  const pendingGrams = toNumber(state.favoriteDraft.grams);
+  if (!pendingFood || !pendingGrams) {
+    return recipeItems;
+  }
+
+  if (state.editingFavoriteItem.itemId) {
+    return recipeItems.map((item) =>
+      item.id === state.editingFavoriteItem.itemId
+        ? {
+            ...item,
+            foodId: pendingFood.id,
+            foodName: pendingFood.name,
+            displayName: pendingFood.name,
+            grams: pendingGrams,
+          }
+        : item
+    );
+  }
+
+  return [
+    ...recipeItems,
+    {
+      id: uid("favorite-item"),
+      foodId: pendingFood.id,
+      foodName: pendingFood.name,
+      displayName: pendingFood.name,
+      grams: pendingGrams,
+    },
+  ];
 }
 
 function saveFavoriteMealMetadata(payload = {}) {
@@ -3781,6 +3860,25 @@ function saveFavoriteMealItem(payload = {}) {
   }
 
   favorite.items = [...favorite.items, nextItem];
+  favorite.updatedAt = new Date().toISOString();
+  return true;
+}
+
+function saveFavoriteMealDraft(payload = {}) {
+  const favorite = saveFavoriteMealMetadata(payload);
+  const items = Array.isArray(payload.items) ? payload.items : [];
+
+  if (!favorite || !items.length) {
+    return false;
+  }
+
+  favorite.items = items.map((item) => ({
+    id: item.id || uid("favorite-item"),
+    foodId: item.foodId,
+    foodName: item.foodName,
+    displayName: item.displayName || item.foodName,
+    grams: item.grams,
+  }));
   favorite.updatedAt = new Date().toISOString();
   return true;
 }
@@ -5472,6 +5570,37 @@ function renderRecipesTab() {
         <div class="footer-note recipe-builder-note">
           Svaki klik na Dodaj sastojak ubacuje novu stavku u recept, a polja za opis i pripremu ostaju vezana za isti recept.
         </div>
+        ${
+          draftPreview.items.length
+            ? `
+              <div class="stack recipe-editor-items" style="margin-top:16px;">
+                ${draftPreview.items
+                  .filter((item) => !item.isPending)
+                  .map(
+                    (item) => `
+                      <div class="suggestion-row recipe-editor-item-row">
+                        <div class="recipe-editor-item-copy">
+                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
+                          <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
+                        </div>
+                        <div class="recipe-editor-item-fields">
+                          <select data-recipe-draft-item-food-id="${item.id}">
+                            <option value="">Poveži sa namirnicom</option>
+                            ${selectableFoods
+                              .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
+                              .join("")}
+                          </select>
+                          <input data-recipe-draft-item-grams="${item.id}" type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="g" />
+                          <button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            `
+            : ""
+        }
       </article>
       <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
         <div class="food-card-top recipe-draft-top">
@@ -5514,6 +5643,7 @@ function renderRecipesTab() {
                         </div>
                         <div class="pill-row" style="margin-top:0;">
                           <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "sačuvano"}</span>
+                          ${!item.isMatched ? `<span class="pill pill--warning">traži match</span>` : ""}
                           <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
                         </div>
                       </div>
@@ -8404,7 +8534,25 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "cancel-edit-favorite-item") {
-    resetFavoriteDraft();
+    state.editingFavoriteItem = { favoriteId: state.editingFavoriteItem.favoriteId, itemId: "", itemIndex: -1 };
+    state.favoriteDraft.foodId = "";
+    state.favoriteDraft.grams = "";
+    render();
+    return;
+  }
+
+  if (action === "remove-draft-favorite-item") {
+    const itemId = String(actionTarget.dataset.itemId || "").trim();
+    if (!itemId) {
+      return;
+    }
+
+    state.favoriteDraft.items = (state.favoriteDraft.items || []).filter((item) => item.id !== itemId);
+    if (state.editingFavoriteItem.itemId === itemId) {
+      state.editingFavoriteItem = { favoriteId: state.editingFavoriteItem.favoriteId, itemId: "", itemIndex: -1 };
+      state.favoriteDraft.foodId = "";
+      state.favoriteDraft.grams = "";
+    }
     render();
     return;
   }
@@ -8412,39 +8560,35 @@ async function handleDocumentClick(event) {
   if (action === "save-favorite-meal-draft") {
     const draftPreview = getFavoriteDraftPreview();
     const hasPendingItem = state.favoriteDraft.foodId && toNumber(state.favoriteDraft.grams) > 0;
-    const existingFavorite = getFavoriteMealByName(draftPreview.favoriteName);
+    const nextItems = buildFavoriteItemsPayload(hasPendingItem);
 
     if (!draftPreview.favoriteName || !draftPreview.mealLabel) {
       showFeedbackToast({ title: "Fali naziv ili tip obroka", detail: "Upiši naziv i tip obroka pre čuvanja recepta.", tone: "warning" });
       return;
     }
 
-    if (hasPendingItem) {
-      const saved = saveFavoriteMealItem({
-        favoriteName: state.favoriteDraft.favoriteName,
-        mealLabel: state.favoriteDraft.mealLabel,
-        description: state.favoriteDraft.description,
-        servings: state.favoriteDraft.servings,
-        prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
-        instructions: state.favoriteDraft.instructions,
-        foodId: state.favoriteDraft.foodId,
-        grams: state.favoriteDraft.grams,
-      });
-      if (!saved) {
-        return;
-      }
-    } else if (!draftPreview.items.length || (!existingFavorite && !state.editingFavoriteItem.favoriteId)) {
+    if (!nextItems.length) {
       showFeedbackToast({ title: "Recept još nije spreman", detail: "Dodaj bar jedan sastojak pre čuvanja recepta.", tone: "warning" });
       return;
-    } else {
-      saveFavoriteMealMetadata({
-        favoriteName: state.favoriteDraft.favoriteName,
-        mealLabel: state.favoriteDraft.mealLabel,
-        description: state.favoriteDraft.description,
-        servings: state.favoriteDraft.servings,
-        prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
-        instructions: state.favoriteDraft.instructions,
-      });
+    }
+
+    const hasUnmatchedItems = nextItems.some((item) => !item.foodId || !toNumber(item.grams));
+    if (hasUnmatchedItems) {
+      showFeedbackToast({ title: "Sredi match za sastojke", detail: "Poveži svaku stavku sa namirnicom iz baze i proveri gramažu pre čuvanja.", tone: "warning" });
+      return;
+    }
+
+    const saved = saveFavoriteMealDraft({
+      favoriteName: state.favoriteDraft.favoriteName,
+      mealLabel: state.favoriteDraft.mealLabel,
+      description: state.favoriteDraft.description,
+      servings: state.favoriteDraft.servings,
+      prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+      instructions: state.favoriteDraft.instructions,
+      items: nextItems,
+    });
+    if (!saved) {
+      return;
     }
 
     persist();
@@ -9191,23 +9335,30 @@ async function handleSubmit(event) {
     const instructions = String(formData.get("instructions") || "").trim();
     const foodId = String(formData.get("foodId") || "").trim();
     const grams = toNumber(formData.get("grams"));
-    const saved = saveFavoriteMealItem({
-      favoriteName,
-      mealLabel,
-      description,
-      servings,
-      prepTimeMinutes,
-      instructions,
-      foodId,
-      grams,
-    });
-
-    if (!saved) {
+    const food = getFoodById(foodId);
+    if (!favoriteName || !mealLabel || !food || !grams) {
       return;
     }
 
-    persist();
-    resetFavoriteDraft({ preserveRecipeMeta: true });
+    const nextDraftItem = {
+      id: state.editingFavoriteItem.itemId || uid("favorite-item"),
+      foodId: food.id,
+      foodName: food.name,
+      displayName: food.name,
+      grams: String(roundValue(grams, 0)),
+    };
+
+    if (state.editingFavoriteItem.itemId) {
+      state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) =>
+        item.id === state.editingFavoriteItem.itemId ? nextDraftItem : item
+      );
+      state.editingFavoriteItem = { favoriteId: state.editingFavoriteItem.favoriteId, itemId: "", itemIndex: -1 };
+    } else {
+      state.favoriteDraft.items = [...(state.favoriteDraft.items || []), nextDraftItem];
+    }
+
+    state.favoriteDraft.foodId = "";
+    state.favoriteDraft.grams = "";
     render();
     return;
   }
@@ -9493,6 +9644,35 @@ function handleInput(event) {
   if (target instanceof HTMLSelectElement && target.id === "favorite-food-id") {
     state.favoriteDraft.foodId = target.value;
     render();
+    return;
+  }
+
+  if (target instanceof HTMLSelectElement && target.dataset.recipeDraftItemFoodId) {
+    const itemId = String(target.dataset.recipeDraftItemFoodId || "").trim();
+    const food = getFoodById(target.value);
+    state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            foodId: target.value,
+            foodName: food?.name || item.foodName,
+          }
+        : item
+    );
+    render();
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.recipeDraftItemGrams) {
+    const itemId = String(target.dataset.recipeDraftItemGrams || "").trim();
+    state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            grams: target.value,
+          }
+        : item
+    );
     return;
   }
 

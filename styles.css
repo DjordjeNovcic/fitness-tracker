@@ -2253,6 +2253,33 @@ textarea::placeholder {
   margin-top: 14px;
 }
 
+.recipe-editor-items {
+  gap: 10px;
+}
+
+.recipe-editor-item-row {
+  display: grid;
+  gap: 12px;
+}
+
+.recipe-editor-item-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.recipe-editor-item-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 110px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .recipe-editor-item-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .recipe-draft-card {
   padding: 20px;
   border-radius: 24px;
