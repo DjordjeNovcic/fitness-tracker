@@ -3440,6 +3440,12 @@ body.menu-open .menu-fab {
   gap: 10px;
 }
 
+.app-sidebar-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .app-sidebar-brand {
   display: grid;
   gap: 3px;
@@ -3452,6 +3458,17 @@ body.menu-open .menu-fab {
 
 .menu-close {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
+}
+
+.sidebar-toggle {
+  display: none;
   align-items: center;
   justify-content: center;
   width: 44px;
@@ -4185,6 +4202,10 @@ body.menu-open .menu-fab {
     align-items: stretch;
   }
 
+  .app-frame.is-sidebar-collapsed {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
   .app-main.shell.is-plan-shell {
     --plan-hero-bleed-left: 0px;
     --plan-hero-bleed-right: 28px;
@@ -4453,8 +4474,9 @@ body.menu-open .menu-fab {
   }
 
   .mobile-menu-top {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
+    justify-content: space-between;
     gap: 6px;
     padding: 2px 4px 12px;
     border-bottom: 1px solid rgba(25, 34, 31, 0.08);
@@ -4462,6 +4484,14 @@ body.menu-open .menu-fab {
 
   .menu-close {
     display: none;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 12px;
   }
 
   body.menu-open {
@@ -4527,6 +4557,58 @@ body.menu-open .menu-fab {
   .signout-button {
     min-height: 38px;
     width: 100%;
+  }
+
+  .app-frame.is-sidebar-collapsed .mobile-menu {
+    padding-inline: 10px;
+  }
+
+  .app-frame.is-sidebar-collapsed .mobile-menu-top {
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .app-frame.is-sidebar-collapsed .app-sidebar-brand {
+    display: none;
+  }
+
+  .app-frame.is-sidebar-collapsed .mobile-menu-list {
+    gap: 8px;
+    padding-top: 14px;
+  }
+
+  .app-frame.is-sidebar-collapsed .menu-tab-button {
+    justify-content: center;
+    padding-inline: 0;
+    min-height: 48px;
+  }
+
+  .app-frame.is-sidebar-collapsed .menu-tab-label {
+    display: none;
+  }
+
+  .app-frame.is-sidebar-collapsed .menu-tab-button .icon {
+    width: 34px;
+    height: 34px;
+    margin: 0;
+  }
+
+  .app-frame.is-sidebar-collapsed .mobile-menu-footer {
+    padding-inline: 0;
+  }
+
+  .app-frame.is-sidebar-collapsed .app-sidebar-status-row,
+  .app-frame.is-sidebar-collapsed .signout-button .button-label {
+    display: none;
+  }
+
+  .app-frame.is-sidebar-collapsed .signout-button {
+    min-height: 44px;
+    padding-inline: 0;
+  }
+
+  .app-frame.is-sidebar-collapsed .signout-button .button-icon {
+    margin: 0;
   }
 
   #goals-form .meta-row {

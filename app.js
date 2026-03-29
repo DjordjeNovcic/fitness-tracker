@@ -163,6 +163,7 @@ const state = {
   authError: "",
   syncStatus: "Lokalno čuvanje",
   navMenuOpen: false,
+  sidebarCollapsed: false,
   updateReady: false,
 };
 
@@ -8353,7 +8354,7 @@ function render() {
   };
 
   document.querySelector("#app").innerHTML = `
-    <div class="app-frame">
+    <div class="app-frame ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
       <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
         <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
         <span class="menu-fab-label">Meni</span>
@@ -8361,23 +8362,28 @@ function render() {
 
       ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
 
-      <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""}" aria-label="Glavna navigacija">
+      <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""} ${state.sidebarCollapsed ? "is-collapsed" : ""}" aria-label="Glavna navigacija">
         <div class="mobile-menu-top">
           <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
             <strong>Fit tracker</strong>
             <div class="footer-note app-sidebar-email">${state.authUser?.email || ""}</div>
           </div>
-          <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
-            ${renderMenuToggleIcon(true)}
-          </button>
+          <div class="app-sidebar-top-actions">
+            <button class="ghost-button sidebar-toggle" type="button" data-action="toggle-sidebar-collapse" aria-label="${state.sidebarCollapsed ? "Raširi navigaciju" : "Skupi navigaciju"}" aria-pressed="${state.sidebarCollapsed}">
+              ${state.sidebarCollapsed ? "▸" : "◂"}
+            </button>
+            <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
+              ${renderMenuToggleIcon(true)}
+            </button>
+          </div>
         </div>
         <div class="mobile-menu-list">
           ${TABS.map(
             (tab) => `
-              <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}">
+              <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}" title="${tab.label}" aria-label="${tab.label}">
                 <span class="icon">${tab.icon}</span>
-                <span>${tab.label}</span>
+                <span class="menu-tab-label">${tab.label}</span>
               </button>
             `
           ).join("")}
@@ -8597,6 +8603,12 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-nav-menu") {
     state.navMenuOpen = !state.navMenuOpen;
+    render();
+    return;
+  }
+
+  if (action === "toggle-sidebar-collapse") {
+    state.sidebarCollapsed = !state.sidebarCollapsed;
     render();
     return;
   }
