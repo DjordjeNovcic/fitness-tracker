@@ -3083,12 +3083,14 @@ function getFoodMacroGroup(food) {
 }
 
 function getFoodServingUnit(food = {}) {
-  return String(food.servingUnit || "").trim() === "piece" ? "piece" : "grams";
+  const normalizedFood = food || {};
+  return String(normalizedFood.servingUnit || "").trim() === "piece" ? "piece" : "grams";
 }
 
 function getFoodServingBaseValue(food = {}) {
-  const fallbackValue = getFoodServingUnit(food) === "piece" ? 1 : 100;
-  return Math.max(1, roundValue(toNumber(food.servingBaseGrams || fallbackValue), 0)) || fallbackValue;
+  const normalizedFood = food || {};
+  const fallbackValue = getFoodServingUnit(normalizedFood) === "piece" ? 1 : 100;
+  return Math.max(1, roundValue(toNumber(normalizedFood.servingBaseGrams || fallbackValue), 0)) || fallbackValue;
 }
 
 function getFoodNutritionBasisLabel(food = {}) {
