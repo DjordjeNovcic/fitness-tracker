@@ -120,6 +120,11 @@ const state = {
     foodId: "",
     grams: "",
   },
+  recipeApplyDialog: {
+    favoriteId: "",
+    weekday: "",
+    mealLabel: "",
+  },
   isPlanHeroCompact: false,
   progressCompareTag: PHOTO_TAGS[0],
   progressCompareLeftId: "",
@@ -3994,6 +3999,96 @@ function applyFavoriteMealToDay(favorite, options = {}) {
   return true;
 }
 
+function getRecipeApplyMealOptions(favorite) {
+  const recipeMealLabel = normalizeMealLabel(favorite?.mealLabel || favorite?.name || "");
+  return mergeUniqueStrings([...defaultMeals, ...(recipeMealLabel ? [recipeMealLabel] : [])]);
+}
+
+function openRecipeApplyDialog(favorite) {
+  if (!favorite) {
+    return;
+  }
+
+  const mealOptions = getRecipeApplyMealOptions(favorite);
+  const suggestedMeal = normalizeMealLabel(favorite.mealLabel || favorite.name || "");
+  state.recipeApplyDialog = {
+    favoriteId: favorite.id,
+    weekday: state.selectedWeekday,
+    mealLabel: mealOptions.includes(suggestedMeal) ? suggestedMeal : mealOptions[0] || defaultMeals[0],
+  };
+}
+
+function closeRecipeApplyDialog() {
+  state.recipeApplyDialog = {
+    favoriteId: "",
+    weekday: "",
+    mealLabel: "",
+  };
+}
+
+function renderRecipeApplyDialog() {
+  const favoriteId = String(state.recipeApplyDialog.favoriteId || "").trim();
+  if (!favoriteId) {
+    return "";
+  }
+
+  const favorite = store.favoriteMeals.find((entry) => entry.id === favoriteId);
+  if (!favorite) {
+    return "";
+  }
+  const favoriteDetailed = getFavoriteMealsDetailed().find((entry) => entry.id === favoriteId) || favorite;
+
+  const mealOptions = getRecipeApplyMealOptions(favorite);
+  const selectedWeekday = state.recipeApplyDialog.weekday || state.selectedWeekday;
+  const selectedMealLabel = state.recipeApplyDialog.mealLabel || mealOptions[0] || defaultMeals[0];
+
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-recipe-apply-dialog" aria-label="Zatvori dijalog"></button>
+      <section class="app-dialog recipe-apply-dialog" role="dialog" aria-modal="true" aria-labelledby="recipe-apply-title">
+        <div class="app-dialog-head">
+          <div class="stack" style="gap:4px;">
+            <div class="hero-picker-label">Dodaj recept</div>
+            <h3 id="recipe-apply-title">${escapeHtml(favorite.name)}</h3>
+            <p>Izaberi dan i obrok u koji želiš da dodaš ovu ${favorite.servings > 1 ? "porciju recepta" : "stavku"}.</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-recipe-apply-dialog" aria-label="Zatvori dijalog">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+        <form id="recipe-apply-form" class="stack" style="gap:16px;">
+          <input type="hidden" name="favoriteId" value="${favorite.id}" />
+          <div class="form-grid recipe-apply-grid">
+            <label>
+              <span>Dan</span>
+              <select name="weekday">
+                ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === selectedWeekday ? "selected" : ""}>${weekday}</option>`).join("")}
+              </select>
+            </label>
+            <label>
+              <span>Obrok</span>
+              <select name="mealLabel">
+                ${mealOptions.map((mealLabel) => `<option value="${mealLabel}" ${mealLabel === selectedMealLabel ? "selected" : ""}>${mealLabel}</option>`).join("")}
+              </select>
+            </label>
+          </div>
+          <div class="pill-row">
+            <span class="pill">${favorite.items.length} sastojaka</span>
+            <span class="pill">${favorite.servings || 1} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
+            <span class="pill note">Po porciji ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal</span>
+          </div>
+          <div class="entry-actions recipe-apply-actions">
+            <button class="ghost-button" type="button" data-action="close-recipe-apply-dialog">Odustani</button>
+            <button class="solid-button secondary-button button-with-icon" type="submit">
+              ${renderButtonContent("Dodaj u plan", "apply")}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  `;
+}
+
 function isMealCompletedForWeekday(weekday, mealLabel) {
   const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
   return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
@@ -5786,8 +5881,8 @@ function renderRecipesTab() {
                           : ""
                       }
                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
-                        <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">
-                          ${renderButtonContent(favorite.servings > 1 ? `Ubaci 1 porciju` : `Ubaci u ${state.selectedWeekday}`, "apply")}
+                        <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
+                          ${renderButtonContent("Dodaj u plan", "apply")}
                         </button>
                         <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
                           ${renderButtonContent("Izmeni recept", "edit")}
@@ -6960,8 +7055,8 @@ function renderNutritionTab() {
                           .join("")}
                       </div>
                       <div class="entry-actions nutrition-card-actions">
-                        <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${recipe.id}">
-                          ${renderButtonContent(recipe.servings > 1 ? "Ubaci 1 porciju" : `Ubaci u ${state.selectedWeekday}`, "apply")}
+                        <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${recipe.id}">
+                          ${renderButtonContent("Dodaj u plan", "apply")}
                         </button>
                         ${
                           pendingReviewCount
@@ -7861,6 +7956,8 @@ function render() {
           `
           : ""
       }
+
+      ${renderRecipeApplyDialog()}
     </div>
   `;
 
@@ -8573,6 +8670,22 @@ async function handleDocumentClick(event) {
       document.querySelector("#favorite-meal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelector("#favorite-name")?.focus();
     });
+    return;
+  }
+
+  if (action === "open-recipe-apply-dialog") {
+    const favorite = store.favoriteMeals.find((entry) => entry.id === actionTarget.dataset.favoriteId);
+    if (!favorite) {
+      return;
+    }
+    openRecipeApplyDialog(favorite);
+    render();
+    return;
+  }
+
+  if (action === "close-recipe-apply-dialog") {
+    closeRecipeApplyDialog();
+    render();
     return;
   }
 
@@ -9452,6 +9565,32 @@ async function handleSubmit(event) {
     state.favoriteDraft.foodId = "";
     state.favoriteDraft.grams = "";
     render();
+    return;
+  }
+
+  if (event.target.id === "recipe-apply-form") {
+    const favoriteId = String(formData.get("favoriteId") || "").trim();
+    const weekday = String(formData.get("weekday") || state.selectedWeekday).trim();
+    const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
+    const favorite = store.favoriteMeals.find((entry) => entry.id === favoriteId);
+    if (!favorite || !weekday || !mealLabel) {
+      return;
+    }
+
+    if (!applyFavoriteMealToDay(favorite, { weekday, mealLabel })) {
+      return;
+    }
+
+    closeRecipeApplyDialog();
+    persist();
+    render();
+    showFeedbackToast({
+      title: "Recept je dodat u plan",
+      detail:
+        favorite.servings > 1
+          ? `"${favorite.name}" je dodat u ${weekday} pod ${mealLabel} kao 1 porcija.`
+          : `"${favorite.name}" je dodat u ${weekday} pod ${mealLabel}.`,
+    });
     return;
   }
 
