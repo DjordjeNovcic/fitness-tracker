@@ -5641,12 +5641,20 @@ function renderFoodsTab() {
                     </button>
                   </div>
                 </div>
-                <div class="pill-row foods-macro-row">
-                  <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal</span>
-                  <span class="pill">${getFoodNutritionBasisLabel(food)}</span>
-                  <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
-                  <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
-                  <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
+                <div class="foods-macro-row">
+                  <div class="foods-energy-panel foods-energy-panel--${toneClass}">
+                    <span class="foods-energy-label">Energija</span>
+                    <div class="foods-energy-value">
+                      <strong>${roundValue(food.kcal, 0)}</strong>
+                      <span>kcal</span>
+                    </div>
+                    <span class="pill foods-basis-pill">${getFoodNutritionBasisLabel(food)}</span>
+                  </div>
+                  <div class="foods-stat-grid">
+                    <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
+                    <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
+                    <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
+                  </div>
                 </div>
                 <div class="entry-actions foods-card-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button
