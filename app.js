@@ -1113,6 +1113,41 @@ function findFoodByExactName(name) {
   );
 }
 
+function findBestFoodMatchByName(name, category = "") {
+  const canonicalName = canonicalizeImportedFoodName(name) || name;
+  const normalizedName = normalizeLookupValue(canonicalName);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const scoredFoods = getSelectableFoods()
+    .map((food) => {
+      const foodCanonicalName = normalizeLookupValue(canonicalizeImportedFoodName(food.name) || food.name);
+      const exactCanonicalMatch = Number(foodCanonicalName === normalizedName);
+      const partialCanonicalMatch = Number(
+        Boolean(foodCanonicalName) &&
+          foodCanonicalName !== normalizedName &&
+          (foodCanonicalName.includes(normalizedName) || normalizedName.includes(foodCanonicalName))
+      );
+      const hasNutrition = Number(toNumber(food.kcal) > 0 || toNumber(food.protein) > 0 || toNumber(food.carbs) > 0 || toNumber(food.fat) > 0);
+      const sameCategory = Number(Boolean(category) && String(food.category || "").trim() === String(category || "").trim());
+      const isBaseFood = Number(food.importSource !== "nutrition-import");
+
+      return {
+        food,
+        score: exactCanonicalMatch * 100 + partialCanonicalMatch * 40 + hasNutrition * 20 + sameCategory * 5 + isBaseFood * 3,
+      };
+    })
+    .sort((left, right) => right.score - left.score || String(left.food.name || "").localeCompare(String(right.food.name || ""), "sr"));
+
+  const bestMatch = scoredFoods[0];
+  if (!bestMatch || bestMatch.score < 60) {
+    return null;
+  }
+
+  return bestMatch.food;
+}
+
 function getImportValueOrFallback(nextValue, currentValue) {
   const normalizedNextValue = parseDecimal(nextValue);
   if (normalizedNextValue > 0) {
@@ -2283,11 +2318,12 @@ function upsertNutritionFood(foodDraft = {}, documentRecord) {
   }
 
   const canonicalFoodName = canonicalizeImportedFoodName(foodName) || foodName;
-  const existingFood = findFoodByExactName(canonicalFoodName);
+  const existingFood = findFoodByExactName(canonicalFoodName) || findBestFoodMatchByName(canonicalFoodName, foodDraft.category || "");
+  const isExistingBaseFood = Boolean(existingFood && existingFood.importSource !== "nutrition-import");
   const draftCategory = String(foodDraft.category || "").trim();
   const inferredCategory = inferImportedFoodCategory(canonicalFoodName, existingFood);
   const nextFoodFields = {
-    name: existingFood && existingFood.importSource !== "nutrition-import" ? existingFood.name : canonicalFoodName,
+    name: isExistingBaseFood ? existingFood.name : canonicalFoodName,
     category:
       (draftCategory && normalizeLookupValue(draftCategory) !== "nutri import" ? draftCategory : existingFood?.category || inferredCategory) ||
       inferredCategory,
@@ -2296,9 +2332,13 @@ function upsertNutritionFood(foodDraft = {}, documentRecord) {
     protein: getImportValueOrFallback(foodDraft.protein, existingFood?.protein),
     carbs: getImportValueOrFallback(foodDraft.carbs, existingFood?.carbs),
     fat: getImportValueOrFallback(foodDraft.fat, existingFood?.fat),
-    importSource: "nutrition-import",
-    importSourceDocIds: mergeUniqueStrings(existingFood?.importSourceDocIds || [], [documentRecord.id]),
-    importSourceDocNames: mergeUniqueStrings(existingFood?.importSourceDocNames || [], [documentRecord.name]),
+    importSource: isExistingBaseFood ? existingFood.importSource || "" : "nutrition-import",
+    importSourceDocIds: isExistingBaseFood
+      ? existingFood.importSourceDocIds || []
+      : mergeUniqueStrings(existingFood?.importSourceDocIds || [], [documentRecord.id]),
+    importSourceDocNames: isExistingBaseFood
+      ? existingFood.importSourceDocNames || []
+      : mergeUniqueStrings(existingFood?.importSourceDocNames || [], [documentRecord.name]),
     updatedAt: new Date().toISOString(),
   };
 
@@ -2397,7 +2437,7 @@ function mergeNutritionImportResult(parsedResult, documentRecord) {
 
   (parsedResult.foods || []).forEach((foodDraft) => {
     const importedFood = upsertNutritionFood(foodDraft, documentRecord);
-    if (importedFood) {
+    if (importedFood?.importSource === "nutrition-import") {
       importedFoodIds.push(importedFood.id);
     }
   });
@@ -2407,7 +2447,7 @@ function mergeNutritionImportResult(parsedResult, documentRecord) {
     if (importedRecipe) {
       importedRecipeIds.push(importedRecipe.id);
       importedRecipe.items.forEach((item) => {
-        if (item.foodId) {
+        if (item.foodId && getFoodById(item.foodId)?.importSource === "nutrition-import") {
           importedFoodIds.push(item.foodId);
         }
       });
@@ -6592,7 +6632,12 @@ function renderNutritionTab() {
           importedRecipes.length
             ? importedRecipes
                 .map(
-                  (recipe) => `
+                  (recipe) => {
+                    const pendingReviewCount = (recipe.items || []).filter((item) => {
+                      const food = item.foodId ? getFoodById(item.foodId) : null;
+                      return food && shouldHidePendingImportedFood(food);
+                    }).length;
+                    return `
                     <article class="food-card recipe-library-card nutrition-import-card">
                       <div class="food-card-top">
                         <strong>${escapeHtml(recipe.name)}</strong>
@@ -6608,6 +6653,7 @@ function renderNutritionTab() {
                         <span class="pill">P ${roundValue(recipe.perServingTotals.protein, 1)} g</span>
                         <span class="pill">UH ${roundValue(recipe.perServingTotals.carbs, 1)} g</span>
                         <span class="pill">M ${roundValue(recipe.perServingTotals.fat, 1)} g</span>
+                        ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} stavki čeka match</span>` : ""}
                       </div>
                       ${renderNutritionSourcePills(recipe.importSourceDocNames)}
                       <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
@@ -6622,12 +6668,22 @@ function renderNutritionTab() {
                         <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${recipe.id}">
                           ${renderButtonContent(recipe.servings > 1 ? "Ubaci 1 porciju" : `Ubaci u ${state.selectedWeekday}`, "apply")}
                         </button>
+                        ${
+                          pendingReviewCount
+                            ? `
+                              <button class="ghost-button button-with-icon" data-action="switch-tab" data-tab="nutrition">
+                                ${renderButtonContent("Sredi match", "edit")}
+                              </button>
+                            `
+                            : ""
+                        }
                         <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${recipe.id}">
                           ${renderButtonContent("Izmeni recept", "edit")}
                         </button>
                       </div>
                     </article>
-                  `
+                  `;
+                  }
                 )
                 .join("")
             : `<div class="empty">Ovde ćeš videti recepte koje izvučem iz dokumenata, zajedno sa sastojcima i gramažom.</div>`
