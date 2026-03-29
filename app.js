@@ -4208,31 +4208,10 @@ function updateHeroScrollState() {
 
   heroScrollFrame = window.requestAnimationFrame(() => {
     heroScrollFrame = 0;
-
-    if (state.activeTab !== "plan") {
-      if (state.isPlanHeroCompact || document.body.classList.contains("plan-compact")) {
-        state.isPlanHeroCompact = false;
-        document.body.classList.remove("plan-compact");
-      }
-      return;
+    if (state.isPlanHeroCompact || document.body.classList.contains("plan-compact")) {
+      state.isPlanHeroCompact = false;
+      document.body.classList.remove("plan-compact");
     }
-
-    const compactThreshold = 72;
-    const expandThreshold = 28;
-    let nextCompactState = state.isPlanHeroCompact;
-
-    if (!state.isPlanHeroCompact && window.scrollY >= compactThreshold) {
-      nextCompactState = true;
-    } else if (state.isPlanHeroCompact && window.scrollY <= expandThreshold) {
-      nextCompactState = false;
-    }
-
-    if (nextCompactState === state.isPlanHeroCompact && document.body.classList.contains("plan-compact") === nextCompactState) {
-      return;
-    }
-
-    state.isPlanHeroCompact = nextCompactState;
-    document.body.classList.toggle("plan-compact", nextCompactState);
   });
 }
 
