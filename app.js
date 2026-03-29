@@ -5693,16 +5693,7 @@ function renderRecipesTab() {
         <div class="footer-note recipe-builder-note">
           Ovde samo sklapaš preview recepta. Dodaj sastojke, proveri kalorije ispod, pa klikni Sačuvaj recept.
         </div>
-        <div class="entry-actions recipe-builder-save-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:12px;">
-          <button
-            class="solid-button button-with-icon"
-            data-action="save-favorite-meal-draft"
-            ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
-          >
-            ${renderButtonContent("Sačuvaj recept", "save")}
-          </button>
-          <span class="footer-note">Posle toga recept možeš da primeniš na bilo koji dan.</span>
-        </div>
+        <div class="footer-note" style="margin-top:10px;">Sačuvavanje ostaje dole, uz kompletan preview recepta.</div>
       </article>
       <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
         <div class="food-card-top recipe-draft-top">
