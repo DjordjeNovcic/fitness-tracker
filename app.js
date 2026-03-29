@@ -167,6 +167,9 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       hideDaySuggestion: false,
       collapsedMealsByWeekday: {},
     },
+    recipes: {
+      expandedRecipeIds: [],
+    },
   };
 
   const profileDefaults = {
@@ -329,11 +332,15 @@ function ensureStoreCollections(targetStore) {
   }));
   targetStore.ui = targetStore.ui || {};
   targetStore.ui.plan = targetStore.ui.plan || {};
+  targetStore.ui.recipes = targetStore.ui.recipes || {};
   if (typeof targetStore.ui.plan.hideDaySuggestion !== "boolean") {
     targetStore.ui.plan.hideDaySuggestion = false;
   }
   if (!targetStore.ui.plan.collapsedMealsByWeekday || typeof targetStore.ui.plan.collapsedMealsByWeekday !== "object") {
     targetStore.ui.plan.collapsedMealsByWeekday = {};
+  }
+  if (!Array.isArray(targetStore.ui.recipes.expandedRecipeIds)) {
+    targetStore.ui.recipes.expandedRecipeIds = [];
   }
   targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).map((entry) => ({
     ...entry,
@@ -4022,6 +4029,19 @@ function toggleMealCollapsedState(weekday, mealLabel) {
   store.ui.plan.collapsedMealsByWeekday[weekday] = [...collapsedMeals, normalizedMealLabel];
 }
 
+function isRecipeExpanded(recipeId) {
+  return Array.isArray(store.ui?.recipes?.expandedRecipeIds) && store.ui.recipes.expandedRecipeIds.includes(recipeId);
+}
+
+function toggleRecipeExpanded(recipeId) {
+  const expandedIds = Array.isArray(store.ui.recipes?.expandedRecipeIds) ? [...store.ui.recipes.expandedRecipeIds] : [];
+  if (expandedIds.includes(recipeId)) {
+    store.ui.recipes.expandedRecipeIds = expandedIds.filter((id) => id !== recipeId);
+    return;
+  }
+  store.ui.recipes.expandedRecipeIds = [...expandedIds, recipeId];
+}
+
 function getRemainingGoals(totals) {
   return {
     kcal: roundValue((store.goals.calories || 0) - totals.kcal, 1),
@@ -5712,15 +5732,27 @@ function renderRecipesTab() {
         ${
           favorites.length
             ? favorites
-                .map(
-                  (favorite) => `
-                    <article class="food-card recipe-library-card">
+                .map((favorite) => {
+                  const isExpanded = isRecipeExpanded(favorite.id);
+                  return `
+                    <article class="food-card recipe-library-card ${isExpanded ? "" : "is-collapsed"}">
                       <div class="food-card-top recipe-library-top">
                         <div class="recipe-library-copy">
                           <h3>${favorite.name}</h3>
                           <p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>
                         </div>
-                        <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
+                        <div class="entry-actions" style="gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap;">
+                          <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
+                          <button
+                            class="ghost-button meal-collapse-toggle"
+                            data-action="toggle-recipe-expanded"
+                            data-favorite-id="${favorite.id}"
+                            aria-expanded="${isExpanded}"
+                            aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}"
+                          >
+                            ${isExpanded ? "▾" : "▸"}
+                          </button>
+                        </div>
                       </div>
                       <div class="pill-row recipe-library-pills">
                         <span class="pill">${favorite.mealLabel || favorite.name}</span>
@@ -5737,30 +5769,36 @@ function renderRecipesTab() {
                         <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
                       </div>
                       ${
-                        favorite.instructions
-                          ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                        isExpanded
+                          ? `
+                            ${
+                              favorite.instructions
+                                ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                                : ""
+                            }
+                            <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
+                            <div class="stack recipe-library-ingredients" style="margin-top:12px;">
+                              ${favorite.items
+                                .map(
+                                  (item, index) => `
+                                    <div class="suggestion-row">
+                                      <div>
+                                        <strong>${item.displayName || item.foodName}</strong>
+                                        <div class="footer-note">${roundValue(item.grams, 0)} g</div>
+                                      </div>
+                                      <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
+                                        <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
+                                        <button class="ghost-button" data-action="add-favorite-item-to-day" data-favorite-id="${favorite.id}" data-item-index="${index}">Ubaci samo ovu</button>
+                                        <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obriši</button>
+                                      </div>
+                                    </div>
+                                  `
+                                )
+                                .join("")}
+                            </div>
+                          `
                           : ""
                       }
-                      <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
-                      <div class="stack recipe-library-ingredients" style="margin-top:12px;">
-                        ${favorite.items
-                          .map(
-                            (item, index) => `
-                              <div class="suggestion-row">
-                                <div>
-                                  <strong>${item.displayName || item.foodName}</strong>
-                                  <div class="footer-note">${roundValue(item.grams, 0)} g</div>
-                                </div>
-                                <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
-                                  <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
-                                  <button class="ghost-button" data-action="add-favorite-item-to-day" data-favorite-id="${favorite.id}" data-item-index="${index}">Ubaci samo ovu</button>
-                                  <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obriši</button>
-                                </div>
-                              </div>
-                            `
-                          )
-                          .join("")}
-                      </div>
                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
                         <button class="solid-button secondary-button button-with-icon" data-action="add-favorite-meal" data-favorite-id="${favorite.id}">
                           ${renderButtonContent(favorite.servings > 1 ? `Ubaci 1 porciju` : `Ubaci u ${state.selectedWeekday}`, "apply")}
@@ -5774,7 +5812,7 @@ function renderRecipesTab() {
                       </div>
                     </article>
                   `
-                )
+                })
                 .join("")
             : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
         }
@@ -8549,6 +8587,17 @@ async function handleDocumentClick(event) {
       document.querySelector("#favorite-meal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelector("#favorite-name")?.focus();
     });
+    return;
+  }
+
+  if (action === "toggle-recipe-expanded") {
+    const favoriteId = String(actionTarget.dataset.favoriteId || "").trim();
+    if (!favoriteId) {
+      return;
+    }
+    toggleRecipeExpanded(favoriteId);
+    persist();
+    render();
     return;
   }
 

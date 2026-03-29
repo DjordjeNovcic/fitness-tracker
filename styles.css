@@ -2315,6 +2315,10 @@ textarea::placeholder {
     var(--surface-strong);
 }
 
+.recipe-library-card.is-collapsed {
+  padding-block: 16px;
+}
+
 .recipe-library-ingredients {
   gap: 10px;
 }
