@@ -1145,6 +1145,30 @@ function removeNutritionImportDataForDocument(documentName) {
   pruneNutritionImportIndexes();
 }
 
+function resetNutritionImportWorkspace(targetStore) {
+  const importedFoodIds = new Set(
+    (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import").map((food) => food.id)
+  );
+  const importedRecipeIds = new Set(
+    (targetStore.favoriteMeals || []).filter((recipe) => recipe.importSource === "nutrition-import").map((recipe) => recipe.id)
+  );
+
+  targetStore.weeklyPlanEntries = (targetStore.weeklyPlanEntries || []).filter((entry) => !importedFoodIds.has(entry.foodId));
+  targetStore.favoriteMeals = (targetStore.favoriteMeals || [])
+    .filter((recipe) => !importedRecipeIds.has(recipe.id))
+    .map((recipe) => ({
+      ...recipe,
+      items: (recipe.items || []).filter((item) => !importedFoodIds.has(item.foodId)),
+    }));
+  targetStore.foods = (targetStore.foods || []).filter((food) => !importedFoodIds.has(food.id));
+  targetStore.favoriteFoods = (targetStore.favoriteFoods || []).filter((foodId) => !importedFoodIds.has(foodId));
+  targetStore.nutritionLibrary.documents = [];
+  targetStore.nutritionLibrary.recommendations = [];
+  targetStore.nutritionLibrary.importedFoodIds = [];
+  targetStore.nutritionLibrary.importedRecipeIds = [];
+  targetStore.nutritionLibrary.lastImportedAt = "";
+}
+
 function loadExternalScript(src, globalName) {
   if (globalName && window[globalName]) {
     return Promise.resolve(window[globalName]);
@@ -6123,6 +6147,7 @@ function renderNutritionTab() {
   const importedFoodsReviewedCount = Math.max(importedFoods.length - reviewImportedFoods.length, 0);
   const nutritionEditingFood = importedFoods.find((food) => food.id === state.nutritionEditingFoodId) || null;
   const nutritionLinkCandidates = nutritionEditingFood ? getImportedFoodLinkCandidates(nutritionEditingFood) : [];
+  const hasImportArchiveContent = Boolean(documents.length || recommendations.length || importedFoods.length || importedRecipes.length);
   const lastImportedAt = store.nutritionLibrary?.lastImportedAt
     ? new Date(store.nutritionLibrary.lastImportedAt).toLocaleString("sr-RS")
     : "";
@@ -6157,9 +6182,9 @@ function renderNutritionTab() {
               ${renderButtonContent("Uvezi dokumente", "open")}
             </label>
             <button class="ghost-button button-with-icon" type="button" data-action="clear-nutrition-imports" ${
-              !documents.length || state.nutritionImportPending ? "disabled" : ""
+              !hasImportArchiveContent || state.nutritionImportPending ? "disabled" : ""
             }>
-              ${renderButtonContent("Očisti arhivu", "delete")}
+              ${renderButtonContent("Resetuj import", "delete")}
             </button>
             <input id="nutrition-import-files" type="file" accept=".pdf,.docx,.txt,.md,.csv,.json" multiple hidden />
           `,
@@ -7206,22 +7231,28 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "clear-nutrition-imports") {
-    if (!(store.nutritionLibrary?.documents?.length || store.nutritionLibrary?.recommendations?.length)) {
+    const hasImportArchiveContent = Boolean(
+      store.nutritionLibrary?.documents?.length ||
+        store.nutritionLibrary?.recommendations?.length ||
+        (store.nutritionLibrary?.importedFoodIds || []).length ||
+        (store.nutritionLibrary?.importedRecipeIds || []).length ||
+        (store.foods || []).some((food) => food.importSource === "nutrition-import") ||
+        (store.favoriteMeals || []).some((recipe) => recipe.importSource === "nutrition-import")
+    );
+
+    if (!hasImportArchiveContent) {
       return;
     }
 
     const confirmed = window.confirm(
-      "Obriši arhivu importovanih dokumenata i preporuka? Recepti i namirnice koji su već ubačeni ostaće sačuvani."
+      "Resetuj ceo nutricionista import? Obrisaću importovane dokumente, preporuke, recepte i namirnice da možeš ponovo da uvezeš fajlove od nule."
     );
     if (!confirmed) {
       return;
     }
 
-    store.nutritionLibrary.documents = [];
-    store.nutritionLibrary.recommendations = [];
-    store.nutritionLibrary.importedFoodIds = [];
-    store.nutritionLibrary.importedRecipeIds = [];
-    store.nutritionLibrary.lastImportedAt = "";
+    resetNutritionImportWorkspace(store);
+    state.nutritionEditingFoodId = "";
     persist();
     render();
     return;
