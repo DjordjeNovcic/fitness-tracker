@@ -3113,6 +3113,14 @@ function formatFoodAmount(food, amount) {
   return `${roundValue(value, 0)} g`;
 }
 
+function resolveFoodFromQuery(query) {
+  const normalizedQuery = String(query || "").trim();
+  if (!normalizedQuery) {
+    return null;
+  }
+  return findFoodByExactName(normalizedQuery) || findBestFoodMatchByName(normalizedQuery) || null;
+}
+
 function calculateEntry(food, grams) {
   const ratio = grams / getFoodServingBaseValue(food);
   return {
@@ -5684,6 +5692,7 @@ function renderRecipesTab() {
   const favoriteDraftFood = getFoodById(state.favoriteDraft.foodId);
   const favoriteQuantityLabel = getFoodQuantityLabel(favoriteDraftFood);
   const favoriteQuantityPlaceholder = getFoodQuantityPlaceholder(favoriteDraftFood);
+  const favoriteFoodSearchValue = favoriteDraftFood?.name || "";
 
   return `
     <section class="section recipes-builder-section">
@@ -5731,13 +5740,12 @@ function renderRecipesTab() {
             <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${state.favoriteDraft.instructions}</textarea>
           </div>
           <div class="field">
-            <label for="favorite-food-id">Sastojak</label>
-            <select id="favorite-food-id" name="foodId" required>
-              <option value="">Izaberi namirnicu</option>
-              ${selectableFoods
-                .map((food) => `<option value="${food.id}" ${food.id === state.favoriteDraft.foodId ? "selected" : ""}>${food.name}</option>`)
-                .join("")}
-            </select>
+            <label for="favorite-food-search">Sastojak</label>
+            <input id="favorite-food-search" name="foodSearch" list="recipe-food-options" placeholder="Počni da kucaš namirnicu" value="${favoriteFoodSearchValue}" autocomplete="off" required />
+            <input id="favorite-food-id" name="foodId" type="hidden" value="${state.favoriteDraft.foodId}" />
+            <datalist id="recipe-food-options">
+              ${selectableFoods.map((food) => `<option value="${food.name}"></option>`).join("")}
+            </datalist>
           </div>
           <div class="field">
             <label for="favorite-grams">${favoriteQuantityLabel}</label>
@@ -9668,7 +9676,9 @@ async function handleSubmit(event) {
     const servings = String(formData.get("servings") || "1").trim();
     const prepTimeMinutes = String(formData.get("prepTimeMinutes") || "").trim();
     const instructions = String(formData.get("instructions") || "").trim();
-    const foodId = String(formData.get("foodId") || "").trim();
+    const foodSearch = String(formData.get("foodSearch") || "").trim();
+    const resolvedFood = resolveFoodFromQuery(foodSearch);
+    const foodId = String(formData.get("foodId") || resolvedFood?.id || "").trim();
     const grams = toNumber(formData.get("grams"));
     const food = getFoodById(foodId);
     if (!favoriteName || !mealLabel || !food || !grams) {
@@ -9989,6 +9999,32 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLInputElement && target.id === "favorite-food-search") {
+    const selectedFood = resolveFoodFromQuery(target.value);
+    state.favoriteDraft.foodId = selectedFood?.id || "";
+    if (selectedFood && !state.favoriteDraft.grams) {
+      state.favoriteDraft.grams = String(getFoodServingBaseValue(selectedFood));
+    }
+
+    const hiddenInput = document.querySelector("#favorite-food-id");
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = state.favoriteDraft.foodId;
+    }
+
+    const gramsLabel = document.querySelector('label[for="favorite-grams"]');
+    const gramsInput = document.querySelector("#favorite-grams");
+    if (gramsLabel) {
+      gramsLabel.textContent = getFoodQuantityLabel(selectedFood);
+    }
+    if (gramsInput instanceof HTMLInputElement) {
+      gramsInput.placeholder = getFoodQuantityPlaceholder(selectedFood);
+      if (selectedFood && !gramsInput.value) {
+        gramsInput.value = state.favoriteDraft.grams;
+      }
+    }
+    return;
+  }
+
   if (target instanceof HTMLTextAreaElement && target.id === "favorite-instructions") {
     state.favoriteDraft.instructions = target.value;
     return;
@@ -9999,16 +10035,6 @@ function handleInput(event) {
     if (!state.planDraft.grams) {
       const selectedFood = getFoodById(target.value);
       state.planDraft.grams = selectedFood ? String(getFoodServingBaseValue(selectedFood)) : "";
-    }
-    render();
-    return;
-  }
-
-  if (target instanceof HTMLSelectElement && target.id === "favorite-food-id") {
-    state.favoriteDraft.foodId = target.value;
-    if (!state.favoriteDraft.grams) {
-      const selectedFood = getFoodById(target.value);
-      state.favoriteDraft.grams = selectedFood ? String(getFoodServingBaseValue(selectedFood)) : "";
     }
     render();
     return;
