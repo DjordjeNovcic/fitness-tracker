@@ -84,6 +84,10 @@ const NUTRITION_PROFILE_FILTERS = [
   { id: "Malo proteina", label: "Malo proteina" },
   { id: "Manje kcal", label: "Manje kcal" },
 ];
+const RECIPE_NUTRITION_FILTERS = [
+  { id: "Sve", label: "Sve" },
+  { id: "Obrok do 500 kcal", label: "Obrok do 500 kcal" },
+];
 const IMPORT_AMOUNT_PATTERN =
   "(?:\\d+(?:[.,]\\d+)?\\s*-\\s*\\d+(?:[.,]\\d+)?|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|[¼½¾])";
 const IMPORT_UNIT_PATTERN =
@@ -109,6 +113,7 @@ const state = {
   foodMacroFilter: "Sve",
   foodNutritionFilter: "Sve",
   recipeMealFilter: "Sve",
+  recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
   planDraft: {
@@ -5991,7 +5996,13 @@ function renderRecipesTab() {
       state.recipeMealFilter === "Sve"
         ? true
         : normalizeMealLabel(favorite.mealLabel || favorite.name) === state.recipeMealFilter;
-    return mealMatch;
+    const nutritionMatch =
+      state.recipeNutritionFilter === "Sve"
+        ? true
+        : state.recipeNutritionFilter === "Obrok do 500 kcal"
+          ? favorite.perServingTotals.kcal > 0 && favorite.perServingTotals.kcal <= 500
+          : true;
+    return mealMatch && nutritionMatch;
   });
 
   return `
@@ -6183,6 +6194,24 @@ function renderRecipesTab() {
                           data-filter="${mealFilter}"
                         >
                           ${mealFilter}
+                        </button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div>
+                <div class="footer-note" style="margin-bottom:8px;">Filtriraj po kalorijama</div>
+                <div class="chips recipe-filter-bar">
+                  ${RECIPE_NUTRITION_FILTERS
+                    .map(
+                      (filter) => `
+                        <button
+                          class="chip is-light recipe-filter-chip ${filter.id === state.recipeNutritionFilter ? "is-active" : ""}"
+                          data-action="set-recipe-nutrition-filter"
+                          data-filter="${filter.id}"
+                        >
+                          ${filter.label}
                         </button>
                       `
                     )
@@ -8560,6 +8589,12 @@ async function handleDocumentClick(event) {
 
   if (action === "set-recipe-meal-filter") {
     state.recipeMealFilter = actionTarget.dataset.filter || "Sve";
+    render();
+    return;
+  }
+
+  if (action === "set-recipe-nutrition-filter") {
+    state.recipeNutritionFilter = actionTarget.dataset.filter || "Sve";
     render();
     return;
   }
