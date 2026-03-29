@@ -367,6 +367,19 @@ function ensureStoreCollections(targetStore) {
   targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => normalizeFavoriteMealRecord(favorite));
   seedDemoFavoriteMeals(targetStore);
   cleanupNutritionImportedFoods(targetStore);
+  normalizeFoodNamesAcrossStore(targetStore);
+}
+
+function normalizeFoodNamesAcrossStore(targetStore) {
+  (targetStore.foods || []).forEach((food) => {
+    const nextName = formatFoodDisplayName(food.name);
+    if (!nextName || nextName === food.name) {
+      return;
+    }
+
+    food.name = nextName;
+    syncFoodNameAcrossCollections(targetStore, food.id, nextName);
+  });
 }
 
 function replaceStore(nextStore) {
@@ -619,6 +632,86 @@ function normalizeLookupValue(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+const FOOD_NAME_DISPLAY_OVERRIDES = {
+  "4 godisnja doba frikom": "4 godišnja doba Frikom",
+  "coca cola zero": "Coca Cola Zero",
+  "dm bio": "DM Bio",
+  "sirup od agave dm bio": "Sirup od agave DM Bio",
+  "turska kafa bez secera": "Turska kafa bez šećera",
+  "kafa turska": "Turska kafa",
+  "kineska mesavina frikom": "Kineska mešavina Frikom",
+  "meksicka mesavina frikom": "Meksička mešavina Frikom",
+  "imlek slana karamela puding": "Imlek slana karamela puding",
+  "grcki jogurt dukatos": "Grčki jogurt Dukatos",
+  "grcki jogurt pilos kokos": "Grčki jogurt Pilos kokos",
+};
+
+const FOOD_NAME_WORD_OVERRIDES = {
+  prsuta: "pršuta",
+  pecenica: "pečenica",
+  oslic: "oslić",
+  grcki: "grčki",
+  cokoladno: "čokoladno",
+  pileca: "pileća",
+  pilecih: "pilećih",
+  pileceg: "pilećeg",
+  govedja: "goveđa",
+  cia: "čia",
+  secerac: "šećerac",
+  secera: "šećera",
+  spanac: "spanać",
+  sampinjoni: "šampinjoni",
+  zacinjen: "začinjen",
+  zacini: "začini",
+  mesavina: "mešavina",
+  meksicka: "meksička",
+  sargarepa: "šargarepa",
+  sunka: "šunka",
+  spagete: "špagete",
+  pirincani: "pirinčani",
+  pomorandze: "pomorandže",
+  lesnik: "lešnik",
+  kospica: "košpica",
+  grozdja: "grožđa",
+  godisnja: "godišnja",
+  breskva: "breskva",
+};
+
+function capitalizeFirstLetter(value) {
+  return String(value || "").replace(/[a-zA-ZčćžšđČĆŽŠĐ]/, (letter) => letter.toLocaleUpperCase("sr-RS"));
+}
+
+function formatFoodDisplayName(name) {
+  const cleanedName = String(name || "").replace(/\s+/g, " ").trim();
+  if (!cleanedName) {
+    return "";
+  }
+
+  const exactOverride = FOOD_NAME_DISPLAY_OVERRIDES[normalizeLookupValue(cleanedName)];
+  if (exactOverride) {
+    return exactOverride;
+  }
+
+  const replaced = cleanedName.replace(/[A-Za-zÀ-ž0-9.%]+/g, (token) => {
+    const override = FOOD_NAME_WORD_OVERRIDES[normalizeLookupValue(token)];
+    if (!override) {
+      return token;
+    }
+
+    if (/^[A-ZČĆŽŠĐ0-9.%]+$/.test(token) && token.length > 1) {
+      return override.toLocaleUpperCase("sr-RS");
+    }
+
+    if (/^[A-ZČĆŽŠĐ]/.test(token)) {
+      return capitalizeFirstLetter(override);
+    }
+
+    return override;
+  });
+
+  return capitalizeFirstLetter(replaced);
 }
 
 function mergeUniqueStrings(...collections) {
