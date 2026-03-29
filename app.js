@@ -76,6 +76,14 @@ const measurementFields = [
 
 const PHOTO_TAGS = ["front", "side", "back"];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
+const RECIPE_NUTRITION_FILTERS = [
+  { id: "Sve", label: "Sve" },
+  { id: "Visok protein", label: "Više proteina" },
+  { id: "Malo UH", label: "Malo UH" },
+  { id: "Malo masti", label: "Malo masti" },
+  { id: "Malo proteina", label: "Malo proteina" },
+  { id: "Manje kcal", label: "Manje kcal" },
+];
 const IMPORT_AMOUNT_PATTERN =
   "(?:\\d+(?:[.,]\\d+)?\\s*-\\s*\\d+(?:[.,]\\d+)?|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|[¼½¾])";
 const IMPORT_UNIT_PATTERN =
@@ -97,6 +105,8 @@ const state = {
   selectedWeekday: getTodayWeekday(),
   foodSearch: "",
   foodMacroFilter: "Sve",
+  recipeMealFilter: "Sve",
+  recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
   planDraft: {
@@ -5768,6 +5778,37 @@ function renderRecipesTab() {
   const favoriteQuantityLabel = getFoodQuantityLabel(favoriteDraftFood);
   const favoriteQuantityPlaceholder = getFoodQuantityPlaceholder(favoriteDraftFood);
   const favoriteFoodSearchValue = favoriteDraftFood?.name || "";
+  const recipeMealFilters = ["Sve", ...meals.filter(Boolean)];
+  const filteredFavorites = favorites.filter((favorite) => {
+    const mealMatch =
+      state.recipeMealFilter === "Sve"
+        ? true
+        : normalizeMealLabel(favorite.mealLabel || favorite.name) === state.recipeMealFilter;
+    if (!mealMatch) {
+      return false;
+    }
+
+    const perServing = favorite.perServingTotals || favorite.totals || {};
+    const protein = toNumber(perServing.protein);
+    const carbs = toNumber(perServing.carbs);
+    const fat = toNumber(perServing.fat);
+    const kcal = toNumber(perServing.kcal);
+
+    switch (state.recipeNutritionFilter) {
+      case "Visok protein":
+        return protein >= 25;
+      case "Malo UH":
+        return carbs <= 15;
+      case "Malo masti":
+        return fat <= 10;
+      case "Malo proteina":
+        return protein <= 12;
+      case "Manje kcal":
+        return kcal <= 450;
+      default:
+        return true;
+    }
+  });
 
   return `
     <section class="section recipes-builder-section">
@@ -5942,10 +5983,52 @@ function renderRecipesTab() {
           <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih recepata.` : "Još nema sačuvanih recepata."}</p>
         </div>
       </div>
+      ${
+        favorites.length
+          ? `
+            <div class="stack recipe-filter-stack" style="margin-bottom:14px;">
+              <div>
+                <div class="footer-note" style="margin-bottom:8px;">Filtriraj po tipu obroka</div>
+                <div class="chips recipe-filter-bar">
+                  ${recipeMealFilters
+                    .map(
+                      (mealFilter) => `
+                        <button
+                          class="chip is-light recipe-filter-chip ${mealFilter === state.recipeMealFilter ? "is-active" : ""}"
+                          data-action="set-recipe-meal-filter"
+                          data-filter="${mealFilter}"
+                        >
+                          ${mealFilter}
+                        </button>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div>
+                <div class="footer-note" style="margin-bottom:8px;">Filtriraj po nutritivnom profilu</div>
+                <div class="chips recipe-filter-bar">
+                  ${RECIPE_NUTRITION_FILTERS.map(
+                    (filter) => `
+                      <button
+                        class="chip is-light recipe-filter-chip ${filter.id === state.recipeNutritionFilter ? "is-active" : ""}"
+                        data-action="set-recipe-nutrition-filter"
+                        data-filter="${filter.id}"
+                      >
+                        ${filter.label}
+                      </button>
+                    `
+                  ).join("")}
+                </div>
+              </div>
+            </div>
+          `
+          : ""
+      }
       <div class="stack recipes-library-stack">
         ${
-          favorites.length
-            ? favorites
+          filteredFavorites.length
+            ? filteredFavorites
                 .map((favorite) => {
                   const isExpanded = isRecipeExpanded(favorite.id);
                   return `
@@ -6029,7 +6112,9 @@ function renderRecipesTab() {
                   `
                 })
                 .join("")
-            : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
+            : favorites.length
+              ? `<div class="empty">Nema recepata za izabrane filtere. Promeni tip obroka ili nutritivni profil.</div>`
+              : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
         }
       </div>
     </section>
@@ -8297,6 +8382,18 @@ async function handleDocumentClick(event) {
 
   if (action === "set-food-filter") {
     state.foodMacroFilter = actionTarget.dataset.filter || "Sve";
+    render();
+    return;
+  }
+
+  if (action === "set-recipe-meal-filter") {
+    state.recipeMealFilter = actionTarget.dataset.filter || "Sve";
+    render();
+    return;
+  }
+
+  if (action === "set-recipe-nutrition-filter") {
+    state.recipeNutritionFilter = actionTarget.dataset.filter || "Sve";
     render();
     return;
   }

@@ -2566,6 +2566,29 @@ label.is-invalid textarea:focus {
   gap: 16px;
 }
 
+.recipe-filter-stack {
+  gap: 12px;
+}
+
+.recipe-filter-bar {
+  gap: 10px;
+}
+
+.recipe-filter-chip {
+  min-height: 40px;
+  padding-inline: 14px;
+  border-radius: 999px;
+}
+
+.recipe-filter-chip.is-active {
+  background: linear-gradient(180deg, rgba(135, 150, 91, 0.96), rgba(112, 129, 77, 0.94));
+  color: #fffaf3;
+  border-color: rgba(112, 129, 77, 0.34);
+  box-shadow:
+    0 10px 18px rgba(72, 88, 47, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
 .recipe-library-card {
   background:
     radial-gradient(circle at top right, rgba(139, 153, 97, 0.15), transparent 32%),
