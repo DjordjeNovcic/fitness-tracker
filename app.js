@@ -76,7 +76,7 @@ const measurementFields = [
 
 const PHOTO_TAGS = ["front", "side", "back"];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
-const RECIPE_NUTRITION_FILTERS = [
+const NUTRITION_PROFILE_FILTERS = [
   { id: "Sve", label: "Sve" },
   { id: "Visok protein", label: "Više proteina" },
   { id: "Malo UH", label: "Malo UH" },
@@ -105,8 +105,8 @@ const state = {
   selectedWeekday: getTodayWeekday(),
   foodSearch: "",
   foodMacroFilter: "Sve",
+  foodNutritionFilter: "Sve",
   recipeMealFilter: "Sve",
-  recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
   planDraft: {
@@ -5556,6 +5556,27 @@ function renderFoodsTab() {
       if (!matchesFilter) {
         return false;
       }
+      const protein = toNumber(food.protein);
+      const carbs = toNumber(food.carbs);
+      const fat = toNumber(food.fat);
+      const kcal = toNumber(food.kcal);
+      const matchesNutritionProfile =
+        state.foodNutritionFilter === "Sve"
+          ? true
+          : state.foodNutritionFilter === "Visok protein"
+            ? protein >= 20
+            : state.foodNutritionFilter === "Malo UH"
+              ? carbs <= 10
+              : state.foodNutritionFilter === "Malo masti"
+                ? fat <= 10
+                : state.foodNutritionFilter === "Malo proteina"
+                  ? protein <= 8
+                  : state.foodNutritionFilter === "Manje kcal"
+                    ? kcal <= 120
+                    : true;
+      if (!matchesNutritionProfile) {
+        return false;
+      }
       if (!queryTokens.length) {
         return true;
       }
@@ -5619,6 +5640,24 @@ function renderFoodsTab() {
             </button>
           `
         ).join("")}
+      </div>
+      <div class="stack recipe-filter-stack" style="margin-bottom:14px;">
+        <div>
+          <div class="footer-note" style="margin-bottom:8px;">Filtriraj po nutritivnom profilu</div>
+          <div class="chips recipe-filter-bar">
+            ${NUTRITION_PROFILE_FILTERS.map(
+              (filter) => `
+                <button
+                  class="chip is-light recipe-filter-chip ${filter.id === state.foodNutritionFilter ? "is-active" : ""}"
+                  data-action="set-food-nutrition-filter"
+                  data-filter="${filter.id}"
+                >
+                  ${filter.label}
+                </button>
+              `
+            ).join("")}
+          </div>
+        </div>
       </div>
       <div class="field">
         <label for="food-search">Pretraga</label>
@@ -5784,30 +5823,7 @@ function renderRecipesTab() {
       state.recipeMealFilter === "Sve"
         ? true
         : normalizeMealLabel(favorite.mealLabel || favorite.name) === state.recipeMealFilter;
-    if (!mealMatch) {
-      return false;
-    }
-
-    const perServing = favorite.perServingTotals || favorite.totals || {};
-    const protein = toNumber(perServing.protein);
-    const carbs = toNumber(perServing.carbs);
-    const fat = toNumber(perServing.fat);
-    const kcal = toNumber(perServing.kcal);
-
-    switch (state.recipeNutritionFilter) {
-      case "Visok protein":
-        return protein >= 25;
-      case "Malo UH":
-        return carbs <= 15;
-      case "Malo masti":
-        return fat <= 10;
-      case "Malo proteina":
-        return protein <= 12;
-      case "Manje kcal":
-        return kcal <= 450;
-      default:
-        return true;
-    }
+    return mealMatch;
   });
 
   return `
@@ -6003,22 +6019,6 @@ function renderRecipesTab() {
                       `
                     )
                     .join("")}
-                </div>
-              </div>
-              <div>
-                <div class="footer-note" style="margin-bottom:8px;">Filtriraj po nutritivnom profilu</div>
-                <div class="chips recipe-filter-bar">
-                  ${RECIPE_NUTRITION_FILTERS.map(
-                    (filter) => `
-                      <button
-                        class="chip is-light recipe-filter-chip ${filter.id === state.recipeNutritionFilter ? "is-active" : ""}"
-                        data-action="set-recipe-nutrition-filter"
-                        data-filter="${filter.id}"
-                      >
-                        ${filter.label}
-                      </button>
-                    `
-                  ).join("")}
                 </div>
               </div>
             </div>
@@ -8392,8 +8392,8 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "set-recipe-nutrition-filter") {
-    state.recipeNutritionFilter = actionTarget.dataset.filter || "Sve";
+  if (action === "set-food-nutrition-filter") {
+    state.foodNutritionFilter = actionTarget.dataset.filter || "Sve";
     render();
     return;
   }
