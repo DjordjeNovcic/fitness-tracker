@@ -162,6 +162,7 @@ textarea::placeholder {
   top: 0;
   z-index: 20;
   overflow: hidden;
+  isolation: isolate;
   margin-bottom: 0;
   padding: 20px 20px 18px;
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
@@ -178,6 +179,9 @@ textarea::placeholder {
     border-radius 0.24s ease,
     box-shadow 0.24s ease,
     background 0.24s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, padding;
 }
 
 .hero h1,
