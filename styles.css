@@ -2167,6 +2167,16 @@ textarea::placeholder {
   overflow: hidden;
 }
 
+.nutrition-overview-section,
+.nutrition-plan-section,
+.nutrition-recommendations-section,
+.nutrition-recipes-section,
+.nutrition-foods-section,
+.nutrition-documents-section {
+  overflow: visible;
+  isolation: isolate;
+}
+
 .routine-overview-section::before,
 .routine-habits-section::before,
 .routine-streak-section::before,
@@ -2361,22 +2371,32 @@ textarea::placeholder {
 }
 
 .nutrition-plan-section {
+  display: grid;
+  align-content: start;
+  gap: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 252, 247, 0.92), rgba(246, 241, 232, 0.98)),
+    linear-gradient(180deg, rgba(255, 253, 249, 0.96), rgba(247, 242, 234, 0.995)),
     var(--surface);
 }
 
 .nutrition-plan-chips {
-  margin-bottom: 14px;
+  margin-bottom: 2px;
+  position: relative;
+  z-index: 1;
 }
 
 .nutrition-plan-day-card {
+  position: relative;
+  z-index: 1;
   padding: 20px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at top right, rgba(139, 153, 97, 0.14), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.11), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 250, 244, 0.995)),
     var(--surface-strong);
+  box-shadow:
+    0 18px 34px rgba(25, 34, 31, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
 }
 
 .nutrition-plan-day-top {
@@ -2384,23 +2404,46 @@ textarea::placeholder {
 }
 
 .nutrition-plan-notes {
-  margin-top: 12px;
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(25, 34, 31, 0.06);
+  background: rgba(255, 250, 244, 0.84);
   display: grid;
-  gap: 6px;
+  gap: 8px;
+}
+
+.nutrition-plan-notes > div {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .nutrition-plan-actions {
-  margin-top: 14px;
+  margin-top: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .nutrition-plan-meals {
-  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 2px;
 }
 
 .nutrition-plan-meal-card {
+  position: relative;
+  z-index: 1;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 244, 0.99)),
     var(--surface-strong);
+  box-shadow:
+    0 12px 26px rgba(25, 34, 31, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
 .nutrition-plan-instructions {
