@@ -5577,13 +5577,23 @@ function renderRecipesTab() {
           </div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
             <button class="solid-button secondary-button button-with-icon" type="submit">
-              ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj sastojak" : "Dodaj sastojak", state.editingFavoriteItem.itemId ? "save" : "add")}
+              ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj stavku u preview" : "Dodaj stavku u preview", state.editingFavoriteItem.itemId ? "save" : "add")}
             </button>
             ${state.editingFavoriteItem.itemId ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-favorite-item">${renderButtonContent("Odustani", "close")}</button>` : ""}
           </div>
         </form>
         <div class="footer-note recipe-builder-note">
-          Svaki klik na Dodaj sastojak ubacuje novu stavku u recept, a polja za opis i pripremu ostaju vezana za isti recept.
+          Ovde samo sklapaš preview recepta. Dodaj sastojke, proveri kalorije ispod, pa klikni Sačuvaj recept.
+        </div>
+        <div class="entry-actions recipe-builder-save-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:12px;">
+          <button
+            class="solid-button button-with-icon"
+            data-action="save-favorite-meal-draft"
+            ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
+          >
+            ${renderButtonContent("Sačuvaj recept", "save")}
+          </button>
+          <span class="footer-note">Posle toga recept možeš da primeniš na bilo koji dan.</span>
         </div>
         ${
           draftPreview.items.length
