@@ -2358,7 +2358,22 @@ function getFoodNutritionStatus(food = {}) {
   const fat = toNumber(food.fat);
   const hasKcal = kcal > 0;
   const hasAnyMacros = protein > 0 || carbs > 0 || fat > 0;
+  const hasExplicitZeroNutrition = Boolean(food.nutritionZeroConfirmed);
   const estimatedKcal = hasAnyMacros ? roundValue(protein * 4 + carbs * 4 + fat * 9, 0) : 0;
+
+  if (hasExplicitZeroNutrition && !hasKcal && !hasAnyMacros) {
+    return {
+      hasKcal,
+      hasAnyMacros,
+      displayKcal: 0,
+      estimatedKcal: 0,
+      isEstimatedKcal: false,
+      needsAttention: false,
+      statusLabel: "0 kcal potvrdeno",
+      statusDetail: "Vrednosti su sacuvane kao nula na 100 g.",
+      tone: "success",
+    };
+  }
 
   if (!hasKcal && !hasAnyMacros) {
     return {
@@ -8457,14 +8472,19 @@ async function handleSubmit(event) {
       return;
     }
 
-    const protein = toNumber(formData.get("protein"));
-    const carbs = toNumber(formData.get("carbs"));
-    const fat = toNumber(formData.get("fat"));
+    const proteinInput = String(formData.get("protein") || "").trim();
+    const carbsInput = String(formData.get("carbs") || "").trim();
+    const fatInput = String(formData.get("fat") || "").trim();
+    const protein = toNumber(proteinInput);
+    const carbs = toNumber(carbsInput);
+    const fat = toNumber(fatInput);
     const hasAnyMacros = protein > 0 || carbs > 0 || fat > 0;
     const kcalInput = String(formData.get("kcal") || "").trim();
+    const hasExplicitNutritionInput = Boolean(kcalInput || proteinInput || carbsInput || fatInput);
+    const isExplicitZeroNutrition = hasExplicitNutritionInput && !(toNumber(kcalInput) > 0 || hasAnyMacros);
     const kcal = kcalInput ? toNumber(kcalInput) : hasAnyMacros ? roundValue(protein * 4 + carbs * 4 + fat * 9, 1) : 0;
 
-    if (!(kcal > 0 || hasAnyMacros)) {
+    if (!hasExplicitNutritionInput) {
       showFeedbackToast({
         title: "Dodaj makar jednu vrednost",
         detail: "Unesi kcal ili barem neki od makroa da bih sačuvao namirnicu.",
@@ -8483,6 +8503,7 @@ async function handleSubmit(event) {
             carbs,
             fat,
             nutritionSource,
+            nutritionZeroConfirmed: isExplicitZeroNutrition,
             nutritionUpdatedAt: new Date().toISOString(),
           }
         : entry
