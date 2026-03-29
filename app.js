@@ -503,9 +503,6 @@ async function hydrateStoreFromCloud(user) {
   }
 }
 
-const store = hydrateStore();
-ensureStoreCollections(store);
-
 function persistLocal(rollback) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
@@ -713,6 +710,9 @@ function formatFoodDisplayName(name) {
 
   return capitalizeFirstLetter(replaced);
 }
+
+const store = hydrateStore();
+ensureStoreCollections(store);
 
 function mergeUniqueStrings(...collections) {
   const merged = new Set();
