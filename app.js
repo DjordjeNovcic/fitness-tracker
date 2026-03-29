@@ -5615,48 +5615,6 @@ function renderRecipesTab() {
           </button>
           <span class="footer-note">Posle toga recept možeš da primeniš na bilo koji dan.</span>
         </div>
-        ${
-          draftPreview.items.length
-            ? `
-              <div class="stack recipe-editor-items" style="margin-top:16px;">
-                ${draftPreview.items
-                  .filter((item) => !item.isPending)
-                  .map((item) => {
-                    const suggestedFood = getRecipeDraftItemSuggestedFood(item);
-                    return `
-                      <div class="suggestion-row recipe-editor-item-row">
-                        <div class="recipe-editor-item-copy">
-                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
-                          <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
-                          ${
-                            suggestedFood
-                              ? `
-                                <div class="recipe-editor-item-suggestion">
-                                  <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
-                                  <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
-                                </div>
-                              `
-                              : ""
-                          }
-                        </div>
-                        <div class="recipe-editor-item-fields">
-                          <select data-recipe-draft-item-food-id="${item.id}">
-                            <option value="">Poveži sa namirnicom</option>
-                            ${selectableFoods
-                              .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
-                              .join("")}
-                          </select>
-                          <input data-recipe-draft-item-grams="${item.id}" type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="g" />
-                          <button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>
-                        </div>
-                      </div>
-                    `
-                  })
-                  .join("")}
-              </div>
-            `
-            : ""
-        }
       </article>
       <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
         <div class="food-card-top recipe-draft-top">
@@ -5690,21 +5648,55 @@ function renderRecipesTab() {
           ${
             draftPreview.items.length
               ? draftPreview.items
-                  .map(
-                    (item) => `
-                      <div class="suggestion-row">
-                        <div>
-                          <strong>${item.foodName}</strong>
-                          <div class="footer-note">${roundValue(item.grams, 0)} g</div>
+                  .map((item) => {
+                    const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
+                    return `
+                      <div class="suggestion-row recipe-editor-item-row">
+                        <div class="recipe-editor-item-copy">
+                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
+                          <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
+                          ${
+                            suggestedFood
+                              ? `
+                                <div class="recipe-editor-item-suggestion">
+                                  <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
+                                  <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
+                                </div>
+                              `
+                              : ""
+                          }
+                        </div>
+                        <div class="recipe-editor-item-fields">
+                          ${
+                            item.isPending
+                              ? `<span class="pill strong">nova stavka</span>`
+                              : `
+                                <select data-recipe-draft-item-food-id="${item.id}">
+                                  <option value="">Poveži sa namirnicom</option>
+                                  ${selectableFoods
+                                    .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
+                                    .join("")}
+                                </select>
+                              `
+                          }
+                          <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="g" ${item.isPending ? "disabled" : ""} />
+                          ${
+                            item.isPending
+                              ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
+                              : `<button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>`
+                          }
                         </div>
                         <div class="pill-row" style="margin-top:0;">
-                          <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "sačuvano"}</span>
+                          <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "u preview"}</span>
                           ${!item.isMatched ? `<span class="pill pill--warning">traži match</span>` : ""}
                           <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
+                          <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
+                          <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
+                          <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
                         </div>
                       </div>
-                    `
-                  )
+                    `;
+                  })
                   .join("")
               : `<div class="empty">Dodaj prvi sastojak i gramažu, pa ćeš ovde odmah videti kompletan recept.</div>`
           }
