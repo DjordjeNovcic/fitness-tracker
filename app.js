@@ -4716,8 +4716,6 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
-    ${renderPlanRecipesSection(planMeals, favorites)}
-
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
