@@ -2595,7 +2595,10 @@ label.is-invalid textarea:focus {
 }
 
 .recipes-library-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  align-items: start;
 }
 
 .recipe-filter-stack {
@@ -2630,6 +2633,20 @@ label.is-invalid textarea:focus {
 
 .recipe-library-card.is-collapsed {
   padding-block: 16px;
+}
+
+.recipe-library-card:not(.is-collapsed) {
+  grid-column: 1 / -1;
+}
+
+.recipe-library-card.is-collapsed .recipe-library-shell.has-media {
+  grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.recipe-library-card.is-collapsed .recipe-library-media img {
+  min-height: 180px;
+  max-height: 220px;
 }
 
 .recipe-library-shell {
@@ -2680,6 +2697,10 @@ label.is-invalid textarea:focus {
   font-size: clamp(1.45rem, 2.3vw, 2rem);
   max-width: 22ch;
   line-height: 1.02;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .recipe-library-pills {
@@ -2745,6 +2766,10 @@ label.is-invalid textarea:focus {
 }
 
 @media (max-width: 900px) {
+  .recipes-library-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .recipe-library-shell.has-media {
     grid-template-columns: minmax(0, 1fr);
   }
