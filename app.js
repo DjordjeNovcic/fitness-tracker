@@ -2873,6 +2873,49 @@ function syncFoodReferenceAcrossCollections(targetStore, fromFoodId, nextFoodId,
   );
 }
 
+function deleteFoodFromCollections(targetStore, foodId) {
+  const result = {
+    removedPlanEntries: 0,
+    removedRecipeItems: 0,
+    removedRecipes: 0,
+    removedFavoriteReferences: 0,
+  };
+
+  const planEntries = targetStore.weeklyPlanEntries || [];
+  result.removedPlanEntries = planEntries.filter((entry) => entry.foodId === foodId).length;
+  targetStore.weeklyPlanEntries = planEntries.filter((entry) => entry.foodId !== foodId);
+
+  targetStore.favoriteMeals = (targetStore.favoriteMeals || [])
+    .map((favorite) => {
+      const removedCount = (favorite.items || []).filter((item) => item.foodId === foodId).length;
+      result.removedRecipeItems += removedCount;
+      return {
+        ...favorite,
+        items: (favorite.items || []).filter((item) => item.foodId !== foodId),
+      };
+    })
+    .filter((favorite) => {
+      const keep = (favorite.items || []).length > 0;
+      if (!keep) {
+        result.removedRecipes += 1;
+      }
+      return keep;
+    });
+
+  const hadFavoriteReference = (targetStore.favoriteFoods || []).includes(foodId);
+  targetStore.favoriteFoods = mergeUniqueStrings((targetStore.favoriteFoods || []).filter((entry) => entry !== foodId));
+  if (hadFavoriteReference) {
+    result.removedFavoriteReferences = 1;
+  }
+
+  targetStore.foods = (targetStore.foods || []).filter((food) => food.id !== foodId);
+  targetStore.nutritionLibrary.importedFoodIds = mergeUniqueStrings(
+    (targetStore.nutritionLibrary?.importedFoodIds || []).filter((entry) => entry !== foodId)
+  );
+
+  return result;
+}
+
 function linkImportedFoodToExisting(targetStore, importedFoodId, existingFoodId) {
   const importedFood = (targetStore.foods || []).find((food) => food.id === importedFoodId);
   const existingFood = (targetStore.foods || []).find((food) => food.id === existingFoodId);
@@ -5606,6 +5649,13 @@ function renderFoodsTab() {
                     data-food-id="${food.id}"
                   >
                     ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Favorit", "save")}
+                  </button>
+                  <button
+                    class="danger-button button-with-icon"
+                    data-action="delete-food"
+                    data-food-id="${food.id}"
+                  >
+                    ${renderButtonContent("Obriši", "delete")}
                   </button>
                 </div>
               </article>
@@ -8569,6 +8619,57 @@ async function handleDocumentClick(event) {
   if (action === "cancel-edit-food") {
     resetFoodEditing();
     render();
+    return;
+  }
+
+  if (action === "delete-food") {
+    const foodId = String(actionTarget.dataset.foodId || "").trim();
+    const food = foodId ? getFoodById(foodId) : null;
+    if (!food) {
+      return;
+    }
+
+    const planUsageCount = (store.weeklyPlanEntries || []).filter((entry) => entry.foodId === foodId).length;
+    const recipeUsageCount = (store.favoriteMeals || []).reduce(
+      (count, favorite) => count + (favorite.items || []).filter((item) => item.foodId === foodId).length,
+      0
+    );
+    const usageNote =
+      planUsageCount || recipeUsageCount
+        ? ` Ovo će ukloniti ${planUsageCount} stavki iz plana i ${recipeUsageCount} sastojaka iz recepata.`
+        : "";
+    const confirmed = window.confirm(`Obriši namirnicu "${food.name}"?${usageNote}`);
+    if (!confirmed) {
+      return;
+    }
+
+    const result = deleteFoodFromCollections(store, foodId);
+    if (state.editingFoodId === foodId) {
+      resetFoodEditing();
+    }
+    state.foodSearch = state.foodSearch && normalizeLookupValue(food.name).includes(normalizeLookupValue(state.foodSearch)) ? "" : state.foodSearch;
+    persist();
+    render();
+
+    const detailParts = [];
+    if (result.removedPlanEntries) {
+      detailParts.push(`${result.removedPlanEntries} iz plana`);
+    }
+    if (result.removedRecipeItems) {
+      detailParts.push(`${result.removedRecipeItems} iz recepata`);
+    }
+    if (result.removedRecipes) {
+      detailParts.push(`${result.removedRecipes} praznih recepata`);
+    }
+    if (result.removedFavoriteReferences) {
+      detailParts.push("favorit oznaka");
+    }
+
+    showFeedbackToast({
+      title: "Namirnica je obrisana",
+      detail: detailParts.length ? `Uklonjeno: ${detailParts.join(", ")}.` : `${food.name} je uklonjena iz baze.`,
+      tone: "success",
+    });
     return;
   }
 
