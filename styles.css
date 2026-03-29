@@ -1185,42 +1185,42 @@ textarea::placeholder {
 .foods-card {
   position: relative;
   overflow: hidden;
-  padding: 24px;
-  border-radius: 30px;
-  border: 1.5px solid rgba(173, 151, 109, 0.32);
+  padding: 20px;
+  border-radius: 26px;
+  border: 1px solid rgba(132, 138, 117, 0.18);
   background:
-    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(255, 249, 241, 0.98)),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(251, 246, 238, 0.98)),
     var(--surface-strong);
   box-shadow:
-    0 18px 42px rgba(91, 70, 32, 0.08),
+    0 16px 34px rgba(25, 34, 31, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 .foods-card--proteins {
   background:
-    radial-gradient(circle at 50% 28%, rgba(112, 178, 145, 0.16), transparent 42%),
-    linear-gradient(180deg, rgba(244, 250, 246, 0.98), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 18%, rgba(112, 178, 145, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(248, 251, 248, 0.98), rgba(251, 246, 238, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--carbs {
   background:
-    radial-gradient(circle at 50% 28%, rgba(232, 191, 112, 0.18), transparent 42%),
-    linear-gradient(180deg, rgba(252, 244, 226, 0.98), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 18%, rgba(232, 191, 112, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(252, 248, 238, 0.98), rgba(251, 246, 238, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--fats {
   background:
-    radial-gradient(circle at 50% 28%, rgba(178, 194, 123, 0.18), transparent 42%),
-    linear-gradient(180deg, rgba(245, 249, 234, 0.98), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 18%, rgba(178, 194, 123, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(248, 250, 242, 0.98), rgba(251, 246, 238, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--other {
   background:
-    radial-gradient(circle at 50% 28%, rgba(170, 186, 180, 0.15), transparent 42%),
-    linear-gradient(180deg, rgba(245, 247, 246, 0.98), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 18%, rgba(170, 186, 180, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(247, 248, 247, 0.98), rgba(251, 246, 238, 0.98)),
     var(--surface-strong);
 }
 
@@ -1229,12 +1229,17 @@ textarea::placeholder {
 }
 
 .foods-card h3 {
-  font-size: clamp(2.05rem, 2.9vw, 3.35rem);
-  line-height: 0.94;
-  letter-spacing: -0.055em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: clamp(1.55rem, 1.75vw, 2.3rem);
+  line-height: 0.96;
+  letter-spacing: -0.045em;
   font-weight: 900;
-  color: #183a46;
+  color: #274554;
   text-wrap: balance;
+  min-height: 2.88em;
 }
 
 .foods-card-top {
@@ -1256,7 +1261,7 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -1270,14 +1275,14 @@ textarea::placeholder {
 
 .foods-group-badge {
   flex-shrink: 0;
-  min-height: 46px;
-  padding: 10px 18px;
-  border-radius: 18px;
-  font-size: 0.92rem;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  font-size: 0.84rem;
   font-weight: 800;
   border: 1px solid rgba(24, 33, 30, 0.08);
   box-shadow:
-    0 10px 18px rgba(25, 34, 31, 0.06),
+    0 8px 14px rgba(25, 34, 31, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -1285,17 +1290,17 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(24, 33, 30, 0.08);
   background: rgba(255, 253, 248, 0.96);
   color: #baa06b;
-  font-size: 1.45rem;
+  font-size: 1.15rem;
   line-height: 1;
   box-shadow:
-    0 12px 22px rgba(25, 34, 31, 0.08),
+    0 8px 16px rgba(25, 34, 31, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
   transition:
     transform 160ms ease,
@@ -1345,9 +1350,9 @@ textarea::placeholder {
 }
 
 .foods-summary {
-  margin-top: 26px;
+  margin-top: 18px;
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .foods-energy-display {
@@ -1366,37 +1371,37 @@ textarea::placeholder {
 }
 
 .foods-energy-value strong {
-  font-size: clamp(3rem, 3.8vw, 4.25rem);
-  line-height: 0.88;
+  font-size: clamp(2.4rem, 2.8vw, 3.25rem);
+  line-height: 0.9;
   font-weight: 900;
   letter-spacing: -0.06em;
-  color: rgba(164, 135, 95, 0.72);
+  color: rgba(153, 130, 94, 0.84);
 }
 
 .foods-energy-value span {
-  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-size: clamp(0.96rem, 1.2vw, 1.05rem);
   font-weight: 700;
   color: #1b1f1d;
 }
 
 .foods-energy-basis {
-  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-size: 0.98rem;
   font-weight: 700;
-  color: #1f2522;
+  color: #3f4a45;
 }
 
 .foods-macro-bar {
   display: flex;
   align-items: stretch;
   gap: 0;
-  min-height: 26px;
+  min-height: 18px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(208, 208, 203, 0.68);
-  border: 1px solid rgba(186, 183, 175, 0.54);
+  background: rgba(215, 214, 208, 0.7);
+  border: 1px solid rgba(186, 183, 175, 0.4);
   box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.58),
-    0 10px 18px rgba(25, 34, 31, 0.06);
+    inset 0 1px 3px rgba(255, 255, 255, 0.58),
+    0 6px 12px rgba(25, 34, 31, 0.04);
 }
 
 .foods-macro-segment {
@@ -1418,16 +1423,16 @@ textarea::placeholder {
 .foods-macro-values {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .foods-macro-value {
   min-width: 0;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #161b18;
+  color: #28312d;
 }
 
 .foods-macro-value--protein {
@@ -1448,9 +1453,9 @@ textarea::placeholder {
 }
 
 .foods-card-actions {
-  margin-top: 24px;
+  margin-top: 18px;
   padding-top: 0;
-  gap: 14px;
+  gap: 12px;
   border-top: 0;
   display: flex;
   align-items: center;
@@ -1459,14 +1464,14 @@ textarea::placeholder {
 }
 
 .foods-card-actions > button {
-  min-height: 58px;
-  padding-inline: 22px;
+  min-height: 50px;
+  padding-inline: 18px;
   flex: 1 1 0;
   width: auto;
-  max-width: calc(50% - 7px);
+  max-width: calc(50% - 6px);
   border-radius: 999px;
   box-shadow:
-    0 14px 26px rgba(91, 70, 32, 0.09),
+    0 10px 18px rgba(25, 34, 31, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
@@ -1489,11 +1494,12 @@ textarea::placeholder {
 
 @media (max-width: 780px) {
   .foods-card {
-    padding: 20px;
+    padding: 18px;
   }
 
   .foods-card h3 {
-    font-size: clamp(1.8rem, 9vw, 2.6rem);
+    font-size: clamp(1.45rem, 7vw, 2rem);
+    min-height: 2.9em;
   }
 
   .foods-card-top {
@@ -1502,8 +1508,8 @@ textarea::placeholder {
 
   .foods-group-badge,
   .foods-favorite-toggle {
-    min-height: 42px;
-    height: 42px;
+    min-height: 38px;
+    height: 38px;
   }
 
   .foods-macro-values {
@@ -1511,11 +1517,11 @@ textarea::placeholder {
   }
 
   .foods-macro-value {
-    font-size: 0.92rem;
+    font-size: 0.86rem;
   }
 
   .foods-card-actions > button {
-    min-height: 52px;
+    min-height: 46px;
     padding-inline: 16px;
   }
 }
