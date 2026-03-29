@@ -2514,6 +2514,36 @@ function linkImportedFoodToExisting(targetStore, importedFoodId, existingFoodId)
   return existingFood;
 }
 
+function dismissImportedFoodReview(targetStore, importedFoodId) {
+  const importedFood = (targetStore.foods || []).find((food) => food.id === importedFoodId);
+  if (!importedFood) {
+    return { status: "missing" };
+  }
+
+  const exactExistingFood = findFoodByExactName(importedFood.name);
+  if (exactExistingFood && exactExistingFood.id !== importedFood.id) {
+    const linkedFood = linkImportedFoodToExisting(targetStore, importedFood.id, exactExistingFood.id);
+    return linkedFood ? { status: "linked", linkedFood } : { status: "missing" };
+  }
+
+  const isReferenced =
+    (targetStore.weeklyPlanEntries || []).some((entry) => entry.foodId === importedFood.id) ||
+    (targetStore.favoriteMeals || []).some((favorite) => (favorite.items || []).some((item) => item.foodId === importedFood.id)) ||
+    (targetStore.favoriteFoods || []).includes(importedFood.id);
+
+  if (isReferenced) {
+    return { status: "blocked" };
+  }
+
+  targetStore.foods = (targetStore.foods || []).filter((food) => food.id !== importedFood.id);
+  targetStore.favoriteFoods = mergeUniqueStrings((targetStore.favoriteFoods || []).filter((foodId) => foodId !== importedFood.id));
+  targetStore.nutritionLibrary.importedFoodIds = mergeUniqueStrings(
+    (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import").map((food) => food.id)
+  );
+
+  return { status: "deleted" };
+}
+
 function mergeNutritionFoodData(targetFood, sourceFood) {
   if (!(toNumber(targetFood.kcal) > 0) && toNumber(sourceFood.kcal) > 0) {
     targetFood.kcal = roundValue(toNumber(sourceFood.kcal), 1);
@@ -6064,8 +6094,10 @@ function renderNutritionTab() {
         Number(right.nutritionStatus.needsAttention) - Number(left.nutritionStatus.needsAttention) ||
         left.name.localeCompare(right.name, "sr")
     );
+  const reviewImportedFoods = importedFoods.filter((food) => food.nutritionStatus.needsAttention);
   const importedRecipes = getNutritionImportedRecipesDetailed();
-  const importedFoodsMissingValues = importedFoods.filter((food) => food.nutritionStatus.needsAttention).length;
+  const importedFoodsMissingValues = reviewImportedFoods.length;
+  const importedFoodsReviewedCount = Math.max(importedFoods.length - reviewImportedFoods.length, 0);
   const nutritionEditingFood = importedFoods.find((food) => food.id === state.nutritionEditingFoodId) || null;
   const nutritionLinkCandidates = nutritionEditingFood ? getImportedFoodLinkCandidates(nutritionEditingFood) : [];
   const lastImportedAt = store.nutritionLibrary?.lastImportedAt
@@ -6118,8 +6150,9 @@ function renderNutritionTab() {
           pills: [
             { label: `${recommendations.length} preporuka`, tone: "info" },
             { label: `${importedRecipes.length} recepata`, tone: "success" },
-            { label: `${importedFoods.length} namirnica`, tone: "warning" },
-            { label: `${importedFoodsMissingValues} čeka kcal/makroe`, tone: importedFoodsMissingValues ? "warning" : "success" },
+            { label: `${importedFoods.length} ukupno uvezenih namirnica`, tone: "warning" },
+            { label: `${importedFoodsMissingValues} čeka review`, tone: importedFoodsMissingValues ? "warning" : "success" },
+            ...(importedFoodsReviewedCount ? [{ label: `${importedFoodsReviewedCount} rešeno`, tone: "success" }] : []),
           ],
           actions: `
             <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">
@@ -6211,7 +6244,7 @@ function renderNutritionTab() {
     </section>
 
     <section class="section nutrition-foods-section">
-      ${renderSectionLead("Uvezene namirnice", "Namirnice prepoznate iz tabela, recepata i lista odmah idu u tvoju bazu hrane.", {
+      ${renderSectionLead("Review namirnica", "Ovde ostaju samo stavke koje još treba da potvrdiš. Kad dodaš makroe ili ih obrišeš kao duplikat, nestaju iz ove liste i ostaju rešene u Namirnice.", {
         eyebrow: "Namirnice",
       })}
       <div class="stack nutrition-foods-stack">
@@ -6295,7 +6328,7 @@ function renderNutritionTab() {
                     />
                   </div>
                   <div class="nutrition-food-form-note">
-                    Ako ostaviš kcal prazno, app će ga izračunati iz P/UH/M. Slobodno unesi i samo ono što si uspeo da nađeš.
+                    Ako ostaviš kcal prazno, app će ga izračunati iz P/UH/M. Kad sačuvaš, stavka izlazi iz ovog review inbox-a i ostaje dostupna u Namirnice.
                   </div>
                   <div class="entry-actions nutrition-card-actions">
                     <button class="solid-button secondary-button button-with-icon" type="submit">
@@ -6308,13 +6341,13 @@ function renderNutritionTab() {
                 </form>
               </article>
             `
-            : importedFoods.length
+            : reviewImportedFoods.length
               ? `
                 <article class="status-summary-card nutrition-food-editor-card nutrition-food-editor-card--hint">
                   <div class="status-summary-copy">
-                    <strong>Brza dopuna kcal i makroa</strong>
+                    <strong>Inbox za review namirnica</strong>
                     <div class="footer-note">
-                      Klikni na <em>Dodaj vrednosti</em> kod namirnice i odmah unesi kcal, proteine, ugljene hidrate i masti koje nađeš online ili na deklaraciji.
+                      Klikni na <em>Dodaj vrednosti</em> ako je nova namirnica, ili na <em>Obriši</em> ako je već imaš u bazi i ne želiš duplikat. Kad završiš review, ova lista se prazni.
                     </div>
                   </div>
                 </article>
@@ -6322,8 +6355,8 @@ function renderNutritionTab() {
               : ""
         }
         ${
-          importedFoods.length
-            ? importedFoods
+          reviewImportedFoods.length
+            ? reviewImportedFoods
                 .map(
                   (food) => `
                     <article class="status-summary-card nutrition-food-card ${food.nutritionStatus.needsAttention ? "is-needs-review" : ""}">
@@ -6350,6 +6383,9 @@ function renderNutritionTab() {
                         <button class="solid-button secondary-button button-with-icon" data-action="edit-imported-food-nutrition" data-food-id="${food.id}">
                           ${renderButtonContent(food.nutritionStatus.needsAttention ? "Dodaj vrednosti" : "Izmeni vrednosti", "edit")}
                         </button>
+                        <button class="ghost-button button-with-icon" data-action="dismiss-imported-food-review" data-food-id="${food.id}">
+                          ${renderButtonContent("Obriši", "delete")}
+                        </button>
                         <button class="ghost-button button-with-icon" data-action="edit-food" data-food-id="${food.id}">
                           ${renderButtonContent("Otvori namirnicu", "edit")}
                         </button>
@@ -6358,7 +6394,7 @@ function renderNutritionTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Kad parser prepozna namirnice i tabelarne vrednosti, pojaviće se ovde.</div>`
+            : `<div class="empty">Review inbox je čist. Kad parser izvuče nove nerešene namirnice, pojaviće se ovde dok ih ne dopuniš ili ukloniš kao duplikat.</div>`
         }
       </div>
     </section>
@@ -7433,6 +7469,46 @@ async function handleDocumentClick(event) {
   if (action === "cancel-nutrition-food") {
     state.nutritionEditingFoodId = "";
     render();
+    return;
+  }
+
+  if (action === "dismiss-imported-food-review") {
+    const foodId = actionTarget.dataset.foodId;
+    const food = foodId ? getFoodById(foodId) : null;
+    if (!food) {
+      return;
+    }
+
+    const result = dismissImportedFoodReview(store, foodId);
+    if (result.status === "blocked") {
+      showFeedbackToast({
+        title: "Prvo poveži ili dopuni namirnicu",
+        detail: `${food.name} se već koristi u receptu ili planu. Poveži je sa postojećom stavkom ili joj dodaj vrednosti, pa će izaći iz review liste.`,
+        tone: "warning",
+      });
+      return;
+    }
+
+    if (result.status === "missing") {
+      showFeedbackToast({
+        title: "Namirnica nije pronađena",
+        detail: "Stavka koju si hteo da ukloniš više nije u review listi.",
+        tone: "warning",
+      });
+      return;
+    }
+
+    state.nutritionEditingFoodId = state.nutritionEditingFoodId === foodId ? "" : state.nutritionEditingFoodId;
+    persist();
+    render();
+    showFeedbackToast({
+      title: result.status === "linked" ? "Duplikat je uklonjen" : "Stavka je obrisana",
+      detail:
+        result.status === "linked"
+          ? `${food.name} je povezana sa postojećom stavkom "${result.linkedFood.name}" i skinuta iz review liste.`
+          : `${food.name} je uklonjena iz review liste i više ne pravi duplikat u bazi.`,
+      tone: "success",
+    });
     return;
   }
 
