@@ -5766,16 +5766,16 @@ function renderRecipesTab() {
                               ${favorite.items
                                 .map(
                                   (item) => `
-                                    <div class="suggestion-row">
-                                      <div>
+                                    <div class="recipe-library-ingredient-card">
+                                      <div class="recipe-library-ingredient-head">
                                         <strong>${item.displayName || item.foodName}</strong>
                                         <div class="footer-note">${roundValue(item.grams, 0)} g</div>
-                                        <div class="pill-row" style="margin-top:8px;">
-                                          <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
-                                          <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
-                                          <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
-                                          <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
-                                        </div>
+                                      </div>
+                                      <div class="pill-row recipe-library-ingredient-macros">
+                                        <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
+                                        <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
+                                        <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
+                                        <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
                                       </div>
                                     </div>
                                   `
