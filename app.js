@@ -5621,6 +5621,13 @@ function renderFoodsTab() {
                 .map((food) => {
                   const toneClass = macroClassMap[food.macroGroup] || "other";
                   const isFavoriteFood = store.favoriteFoods.includes(food.id);
+                  const proteinValue = Number(food.protein) || 0;
+                  const carbsValue = Number(food.carbs) || 0;
+                  const fatValue = Number(food.fat) || 0;
+                  const macroTotal = proteinValue + carbsValue + fatValue;
+                  const proteinShare = macroTotal > 0 ? (proteinValue / macroTotal) * 100 : 33.33;
+                  const carbsShare = macroTotal > 0 ? (carbsValue / macroTotal) * 100 : 33.33;
+                  const fatShare = macroTotal > 0 ? (fatValue / macroTotal) * 100 : 33.34;
                   return `
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
@@ -5641,19 +5648,23 @@ function renderFoodsTab() {
                     </button>
                   </div>
                 </div>
-                <div class="foods-macro-row">
-                  <div class="foods-energy-panel foods-energy-panel--${toneClass}">
-                    <span class="foods-energy-label">Energija</span>
+                <div class="foods-summary foods-summary--${toneClass}">
+                  <div class="foods-energy-display">
                     <div class="foods-energy-value">
                       <strong>${roundValue(food.kcal, 0)}</strong>
                       <span>kcal</span>
                     </div>
-                    <span class="pill foods-basis-pill">${getFoodNutritionBasisLabel(food)}</span>
+                    <div class="foods-energy-basis">${getFoodNutritionBasisLabel(food)}</div>
                   </div>
-                  <div class="foods-stat-grid">
-                    <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
-                    <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
-                    <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
+                  <div class="foods-macro-bar" aria-hidden="true">
+                    <span class="foods-macro-segment foods-macro-segment--protein" style="width:${proteinShare.toFixed(2)}%"></span>
+                    <span class="foods-macro-segment foods-macro-segment--carbs" style="width:${carbsShare.toFixed(2)}%"></span>
+                    <span class="foods-macro-segment foods-macro-segment--fat" style="width:${fatShare.toFixed(2)}%"></span>
+                  </div>
+                  <div class="foods-macro-values">
+                    <span class="foods-macro-value foods-macro-value--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P: ${roundValue(proteinValue, 1)} g</span>
+                    <span class="foods-macro-value foods-macro-value--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH: ${roundValue(carbsValue, 1)} g</span>
+                    <span class="foods-macro-value foods-macro-value--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M: ${roundValue(fatValue, 1)} g</span>
                   </div>
                 </div>
                 <div class="entry-actions foods-card-actions" style="justify-content:flex-start; margin-top:12px;">

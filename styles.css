@@ -1185,71 +1185,63 @@ textarea::placeholder {
 .foods-card {
   position: relative;
   overflow: hidden;
-  padding: 18px;
-  border-radius: 24px;
+  padding: 24px;
+  border-radius: 30px;
+  border: 1.5px solid rgba(173, 151, 109, 0.32);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(255, 249, 241, 0.98)),
     var(--surface-strong);
+  box-shadow:
+    0 18px 42px rgba(91, 70, 32, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 .foods-card--proteins {
   background:
-    radial-gradient(circle at top right, rgba(86, 152, 121, 0.13), transparent 32%),
-    linear-gradient(180deg, rgba(236, 245, 239, 0.84), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 28%, rgba(112, 178, 145, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(244, 250, 246, 0.98), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--carbs {
   background:
-    radial-gradient(circle at top right, rgba(224, 187, 113, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(249, 240, 220, 0.8), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 28%, rgba(232, 191, 112, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(252, 244, 226, 0.98), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--fats {
   background:
-    radial-gradient(circle at top right, rgba(156, 168, 108, 0.15), transparent 32%),
-    linear-gradient(180deg, rgba(240, 244, 228, 0.82), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 28%, rgba(178, 194, 123, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(245, 249, 234, 0.98), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card--other {
   background:
-    radial-gradient(circle at top right, rgba(158, 175, 167, 0.13), transparent 32%),
-    linear-gradient(180deg, rgba(242, 245, 243, 0.82), rgba(255, 250, 244, 0.98)),
+    radial-gradient(circle at 50% 28%, rgba(170, 186, 180, 0.15), transparent 42%),
+    linear-gradient(180deg, rgba(245, 247, 246, 0.98), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
 }
 
 .foods-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  border-radius: 999px;
-  opacity: 0.9;
+  display: none;
 }
 
-.foods-card--proteins::before {
-  background: linear-gradient(90deg, rgba(44, 123, 116, 0.7), rgba(86, 152, 121, 0.9));
-}
-
-.foods-card--carbs::before {
-  background: linear-gradient(90deg, rgba(200, 154, 74, 0.65), rgba(224, 187, 113, 0.92));
-}
-
-.foods-card--fats::before {
-  background: linear-gradient(90deg, rgba(112, 126, 82, 0.7), rgba(156, 168, 108, 0.92));
-}
-
-.foods-card--other::before {
-  background: linear-gradient(90deg, rgba(98, 118, 110, 0.62), rgba(158, 175, 167, 0.92));
+.foods-card h3 {
+  font-size: clamp(2.05rem, 2.9vw, 3.35rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+  font-weight: 900;
+  color: #183a46;
+  text-wrap: balance;
 }
 
 .foods-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .foods-title-block {
@@ -1257,13 +1249,14 @@ textarea::placeholder {
   gap: 5px;
   min-width: 0;
   flex: 1 1 auto;
+  padding-right: 8px;
 }
 
 .foods-card-top-actions {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -1277,23 +1270,32 @@ textarea::placeholder {
 
 .foods-group-badge {
   flex-shrink: 0;
+  min-height: 46px;
+  padding: 10px 18px;
+  border-radius: 18px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  box-shadow:
+    0 10px 18px rgba(25, 34, 31, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .foods-favorite-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   padding: 0;
-  border-radius: 14px;
+  border-radius: 18px;
   border: 1px solid rgba(24, 33, 30, 0.08);
-  background: rgba(255, 252, 247, 0.94);
-  color: #97a08c;
-  font-size: 1.1rem;
+  background: rgba(255, 253, 248, 0.96);
+  color: #baa06b;
+  font-size: 1.45rem;
   line-height: 1;
   box-shadow:
-    0 10px 18px rgba(25, 34, 31, 0.06),
+    0 12px 22px rgba(25, 34, 31, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
   transition:
     transform 160ms ease,
@@ -1306,8 +1308,8 @@ textarea::placeholder {
 .foods-favorite-toggle:hover,
 .foods-favorite-toggle:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(145, 123, 61, 0.22);
-  color: #8f7531;
+  border-color: rgba(186, 160, 107, 0.28);
+  color: #9f7b2a;
   box-shadow:
     0 14px 26px rgba(25, 34, 31, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -1342,62 +1344,16 @@ textarea::placeholder {
   color: #55625d;
 }
 
-.foods-macro-row {
-  margin-top: 14px;
+.foods-summary {
+  margin-top: 26px;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 22px;
 }
 
-.foods-energy-panel {
-  position: relative;
+.foods-energy-display {
   display: grid;
-  align-content: start;
   justify-items: center;
-  gap: 6px;
-  min-height: 94px;
-  padding: 14px 14px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 254, 251, 0.94), rgba(250, 246, 238, 0.98)),
-    var(--surface-strong);
-  box-shadow:
-    0 14px 28px rgba(25, 34, 31, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-.foods-energy-panel::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: 3px;
-  border-radius: 999px;
-  opacity: 0.82;
-}
-
-.foods-energy-panel--proteins::after {
-  background: linear-gradient(90deg, rgba(44, 123, 116, 0.55), rgba(86, 152, 121, 0.92));
-}
-
-.foods-energy-panel--carbs::after {
-  background: linear-gradient(90deg, rgba(200, 154, 74, 0.58), rgba(224, 187, 113, 0.92));
-}
-
-.foods-energy-panel--fats::after {
-  background: linear-gradient(90deg, rgba(112, 126, 82, 0.55), rgba(156, 168, 108, 0.92));
-}
-
-.foods-energy-panel--other::after {
-  background: linear-gradient(90deg, rgba(98, 118, 110, 0.48), rgba(158, 175, 167, 0.9));
-}
-
-.foods-energy-label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(70, 77, 72, 0.72);
+  gap: 8px;
   text-align: center;
 }
 
@@ -1405,99 +1361,97 @@ textarea::placeholder {
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
-  gap: 6px;
-  min-width: 0;
-  color: #223229;
-  text-align: center;
+  gap: 9px;
+  color: #2b312c;
 }
 
 .foods-energy-value strong {
-  font-size: 1.8rem;
-  line-height: 0.95;
+  font-size: clamp(3rem, 3.8vw, 4.25rem);
+  line-height: 0.88;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.06em;
+  color: rgba(164, 135, 95, 0.72);
 }
 
 .foods-energy-value span {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: rgba(70, 77, 72, 0.72);
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-weight: 700;
+  color: #1b1f1d;
 }
 
-.foods-basis-pill {
-  justify-self: center;
-  min-height: 30px;
-  padding: 5px 10px;
-  background: rgba(255, 252, 247, 0.78);
-  color: rgba(52, 60, 55, 0.82);
-  border-color: rgba(24, 33, 30, 0.08);
+.foods-energy-basis {
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  font-weight: 700;
+  color: #1f2522;
 }
 
-.foods-stat-grid {
+.foods-macro-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 26px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(208, 208, 203, 0.68);
+  border: 1px solid rgba(186, 183, 175, 0.54);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.58),
+    0 10px 18px rgba(25, 34, 31, 0.06);
+}
+
+.foods-macro-segment {
+  min-width: 18px;
+}
+
+.foods-macro-segment--protein {
+  background: linear-gradient(90deg, #f2c54c, #f5d369);
+}
+
+.foods-macro-segment--carbs {
+  background: linear-gradient(90deg, #6bcfc4, #79d8cd);
+}
+
+.foods-macro-segment--fat {
+  background: linear-gradient(90deg, #d68a4a, #dc9653);
+}
+
+.foods-macro-values {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
 
-.foods-stat-grid .pill,
-.foods-basis-pill,
-.foods-card-actions > button {
+.foods-macro-value {
   min-width: 0;
-}
-
-.foods-stat-grid .pill {
-  min-height: 58px;
-  padding: 10px 12px;
-  border-radius: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   text-align: center;
-  font-size: 0.88rem;
-  line-height: 1;
+  font-size: 1rem;
   font-weight: 800;
-  box-shadow:
-    0 10px 20px rgba(25, 34, 31, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  letter-spacing: -0.02em;
+  color: #161b18;
 }
 
-.foods-stat-pill--protein {
-  background:
-    linear-gradient(180deg, rgba(222, 237, 227, 0.98), rgba(238, 245, 240, 0.92)),
-    rgba(222, 237, 227, 0.92);
-  color: #355a47;
-  border-color: rgba(53, 90, 71, 0.12);
+.foods-macro-value--protein {
+  color: #27261f;
 }
 
-.foods-stat-pill--carbs {
-  background:
-    linear-gradient(180deg, rgba(248, 233, 199, 0.98), rgba(250, 241, 221, 0.94)),
-    rgba(247, 232, 199, 0.9);
-  color: #8a6230;
-  border-color: rgba(138, 98, 48, 0.12);
+.foods-macro-value--carbs {
+  color: #1f302c;
 }
 
-.foods-stat-pill--fat {
-  background:
-    linear-gradient(180deg, rgba(229, 236, 214, 0.98), rgba(237, 242, 226, 0.94)),
-    rgba(229, 236, 214, 0.9);
-  color: #596647;
-  border-color: rgba(89, 102, 71, 0.12);
+.foods-macro-value--fat {
+  color: #3b2817;
 }
 
-.foods-stat-pill.is-dominant {
-  border-color: rgba(24, 33, 30, 0.14);
-  box-shadow:
-    0 12px 24px rgba(25, 34, 31, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
-  font-weight: 820;
+.foods-macro-value.is-dominant {
+  transform: translateY(-1px);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .foods-card-actions {
-  margin-top: 16px;
-  padding-top: 14px;
-  gap: 10px;
-  border-top: 1px solid rgba(24, 33, 30, 0.08);
+  margin-top: 24px;
+  padding-top: 0;
+  gap: 14px;
+  border-top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1505,14 +1459,15 @@ textarea::placeholder {
 }
 
 .foods-card-actions > button {
-  min-height: 44px;
-  padding-inline: 16px;
+  min-height: 58px;
+  padding-inline: 22px;
   flex: 1 1 0;
   width: auto;
-  max-width: calc(50% - 6px);
+  max-width: calc(50% - 7px);
+  border-radius: 999px;
   box-shadow:
-    0 10px 18px rgba(25, 34, 31, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 14px 26px rgba(91, 70, 32, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .foods-card-actions .ghost-button,
@@ -1523,24 +1478,45 @@ textarea::placeholder {
 }
 
 .foods-card-actions .ghost-button {
-  background: var(--button-ghost-bg);
+  background: rgba(255, 253, 248, 0.96);
 }
 
-.foods-card-actions .solid-button,
-.foods-card-actions .secondary-button {
-  box-shadow:
-    0 12px 22px rgba(25, 34, 31, 0.11),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+.foods-card-actions .danger-button {
+  background: rgba(244, 235, 223, 0.92);
+  color: #8b613c;
+  border-color: rgba(163, 122, 76, 0.18);
 }
 
 @media (max-width: 780px) {
-  .foods-stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .foods-card {
+    padding: 20px;
   }
 
-  .foods-energy-panel,
-  .foods-stat-grid .pill {
-    min-height: auto;
+  .foods-card h3 {
+    font-size: clamp(1.8rem, 9vw, 2.6rem);
+  }
+
+  .foods-card-top {
+    gap: 12px;
+  }
+
+  .foods-group-badge,
+  .foods-favorite-toggle {
+    min-height: 42px;
+    height: 42px;
+  }
+
+  .foods-macro-values {
+    gap: 10px;
+  }
+
+  .foods-macro-value {
+    font-size: 0.92rem;
+  }
+
+  .foods-card-actions > button {
+    min-height: 52px;
+    padding-inline: 16px;
   }
 }
 
