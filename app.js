@@ -9660,7 +9660,6 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "favorite-servings") {
     state.favoriteDraft.servings = target.value;
-    render();
     return;
   }
 
@@ -9683,7 +9682,6 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "favorite-grams") {
     state.favoriteDraft.grams = target.value;
-    render();
     return;
   }
 
