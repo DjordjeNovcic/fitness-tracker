@@ -5562,6 +5562,10 @@ function renderFoodsTab() {
       const carbs = toNumber(food.carbs);
       const fat = toNumber(food.fat);
       const kcal = toNumber(food.kcal);
+      const shouldExcludeZeroKcal = state.foodNutritionFilter !== "Sve" && kcal <= 0;
+      if (shouldExcludeZeroKcal) {
+        return false;
+      }
       const matchesNutritionProfile =
         state.foodNutritionFilter === "Sve"
           ? true
@@ -5593,6 +5597,44 @@ function renderFoodsTab() {
           .join(" ")
       );
       return queryTokens.every((token) => searchableText.includes(token));
+    })
+    .sort((left, right) => {
+      const leftProtein = toNumber(left.protein);
+      const rightProtein = toNumber(right.protein);
+      const leftCarbs = toNumber(left.carbs);
+      const rightCarbs = toNumber(right.carbs);
+      const leftFat = toNumber(left.fat);
+      const rightFat = toNumber(right.fat);
+      const leftKcal = toNumber(left.kcal);
+      const rightKcal = toNumber(right.kcal);
+
+      let diff = 0;
+      switch (state.foodNutritionFilter) {
+        case "Visok protein":
+          diff = rightProtein - leftProtein || leftKcal - rightKcal;
+          break;
+        case "Malo UH":
+          diff = leftCarbs - rightCarbs || rightProtein - leftProtein || leftKcal - rightKcal;
+          break;
+        case "Malo masti":
+          diff = leftFat - rightFat || rightProtein - leftProtein || leftKcal - rightKcal;
+          break;
+        case "Malo proteina":
+          diff = leftProtein - rightProtein || leftKcal - rightKcal;
+          break;
+        case "Manje kcal":
+          diff = leftKcal - rightKcal || rightProtein - leftProtein;
+          break;
+        default:
+          diff = String(left.name || "").localeCompare(String(right.name || ""), "sr");
+          break;
+      }
+
+      if (diff !== 0) {
+        return diff;
+      }
+
+      return String(left.name || "").localeCompare(String(right.name || ""), "sr");
     });
   const filterCounts = FOOD_MACRO_FILTERS.reduce((acc, filter) => {
     acc[filter] =
