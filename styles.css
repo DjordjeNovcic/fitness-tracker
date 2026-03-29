@@ -1830,6 +1830,12 @@ textarea::placeholder {
   letter-spacing: 0.01em;
 }
 
+label.required-label::after {
+  content: " " attr(data-required-marker);
+  color: #b4614d;
+  font-weight: 900;
+}
+
 .field input,
 .field select,
 .field textarea {
@@ -1904,6 +1910,42 @@ textarea::placeholder {
     0 0 0 4px rgba(44, 123, 116, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
   outline: none;
+}
+
+.field.is-invalid label,
+label.is-invalid {
+  color: #9e4d39;
+}
+
+.field input.is-invalid,
+.field select.is-invalid,
+.field textarea.is-invalid,
+.field.is-invalid input,
+.field.is-invalid select,
+.field.is-invalid textarea,
+label.is-invalid input,
+label.is-invalid select,
+label.is-invalid textarea {
+  border-color: rgba(180, 97, 77, 0.52);
+  background: linear-gradient(180deg, rgba(255, 250, 246, 0.98), rgba(255, 244, 239, 0.98));
+  box-shadow:
+    0 0 0 4px rgba(180, 97, 77, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.field input.is-invalid:focus,
+.field select.is-invalid:focus,
+.field textarea.is-invalid:focus,
+.field.is-invalid input:focus,
+.field.is-invalid select:focus,
+.field.is-invalid textarea:focus,
+label.is-invalid input:focus,
+label.is-invalid select:focus,
+label.is-invalid textarea:focus {
+  border-color: rgba(180, 97, 77, 0.68);
+  box-shadow:
+    0 0 0 4px rgba(180, 97, 77, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .field textarea {

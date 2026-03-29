@@ -7954,6 +7954,8 @@ function render() {
 
   syncBodyScrollLock();
   updateHeroScrollState();
+  syncRequiredLabelMarkers();
+  syncValidationState();
   syncEntryPreview();
 }
 
@@ -7965,6 +7967,81 @@ function exportData() {
   link.download = `fit-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function getLabelControl(label) {
+  if (!(label instanceof HTMLLabelElement)) {
+    return null;
+  }
+
+  const forId = String(label.getAttribute("for") || "").trim();
+  if (forId) {
+    return document.getElementById(forId);
+  }
+
+  const nestedControl = label.querySelector("input, select, textarea");
+  if (nestedControl) {
+    return nestedControl;
+  }
+
+  return label.closest(".field")?.querySelector("input, select, textarea") || null;
+}
+
+function syncRequiredLabelMarkers(root = document) {
+  root.querySelectorAll("label").forEach((label) => {
+    const control = getLabelControl(label);
+    const isRequired = Boolean(control?.required);
+    label.classList.toggle("required-label", isRequired);
+    if (isRequired) {
+      label.setAttribute("data-required-marker", "*");
+    } else {
+      label.removeAttribute("data-required-marker");
+    }
+  });
+}
+
+function updateValidationState(control, { reveal = false } = {}) {
+  if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  const field = control.closest(".field");
+  const wrapperLabel = control.closest("label");
+  const shouldReveal = reveal || control.dataset.touched === "true" || control.form?.dataset.validationShown === "true";
+  const isInvalid = shouldReveal && !control.checkValidity();
+
+  control.classList.toggle("is-invalid", isInvalid);
+  field?.classList.toggle("is-invalid", isInvalid);
+  if (wrapperLabel && !field) {
+    wrapperLabel.classList.toggle("is-invalid", isInvalid);
+  }
+}
+
+function syncValidationState(root = document, options = {}) {
+  root.querySelectorAll("input, select, textarea").forEach((control) => updateValidationState(control, options));
+}
+
+function handleInvalidField(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  if (target.form) {
+    target.form.dataset.validationShown = "true";
+  }
+  target.dataset.touched = "true";
+  updateValidationState(target, { reveal: true });
+}
+
+function handleValidationInteraction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  target.dataset.touched = "true";
+  updateValidationState(target, { reveal: true });
 }
 
 function syncEntryPreview() {
@@ -9980,6 +10057,9 @@ async function handleImport(event) {
 document.addEventListener("click", handleDocumentClick);
 document.addEventListener("submit", handleSubmit);
 document.addEventListener("input", handleInput);
+document.addEventListener("input", handleValidationInteraction, true);
+document.addEventListener("change", handleValidationInteraction, true);
+document.addEventListener("invalid", handleInvalidField, true);
 document.addEventListener("change", handleImport);
 
 window.addEventListener("hashchange", () => {
