@@ -3652,13 +3652,6 @@ function setFavoriteDraftFromItem(favorite, item) {
 
 function setFavoriteDraftFromRecipe(favorite) {
   const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
-  const firstItem = normalizedFavorite.items?.[0] || null;
-
-  if (firstItem) {
-    setFavoriteDraftFromItem(normalizedFavorite, firstItem);
-    return;
-  }
-
   state.favoriteDraft = {
     favoriteName: normalizedFavorite.name || "",
     mealLabel: normalizedFavorite.mealLabel || "",
@@ -5772,7 +5765,7 @@ function renderRecipesTab() {
                             <div class="stack recipe-library-ingredients" style="margin-top:12px;">
                               ${favorite.items
                                 .map(
-                                  (item, index) => `
+                                  (item) => `
                                     <div class="suggestion-row">
                                       <div>
                                         <strong>${item.displayName || item.foodName}</strong>
@@ -5783,10 +5776,6 @@ function renderRecipesTab() {
                                           <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
                                           <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
                                         </div>
-                                      </div>
-                                      <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
-                                        <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
-                                        <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obriši</button>
                                       </div>
                                     </div>
                                   `
