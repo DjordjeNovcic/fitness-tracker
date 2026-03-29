@@ -5620,13 +5620,26 @@ function renderFoodsTab() {
             ? foods
                 .map((food) => {
                   const toneClass = macroClassMap[food.macroGroup] || "other";
+                  const isFavoriteFood = store.favoriteFoods.includes(food.id);
                   return `
               <article class="food-card foods-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
                   <div class="foods-title-block">
                     <h3>${food.name}</h3>
                   </div>
-                  <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
+                  <div class="foods-card-top-actions">
+                    <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
+                    <button
+                      class="foods-favorite-toggle ${isFavoriteFood ? "is-active" : ""}"
+                      data-action="toggle-favorite-food"
+                      data-food-id="${food.id}"
+                      aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                      aria-pressed="${isFavoriteFood ? "true" : "false"}"
+                      title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                    >
+                      ${isFavoriteFood ? "★" : "☆"}
+                    </button>
+                  </div>
                 </div>
                 <div class="pill-row foods-macro-row">
                   <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal</span>
@@ -5642,13 +5655,6 @@ function renderFoodsTab() {
                     data-food-id="${food.id}"
                   >
                     ${renderButtonContent("Izmeni", "edit")}
-                  </button>
-                  <button
-                    class="${store.favoriteFoods.includes(food.id) ? "solid-button secondary-button button-with-icon" : "ghost-button button-with-icon"}"
-                    data-action="toggle-favorite-food"
-                    data-food-id="${food.id}"
-                  >
-                    ${renderButtonContent(store.favoriteFoods.includes(food.id) ? "Ukloni favorit" : "Favorit", "save")}
                   </button>
                   <button
                     class="danger-button button-with-icon"
