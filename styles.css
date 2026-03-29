@@ -1409,15 +1409,15 @@ textarea::placeholder {
 }
 
 .foods-macro-segment--protein {
-  background: linear-gradient(90deg, #f2c54c, #f5d369);
+  background: linear-gradient(90deg, #d7c06f, #deca88);
 }
 
 .foods-macro-segment--carbs {
-  background: linear-gradient(90deg, #6bcfc4, #79d8cd);
+  background: linear-gradient(90deg, #8fc2bc, #9ccdc7);
 }
 
 .foods-macro-segment--fat {
-  background: linear-gradient(90deg, #d68a4a, #dc9653);
+  background: linear-gradient(90deg, #bd9367, #caa278);
 }
 
 .foods-macro-values {
@@ -1436,15 +1436,15 @@ textarea::placeholder {
 }
 
 .foods-macro-value--protein {
-  color: #27261f;
+  color: #5f5734;
 }
 
 .foods-macro-value--carbs {
-  color: #1f302c;
+  color: #44655f;
 }
 
 .foods-macro-value--fat {
-  color: #3b2817;
+  color: #6f5741;
 }
 
 .foods-macro-value.is-dominant {
