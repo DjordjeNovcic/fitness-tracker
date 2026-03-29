@@ -5786,7 +5786,6 @@ function renderRecipesTab() {
                                       </div>
                                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
                                         <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
-                                        <button class="ghost-button" data-action="add-favorite-item-to-day" data-favorite-id="${favorite.id}" data-item-index="${index}">Ubaci samo ovu</button>
                                         <button class="danger-button" data-action="delete-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Obriši</button>
                                       </div>
                                     </div>
