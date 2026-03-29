@@ -1978,6 +1978,7 @@ textarea::placeholder {
 
 .goals-sync-card,
 .training-burn-card,
+.recipe-studio-card,
 .recipe-draft-card {
   height: auto;
 }
@@ -3857,6 +3858,8 @@ body.menu-open .menu-fab {
 
   .food-card.training-burn-card,
   .training-burn-card,
+  .food-card.recipe-studio-card,
+  .recipe-studio-card,
   .food-card.recipe-draft-card,
   .recipe-draft-card,
   .food-card.foods-editor-card,
