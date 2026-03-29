@@ -3082,8 +3082,37 @@ function getFoodMacroGroup(food) {
   return macros[0].label;
 }
 
+function getFoodServingUnit(food = {}) {
+  return String(food.servingUnit || "").trim() === "piece" ? "piece" : "grams";
+}
+
+function getFoodServingBaseValue(food = {}) {
+  const fallbackValue = getFoodServingUnit(food) === "piece" ? 1 : 100;
+  return Math.max(1, roundValue(toNumber(food.servingBaseGrams || fallbackValue), 0)) || fallbackValue;
+}
+
+function getFoodNutritionBasisLabel(food = {}) {
+  return getFoodServingUnit(food) === "piece" ? "1 komad" : `${roundValue(getFoodServingBaseValue(food), 0)} g`;
+}
+
+function getFoodQuantityLabel(food = {}) {
+  return getFoodServingUnit(food) === "piece" ? "Broj komada" : "Količina u gramima";
+}
+
+function getFoodQuantityPlaceholder(food = {}) {
+  return getFoodServingUnit(food) === "piece" ? "1" : "100";
+}
+
+function formatFoodAmount(food, amount) {
+  const value = toNumber(amount);
+  if (getFoodServingUnit(food) === "piece") {
+    return `${roundValue(value, Number.isInteger(value) ? 0 : 1)} kom`;
+  }
+  return `${roundValue(value, 0)} g`;
+}
+
 function calculateEntry(food, grams) {
-  const ratio = grams / (food.servingBaseGrams || 100);
+  const ratio = grams / getFoodServingBaseValue(food);
   return {
     kcal: roundValue(food.kcal * ratio, 1),
     protein: roundValue(food.protein * ratio, 1),
@@ -4805,6 +4834,8 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const mealParts = getMealDisplayParts(activeMealLabel);
   const selectableFoods = getSelectableFoods();
+  const quantityLabel = getFoodQuantityLabel(draftFood);
+  const quantityPlaceholder = getFoodQuantityPlaceholder(draftFood);
 
   return `
     <form id="plan-entry-form" class="form-grid split meal-composer">
@@ -4828,8 +4859,8 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         </select>
       </div>
       <div class="field meal-composer-field">
-        <label for="grams">Količina u gramima</label>
-        <input id="grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.planDraft.grams}" required />
+        <label for="grams">${quantityLabel}</label>
+        <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
       </div>
       <div class="preview-box meal-composer-preview" id="entry-preview">
         <h3>Preview</h3>
@@ -4852,7 +4883,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
                           <strong>${suggestion.food.name}</strong>
                           <div class="footer-note">${suggestion.reason}</div>
                           <div class="pill-row">
-                            <span class="pill">${roundValue(suggestion.grams, 0)} g</span>
+                            <span class="pill">${formatFoodAmount(suggestion.food, suggestion.grams)}</span>
                             <span class="pill note">${roundValue(suggestion.totals.kcal, 0)} kcal</span>
                           </div>
                         </div>
@@ -5404,7 +5435,7 @@ function renderPlanTab(entries) {
                                       <div class="meal-entry-top">
                                         <div class="meal-entry-title-group">
                                           <strong>${entry.foodName}</strong>
-                                          <span class="meal-entry-grams">${roundValue(entry.grams, 0)} g</span>
+                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
                                         </div>
                                       </div>
                                       <div class="pill-row meal-entry-pills">
@@ -5493,6 +5524,12 @@ function renderFoodsTab() {
   };
   const editorGroup = editingFood ? getFoodMacroGroup(editingFood) : "Sve";
   const editorToneClass = macroClassMap[editorGroup] || "other";
+  const editingFoodBasisLabel = getFoodNutritionBasisLabel(editingFood);
+  const foodEditorServingUnit = getFoodServingUnit(editingFood);
+  const foodEditorHelpText =
+    foodEditorServingUnit === "piece"
+      ? "Unosiš vrednosti za 1 komad, pa posle u planu i receptima možeš da koristiš broj komada."
+      : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom.";
 
   return `
     <section class="section goals-sync-section foods-section">
@@ -5540,6 +5577,7 @@ function renderFoodsTab() {
                 </div>
                 <div class="pill-row foods-macro-row">
                   <span class="pill note foods-kcal-pill">${roundValue(food.kcal, 0)} kcal</span>
+                  <span class="pill">${getFoodNutritionBasisLabel(food)}</span>
                   <span class="pill foods-stat-pill foods-stat-pill--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P ${roundValue(food.protein, 1)}</span>
                   <span class="pill foods-stat-pill foods-stat-pill--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH ${roundValue(food.carbs, 1)}</span>
                   <span class="pill foods-stat-pill foods-stat-pill--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M ${roundValue(food.fat, 1)}</span>
@@ -5573,7 +5611,7 @@ function renderFoodsTab() {
       <div class="section-header">
         <div>
           <h2>${editingFood ? "Izmeni namirnicu" : "Dodaj namirnicu"}</h2>
-          <p>${editingFood ? "Promeni vrednosti na 100 g i sačuvaj izmenu." : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom."}</p>
+          <p>${editingFood ? `Promeni vrednosti za ${editingFoodBasisLabel.toLowerCase()} i sačuvaj izmenu.` : "Izaberi da li namirnicu vodiš na 100 g ili na 1 komad, pa unesi makroe i kalorije."}</p>
         </div>
       </div>
       <div class="food-card suggestion-surface foods-editor-card foods-editor-card--${editorToneClass}">
@@ -5581,11 +5619,11 @@ function renderFoodsTab() {
           <div class="foods-editor-copy">
             <div class="foods-card-kicker">${editingFood ? "Uređivanje" : "Novi unos"}</div>
             <h3>${editingFood ? editingFood.name : "Nova namirnica u bazi"}</h3>
-            <p>${editingFood ? "Ažuriraš vrednosti na 100 g i promene će važiti svuda gde koristiš ovu namirnicu." : "Unesi makroe na 100 g, pa će app posle sama računati svaku gramažu u obrocima."}</p>
+            <p>${editingFood ? `Ažuriraš vrednosti za ${editingFoodBasisLabel.toLowerCase()} i promene će važiti svuda gde koristiš ovu namirnicu.` : foodEditorHelpText}</p>
           </div>
           <div class="pill-row foods-editor-pills">
             <span class="pill strong foods-group-badge foods-group-badge--${editorToneClass}">${editingFood ? editorGroup : "Ručno dodavanje"}</span>
-            ${editingFood ? `<span class="pill note foods-kcal-pill">${roundValue(editingFood.kcal, 0)} kcal / ${roundValue(editingFood.servingBaseGrams, 0)} g</span>` : `<span class="pill">Na 100 g</span>`}
+            ${editingFood ? `<span class="pill note foods-kcal-pill">${roundValue(editingFood.kcal, 0)} kcal / ${editingFoodBasisLabel}</span>` : `<span class="pill">100 g ili 1 komad</span>`}
           </div>
         </div>
         <form id="food-form" class="form-grid split foods-editor-form">
@@ -5598,19 +5636,26 @@ function renderFoodsTab() {
           <input id="food-category" name="category" placeholder="Proteini, masti, voce..." value="${editingFood?.category || ""}" />
         </div>
         <div class="field">
-          <label for="food-kcal">Kalorije na 100 g</label>
+          <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
+          <select id="food-serving-unit" name="servingUnit">
+            <option value="grams" ${foodEditorServingUnit === "grams" ? "selected" : ""}>Na 100 g</option>
+            <option value="piece" ${foodEditorServingUnit === "piece" ? "selected" : ""}>Na 1 komad</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="food-kcal">Kalorije</label>
           <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.kcal, 1) : ""}" required />
         </div>
         <div class="field">
-          <label for="food-protein">Proteini na 100 g</label>
+          <label for="food-protein">Proteini</label>
           <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.protein, 1) : ""}" required />
         </div>
         <div class="field">
-          <label for="food-carbs">Ugljeni hidrati na 100 g</label>
+          <label for="food-carbs">Ugljeni hidrati</label>
           <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.carbs, 1) : ""}" required />
         </div>
         <div class="field">
-          <label for="food-fat">Masti na 100 g</label>
+          <label for="food-fat">Masti</label>
           <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
         </div>
         <div class="entry-actions foods-editor-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
@@ -5634,6 +5679,9 @@ function renderRecipesTab() {
     ]),
   ];
   const draftPreview = getFavoriteDraftPreview();
+  const favoriteDraftFood = getFoodById(state.favoriteDraft.foodId);
+  const favoriteQuantityLabel = getFoodQuantityLabel(favoriteDraftFood);
+  const favoriteQuantityPlaceholder = getFoodQuantityPlaceholder(favoriteDraftFood);
 
   return `
     <section class="section recipes-builder-section">
@@ -5690,8 +5738,8 @@ function renderRecipesTab() {
             </select>
           </div>
           <div class="field">
-            <label for="favorite-grams">Količina u gramima</label>
-            <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="100" value="${state.favoriteDraft.grams}" required />
+            <label for="favorite-grams">${favoriteQuantityLabel}</label>
+            <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="${favoriteQuantityPlaceholder}" value="${state.favoriteDraft.grams}" required />
           </div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
             <button class="solid-button secondary-button button-with-icon" type="submit">
@@ -5768,7 +5816,7 @@ function renderRecipesTab() {
                                 </select>
                               `
                           }
-                          <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="g" ${item.isPending ? "disabled" : ""} />
+                          <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
                           ${
                             item.isPending
                               ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
@@ -5863,9 +5911,9 @@ function renderRecipesTab() {
                                 .map(
                                   (item) => `
                                     <div class="recipe-library-ingredient-card">
-                                      <div class="recipe-library-ingredient-head">
+                                    <div class="recipe-library-ingredient-head">
                                         <strong>${item.displayName || item.foodName}</strong>
-                                        <div class="footer-note">${roundValue(item.grams, 0)} g</div>
+                                        <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
                                       </div>
                                       <div class="pill-row recipe-library-ingredient-macros">
                                         <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
@@ -6875,7 +6923,7 @@ function renderNutritionPlansSection(plans) {
                         ${meal.items
                           .map(
                             (item) => `
-                              <span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${roundValue(item.grams, 0)} g</span>
+                              <span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${formatFoodAmount(getFoodById(item.foodId), item.grams)}</span>
                             `
                           )
                           .join("")}
@@ -7051,7 +7099,7 @@ function renderNutritionTab() {
                         ${recipe.items
                           .map(
                             (item) =>
-                              `<span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${roundValue(item.grams, 0)} g</span>`
+                              `<span class="pill">${escapeHtml(item.displayName || item.foodName)} · ${formatFoodAmount(getFoodById(item.foodId), item.grams)}</span>`
                           )
                           .join("")}
                       </div>
@@ -8069,14 +8117,14 @@ function syncEntryPreview() {
   if (!food || !grams) {
     preview.innerHTML = `
       <h3>Preview</h3>
-      <p>Izaberi namirnicu i gramažu da odmah vidiš makroe.</p>
+      <p>Izaberi namirnicu i količinu da odmah vidiš makroe.</p>
     `;
     return;
   }
 
   const totals = calculateEntry(food, grams);
   preview.innerHTML = `
-    <h3>${food.name} za ${roundValue(grams, 0)} g</h3>
+    <h3>${food.name} za ${formatFoodAmount(food, grams)}</h3>
     <p>${roundValue(totals.kcal, 0)} kcal, P ${totals.protein} g, UH ${totals.carbs} g, M ${totals.fat} g</p>
   `;
 }
@@ -9008,7 +9056,7 @@ async function handleDocumentClick(event) {
     }
     const confirmed = window.confirm(
       entry
-        ? `Obriši stavku "${entry.foodName}" (${roundValue(entry.grams, 0)} g) iz ${entry.mealLabel}?`
+        ? `Obriši stavku "${entry.foodName}" (${formatFoodAmount(entry.food, entry.grams)}) iz ${entry.mealLabel}?`
         : "Obriši ovu stavku iz plana?"
     );
 
@@ -9357,11 +9405,13 @@ async function handleSubmit(event) {
     if (!name) {
       return;
     }
+    const servingUnit = String(formData.get("servingUnit") || "grams").trim() === "piece" ? "piece" : "grams";
 
     const nextFood = {
       name,
       category: String(formData.get("category") || "Ostalo").trim() || "Ostalo",
-      servingBaseGrams: 100,
+      servingUnit,
+      servingBaseGrams: servingUnit === "piece" ? 1 : 100,
       kcal: toNumber(formData.get("kcal")),
       protein: toNumber(formData.get("protein")),
       carbs: toNumber(formData.get("carbs")),
@@ -9944,12 +9994,20 @@ function handleInput(event) {
 
   if (target instanceof HTMLSelectElement && target.id === "foodId") {
     state.planDraft.foodId = target.value;
+    if (!state.planDraft.grams) {
+      const selectedFood = getFoodById(target.value);
+      state.planDraft.grams = selectedFood ? String(getFoodServingBaseValue(selectedFood)) : "";
+    }
     render();
     return;
   }
 
   if (target instanceof HTMLSelectElement && target.id === "favorite-food-id") {
     state.favoriteDraft.foodId = target.value;
+    if (!state.favoriteDraft.grams) {
+      const selectedFood = getFoodById(target.value);
+      state.favoriteDraft.grams = selectedFood ? String(getFoodServingBaseValue(selectedFood)) : "";
+    }
     render();
     return;
   }
