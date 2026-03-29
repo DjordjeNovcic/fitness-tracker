@@ -5180,13 +5180,20 @@ function renderPlanTab(entries) {
       </div>
       <div class="stack plan-quick-stack">
         <article class="food-card plan-quick-card">
-          <div class="food-card-top">
-            <h3>Kopiraj plan dana</h3>
+          <div class="food-card-top plan-quick-card-top">
+            <div class="plan-quick-card-copy">
+              <h3>Kopiraj plan dana</h3>
+              <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
+            </div>
             <span class="pill strong">${state.selectedWeekday}</span>
+          </div>
+          <div class="plan-quick-card-source">
+            <span class="footer-note">Izvor dana</span>
+            <strong>${state.selectedWeekday}</strong>
           </div>
           <form id="duplicate-day-form" class="form-grid split plan-quick-form">
             <div class="field">
-              <label for="duplicate-target-weekday">Kopiraj ${state.selectedWeekday} u</label>
+              <label for="duplicate-target-weekday">Ciljni dan</label>
               <select id="duplicate-target-weekday" name="targetWeekday" required>
                 <option value="">Izaberi dan</option>
                 ${WEEKDAYS.filter((weekday) => weekday !== state.selectedWeekday)
@@ -5201,13 +5208,16 @@ function renderPlanTab(entries) {
                 <option value="replace">Prepiši dan</option>
               </select>
             </div>
-            <button class="solid-button button-with-icon" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
+            <button class="solid-button button-with-icon plan-quick-submit" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
           </form>
         </article>
 
         <article class="food-card plan-quick-card">
-          <div class="food-card-top">
-            <h3>Omiljene namirnice</h3>
+          <div class="food-card-top plan-quick-card-top">
+            <div class="plan-quick-card-copy">
+              <h3>Omiljene namirnice</h3>
+              <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
+            </div>
             <span class="pill strong">${favoriteFoods.length}</span>
           </div>
           ${
