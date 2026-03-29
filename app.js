@@ -58,8 +58,8 @@ const SUPPLEMENT_TIMINGS = [
 const defaultMeals = [
   "1. Doručak",
   "2. Prva užina",
-  "3. Obrok 2h pre treninga",
-  "4. Obrok posle treninga",
+  "3. Ručak",
+  "4. Druga užina",
   "5. Večera",
 ];
 
@@ -93,10 +93,12 @@ const MEAL_LABEL_MAP = {
   "2. Uzina": "2. Prva užina",
   "2. Užina": "2. Prva užina",
   "2. Prva uzina": "2. Prva užina",
-  "3. Obrok pre treninga": "3. Obrok 2h pre treninga",
-  "3. Obrok pred trening": "3. Obrok 2h pre treninga",
-  "3. Obrok 2h pre treninga": "3. Obrok 2h pre treninga",
-  "4. Obrok posle treninga": "4. Obrok posle treninga",
+  "3. Rucak": "3. Ručak",
+  "3. Obrok pre treninga": "3. Ručak",
+  "3. Obrok pred trening": "3. Ručak",
+  "3. Obrok 2h pre treninga": "3. Ručak",
+  "4. Druga uzina": "4. Druga užina",
+  "4. Obrok posle treninga": "4. Druga užina",
   "5. Vecera": "5. Večera",
 };
 
@@ -1067,7 +1069,7 @@ function inferMealLabelFromText(text) {
     return defaultMeals[4];
   }
   if (normalizedText.includes("rucak") || normalizedText.includes("lunch")) {
-    return "Ručak";
+    return defaultMeals[2];
   }
 
   const cleanText = String(text || "").trim();
@@ -4332,7 +4334,7 @@ function generateDaySuggestion() {
       ].filter(Boolean),
     },
     {
-      mealLabel: "3. Obrok 2h pre treninga",
+      mealLabel: "3. Ručak",
       items: [
         lunchProtein &&
           {
@@ -4351,7 +4353,7 @@ function generateDaySuggestion() {
       ].filter(Boolean),
     },
     {
-      mealLabel: "4. Obrok posle treninga",
+      mealLabel: "4. Druga užina",
       items: [
         postProtein &&
           {
