@@ -300,14 +300,14 @@ textarea::placeholder {
 
 .section {
   margin-bottom: 0;
-  padding: 22px;
+  padding: 20px;
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 250, 244, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 250, 244, 0.94)),
     var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.58);
   box-shadow:
-    var(--shadow-card),
+    0 14px 28px rgba(25, 34, 31, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(22px);
 }
@@ -506,13 +506,13 @@ textarea::placeholder {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .section-copy {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .section-header--eyebrow {
@@ -541,23 +541,24 @@ textarea::placeholder {
 
 .section-header h2 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.34rem;
+  font-size: 1.28rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  line-height: 1.04;
+  line-height: 1.02;
 }
 
 .section-header p {
   color: var(--muted);
-  font-size: 0.97rem;
-  max-width: 44ch;
+  font-size: 0.93rem;
+  line-height: 1.42;
+  max-width: 46ch;
 }
 
 .chips {
   display: flex;
-  gap: 8px;
+  gap: 7px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
 }
@@ -568,13 +569,13 @@ textarea::placeholder {
 
 .chip {
   flex: 0 0 auto;
-  padding: 10px 15px;
+  padding: 9px 14px;
   border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.34);
   color: inherit;
   font-weight: 700;
-  box-shadow: var(--shadow-tight);
+  box-shadow: 0 8px 16px rgba(25, 34, 31, 0.05);
   scroll-snap-align: start;
 }
 
@@ -601,14 +602,14 @@ textarea::placeholder {
 
 .macro-card,
 .stat-card {
-  padding: 18px;
+  padding: 17px;
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
   border: 1px solid rgba(24, 33, 30, 0.07);
   box-shadow:
-    0 12px 26px rgba(25, 34, 31, 0.05),
+    0 10px 22px rgba(25, 34, 31, 0.045),
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
@@ -666,14 +667,14 @@ textarea::placeholder {
 .meal-card,
 .food-card,
 .training-card {
-  padding: 17px;
+  padding: 16px;
   border-radius: 22px;
   border: 1px solid rgba(24, 33, 30, 0.07);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
   box-shadow:
-    0 12px 26px rgba(25, 34, 31, 0.05),
+    0 10px 22px rgba(25, 34, 31, 0.045),
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
@@ -681,11 +682,11 @@ textarea::placeholder {
   background:
     linear-gradient(180deg, rgba(135, 148, 95, 0.07), rgba(255, 250, 244, 0.98) 22%),
     var(--surface-strong);
-  padding: 18px;
+  padding: 17px;
   border-radius: 24px;
   box-shadow:
-    0 14px 30px rgba(25, 34, 31, 0.06),
-    var(--shadow-tight);
+    0 12px 24px rgba(25, 34, 31, 0.05),
+    0 6px 14px rgba(25, 34, 31, 0.03);
 }
 
 .plan-meals-section .meal-card {
@@ -1589,8 +1590,8 @@ textarea::placeholder {
 .meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 7px;
+  margin-top: 9px;
 }
 
 .meta-row--compact {
@@ -1601,13 +1602,15 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 11px;
+  padding: 6px 10px;
   border-radius: 999px;
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
   color: rgba(24, 33, 30, 0.9);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.79rem;
+  font-weight: 720;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
   box-shadow: none;
 }
 
@@ -2997,18 +3000,19 @@ body.menu-open .menu-fab {
 }
 
 .empty {
-  padding: 16px;
+  padding: 15px 16px;
   border-radius: 18px;
-  background: rgba(243, 236, 225, 0.62);
+  background: rgba(246, 240, 231, 0.72);
   color: var(--muted);
   border: 1px dashed rgba(25, 34, 31, 0.12);
+  line-height: 1.45;
 }
 
 .footer-note {
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .stat-card strong,
