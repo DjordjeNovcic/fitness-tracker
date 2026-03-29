@@ -1345,7 +1345,7 @@ textarea::placeholder {
 .foods-macro-row {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -1354,7 +1354,7 @@ textarea::placeholder {
   display: grid;
   align-content: start;
   gap: 6px;
-  min-height: 102px;
+  min-height: 94px;
   padding: 14px 14px 12px;
   border-radius: 20px;
   border: 1px solid rgba(24, 33, 30, 0.08);
@@ -1442,39 +1442,19 @@ textarea::placeholder {
 }
 
 .foods-stat-grid .pill {
-  min-height: 102px;
-  padding: 14px 12px 12px;
+  min-height: 58px;
+  padding: 10px 12px;
   border-radius: 20px;
-  align-items: flex-start;
-  justify-content: flex-end;
-  font-size: 0.92rem;
-  line-height: 1.05;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1;
   font-weight: 800;
   box-shadow:
     0 10px 20px rgba(25, 34, 31, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.foods-stat-grid .pill::before {
-  display: block;
-  margin-bottom: auto;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.74;
-}
-
-.foods-stat-pill--protein::before {
-  content: "Proteini";
-}
-
-.foods-stat-pill--carbs::before {
-  content: "UH";
-}
-
-.foods-stat-pill--fat::before {
-  content: "Masti";
 }
 
 .foods-stat-pill--protein {
@@ -1507,7 +1487,6 @@ textarea::placeholder {
     0 12px 24px rgba(25, 34, 31, 0.08),
     inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   font-weight: 820;
-  transform: translateY(-1px);
 }
 
 .foods-card-actions {
@@ -1551,17 +1530,13 @@ textarea::placeholder {
 }
 
 @media (max-width: 780px) {
-  .foods-macro-row {
-    grid-template-columns: 1fr;
-  }
-
   .foods-stat-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .foods-energy-panel,
   .foods-stat-grid .pill {
-    min-height: 88px;
+    min-height: auto;
   }
 }
 
