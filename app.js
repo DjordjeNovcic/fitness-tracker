@@ -148,6 +148,7 @@ let serviceWorkerRegistration = null;
 let lockedScrollY = 0;
 let feedbackToastTimer = null;
 let heroScrollFrame = 0;
+let foodSearchRenderTimer = null;
 const externalScriptPromises = new Map();
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
@@ -8887,7 +8888,25 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
-    render();
+    const selectionStart = target.selectionStart ?? target.value.length;
+    const selectionEnd = target.selectionEnd ?? target.value.length;
+    if (foodSearchRenderTimer) {
+      window.clearTimeout(foodSearchRenderTimer);
+    }
+    foodSearchRenderTimer = window.setTimeout(() => {
+      foodSearchRenderTimer = null;
+      render();
+      window.requestAnimationFrame(() => {
+        const searchInput = document.querySelector("#food-search");
+        if (!(searchInput instanceof HTMLInputElement)) {
+          return;
+        }
+        searchInput.focus();
+        const safeStart = Math.min(selectionStart, searchInput.value.length);
+        const safeEnd = Math.min(selectionEnd, searchInput.value.length);
+        searchInput.setSelectionRange(safeStart, safeEnd);
+      });
+    }, 120);
     return;
   }
 
