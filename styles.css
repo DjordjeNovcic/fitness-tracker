@@ -1353,6 +1353,7 @@ textarea::placeholder {
   position: relative;
   display: grid;
   align-content: start;
+  justify-items: center;
   gap: 6px;
   min-height: 94px;
   padding: 14px 14px 12px;
@@ -1397,14 +1398,17 @@ textarea::placeholder {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(70, 77, 72, 0.72);
+  text-align: center;
 }
 
 .foods-energy-value {
   display: inline-flex;
   align-items: baseline;
+  justify-content: center;
   gap: 6px;
   min-width: 0;
   color: #223229;
+  text-align: center;
 }
 
 .foods-energy-value strong {
@@ -1421,7 +1425,7 @@ textarea::placeholder {
 }
 
 .foods-basis-pill {
-  justify-self: start;
+  justify-self: center;
   min-height: 30px;
   padding: 5px 10px;
   background: rgba(255, 252, 247, 0.78);
