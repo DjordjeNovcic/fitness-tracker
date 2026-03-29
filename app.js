@@ -5777,6 +5777,12 @@ function renderRecipesTab() {
                                       <div>
                                         <strong>${item.displayName || item.foodName}</strong>
                                         <div class="footer-note">${roundValue(item.grams, 0)} g</div>
+                                        <div class="pill-row" style="margin-top:8px;">
+                                          <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
+                                          <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
+                                          <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
+                                          <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
+                                        </div>
                                       </div>
                                       <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap;">
                                         <button class="ghost-button" data-action="edit-favorite-item" data-favorite-id="${favorite.id}" data-item-index="${index}">Izmeni</button>
