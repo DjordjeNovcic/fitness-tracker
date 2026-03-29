@@ -2267,6 +2267,13 @@ textarea::placeholder {
   gap: 4px;
 }
 
+.recipe-editor-item-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .recipe-editor-item-fields {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) 110px auto;

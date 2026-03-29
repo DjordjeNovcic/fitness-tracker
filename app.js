@@ -3789,6 +3789,21 @@ function buildFavoriteItemsPayload(includePendingDraft = false) {
   ];
 }
 
+function getRecipeDraftItemSuggestedFood(item = {}) {
+  const currentFoodId = String(item.foodId || "").trim();
+  const candidateName = String(item.displayName || item.foodName || "").trim();
+  if (!candidateName) {
+    return null;
+  }
+
+  const suggestedFood = findBestFoodMatchByName(candidateName);
+  if (!suggestedFood || suggestedFood.id === currentFoodId) {
+    return null;
+  }
+
+  return suggestedFood;
+}
+
 function saveFavoriteMealMetadata(payload = {}) {
   const normalizedFavoriteName = String(payload.favoriteName || "").trim();
   const normalizedMealLabel = normalizeMealLabel(String(payload.mealLabel || "").trim());
@@ -5576,12 +5591,23 @@ function renderRecipesTab() {
               <div class="stack recipe-editor-items" style="margin-top:16px;">
                 ${draftPreview.items
                   .filter((item) => !item.isPending)
-                  .map(
-                    (item) => `
+                  .map((item) => {
+                    const suggestedFood = getRecipeDraftItemSuggestedFood(item);
+                    return `
                       <div class="suggestion-row recipe-editor-item-row">
                         <div class="recipe-editor-item-copy">
                           <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
                           <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
+                          ${
+                            suggestedFood
+                              ? `
+                                <div class="recipe-editor-item-suggestion">
+                                  <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
+                                  <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
+                                </div>
+                              `
+                              : ""
+                          }
                         </div>
                         <div class="recipe-editor-item-fields">
                           <select data-recipe-draft-item-food-id="${item.id}">
@@ -5595,7 +5621,7 @@ function renderRecipesTab() {
                         </div>
                       </div>
                     `
-                  )
+                  })
                   .join("")}
               </div>
             `
@@ -8553,6 +8579,27 @@ async function handleDocumentClick(event) {
       state.favoriteDraft.foodId = "";
       state.favoriteDraft.grams = "";
     }
+    render();
+    return;
+  }
+
+  if (action === "apply-draft-favorite-item-suggestion") {
+    const itemId = String(actionTarget.dataset.itemId || "").trim();
+    const foodId = String(actionTarget.dataset.foodId || "").trim();
+    const food = getFoodById(foodId);
+    if (!itemId || !food) {
+      return;
+    }
+
+    state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            foodId: food.id,
+            foodName: food.name,
+          }
+        : item
+    );
     render();
     return;
   }
