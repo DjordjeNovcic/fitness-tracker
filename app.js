@@ -1260,6 +1260,14 @@ function removeNutritionImportDataForDocument(documentName) {
 }
 
 function resetNutritionImportWorkspace(targetStore) {
+  (targetStore.foods || []).forEach((food) => {
+    if (food.importSource === "nutrition-import" && !getFoodNutritionStatus(food).needsAttention) {
+      food.importSource = "";
+      food.importSourceDocIds = [];
+      food.importSourceDocNames = [];
+    }
+  });
+
   const importedFoodIds = new Set(
     (targetStore.foods || []).filter((food) => food.importSource === "nutrition-import").map((food) => food.id)
   );
@@ -5147,7 +5155,8 @@ function renderPlanTab(entries) {
 }
 
 function renderFoodsTab() {
-  const query = state.foodSearch.trim().toLowerCase();
+  const normalizedQuery = normalizeLookupValue(state.foodSearch);
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
   const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
   const selectableFoods = getSelectableFoods();
   const pendingNutritionFoods = getFoods().filter((food) => shouldHidePendingImportedFood(food));
@@ -5161,10 +5170,20 @@ function renderFoodsTab() {
       if (!matchesFilter) {
         return false;
       }
-      if (!query) {
+      if (!queryTokens.length) {
         return true;
       }
-      return `${food.name} ${food.category} ${food.macroGroup}`.toLowerCase().includes(query);
+      const searchableText = normalizeLookupValue(
+        [
+          food.name,
+          canonicalizeImportedFoodName(food.name),
+          food.category,
+          food.macroGroup,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      return queryTokens.every((token) => searchableText.includes(token));
     });
   const filterCounts = FOOD_MACRO_FILTERS.reduce((acc, filter) => {
     acc[filter] =
