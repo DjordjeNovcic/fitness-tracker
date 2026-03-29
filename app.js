@@ -6204,7 +6204,11 @@ function renderRecipesTab() {
                       <div class="food-card-top recipe-library-top">
                         <div class="recipe-library-copy">
                           <h3>${favorite.name}</h3>
-                          <p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>
+                          ${
+                            isExpanded
+                              ? `<p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>`
+                              : ""
+                          }
                         </div>
                         <div class="entry-actions" style="gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap;">
                           <span class="pill strong">${favorite.items.length} ${favorite.items.length === 1 ? "sastojak" : "sastojka"}</span>
