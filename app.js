@@ -368,6 +368,7 @@ function ensureStoreCollections(targetStore) {
   seedDemoFavoriteMeals(targetStore);
   cleanupNutritionImportedFoods(targetStore);
   normalizeFoodNamesAcrossStore(targetStore);
+  normalizeFoodCategoriesAcrossStore(targetStore);
 }
 
 function normalizeFoodNamesAcrossStore(targetStore) {
@@ -379,6 +380,17 @@ function normalizeFoodNamesAcrossStore(targetStore) {
 
     food.name = nextName;
     syncFoodNameAcrossCollections(targetStore, food.id, nextName);
+  });
+}
+
+function normalizeFoodCategoriesAcrossStore(targetStore) {
+  (targetStore.foods || []).forEach((food) => {
+    const nextCategory = getRecommendedFoodCategory(food);
+    if (!nextCategory || nextCategory === String(food.category || "").trim()) {
+      return;
+    }
+
+    food.category = nextCategory;
   });
 }
 
@@ -3225,6 +3237,25 @@ function getFoodMacroGroup(food) {
 
   if (!macros[0] || macros[0].value <= 0) {
     return "Ostalo";
+  }
+
+  return macros[0].label;
+}
+
+function getRecommendedFoodCategory(food = {}) {
+  const protein = Math.max(0, toNumber(food.protein));
+  const carbs = Math.max(0, toNumber(food.carbs));
+  const fat = Math.max(0, toNumber(food.fat));
+  const kcal = Math.max(0, toNumber(food.kcal));
+
+  const macros = [
+    { label: "Proteini", value: protein },
+    { label: "UH", value: carbs },
+    { label: "Masti", value: fat },
+  ].sort((left, right) => right.value - left.value);
+
+  if (!macros[0] || macros[0].value <= 0) {
+    return kcal > 0 ? "Ostalo" : "Ostalo";
   }
 
   return macros[0].label;
@@ -9776,16 +9807,18 @@ async function handleSubmit(event) {
       return;
     }
     const servingUnit = String(formData.get("servingUnit") || "grams").trim() === "piece" ? "piece" : "grams";
-
-    const nextFood = {
+    const nextFoodBase = {
       name,
-      category: String(formData.get("category") || "Ostalo").trim() || "Ostalo",
       servingUnit,
       servingBaseGrams: servingUnit === "piece" ? 1 : 100,
       kcal: toNumber(formData.get("kcal")),
       protein: toNumber(formData.get("protein")),
       carbs: toNumber(formData.get("carbs")),
       fat: toNumber(formData.get("fat")),
+    };
+    const nextFood = {
+      ...nextFoodBase,
+      category: getRecommendedFoodCategory(nextFoodBase),
     };
 
     if (state.editingFoodId) {
@@ -9868,6 +9901,13 @@ async function handleSubmit(event) {
       entry.id === foodId
         ? {
             ...entry,
+            category: getRecommendedFoodCategory({
+              ...entry,
+              kcal,
+              protein,
+              carbs,
+              fat,
+            }),
             kcal,
             protein,
             carbs,
