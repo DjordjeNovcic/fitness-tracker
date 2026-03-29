@@ -3629,6 +3629,28 @@ function setFavoriteDraftFromItem(favorite, item) {
   };
 }
 
+function setFavoriteDraftFromRecipe(favorite) {
+  const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
+  const firstItem = normalizedFavorite.items?.[0] || null;
+
+  if (firstItem) {
+    setFavoriteDraftFromItem(normalizedFavorite, firstItem);
+    return;
+  }
+
+  state.favoriteDraft = {
+    favoriteName: normalizedFavorite.name || "",
+    mealLabel: normalizedFavorite.mealLabel || "",
+    description: normalizedFavorite.description || "",
+    servings: String(normalizedFavorite.servings || 1),
+    prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
+    instructions: normalizedFavorite.instructions || "",
+    foodId: "",
+    grams: "",
+  };
+  state.editingFavoriteItem = { favoriteId: favorite.id, itemId: "", itemIndex: -1 };
+}
+
 function getFavoriteDraftPreview() {
   const favoriteName = String(state.favoriteDraft.favoriteName || "").trim();
   const mealLabel = String(state.favoriteDraft.mealLabel || "").trim();
@@ -8354,19 +8376,11 @@ async function handleDocumentClick(event) {
     if (!favorite) {
       return;
     }
-    const normalizedFavorite = normalizeFavoriteMealRecord(favorite);
     state.activeTab = "recipes";
-    state.favoriteDraft.favoriteName = normalizedFavorite.name || "";
-    state.favoriteDraft.mealLabel = normalizedFavorite.mealLabel || "";
-    state.favoriteDraft.description = normalizedFavorite.description || "";
-    state.favoriteDraft.servings = String(normalizedFavorite.servings || 1);
-    state.favoriteDraft.prepTimeMinutes = normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "";
-    state.favoriteDraft.instructions = normalizedFavorite.instructions || "";
-    state.favoriteDraft.foodId = "";
-    state.favoriteDraft.grams = "";
-    state.editingFavoriteItem = { favoriteId: favorite.id, itemId: "", itemIndex: -1 };
+    setFavoriteDraftFromRecipe(favorite);
     render();
     window.requestAnimationFrame(() => {
+      document.querySelector("#favorite-meal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelector("#favorite-name")?.focus();
     });
     return;
