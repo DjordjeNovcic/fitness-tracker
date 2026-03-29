@@ -2685,7 +2685,7 @@ label.is-invalid textarea:focus {
   min-width: 0;
 }
 
-.recipe-library-copy h3 {
+.recipe-library-copy h2 {
   margin: 0;
   max-width: 18ch;
   line-height: 0.96;
@@ -2693,7 +2693,7 @@ label.is-invalid textarea:focus {
   letter-spacing: -0.04em;
 }
 
-.recipe-library-card.is-collapsed .recipe-library-copy h3 {
+.recipe-library-card.is-collapsed .recipe-library-copy h2 {
   font-size: clamp(1.45rem, 2.3vw, 2rem);
   max-width: 22ch;
   line-height: 1.02;
@@ -2779,8 +2779,8 @@ label.is-invalid textarea:focus {
     max-height: 240px;
   }
 
-  .recipe-library-copy h3,
-  .recipe-library-card.is-collapsed .recipe-library-copy h3 {
+  .recipe-library-copy h2,
+  .recipe-library-card.is-collapsed .recipe-library-copy h2 {
     max-width: 100%;
   }
 }
