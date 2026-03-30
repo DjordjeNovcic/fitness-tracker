@@ -4860,7 +4860,7 @@ function renderActionIcon(kind) {
     add: '<path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/>',
     edit: '<path fill="currentColor" d="m4 16.25 9.7-9.7 4 4L8 20.25H4zm11.1-10.4 1.7-1.7a1.5 1.5 0 0 1 2.1 0l.95.95a1.5 1.5 0 0 1 0 2.1l-1.7 1.7-4-4Z"/>',
     delete:
-      '<path fill="currentColor" d="M9.5 4.5h5l.7 1H19a1 1 0 1 1 0 2h-1l-.8 10.1A2.5 2.5 0 0 1 14.7 20H9.3a2.5 2.5 0 0 1-2.49-2.39L6 7.5H5a1 1 0 1 1 0-2h3.8l.7-1Zm-.99 3 .8 10a.5.5 0 0 0 .49.46h4.4a.5.5 0 0 0 .49-.46l.8-10H8.51ZM10 3a1 1 0 0 0-.83.44L8.27 4.5h7.46l-.9-1.06A1 1 0 0 0 14 3h-4Zm.75 7.25a.75.75 0 0 1 1.5 0v4.5a.75.75 0 0 1-1.5 0v-4.5Zm3 0a.75.75 0 0 1 1.5 0v4.5a.75.75 0 0 1-1.5 0v-4.5Z"/>',
+      '<path fill="currentColor" d="M9 3.75h6a1.75 1.75 0 0 1 1.75 1.75v.25H20A1.25 1.25 0 1 1 20 8.25H4A1.25 1.25 0 1 1 4 5.75h3.25V5.5A1.75 1.75 0 0 1 9 3.75Zm.75 2h4.5V5.5a.25.25 0 0 0-.25-.25h-4a.25.25 0 0 0-.25.25v.25Zm-2.2 3.75h9.9l-.7 9.07A2 2 0 0 1 14.75 20h-5.5a2 2 0 0 1-1.99-1.43L6.55 9.5Zm2.2 2.1a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Zm3.1 0a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Zm3.1 0a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Z"/>',
     save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
