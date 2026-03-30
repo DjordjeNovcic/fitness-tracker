@@ -2688,13 +2688,13 @@ label.is-invalid textarea:focus {
   margin: 0;
   max-width: 18ch;
   line-height: 1.05;
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-size: clamp(1.65rem, 2.5vw, 2.35rem);
   letter-spacing: -0.04em;
   padding-bottom: 0.08em;
 }
 
 .recipe-library-card.is-collapsed .recipe-library-copy h2 {
-  font-size: clamp(1.45rem, 2.3vw, 2rem);
+  font-size: clamp(1.32rem, 1.95vw, 1.7rem);
   max-width: 22ch;
   line-height: 1.08;
   display: -webkit-box;
