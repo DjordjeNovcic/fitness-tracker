@@ -6347,10 +6347,10 @@ function renderRecipesTab() {
                             <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
                               ${renderButtonContent("Dodaj u plan", "apply")}
                             </button>
-                            <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
+                            <button class="ghost-button button-with-icon icon-only-action" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Izmeni recept" title="Izmeni recept">
                               ${renderButtonContent("Izmeni recept", "edit")}
                             </button>
-                            <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
+                            <button class="danger-button button-with-icon icon-only-action" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Obriši recept" title="Obriši recept">
                               ${renderButtonContent("Obriši recept", "delete")}
                             </button>
                           </div>

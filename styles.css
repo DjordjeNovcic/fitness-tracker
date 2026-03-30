@@ -1995,6 +1995,16 @@ textarea::placeholder {
   display: inline;
 }
 
+.icon-only-action {
+  width: 46px;
+  min-width: 46px;
+  padding-inline: 0;
+}
+
+.icon-only-action .button-label {
+  display: none;
+}
+
 .ghost-button {
   background: var(--button-ghost-bg);
   color: var(--button-ghost-text);
