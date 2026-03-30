@@ -6102,105 +6102,106 @@ function renderRecipesTab() {
           Ovde samo sklapaš preview recepta. Dodaj sastojke, proveri kalorije ispod, pa klikni Sačuvaj recept.
         </div>
         <div class="footer-note" style="margin-top:10px;">Sačuvavanje ostaje dole, uz kompletan preview recepta.</div>
-      </article>
-      <article class="food-card suggestion-surface recipe-draft-card" style="margin-top:14px;">
-        <div class="food-card-top recipe-draft-top">
-          <div class="recipe-draft-copy">
-            <h3>${draftPreview.favoriteName || "Recept u izradi"}</h3>
-            <p>${draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta."}</p>
+        <div class="recipe-studio-divider"></div>
+        <div class="recipe-draft-panel">
+          <div class="food-card-top recipe-draft-top">
+            <div class="recipe-draft-copy">
+              <h3>${draftPreview.favoriteName || "Recept u izradi"}</h3>
+              <p>${draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta."}</p>
+            </div>
+            <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
           </div>
-          <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
-        </div>
-        ${
-          draftPreview.imageUrl
-            ? `<div class="recipe-draft-media"><img src="${escapeHtml(draftPreview.imageUrl)}" alt="${escapeHtml(draftPreview.favoriteName || "Preview recepta")}" /></div>`
-            : ""
-        }
-        <div class="pill-row recipe-draft-pills">
-          <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
-          <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
           ${
-            draftPreview.prepTimeMinutes
-              ? `<span class="pill note">${draftPreview.prepTimeMinutes} min pripreme</span>`
+            draftPreview.imageUrl
+              ? `<div class="recipe-draft-media"><img src="${escapeHtml(draftPreview.imageUrl)}" alt="${escapeHtml(draftPreview.favoriteName || "Preview recepta")}" /></div>`
               : ""
           }
-          <span class="pill note">Ukupno ${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
-          <span class="pill">Po porciji ${roundValue(draftPreview.perServingTotals.kcal, 0)} kcal</span>
-          <span class="pill">P ${roundValue(draftPreview.perServingTotals.protein, 1)} g</span>
-          <span class="pill">UH ${roundValue(draftPreview.perServingTotals.carbs, 1)} g</span>
-          <span class="pill">M ${roundValue(draftPreview.perServingTotals.fat, 1)} g</span>
-        </div>
-        ${
-          draftPreview.instructions
-            ? `<div class="recipe-draft-method">${draftPreview.instructions}</div>`
-            : ""
-        }
-        <div class="footer-note" style="margin-top:10px;">Sastojci recepta koji praviš:</div>
-        <div class="stack" style="margin-top:12px;">
+          <div class="pill-row recipe-draft-pills">
+            <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
+            <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
+            ${
+              draftPreview.prepTimeMinutes
+                ? `<span class="pill note">${draftPreview.prepTimeMinutes} min pripreme</span>`
+                : ""
+            }
+            <span class="pill note">Ukupno ${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
+            <span class="pill">Po porciji ${roundValue(draftPreview.perServingTotals.kcal, 0)} kcal</span>
+            <span class="pill">P ${roundValue(draftPreview.perServingTotals.protein, 1)} g</span>
+            <span class="pill">UH ${roundValue(draftPreview.perServingTotals.carbs, 1)} g</span>
+            <span class="pill">M ${roundValue(draftPreview.perServingTotals.fat, 1)} g</span>
+          </div>
           ${
-            draftPreview.items.length
-              ? draftPreview.items
-                  .map((item) => {
-                    const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
-                    return `
-                      <div class="suggestion-row recipe-editor-item-row">
-                        <div class="recipe-editor-item-copy">
-                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
-                          <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
-                          ${
-                            suggestedFood
-                              ? `
-                                <div class="recipe-editor-item-suggestion">
-                                  <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
-                                  <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
-                                </div>
-                              `
-                              : ""
-                          }
-                        </div>
-                        <div class="recipe-editor-item-fields">
-                          ${
-                            item.isPending
-                              ? `<span class="pill strong">nova stavka</span>`
-                              : `
-                                <select data-recipe-draft-item-food-id="${item.id}">
-                                  <option value="">Poveži sa namirnicom</option>
-                                  ${selectableFoods
-                                    .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
-                                    .join("")}
-                                </select>
-                              `
-                          }
-                          <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
-                          ${
-                            item.isPending
-                              ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
-                              : `<button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>`
-                          }
-                        </div>
-                        <div class="pill-row" style="margin-top:0;">
-                          <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "u preview"}</span>
-                          ${!item.isMatched ? `<span class="pill pill--warning">traži match</span>` : ""}
-                          <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
-                          <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
-                          <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
-                          <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
-                        </div>
-                      </div>
-                    `;
-                  })
-                  .join("")
-              : `<div class="empty">Dodaj prvi sastojak i gramažu, pa ćeš ovde odmah videti kompletan recept.</div>`
+            draftPreview.instructions
+              ? `<div class="recipe-draft-method">${draftPreview.instructions}</div>`
+              : ""
           }
-        </div>
-        <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:14px;">
-          <button
-            class="solid-button button-with-icon"
-            data-action="save-favorite-meal-draft"
-            ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
-          >
-            ${renderButtonContent("Sačuvaj recept", "save")}
-          </button>
+          <div class="footer-note" style="margin-top:10px;">Sastojci recepta koji praviš:</div>
+          <div class="stack" style="margin-top:12px;">
+            ${
+              draftPreview.items.length
+                ? draftPreview.items
+                    .map((item) => {
+                      const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
+                      return `
+                        <div class="suggestion-row recipe-editor-item-row">
+                          <div class="recipe-editor-item-copy">
+                            <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
+                            <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
+                            ${
+                              suggestedFood
+                                ? `
+                                  <div class="recipe-editor-item-suggestion">
+                                    <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
+                                    <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
+                                  </div>
+                                `
+                                : ""
+                            }
+                          </div>
+                          <div class="recipe-editor-item-fields">
+                            ${
+                              item.isPending
+                                ? `<span class="pill strong">nova stavka</span>`
+                                : `
+                                  <select data-recipe-draft-item-food-id="${item.id}">
+                                    <option value="">Poveži sa namirnicom</option>
+                                    ${selectableFoods
+                                      .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
+                                      .join("")}
+                                  </select>
+                                `
+                            }
+                            <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
+                            ${
+                              item.isPending
+                                ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
+                                : `<button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>`
+                            }
+                          </div>
+                          <div class="pill-row" style="margin-top:0;">
+                            <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "u preview"}</span>
+                            ${!item.isMatched ? `<span class="pill pill--warning">traži match</span>` : ""}
+                            <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
+                            <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
+                            <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
+                            <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
+                          </div>
+                        </div>
+                      `;
+                    })
+                    .join("")
+                : `<div class="empty">Dodaj prvi sastojak i gramažu, pa ćeš ovde odmah videti kompletan recept.</div>`
+            }
+          </div>
+          <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:14px;">
+            <button
+              class="solid-button button-with-icon"
+              data-action="save-favorite-meal-draft"
+              ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
+            >
+              ${renderButtonContent("Sačuvaj recept", "save")}
+            </button>
+          </div>
         </div>
       </article>
     </section>

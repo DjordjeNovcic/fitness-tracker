@@ -2496,6 +2496,17 @@ label.is-invalid textarea:focus {
     var(--surface-strong);
 }
 
+.recipe-studio-divider {
+  height: 1px;
+  margin: 20px 0 18px;
+  background: linear-gradient(90deg, rgba(24, 33, 30, 0.06), rgba(24, 33, 30, 0.12), rgba(24, 33, 30, 0.06));
+}
+
+.recipe-draft-panel {
+  display: grid;
+  gap: 0;
+}
+
 .recipe-builder-form {
   margin-bottom: 0;
 }
@@ -2561,18 +2572,6 @@ label.is-invalid textarea:focus {
   .recipe-editor-item-fields {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.recipe-draft-card {
-  padding: 20px;
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(221, 233, 220, 0.46), rgba(255, 250, 242, 0.96)),
-    var(--surface-strong);
-  border-color: rgba(44, 123, 116, 0.12);
-  box-shadow:
-    0 14px 28px rgba(25, 34, 31, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .recipe-draft-media {
