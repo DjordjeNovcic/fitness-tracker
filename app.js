@@ -120,6 +120,7 @@ const MEAL_LABEL_MAP = {
 const state = {
   activeTab: getInitialTab(),
   selectedWeekday: getTodayWeekday(),
+  planQuickExpanded: getInitialPlanQuickExpanded(),
   foodSearch: "",
   foodMacroFilter: "Sve",
   foodNutritionFilter: "Sve",
@@ -239,6 +240,10 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       rawStore.trainingBurnByWeekday && typeof rawStore.trainingBurnByWeekday === "object"
         ? rawStore.trainingBurnByWeekday
         : {},
+    trainingCompletionsByWeekday:
+      rawStore.trainingCompletionsByWeekday && typeof rawStore.trainingCompletionsByWeekday === "object"
+        ? rawStore.trainingCompletionsByWeekday
+        : {},
     measurements: Array.isArray(rawStore.measurements) ? rawStore.measurements : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
@@ -341,6 +346,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.dayTasks = targetStore.dayTasks || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
+  targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
@@ -3639,12 +3645,76 @@ function getTodayDateValue() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
+function getTrainingCompletionBucket(weekday) {
+  const normalizedWeekday = String(weekday || "").trim();
+  if (!normalizedWeekday) {
+    return {};
+  }
+  const bucket = store.trainingCompletionsByWeekday?.[normalizedWeekday];
+  return bucket && typeof bucket === "object" ? bucket : {};
+}
+
+function isTrainingExerciseCompleted(weekday, templateId, exerciseId) {
+  if (!weekday || !templateId || !exerciseId) {
+    return false;
+  }
+  return Boolean(getTrainingCompletionBucket(weekday)?.[templateId]?.[exerciseId]);
+}
+
+function getTrainingTemplateCompletionCount(template, weekday = state.selectedWeekday) {
+  const exercises = Array.isArray(template?.exercises) ? template.exercises : [];
+  const completedCount = exercises.filter((exercise) => isTrainingExerciseCompleted(weekday, template?.id, exercise.id)).length;
+  return {
+    completedCount,
+    totalCount: exercises.length,
+  };
+}
+
+function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
+  if (!weekday || !templateId || !exerciseId) {
+    return;
+  }
+
+  const weekdayBucket = {
+    ...(store.trainingCompletionsByWeekday?.[weekday] || {}),
+  };
+  const templateBucket = {
+    ...(weekdayBucket[templateId] || {}),
+  };
+
+  if (templateBucket[exerciseId]) {
+    delete templateBucket[exerciseId];
+  } else {
+    templateBucket[exerciseId] = true;
+  }
+
+  if (Object.keys(templateBucket).length) {
+    weekdayBucket[templateId] = templateBucket;
+  } else {
+    delete weekdayBucket[templateId];
+  }
+
+  if (Object.keys(weekdayBucket).length) {
+    store.trainingCompletionsByWeekday[weekday] = weekdayBucket;
+  } else {
+    delete store.trainingCompletionsByWeekday[weekday];
+  }
+}
+
 function getWeeklyTrainingPlan() {
   return WEEKDAYS.map((weekday) => ({
     weekday,
     templates: getTrainingForDay(weekday),
     trainingBurn: getTrainingBurnForDay(weekday),
     progressCount: store.trainingProgressLogs.filter((log) => log.weekday === weekday).length,
+    completedExerciseCount: getTrainingForDay(weekday).reduce(
+      (count, template) => count + getTrainingTemplateCompletionCount(template, weekday).completedCount,
+      0
+    ),
+    totalExerciseCount: getTrainingForDay(weekday).reduce(
+      (count, template) => count + getTrainingTemplateCompletionCount(template, weekday).totalCount,
+      0
+    ),
   }));
 }
 
@@ -4642,6 +4712,13 @@ function renderMetricsGrid(metrics) {
   `;
 }
 
+function getInitialPlanQuickExpanded() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  return window.innerWidth >= 960;
+}
+
 function renderHero(entries, totals) {
   return `
     <section class="hero hero--plan">
@@ -4650,16 +4727,12 @@ function renderHero(entries, totals) {
           <span class="hero-tag">Plan</span>
           <div class="hero-copy-text">
             <h1>Nedeljni jelovnik</h1>
-            <p>Izaberi dan i odmah sredi obroke za taj plan.</p>
+            <p>Izaberi dan i odmah sredi obroke.</p>
           </div>
-        </div>
-        <div class="hero-status" aria-label="Aktivan dan">
-          <span class="hero-status-label">Aktivan dan</span>
-          <strong>${escapeHtml(state.selectedWeekday)}</strong>
         </div>
       </div>
       <div class="hero-day-picker">
-        <div class="hero-picker-label">Promeni dan</div>
+        <div class="hero-picker-label">Dan</div>
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
@@ -5454,14 +5527,23 @@ function renderPlanTab(entries) {
 
     ${renderPlanSupplementsSection()}
 
-    <section class="section plan-quick-section">
-      <div class="section-header">
-        <div>
-          <h2>Brze akcije</h2>
-          <p>Kopiraj dan kad imaš sličan raspored i koristi omiljene namirnice za brz unos.</p>
+    <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
+      <button
+        class="plan-quick-toggle"
+        type="button"
+        data-action="toggle-plan-quick"
+        aria-expanded="${state.planQuickExpanded}"
+      >
+        <div class="plan-quick-toggle-copy">
+          <div class="plan-quick-toggle-title-row">
+            <h2>Brze akcije</h2>
+            <span class="pill note plan-quick-toggle-badge">3 alata</span>
+          </div>
+          <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
         </div>
-      </div>
-      <div class="stack plan-quick-stack">
+        <span class="plan-quick-toggle-icon" aria-hidden="true">${state.planQuickExpanded ? "▴" : "▾"}</span>
+      </button>
+      <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
         <article class="food-card plan-quick-card">
           <div class="food-card-top plan-quick-card-top">
             <div class="plan-quick-card-copy">
@@ -6478,6 +6560,7 @@ function renderTrainingTab() {
                 </div>
                 <div class="pill-row">
                   <span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vežbi</span>
+                  <span class="pill note">${day.completedExerciseCount}/${day.totalExerciseCount} odrađeno</span>
                   <span class="pill">${roundValue(day.trainingBurn, 0)} kcal</span>
                   <span class="pill">${day.progressCount} logova</span>
                 </div>
@@ -6526,18 +6609,26 @@ function renderTrainingTab() {
         ${
           templates.length
             ? templates
-                .map(
-                  (template) => `
+                .map((template) => {
+                  const completion = getTrainingTemplateCompletionCount(template, state.selectedWeekday);
+                  return `
                     <article class="training-card training-template-card">
                       <div class="training-top">
-                        <h3>${template.name}</h3>
-                        <span class="pill strong">${template.exercises.length} vežbi</span>
+                        <div>
+                          <h3>${template.name}</h3>
+                          <div class="footer-note training-template-progress-copy">${completion.completedCount}/${completion.totalCount} vežbi označeno kao odrađeno</div>
+                        </div>
+                        <span class="pill strong">${completion.completedCount}/${completion.totalCount}</span>
                       </div>
                       <div class="training-exercise-list">
                         ${template.exercises
                           .map(
                             (exercise) => `
                               <div class="training-exercise-row">
+                                <label class="routine-check training-exercise-check">
+                                  <input class="routine-checkbox" type="checkbox" data-action="toggle-training-exercise" data-template-id="${template.id}" data-exercise-id="${exercise.id}" ${isTrainingExerciseCompleted(state.selectedWeekday, template.id, exercise.id) ? "checked" : ""} />
+                                  <span class="routine-check-ui" aria-hidden="true"></span>
+                                </label>
                                 <div class="training-exercise-copy">
                                   <strong class="training-exercise-name">${exercise.name}</strong>
                                   <div class="training-exercise-detail">${exercise.details}</div>
@@ -6553,8 +6644,8 @@ function renderTrainingTab() {
                         </button>
                       </div>
                     </article>
-                  `
-                )
+                  `;
+                })
                 .join("")
             : `<div class="empty">Još nema trening sablona za ${state.selectedWeekday}. Dodaj ga ispod.</div>`
         }
@@ -8747,6 +8838,12 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-plan-quick") {
+    state.planQuickExpanded = !state.planQuickExpanded;
+    render();
+    return;
+  }
+
   if (action === "close-nav-menu") {
     state.navMenuOpen = false;
     render();
@@ -8905,6 +9002,19 @@ async function handleDocumentClick(event) {
           }
         : task
     );
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "toggle-training-exercise") {
+    const templateId = String(actionTarget.dataset.templateId || "").trim();
+    const exerciseId = String(actionTarget.dataset.exerciseId || "").trim();
+    if (!templateId || !exerciseId) {
+      return;
+    }
+
+    toggleTrainingExerciseCompletion(state.selectedWeekday, templateId, exerciseId);
     persist();
     render();
     return;
