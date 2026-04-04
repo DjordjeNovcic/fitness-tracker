@@ -6173,11 +6173,11 @@ function renderFoodsTab() {
             <div class="foods-list-table-wrap">
               <div class="foods-list-table-head" aria-hidden="true">
                 <span class="foods-list-table-head-favorite">☆</span>
-                <span>Namirnica</span>
-                <span>kcal</span>
-                <span>Proteini</span>
-                <span>Ugljeni hidrati</span>
-                <span>Masti</span>
+                <span class="foods-list-table-head-name">Namirnica</span>
+                <span class="foods-list-table-head-value">kcal</span>
+                <span class="foods-list-table-head-value">Proteini</span>
+                <span class="foods-list-table-head-value">Ugljeni hidrati</span>
+                <span class="foods-list-table-head-value">Masti</span>
                 <span class="foods-list-table-head-actions">Akcije</span>
               </div>
           `
@@ -6275,15 +6275,15 @@ function renderFoodsTab() {
                   <span class="foods-list-mobile-label">kcal</span>
                   <strong>${roundValue(food.kcal, 0)}</strong>
                 </div>
-                <div class="foods-list-value-cell">
+                <div class="foods-list-value-cell foods-list-value-cell--protein">
                   <span class="foods-list-mobile-label">Proteini</span>
                   <strong>${roundValue(proteinValue, 1)} g</strong>
                 </div>
-                <div class="foods-list-value-cell">
+                <div class="foods-list-value-cell foods-list-value-cell--carbs">
                   <span class="foods-list-mobile-label">Ugljeni hidrati</span>
                   <strong>${roundValue(carbsValue, 1)} g</strong>
                 </div>
-                <div class="foods-list-value-cell">
+                <div class="foods-list-value-cell foods-list-value-cell--fat">
                   <span class="foods-list-mobile-label">Masti</span>
                   <strong>${roundValue(fatValue, 1)} g</strong>
                 </div>

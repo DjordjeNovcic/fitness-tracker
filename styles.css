@@ -1458,7 +1458,7 @@ textarea::placeholder {
 
 .foods-list-table-head {
   display: grid;
-  grid-template-columns: 38px minmax(240px, 1.7fr) repeat(4, minmax(88px, 0.62fr)) 184px;
+  grid-template-columns: 34px minmax(280px, 1fr) 84px 108px 132px 92px 176px;
   align-items: center;
   gap: 10px;
   padding: 0 12px 10px;
@@ -1470,11 +1470,22 @@ textarea::placeholder {
 }
 
 .foods-list-table-head-favorite {
+  grid-column: 1;
   text-align: center;
   opacity: 0.6;
 }
 
+.foods-list-table-head-name {
+  grid-column: 2;
+}
+
+.foods-list-table-head-value {
+  justify-self: end;
+  text-align: right;
+}
+
 .foods-list-table-head-actions {
+  grid-column: 7;
   text-align: right;
 }
 
@@ -1512,7 +1523,7 @@ textarea::placeholder {
 
 .foods-list-row {
   display: grid;
-  grid-template-columns: 38px minmax(240px, 1.7fr) repeat(4, minmax(88px, 0.62fr)) 184px;
+  grid-template-columns: 34px minmax(280px, 1fr) 84px 108px 132px 92px 176px;
   align-items: center;
   gap: 10px;
   min-height: 76px;
@@ -1569,6 +1580,7 @@ textarea::placeholder {
 }
 
 .foods-list-favorite-cell {
+  grid-column: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1588,6 +1600,7 @@ textarea::placeholder {
 }
 
 .foods-list-main {
+  grid-column: 2;
   display: grid;
   gap: 6px;
   min-width: 0;
@@ -1619,6 +1632,24 @@ textarea::placeholder {
   min-width: 0;
   padding: 6px 4px;
   text-align: right;
+  justify-self: end;
+  width: 100%;
+}
+
+.foods-list-value-cell--kcal {
+  grid-column: 3;
+}
+
+.foods-list-value-cell--protein {
+  grid-column: 4;
+}
+
+.foods-list-value-cell--carbs {
+  grid-column: 5;
+}
+
+.foods-list-value-cell--fat {
+  grid-column: 6;
 }
 
 .foods-list-macro {
@@ -1912,6 +1943,7 @@ textarea::placeholder {
 }
 
 .foods-list-actions {
+  grid-column: 7;
   width: 184px;
   align-self: center;
   justify-content: flex-end;
@@ -1985,6 +2017,12 @@ textarea::placeholder {
     padding: 14px;
   }
 
+  .foods-list-main,
+  .foods-list-value-cell,
+  .foods-list-actions {
+    grid-column: auto;
+  }
+
   .foods-list-value-cell {
     padding: 8px 0 0;
     border-top: 1px dashed rgba(24, 33, 30, 0.08);
@@ -1992,6 +2030,7 @@ textarea::placeholder {
   }
 
   .foods-list-favorite-cell {
+    grid-column: auto;
     justify-content: flex-start;
     margin-bottom: 8px;
   }
