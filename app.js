@@ -32,6 +32,17 @@ const TABS = [
   { id: "goals", label: "Ciljevi", icon: "🎯" },
   { id: "settings", label: "Podešavanja", icon: "⚙️" },
 ];
+const TAB_META = {
+  plan: { eyebrow: "Dnevni plan", description: "Pregled obroka, kalorija i dnevnog ritma za izabrani dan." },
+  recipes: { eyebrow: "Biblioteka", description: "Sastavljaj obroke, čuvaj favorite i ubacuj ih u plan bez duplog unosa." },
+  nutrition: { eyebrow: "Dokumenti", description: "Pregled uvezenih planova, preporuka i recepata sa mestom za sređivanje svega što parser pronađe." },
+  foods: { eyebrow: "Baza", description: "Pretraži namirnice, proveri makroe i dopuni bazu novim unosima." },
+  training: { eyebrow: "Performans", description: "Plan treninga, potrošnja i progres po vežbama na jednom mestu." },
+  routine: { eyebrow: "Svakodnevica", description: "Navike, taskovi i nedeljni pregled koji pomažu da plan ostane realan." },
+  progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i progress slike za jasan pregled napretka kroz vreme." },
+  goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
+  settings: { eyebrow: "Sigurnost", description: "Nalog, cloud sync i backup opcije za mirniji rad sa podacima." },
+};
 
 const ACTIVITY_LEVELS = [
   { id: "sedentary", label: "Sedeći posao", multiplier: 1.2 },
@@ -4663,6 +4674,35 @@ function renderHero(entries, totals) {
   `;
 }
 
+function renderWorkspaceHeader() {
+  const activeTab = TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
+  const tabMeta = TAB_META[state.activeTab] || TAB_META.plan;
+
+  return `
+    <section class="workspace-header section">
+      <div class="workspace-header-top">
+        <div class="workspace-header-copy">
+          <span class="workspace-header-eyebrow">${tabMeta.eyebrow}</span>
+          <div class="workspace-header-title-row">
+            <span class="workspace-header-icon" aria-hidden="true">${activeTab.icon}</span>
+            <div>
+              <h1>${activeTab.label}</h1>
+              <p>${tabMeta.description}</p>
+            </div>
+          </div>
+        </div>
+        <button class="ghost-button workspace-header-menu" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
+          ${renderMenuToggleIcon(state.navMenuOpen)}
+        </button>
+      </div>
+      <div class="workspace-header-status-row">
+        <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
+        ${state.authUser?.email ? `<span class="pill">${escapeHtml(state.authUser.email)}</span>` : ""}
+      </div>
+    </section>
+  `;
+}
+
 function renderLoadingShell() {
   return `
     <main class="shell auth-shell">
@@ -4725,6 +4765,11 @@ function markUpdateReady(registration) {
 
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function getLocalDateInputValue(date = new Date()) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
 }
 
 function dismissFeedbackToast() {
@@ -7952,7 +7997,63 @@ function renderExerciseProgressCard(group) {
 }
 
 function getPhotoDateDefault() {
-  return new Date().toISOString().slice(0, 10);
+  return getLocalDateInputValue();
+}
+
+function getProgressSummary(history, photos) {
+  const latestMeasurement = history[0] || null;
+  const latestPhoto = photos[0] || null;
+  const compareReadyTags = PHOTO_TAGS.filter((tag) => photos.filter((photo) => photo.tag === tag).length >= 2);
+
+  return {
+    measurementCount: history.length,
+    photoCount: photos.length,
+    latestMeasurement,
+    latestPhoto,
+    compareReadyTags,
+  };
+}
+
+function renderProgressSummary(summary) {
+  return `
+    <section class="section progress-overview-section">
+      ${renderSectionLead("Napredak na prvi pogled", "Brz pregled koliko često meriš napredak i da li već imaš dovoljno materijala za pravo poređenje.", {
+        eyebrow: "Napredak",
+      })}
+      <div class="stats-grid progress-summary-grid">
+        <article class="stat-card progress-insight-card">
+          <strong>Poslednje merenje</strong>
+          <div class="macro-value">${summary.latestMeasurement ? new Date(summary.latestMeasurement.date).toLocaleDateString("sr-RS") : "-"}</div>
+          <div class="footer-note">${summary.latestMeasurement ? "Najnoviji check-in je sačuvan." : "Dodaj prvo merenje da krene istorija."}</div>
+        </article>
+        <article class="stat-card progress-insight-card">
+          <strong>Ukupno merenja</strong>
+          <div class="macro-value">${summary.measurementCount}</div>
+          <div class="footer-note">${summary.measurementCount ? "Svaki unos ulazi u trend kartice i istoriju." : "Trend kartice će se popuniti čim dodaš prvi unos."}</div>
+        </article>
+        <article class="stat-card progress-insight-card">
+          <strong>Progress slike</strong>
+          <div class="macro-value">${summary.photoCount}</div>
+          <div class="footer-note">${summary.latestPhoto ? `Poslednja slika je dodata ${new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}.` : "Još nema slika za vizuelno praćenje forme."}</div>
+        </article>
+        <article class="stat-card progress-insight-card">
+          <strong>Side by side</strong>
+          <div class="macro-value">${summary.compareReadyTags.length ? `${summary.compareReadyTags.length} taga` : "Nije spremno"}</div>
+          <div class="footer-note">${summary.compareReadyTags.length ? `Možeš već da porediš: ${summary.compareReadyTags.join(", ")}.` : "Potrebne su bar dve slike sa istim tagom, npr. front i front."}</div>
+        </article>
+      </div>
+      ${
+        !summary.measurementCount && !summary.photoCount
+          ? `
+            <div class="empty progress-empty-guide">
+              <strong>Kreni od jednostavnog ritma.</strong>
+              <span>Unesi težinu i stomak jednom nedeljno, pa dodaj po jednu sliku za front, side i back. Tako će trend i poređenje odmah postati korisni.</span>
+            </div>
+          `
+          : ""
+      }
+    </section>
+  `;
 }
 
 function getAvailablePhotoTags(photos) {
@@ -8073,11 +8174,14 @@ function renderProgressTab() {
     ["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id)
   );
   const photos = [...store.progressPhotos].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const summary = getProgressSummary(history, photos);
   const activeCompareTag = getActiveCompareTag(photos);
   const taggedPhotos = photos.filter((photo) => photo.tag === activeCompareTag);
   const compare = getPhotoComparePair(taggedPhotos);
 
   return `
+    ${renderProgressSummary(summary)}
+
     <section class="section">
       <div class="section-header">
         <div>
@@ -8115,7 +8219,7 @@ function renderProgressTab() {
       <form id="measurement-form" class="form-grid split">
         <div class="field">
           <label for="measurement-date">Datum</label>
-          <input id="measurement-date" name="date" type="date" value="${new Date().toISOString().slice(0, 10)}" required />
+          <input id="measurement-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
         </div>
         ${measurementFields
           .map(
@@ -8136,6 +8240,7 @@ function renderProgressTab() {
           .join("")}
         <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
+      <div class="footer-note progress-form-note">Ako meriš samo par stvari, slobodno ostavi ostala polja prazna. App čuva samo ono što si zaista uneo.</div>
     </section>
 
     <section class="section">
@@ -8167,7 +8272,7 @@ function renderProgressTab() {
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
-      <div class="compare-block" style="margin-top:14px;">
+      <div class="compare-block progress-compare-block">
         <div class="section-header">
           <div>
             <h2>Side by side</h2>
@@ -8342,6 +8447,7 @@ function render() {
   const entries = getPlanEntriesForDay(state.selectedWeekday);
   const totals = getDayTotals(entries);
   const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
+  const workspaceHeaderMarkup = state.activeTab === "plan" ? "" : renderWorkspaceHeader();
   const sections = {
     plan: renderPlanTab(entries),
     recipes: renderRecipesTab(),
@@ -8398,6 +8504,7 @@ function render() {
       </aside>
 
       <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""}">
+        ${workspaceHeaderMarkup}
         ${heroMarkup}
         ${sections[state.activeTab]}
       </main>
@@ -8446,7 +8553,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `fit-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `fit-tracker-backup-${getLocalDateInputValue()}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }

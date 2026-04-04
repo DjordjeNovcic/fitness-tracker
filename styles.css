@@ -56,6 +56,7 @@
   --radius-lg: 26px;
   --radius-md: 20px;
   --radius-sm: 15px;
+  --content-narrow: 980px;
   --content-width: 720px;
 }
 
@@ -136,7 +137,7 @@ textarea::placeholder {
 
 .shell {
   display: grid;
-  gap: 20px;
+  gap: 18px;
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 24px 18px 40px;
@@ -300,14 +301,14 @@ textarea::placeholder {
 
 .section {
   margin-bottom: 0;
-  padding: 20px;
+  padding: 22px 20px;
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 250, 244, 0.94)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 250, 244, 0.96)),
     var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow:
-    0 14px 28px rgba(25, 34, 31, 0.06),
+    0 12px 28px rgba(25, 34, 31, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(22px);
 }
@@ -512,7 +513,7 @@ textarea::placeholder {
 
 .section-copy {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .section-header--eyebrow {
@@ -541,7 +542,7 @@ textarea::placeholder {
 
 .section-header h2 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.28rem;
+  font-size: 1.32rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.02;
@@ -597,19 +598,19 @@ textarea::placeholder {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .macro-card,
 .stat-card {
-  padding: 17px;
+  padding: 18px 17px;
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 246, 0.98)),
     var(--surface-strong);
   border: 1px solid rgba(24, 33, 30, 0.07);
   box-shadow:
-    0 10px 22px rgba(25, 34, 31, 0.045),
+    0 8px 18px rgba(25, 34, 31, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
@@ -667,14 +668,14 @@ textarea::placeholder {
 .meal-card,
 .food-card,
 .training-card {
-  padding: 16px;
+  padding: 17px;
   border-radius: 22px;
   border: 1px solid rgba(24, 33, 30, 0.07);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
   box-shadow:
-    0 10px 22px rgba(25, 34, 31, 0.045),
+    0 8px 20px rgba(25, 34, 31, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
@@ -1905,13 +1906,39 @@ textarea::placeholder {
 }
 
 .status-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 10px;
 }
 
 .status-summary-actions > .ghost-button,
 .status-summary-actions > .solid-button,
 .status-summary-actions > label.ghost-button {
   min-height: 42px;
+}
+
+.progress-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.progress-insight-card {
+  display: grid;
+  gap: 8px;
+}
+
+.progress-empty-guide {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.progress-empty-guide strong {
+  color: var(--ink);
+}
+
+.progress-form-note {
+  margin-top: 12px;
 }
 
 .entry-actions {
@@ -2066,15 +2093,20 @@ label.required-label::after {
 .field select,
 .field textarea {
   width: 100%;
-  min-height: 50px;
+  min-height: 52px;
   padding: 13px 15px;
-  border: 1px solid rgba(24, 33, 30, 0.08);
+  border: 1px solid rgba(24, 33, 30, 0.09);
   border-radius: 18px;
-  background: rgba(255, 254, 251, 0.96);
+  background: rgba(255, 254, 251, 0.98);
   color: var(--ink);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 4px 10px rgba(25, 34, 31, 0.025);
+}
+
+.field textarea {
+  min-height: 118px;
+  resize: vertical;
 }
 
 .field select {
@@ -2313,6 +2345,10 @@ label.is-invalid textarea:focus {
   display: grid;
   gap: 12px;
   margin-top: 12px;
+}
+
+.progress-compare-block {
+  margin-top: 14px;
 }
 
 .chart-card,
@@ -3281,6 +3317,104 @@ label.is-invalid textarea:focus {
   padding-top: 6px;
 }
 
+.workspace-header {
+  display: none;
+  position: sticky;
+  top: calc(12px + env(safe-area-inset-top));
+  z-index: 18;
+  padding: 16px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.94), rgba(247, 241, 232, 0.96)),
+    var(--surface-strong);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  box-shadow:
+    0 16px 36px rgba(25, 34, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(18px);
+}
+
+.workspace-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-header-copy {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workspace-header-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(222, 231, 216, 0.78);
+  border: 1px solid rgba(66, 98, 84, 0.08);
+  color: color-mix(in srgb, var(--ink) 82%, var(--muted));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-header-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.workspace-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(23, 59, 47, 0.12), rgba(44, 123, 116, 0.12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+  font-size: 1.12rem;
+}
+
+.workspace-header h1,
+.workspace-header p {
+  margin: 0;
+}
+
+.workspace-header h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.46rem;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.workspace-header p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.93rem;
+  line-height: 1.42;
+  max-width: 34ch;
+}
+
+.workspace-header-menu {
+  width: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  padding: 0;
+  border-radius: 16px;
+}
+
+.workspace-header-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .shell-with-menu.is-plan-shell .hero {
   padding-top: 18px;
   border-radius: var(--radius-xl);
@@ -3422,7 +3556,7 @@ body.menu-open .menu-fab {
   right: 0;
   bottom: 0;
   z-index: 55;
-  width: min(360px, calc(100vw - 24px));
+  width: min(390px, calc(100vw - 12px));
   padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
   display: grid;
   align-content: start;
@@ -3498,13 +3632,13 @@ body.menu-open .menu-fab {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 50px;
+  min-height: 52px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: var(--button-ghost-bg);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--ink);
   border: 1px solid var(--button-ghost-border);
-  box-shadow: 0 8px 18px rgba(25, 34, 31, 0.05);
+  box-shadow: 0 6px 16px rgba(25, 34, 31, 0.04);
   text-align: left;
   font-weight: 780;
 }
@@ -3908,7 +4042,7 @@ body.menu-open .menu-fab {
 @media (max-width: 520px) {
   .shell {
     gap: 18px;
-    padding: 18px 14px 36px;
+    padding: 16px 14px 34px;
   }
 
   .routine-summary-grid {
@@ -3952,12 +4086,27 @@ body.menu-open .menu-fab {
     display: none;
   }
 
+  .workspace-header {
+    display: block;
+  }
+
+  .shell-with-menu {
+    padding-top: 10px;
+  }
+
   .shell-with-menu.is-plan-shell .hero-top {
     padding-right: 0;
   }
 
   .section {
     padding: 18px 16px;
+  }
+
+  .status-summary-actions > .ghost-button,
+  .status-summary-actions > .solid-button,
+  .status-summary-actions > label.ghost-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .plan-summary-section::before,
@@ -4089,6 +4238,22 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 720px) {
+  .workspace-header {
+    display: block;
+  }
+
+  .menu-fab {
+    display: none;
+  }
+
+  .shell-with-menu {
+    padding-top: 10px;
+  }
+
+  .shell-with-menu.is-plan-shell {
+    padding-top: 6px;
+  }
+
   .app-dialog-shell {
     padding: 14px;
     align-items: end;
@@ -4119,6 +4284,10 @@ body.menu-open .menu-fab {
     padding-top: 30px;
   }
 
+  .workspace-header {
+    display: none;
+  }
+
   .shell-with-menu {
     padding-top: 36px;
   }
@@ -4140,6 +4309,7 @@ body.menu-open .menu-fab {
   }
 
   .menu-fab {
+    display: inline-flex;
     top: 24px;
     right: max(24px, calc((100vw - 720px) / 2 + 16px));
   }
@@ -4244,6 +4414,10 @@ body.menu-open .menu-fab {
     max-width: 1080px;
     gap: 24px;
     padding: 32px 24px 56px;
+  }
+
+  .workspace-header {
+    display: none;
   }
 
   .shell-with-menu {
