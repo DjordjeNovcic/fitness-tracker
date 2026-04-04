@@ -4934,12 +4934,6 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell > * {
-    width: min(1200px, 100%);
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .app-main.shell.is-plan-shell > :not(.hero) {
     width: 100%;
     max-width: none;
     justify-self: stretch;
@@ -5063,18 +5057,21 @@ body.menu-open .menu-fab {
   }
 
   .plan-quick-stack {
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 18px;
   }
 
   .plan-quick-main {
-    grid-template-columns: minmax(0, 1fr);
+    display: contents;
   }
 
   .plan-quick-aside {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
+    display: contents;
+  }
+
+  .plan-quick-card {
+    height: 100%;
   }
 
   .foods-grid {
@@ -5617,10 +5614,6 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell > * {
-    width: min(1360px, 100%);
-  }
-
-  .app-main.shell.is-plan-shell > :not(.hero) {
     width: 100%;
     max-width: none;
     margin-left: 0;
