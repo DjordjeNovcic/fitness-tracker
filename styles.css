@@ -4860,6 +4860,12 @@ body.menu-open .menu-fab {
     margin-right: auto;
   }
 
+  .app-main.shell.is-plan-shell > :not(.hero) {
+    width: auto;
+    max-width: none;
+    justify-self: stretch;
+  }
+
   .shell {
     max-width: 1080px;
     gap: 24px;
@@ -5531,5 +5537,10 @@ body.menu-open .menu-fab {
 
   .app-main.shell > * {
     width: min(1360px, 100%);
+  }
+
+  .app-main.shell.is-plan-shell > :not(.hero) {
+    width: auto;
+    max-width: none;
   }
 }
