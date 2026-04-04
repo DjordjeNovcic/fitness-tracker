@@ -126,6 +126,8 @@ const state = {
   foodSearch: "",
   foodMacroFilter: "Sve",
   foodNutritionFilter: "Sve",
+  foodCatalogView: "list",
+  foodEditorOpen: false,
   recipeMealFilter: "Sve",
   recipeNutritionFilter: "Sve",
   editingEntryId: "",
@@ -2950,6 +2952,18 @@ function getImportedFoodSuggestedLink(importedFood) {
 function resetFoodEditing() {
   state.editingFoodId = "";
   state.nutritionEditingFoodId = "";
+  state.foodEditorOpen = false;
+}
+
+function openFoodEditorDialog(foodId = "") {
+  state.activeTab = "foods";
+  state.nutritionEditingFoodId = "";
+  state.editingFoodId = foodId;
+  state.foodEditorOpen = true;
+}
+
+function closeFoodEditorDialog() {
+  resetFoodEditing();
 }
 
 function resetRoutineEditing() {
@@ -4402,6 +4416,97 @@ function renderRecipeApplyDialog() {
             </button>
           </div>
         </form>
+      </section>
+    </div>
+  `;
+}
+
+function renderFoodEditorDialog() {
+  if (!state.foodEditorOpen) {
+    return "";
+  }
+
+  const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
+  const macroClassMap = {
+    Proteini: "proteins",
+    UH: "carbs",
+    Masti: "fats",
+    Ostalo: "other",
+    Sve: "all",
+  };
+  const editorGroup = editingFood ? getFoodMacroGroup(editingFood) : "Sve";
+  const editorToneClass = macroClassMap[editorGroup] || "other";
+  const editingFoodBasisLabel = getFoodNutritionBasisLabel(editingFood);
+  const foodEditorServingUnit = getFoodServingUnit(editingFood);
+  const foodEditorHelpText =
+    foodEditorServingUnit === "piece"
+      ? "Unosiš vrednosti za 1 komad, pa posle u planu i receptima možeš da koristiš broj komada."
+      : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom.";
+
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-food-editor-dialog" aria-label="Zatvori dijalog"></button>
+      <section class="app-dialog food-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="food-editor-title">
+        <div class="app-dialog-head">
+          <div class="stack" style="gap:4px;">
+            <div class="hero-picker-label">${editingFood ? "Uređivanje" : "Nova namirnica"}</div>
+            <h3 id="food-editor-title">${editingFood ? escapeHtml(editingFood.name) : "Dodaj namirnicu"}</h3>
+            <p>${editingFood ? `Promeni vrednosti za ${editingFoodBasisLabel.toLowerCase()} i sačuvaj izmenu.` : "Izaberi da li namirnicu vodiš na 100 g ili na 1 komad, pa unesi makroe i kalorije."}</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-food-editor-dialog" aria-label="Zatvori dijalog">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+        <div class="food-card suggestion-surface foods-editor-card foods-editor-card--${editorToneClass}">
+          <div class="foods-editor-intro">
+            <div class="foods-editor-copy">
+              <div class="foods-card-kicker">${editingFood ? "Uređivanje" : "Novi unos"}</div>
+              <h3>${editingFood ? escapeHtml(editingFood.name) : "Nova namirnica u bazi"}</h3>
+              <p>${editingFood ? `Ažuriraš vrednosti za ${editingFoodBasisLabel.toLowerCase()} i promene će važiti svuda gde koristiš ovu namirnicu.` : foodEditorHelpText}</p>
+            </div>
+            <div class="pill-row foods-editor-pills">
+              <span class="pill strong foods-group-badge foods-group-badge--${editorToneClass}">${editingFood ? editorGroup : "Ručno dodavanje"}</span>
+              ${editingFood ? `<span class="pill note foods-kcal-pill">${roundValue(editingFood.kcal, 0)} kcal / ${editingFoodBasisLabel}</span>` : `<span class="pill">100 g ili 1 komad</span>`}
+            </div>
+          </div>
+          <form id="food-form" class="form-grid split foods-editor-form">
+            <div class="field">
+              <label for="food-name">Naziv</label>
+              <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${editingFood?.name || ""}" required />
+            </div>
+            <div class="field">
+              <label for="food-category">Kategorija</label>
+              <input id="food-category" name="category" placeholder="Proteini, masti, voce..." value="${editingFood?.category || ""}" />
+            </div>
+            <div class="field">
+              <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
+              <select id="food-serving-unit" name="servingUnit">
+                <option value="grams" ${foodEditorServingUnit === "grams" ? "selected" : ""}>Na 100 g</option>
+                <option value="piece" ${foodEditorServingUnit === "piece" ? "selected" : ""}>Na 1 komad</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="food-kcal">Kalorije</label>
+              <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.kcal, 1) : ""}" required />
+            </div>
+            <div class="field">
+              <label for="food-protein">Proteini</label>
+              <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.protein, 1) : ""}" required />
+            </div>
+            <div class="field">
+              <label for="food-carbs">Ugljeni hidrati</label>
+              <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.carbs, 1) : ""}" required />
+            </div>
+            <div class="field">
+              <label for="food-fat">Masti</label>
+              <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
+            </div>
+            <div class="entry-actions foods-editor-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
+              <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
+              <button class="ghost-button button-with-icon" type="button" data-action="close-food-editor-dialog">${renderButtonContent("Odustani", "close")}</button>
+            </div>
+          </form>
+        </div>
       </section>
     </div>
   `;
@@ -5881,7 +5986,6 @@ function renderPlanTab(entries) {
 function renderFoodsTab() {
   const normalizedQuery = normalizeLookupValue(state.foodSearch);
   const queryTokens = normalizedQuery.split(" ").filter(Boolean);
-  const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
   const selectableFoods = getSelectableFoods();
   const pendingNutritionFoods = getFoods().filter((food) => shouldHidePendingImportedFood(food));
   const foods = selectableFoods
@@ -5986,17 +6090,9 @@ function renderFoodsTab() {
     Ostalo: "other",
     Sve: "all",
   };
-  const editorGroup = editingFood ? getFoodMacroGroup(editingFood) : "Sve";
-  const editorToneClass = macroClassMap[editorGroup] || "other";
-  const editingFoodBasisLabel = getFoodNutritionBasisLabel(editingFood);
-  const foodEditorServingUnit = getFoodServingUnit(editingFood);
-  const foodEditorHelpText =
-    foodEditorServingUnit === "piece"
-      ? "Unosiš vrednosti za 1 komad, pa posle u planu i receptima možeš da koristiš broj komada."
-      : "Unosiš vrednosti na 100 g i posle ih koristiš bilo kojom gramažom.";
+  const isListView = state.foodCatalogView !== "thumbnails";
 
   return `
-    <div class="foods-workspace">
     <section class="section goals-sync-section foods-section">
       <div class="section-header">
         <div>
@@ -6008,6 +6104,33 @@ function renderFoodsTab() {
               : ""
           }
         </div>
+      </div>
+      <div class="foods-toolbar">
+        <div class="foods-toolbar-view-toggle" role="tablist" aria-label="Prikaz namirnica">
+          <button
+            class="chip is-light ${isListView ? "is-active" : ""}"
+            type="button"
+            role="tab"
+            aria-selected="${isListView ? "true" : "false"}"
+            data-action="set-food-catalog-view"
+            data-view="list"
+          >
+            Lista
+          </button>
+          <button
+            class="chip is-light ${!isListView ? "is-active" : ""}"
+            type="button"
+            role="tab"
+            aria-selected="${!isListView ? "true" : "false"}"
+            data-action="set-food-catalog-view"
+            data-view="thumbnails"
+          >
+            Thumbnails
+          </button>
+        </div>
+        <button class="solid-button secondary-button button-with-icon foods-toolbar-add" type="button" data-action="open-food-editor-dialog">
+          ${renderButtonContent("Dodaj namirnicu", "add")}
+        </button>
       </div>
       <div class="chips foods-filter-bar" style="margin-bottom:14px;">
         ${FOOD_MACRO_FILTERS.map(
@@ -6044,7 +6167,7 @@ function renderFoodsTab() {
         <label for="food-search">Pretraga</label>
         <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinac..." />
       </div>
-      <div class="food-list foods-grid" style="margin-top:14px;">
+      <div class="food-list ${isListView ? "foods-list" : "foods-grid-view"}" style="margin-top:14px;">
         ${
           foods.length
             ? foods
@@ -6054,24 +6177,15 @@ function renderFoodsTab() {
                   const proteinValue = Number(food.protein) || 0;
                   const carbsValue = Number(food.carbs) || 0;
                   const fatValue = Number(food.fat) || 0;
-                  const macroTotal = proteinValue + carbsValue + fatValue;
-                  const proteinShare = macroTotal > 0 ? (proteinValue / macroTotal) * 100 : 33.33;
-                  const carbsShare = macroTotal > 0 ? (carbsValue / macroTotal) * 100 : 33.33;
-                  const fatShare = macroTotal > 0 ? (fatValue / macroTotal) * 100 : 33.34;
-                  return `
-              <article class="food-card foods-card foods-row foods-card--${toneClass}">
-                <div class="foods-row-main">
-                  <div class="foods-row-head">
-                    <div class="foods-title-block foods-row-title">
+                  if (!isListView) {
+                    return `
+              <article class="food-card foods-thumbnail-card foods-card--${toneClass}">
+                <div class="foods-thumbnail-head">
+                  <div class="foods-list-title-block">
+                    <div class="foods-list-title-row">
                       <h3>${food.name}</h3>
-                      <div class="foods-row-meta">
-                        <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
-                        <span class="foods-energy-basis">${getFoodNutritionBasisLabel(food)}</span>
-                      </div>
-                    </div>
-                    <div class="foods-card-top-actions">
                       <button
-                        class="foods-favorite-toggle ${isFavoriteFood ? "is-active" : ""}"
+                        class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
                         data-action="toggle-favorite-food"
                         data-food-id="${food.id}"
                         aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
@@ -6081,32 +6195,83 @@ function renderFoodsTab() {
                         ${isFavoriteFood ? "★" : "☆"}
                       </button>
                     </div>
-                  </div>
-                  <div class="foods-row-stats">
-                    <div class="foods-row-stat foods-row-stat--kcal">
-                      <span class="foods-row-stat-label">kcal</span>
-                      <strong>${roundValue(food.kcal, 0)}</strong>
-                    </div>
-                    <div class="foods-row-stat">
-                      <span class="foods-row-stat-label">P</span>
-                      <strong>${roundValue(proteinValue, 1)} g</strong>
-                    </div>
-                    <div class="foods-row-stat">
-                      <span class="foods-row-stat-label">UH</span>
-                      <strong>${roundValue(carbsValue, 1)} g</strong>
-                    </div>
-                    <div class="foods-row-stat">
-                      <span class="foods-row-stat-label">M</span>
-                      <strong>${roundValue(fatValue, 1)} g</strong>
+                    <div class="foods-list-meta">
+                      <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
+                      <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
                     </div>
                   </div>
-                  <div class="foods-macro-bar foods-row-macro-bar" aria-hidden="true">
-                    <span class="foods-macro-segment foods-macro-segment--protein" style="width:${proteinShare.toFixed(2)}%"></span>
-                    <span class="foods-macro-segment foods-macro-segment--carbs" style="width:${carbsShare.toFixed(2)}%"></span>
-                    <span class="foods-macro-segment foods-macro-segment--fat" style="width:${fatShare.toFixed(2)}%"></span>
+                  <div class="foods-thumbnail-kcal">
+                    <span>kcal</span>
+                    <strong>${roundValue(food.kcal, 0)}</strong>
                   </div>
                 </div>
-                <div class="entry-actions foods-card-actions foods-row-actions" style="justify-content:flex-start; margin-top:12px;">
+                <div class="foods-thumbnail-macros" aria-label="Nutritivne vrednosti">
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">P</span>
+                    <strong>${roundValue(proteinValue, 1)} g</strong>
+                  </div>
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">UH</span>
+                    <strong>${roundValue(carbsValue, 1)} g</strong>
+                  </div>
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">M</span>
+                    <strong>${roundValue(fatValue, 1)} g</strong>
+                  </div>
+                </div>
+                <div class="entry-actions foods-card-actions foods-thumbnail-actions" style="justify-content:flex-start; margin-top:0;">
+                  <button class="ghost-button button-with-icon" data-action="edit-food" data-food-id="${food.id}">
+                    ${renderButtonContent("Izmeni", "edit")}
+                  </button>
+                  <button class="danger-button button-with-icon" data-action="delete-food" data-food-id="${food.id}">
+                    ${renderButtonContent("Obriši", "delete")}
+                  </button>
+                </div>
+              </article>
+            `;
+                  }
+                  return `
+              <article class="food-card foods-list-row foods-list-row--${toneClass}">
+                <div class="foods-list-main">
+                  <div class="foods-list-title-block">
+                    <div class="foods-list-title-row">
+                      <h3>${food.name}</h3>
+                      <button
+                        class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
+                        data-action="toggle-favorite-food"
+                        data-food-id="${food.id}"
+                        aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                        aria-pressed="${isFavoriteFood ? "true" : "false"}"
+                        title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                      >
+                        ${isFavoriteFood ? "★" : "☆"}
+                      </button>
+                    </div>
+                    <div class="foods-list-meta">
+                      <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
+                      <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="foods-list-macros" aria-label="Nutritivne vrednosti">
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">kcal</span>
+                    <strong>${roundValue(food.kcal, 0)}</strong>
+                  </div>
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">P</span>
+                    <strong>${roundValue(proteinValue, 1)} g</strong>
+                  </div>
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">UH</span>
+                    <strong>${roundValue(carbsValue, 1)} g</strong>
+                  </div>
+                  <div class="foods-list-macro">
+                    <span class="foods-list-macro-label">M</span>
+                    <strong>${roundValue(fatValue, 1)} g</strong>
+                  </div>
+                </div>
+                <div class="entry-actions foods-card-actions foods-list-actions" style="justify-content:flex-start; margin-top:0;">
                   <button
                     class="ghost-button button-with-icon"
                     data-action="edit-food"
@@ -6130,66 +6295,6 @@ function renderFoodsTab() {
         }
       </div>
     </section>
-
-    <section class="section foods-editor-section">
-      <div class="section-header">
-        <div>
-          <h2>${editingFood ? "Izmeni namirnicu" : "Dodaj namirnicu"}</h2>
-          <p>${editingFood ? `Promeni vrednosti za ${editingFoodBasisLabel.toLowerCase()} i sačuvaj izmenu.` : "Izaberi da li namirnicu vodiš na 100 g ili na 1 komad, pa unesi makroe i kalorije."}</p>
-        </div>
-      </div>
-      <div class="food-card suggestion-surface foods-editor-card foods-editor-card--${editorToneClass}">
-        <div class="foods-editor-intro">
-          <div class="foods-editor-copy">
-            <div class="foods-card-kicker">${editingFood ? "Uređivanje" : "Novi unos"}</div>
-            <h3>${editingFood ? editingFood.name : "Nova namirnica u bazi"}</h3>
-            <p>${editingFood ? `Ažuriraš vrednosti za ${editingFoodBasisLabel.toLowerCase()} i promene će važiti svuda gde koristiš ovu namirnicu.` : foodEditorHelpText}</p>
-          </div>
-          <div class="pill-row foods-editor-pills">
-            <span class="pill strong foods-group-badge foods-group-badge--${editorToneClass}">${editingFood ? editorGroup : "Ručno dodavanje"}</span>
-            ${editingFood ? `<span class="pill note foods-kcal-pill">${roundValue(editingFood.kcal, 0)} kcal / ${editingFoodBasisLabel}</span>` : `<span class="pill">100 g ili 1 komad</span>`}
-          </div>
-        </div>
-        <form id="food-form" class="form-grid split foods-editor-form">
-        <div class="field">
-          <label for="food-name">Naziv</label>
-          <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${editingFood?.name || ""}" required />
-        </div>
-        <div class="field">
-          <label for="food-category">Kategorija</label>
-          <input id="food-category" name="category" placeholder="Proteini, masti, voce..." value="${editingFood?.category || ""}" />
-        </div>
-        <div class="field">
-          <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
-          <select id="food-serving-unit" name="servingUnit">
-            <option value="grams" ${foodEditorServingUnit === "grams" ? "selected" : ""}>Na 100 g</option>
-            <option value="piece" ${foodEditorServingUnit === "piece" ? "selected" : ""}>Na 1 komad</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="food-kcal">Kalorije</label>
-          <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.kcal, 1) : ""}" required />
-        </div>
-        <div class="field">
-          <label for="food-protein">Proteini</label>
-          <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.protein, 1) : ""}" required />
-        </div>
-        <div class="field">
-          <label for="food-carbs">Ugljeni hidrati</label>
-          <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.carbs, 1) : ""}" required />
-        </div>
-        <div class="field">
-          <label for="food-fat">Masti</label>
-          <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
-        </div>
-        <div class="entry-actions foods-editor-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
-          ${editingFood ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-food">${renderButtonContent("Odustani", "close")}</button>` : ""}
-        </div>
-        </form>
-      </div>
-    </section>
-    </div>
   `;
 }
 
@@ -8746,6 +8851,7 @@ function render() {
       }
 
       ${renderRecipeApplyDialog()}
+      ${renderFoodEditorDialog()}
     </div>
   `;
 
@@ -9003,6 +9109,27 @@ async function handleDocumentClick(event) {
 
   if (action === "set-food-nutrition-filter") {
     state.foodNutritionFilter = actionTarget.dataset.filter || "Sve";
+    render();
+    return;
+  }
+
+  if (action === "set-food-catalog-view") {
+    state.foodCatalogView = actionTarget.dataset.view === "thumbnails" ? "thumbnails" : "list";
+    render();
+    return;
+  }
+
+  if (action === "open-food-editor-dialog") {
+    openFoodEditorDialog("");
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#food-name")?.focus();
+    });
+    return;
+  }
+
+  if (action === "close-food-editor-dialog") {
+    closeFoodEditorDialog();
     render();
     return;
   }
@@ -9349,19 +9476,16 @@ async function handleDocumentClick(event) {
     if (!foodId || !getFoodById(foodId)) {
       return;
     }
-    state.activeTab = "foods";
-    state.nutritionEditingFoodId = "";
-    state.editingFoodId = foodId;
+    openFoodEditorDialog(foodId);
     render();
     window.requestAnimationFrame(() => {
-      document.querySelector("#food-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelector("#food-name")?.focus();
     });
     return;
   }
 
   if (action === "cancel-edit-food") {
-    resetFoodEditing();
+    closeFoodEditorDialog();
     render();
     return;
   }
@@ -10296,6 +10420,7 @@ async function handleSubmit(event) {
 
     persist();
     event.target.reset();
+    closeFoodEditorDialog();
     render();
     return;
   }
