@@ -5596,53 +5596,69 @@ function renderPlanTab(entries) {
                   const mealTotals = getDayTotals(mealEntries);
                   return `
                     <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
-                      <div class="meal-card-topline">
-                        ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
-                        <div class="meal-card-heading">
-                          <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
-                          <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
+                      <div class="meal-card-header">
+                        <div class="meal-card-topline">
+                          ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
+                          <div class="meal-card-heading">
+                            <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
+                            <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
+                          </div>
+                          ${
+                            mealEntries.length
+                              ? `
+                                <button
+                                  class="ghost-button meal-collapse-toggle"
+                                  type="button"
+                                  data-action="toggle-plan-meal-collapse"
+                                  data-meal-label="${mealLabel}"
+                                  aria-expanded="${!isMealCollapsed}"
+                                  aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
+                                >
+                                  <span aria-hidden="true">${isMealCollapsed ? "▾" : "▴"}</span>
+                                </button>
+                              `
+                              : ""
+                          }
+                          ${
+                            mealEntries.length
+                              ? `
+                                <label class="meal-toggle">
+                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} />
+                                  <span class="meal-toggle-ui" aria-hidden="true"></span>
+                                </label>
+                              `
+                              : ""
+                          }
                         </div>
                         ${
                           mealEntries.length
                             ? `
-                              <button
-                                class="ghost-button meal-collapse-toggle"
-                                type="button"
-                                data-action="toggle-plan-meal-collapse"
-                                data-meal-label="${mealLabel}"
-                                aria-expanded="${!isMealCollapsed}"
-                                aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
-                              >
-                                <span aria-hidden="true">${isMealCollapsed ? "▾" : "▴"}</span>
-                              </button>
-                            `
-                            : ""
-                        }
-                        ${
-                          mealEntries.length
-                            ? `
-                              <label class="meal-toggle">
-                                <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} />
-                                <span class="meal-toggle-ui" aria-hidden="true"></span>
-                              </label>
+                              <div class="meal-card-summary">
+                                <div class="meal-card-summary-kcal">
+                                  <span class="meal-summary-label">Ukupno</span>
+                                  <strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>
+                                </div>
+                                <div class="meal-card-summary-macros" aria-label="Makroi obroka">
+                                  <div class="meal-summary-macro">
+                                    <span class="meal-summary-label">Protein</span>
+                                    <strong>P ${roundValue(mealTotals.protein, 1)} g</strong>
+                                  </div>
+                                  <div class="meal-summary-macro">
+                                    <span class="meal-summary-label">Ugljeni hidrati</span>
+                                    <strong>UH ${roundValue(mealTotals.carbs, 1)} g</strong>
+                                  </div>
+                                  <div class="meal-summary-macro">
+                                    <span class="meal-summary-label">Masti</span>
+                                    <strong>M ${roundValue(mealTotals.fat, 1)} g</strong>
+                                  </div>
+                                </div>
+                              </div>
                             `
                             : ""
                         }
                       </div>
                       <div class="meal-card-content ${isMealCollapsed ? "is-hidden" : ""}">
                         <div class="meal-card-toolbar ${mealEntries.length ? "has-summary" : ""} ${!isMealDone ? "has-actions" : ""}">
-                          ${
-                            mealEntries.length
-                              ? `
-                                <div class="pill-row meal-summary-pills">
-                                  <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
-                                  <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
-                                  <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
-                                  <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
-                                </div>
-                              `
-                              : ""
-                          }
                           ${
                             !isMealDone
                               ? `
@@ -5668,6 +5684,16 @@ function renderPlanTab(entries) {
                           }
                         </div>
                         ${
+                          mealEntries.length
+                            ? `
+                              <div class="meal-items-label-row">
+                                <span class="meal-items-label">Namirnice u obroku</span>
+                                <span class="meal-items-count">${mealEntries.length} ${mealEntries.length === 1 ? "stavka" : mealEntries.length < 5 ? "stavke" : "stavki"}</span>
+                              </div>
+                            `
+                            : ""
+                        }
+                        ${
                           isMealDone
                             ? `
                               <div class="meal-done-note">
@@ -5692,10 +5718,10 @@ function renderPlanTab(entries) {
                                       </div>
                                       <div class="pill-row meal-entry-pills">
                                         <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                          <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
-                                          <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
-                                          <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
-                                        </div>
+                                        <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
+                                        <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
+                                        <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
+                                      </div>
                                       </div>
                                       ${
                                         !isMealDone
