@@ -1450,18 +1450,28 @@ textarea::placeholder {
   gap: 12px;
 }
 
+.foods-list-table-wrap {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(25, 34, 31, 0.08);
+}
+
 .foods-list-table-head {
   display: grid;
-  grid-template-columns: minmax(260px, 1.8fr) repeat(4, minmax(100px, 0.65fr)) auto;
+  grid-template-columns: 38px minmax(240px, 1.7fr) repeat(4, minmax(88px, 0.62fr)) 184px;
   align-items: center;
-  gap: 12px;
-  padding: 0 18px 8px;
-  margin-top: 10px;
+  gap: 10px;
+  padding: 0 12px 10px;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.foods-list-table-head-favorite {
+  text-align: center;
+  opacity: 0.6;
 }
 
 .foods-list-table-head-actions {
@@ -1502,10 +1512,12 @@ textarea::placeholder {
 
 .foods-list-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1.8fr) repeat(4, minmax(100px, 0.65fr)) auto;
+  grid-template-columns: 38px minmax(240px, 1.7fr) repeat(4, minmax(88px, 0.62fr)) 184px;
   align-items: center;
-  gap: 12px;
-  min-height: 90px;
+  gap: 10px;
+  min-height: 76px;
+  padding: 10px 12px;
+  border-radius: 16px;
 }
 
 .foods-card--proteins,
@@ -1548,12 +1560,18 @@ textarea::placeholder {
 .foods-thumbnail-card h3,
 .foods-editor-card h3 {
   margin: 0;
-  font-size: 1.12rem;
-  line-height: 1.08;
+  font-size: 1rem;
+  line-height: 1.05;
   letter-spacing: -0.03em;
   font-weight: 800;
   color: #274554;
   text-wrap: pretty;
+}
+
+.foods-list-favorite-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .foods-thumbnail-card h3 {
@@ -1571,43 +1589,36 @@ textarea::placeholder {
 
 .foods-list-main {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 
 .foods-list-title-block {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
-}
-
-.foods-list-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .foods-list-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .foods-list-basis {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--muted);
 }
 
 .foods-list-value-cell {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   align-content: center;
   min-width: 0;
-  padding: 10px 8px;
-  text-align: left;
+  padding: 6px 4px;
+  text-align: right;
 }
 
 .foods-list-macro {
@@ -1642,7 +1653,8 @@ textarea::placeholder {
 }
 
 .foods-list-value-cell strong {
-  font-size: 0.94rem;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
@@ -1800,10 +1812,10 @@ textarea::placeholder {
 
 .foods-group-badge {
   flex-shrink: 0;
-  min-height: 34px;
-  padding: 6px 11px;
-  border-radius: 14px;
-  font-size: 0.76rem;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 800;
   border: 1px solid rgba(24, 33, 30, 0.08);
   box-shadow:
@@ -1822,14 +1834,14 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(24, 33, 30, 0.08);
   background: rgba(255, 253, 248, 0.96);
   color: #baa06b;
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1;
   box-shadow:
     0 8px 16px rgba(25, 34, 31, 0.06),
@@ -1900,9 +1912,10 @@ textarea::placeholder {
 }
 
 .foods-list-actions {
-  width: 196px;
+  width: 184px;
   align-self: center;
   justify-content: flex-end;
+  gap: 6px;
 }
 
 .foods-thumbnail-actions {
@@ -1910,8 +1923,8 @@ textarea::placeholder {
 }
 
 .foods-card-actions > button {
-  min-height: 40px;
-  padding-inline: 14px;
+  min-height: 34px;
+  padding-inline: 11px;
   flex: 1 1 0;
   width: auto;
   max-width: calc(50% - 4px);
@@ -1968,11 +1981,19 @@ textarea::placeholder {
   .foods-list-row {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    gap: 0;
+    padding: 14px;
   }
 
   .foods-list-value-cell {
     padding: 8px 0 0;
     border-top: 1px dashed rgba(24, 33, 30, 0.08);
+    text-align: left;
+  }
+
+  .foods-list-favorite-cell {
+    justify-content: flex-start;
+    margin-bottom: 8px;
   }
 
   .foods-list-actions {
@@ -5053,6 +5074,10 @@ body.menu-open .menu-fab {
 
   .menu-fab {
     display: none;
+  }
+
+  .app-frame--plan .menu-fab {
+    display: inline-flex;
   }
 
   .shell-with-menu {

@@ -6170,18 +6170,20 @@ function renderFoodsTab() {
       ${
         isListView
           ? `
-            <div class="foods-list-table-head" aria-hidden="true">
-              <span>Namirnica</span>
-              <span>kcal</span>
-              <span>Proteini</span>
-              <span>Ugljeni hidrati</span>
-              <span>Masti</span>
-              <span class="foods-list-table-head-actions">Akcije</span>
-            </div>
+            <div class="foods-list-table-wrap">
+              <div class="foods-list-table-head" aria-hidden="true">
+                <span class="foods-list-table-head-favorite">☆</span>
+                <span>Namirnica</span>
+                <span>kcal</span>
+                <span>Proteini</span>
+                <span>Ugljeni hidrati</span>
+                <span>Masti</span>
+                <span class="foods-list-table-head-actions">Akcije</span>
+              </div>
           `
           : ""
       }
-      <div class="food-list ${isListView ? "foods-list" : "foods-grid-view"}" style="margin-top:14px;">
+      <div class="food-list ${isListView ? "foods-list" : "foods-grid-view"}" style="margin-top:${isListView ? "0" : "14px"};">
         ${
           foods.length
             ? foods
@@ -6248,21 +6250,21 @@ function renderFoodsTab() {
                   }
                   return `
               <article class="food-card foods-list-row foods-list-row--${toneClass}">
+                <div class="foods-list-favorite-cell">
+                  <button
+                    class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
+                    data-action="toggle-favorite-food"
+                    data-food-id="${food.id}"
+                    aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                    aria-pressed="${isFavoriteFood ? "true" : "false"}"
+                    title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                  >
+                    ${isFavoriteFood ? "★" : "☆"}
+                  </button>
+                </div>
                 <div class="foods-list-main">
                   <div class="foods-list-title-block">
-                    <div class="foods-list-title-row">
-                      <h3>${food.name}</h3>
-                      <button
-                        class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
-                        data-action="toggle-favorite-food"
-                        data-food-id="${food.id}"
-                        aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
-                        aria-pressed="${isFavoriteFood ? "true" : "false"}"
-                        title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
-                      >
-                        ${isFavoriteFood ? "★" : "☆"}
-                      </button>
-                    </div>
+                    <h3>${food.name}</h3>
                     <div class="foods-list-meta">
                       <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                       <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
@@ -6308,6 +6310,7 @@ function renderFoodsTab() {
             : `<div class="empty">Nema namirnica za ovaj filter. Nedovršeni nutrition import ostaje u tabu Nutricionista dok mu ne dodaš vrednosti.</div>`
         }
       </div>
+      ${isListView ? `</div>` : ""}
     </section>
   `;
 }
@@ -8788,7 +8791,7 @@ function render() {
   };
 
   document.querySelector("#app").innerHTML = `
-    <div class="app-frame ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
+    <div class="app-frame app-frame--${state.activeTab} ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
       <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
         <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
         <span class="menu-fab-label">Meni</span>
