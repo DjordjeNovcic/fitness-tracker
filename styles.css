@@ -1458,9 +1458,9 @@ textarea::placeholder {
 
 .foods-list-table-head {
   display: grid;
-  grid-template-columns: 34px minmax(280px, 1fr) 84px 108px 132px 92px 176px;
+  grid-template-columns: 34px minmax(300px, 1fr) 80px 104px 126px 88px 208px;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   padding: 0 12px 10px;
   color: var(--muted);
   font-size: 0.68rem;
@@ -1523,9 +1523,9 @@ textarea::placeholder {
 
 .foods-list-row {
   display: grid;
-  grid-template-columns: 34px minmax(280px, 1fr) 84px 108px 132px 92px 176px;
+  grid-template-columns: 34px minmax(300px, 1fr) 80px 104px 126px 88px 208px;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   min-height: 76px;
   padding: 10px 12px;
   border-radius: 16px;
@@ -1944,7 +1944,7 @@ textarea::placeholder {
 
 .foods-list-actions {
   grid-column: 7;
-  width: 184px;
+  width: 208px;
   align-self: center;
   justify-content: flex-end;
   gap: 6px;
