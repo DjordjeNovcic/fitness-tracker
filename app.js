@@ -6167,6 +6167,20 @@ function renderFoodsTab() {
         <label for="food-search">Pretraga</label>
         <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinac..." />
       </div>
+      ${
+        isListView
+          ? `
+            <div class="foods-list-table-head" aria-hidden="true">
+              <span>Namirnica</span>
+              <span>kcal</span>
+              <span>Proteini</span>
+              <span>Ugljeni hidrati</span>
+              <span>Masti</span>
+              <span class="foods-list-table-head-actions">Akcije</span>
+            </div>
+          `
+          : ""
+      }
       <div class="food-list ${isListView ? "foods-list" : "foods-grid-view"}" style="margin-top:14px;">
         ${
           foods.length
@@ -6178,48 +6192,50 @@ function renderFoodsTab() {
                   const carbsValue = Number(food.carbs) || 0;
                   const fatValue = Number(food.fat) || 0;
                   if (!isListView) {
+                    const macroTotal = proteinValue + carbsValue + fatValue;
+                    const proteinShare = macroTotal > 0 ? (proteinValue / macroTotal) * 100 : 33.33;
+                    const carbsShare = macroTotal > 0 ? (carbsValue / macroTotal) * 100 : 33.33;
+                    const fatShare = macroTotal > 0 ? (fatValue / macroTotal) * 100 : 33.34;
                     return `
               <article class="food-card foods-thumbnail-card foods-card--${toneClass}">
-                <div class="foods-thumbnail-head">
-                  <div class="foods-list-title-block">
-                    <div class="foods-list-title-row">
-                      <h3>${food.name}</h3>
-                      <button
-                        class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
-                        data-action="toggle-favorite-food"
-                        data-food-id="${food.id}"
-                        aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
-                        aria-pressed="${isFavoriteFood ? "true" : "false"}"
-                        title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
-                      >
-                        ${isFavoriteFood ? "★" : "☆"}
-                      </button>
-                    </div>
-                    <div class="foods-list-meta">
-                      <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
-                      <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
-                    </div>
+                <div class="food-card-top foods-card-top">
+                  <div class="foods-title-block">
+                    <h3>${food.name}</h3>
                   </div>
-                  <div class="foods-thumbnail-kcal">
-                    <span>kcal</span>
-                    <strong>${roundValue(food.kcal, 0)}</strong>
+                  <div class="foods-card-top-actions">
+                    <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
+                    <button
+                      class="foods-favorite-toggle ${isFavoriteFood ? "is-active" : ""}"
+                      data-action="toggle-favorite-food"
+                      data-food-id="${food.id}"
+                      aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                      aria-pressed="${isFavoriteFood ? "true" : "false"}"
+                      title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
+                    >
+                      ${isFavoriteFood ? "★" : "☆"}
+                    </button>
                   </div>
                 </div>
-                <div class="foods-thumbnail-macros" aria-label="Nutritivne vrednosti">
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">P</span>
-                    <strong>${roundValue(proteinValue, 1)} g</strong>
+                <div class="foods-summary foods-summary--${toneClass}">
+                  <div class="foods-energy-display">
+                    <div class="foods-energy-value">
+                      <strong>${roundValue(food.kcal, 0)}</strong>
+                      <span>kcal</span>
+                    </div>
+                    <div class="foods-energy-basis">${getFoodNutritionBasisLabel(food)}</div>
                   </div>
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">UH</span>
-                    <strong>${roundValue(carbsValue, 1)} g</strong>
+                  <div class="foods-macro-bar" aria-hidden="true">
+                    <span class="foods-macro-segment foods-macro-segment--protein" style="width:${proteinShare.toFixed(2)}%"></span>
+                    <span class="foods-macro-segment foods-macro-segment--carbs" style="width:${carbsShare.toFixed(2)}%"></span>
+                    <span class="foods-macro-segment foods-macro-segment--fat" style="width:${fatShare.toFixed(2)}%"></span>
                   </div>
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">M</span>
-                    <strong>${roundValue(fatValue, 1)} g</strong>
+                  <div class="foods-macro-values">
+                    <span class="foods-macro-value foods-macro-value--protein ${food.macroGroup === "Proteini" ? "is-dominant" : ""}">P: ${roundValue(proteinValue, 1)} g</span>
+                    <span class="foods-macro-value foods-macro-value--carbs ${food.macroGroup === "UH" ? "is-dominant" : ""}">UH: ${roundValue(carbsValue, 1)} g</span>
+                    <span class="foods-macro-value foods-macro-value--fat ${food.macroGroup === "Masti" ? "is-dominant" : ""}">M: ${roundValue(fatValue, 1)} g</span>
                   </div>
                 </div>
-                <div class="entry-actions foods-card-actions foods-thumbnail-actions" style="justify-content:flex-start; margin-top:0;">
+                <div class="entry-actions foods-card-actions foods-thumbnail-actions" style="justify-content:flex-start; margin-top:12px;">
                   <button class="ghost-button button-with-icon" data-action="edit-food" data-food-id="${food.id}">
                     ${renderButtonContent("Izmeni", "edit")}
                   </button>
@@ -6253,23 +6269,21 @@ function renderFoodsTab() {
                     </div>
                   </div>
                 </div>
-                <div class="foods-list-macros" aria-label="Nutritivne vrednosti">
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">kcal</span>
-                    <strong>${roundValue(food.kcal, 0)}</strong>
-                  </div>
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">P</span>
-                    <strong>${roundValue(proteinValue, 1)} g</strong>
-                  </div>
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">UH</span>
-                    <strong>${roundValue(carbsValue, 1)} g</strong>
-                  </div>
-                  <div class="foods-list-macro">
-                    <span class="foods-list-macro-label">M</span>
-                    <strong>${roundValue(fatValue, 1)} g</strong>
-                  </div>
+                <div class="foods-list-value-cell foods-list-value-cell--kcal">
+                  <span class="foods-list-mobile-label">kcal</span>
+                  <strong>${roundValue(food.kcal, 0)}</strong>
+                </div>
+                <div class="foods-list-value-cell">
+                  <span class="foods-list-mobile-label">Proteini</span>
+                  <strong>${roundValue(proteinValue, 1)} g</strong>
+                </div>
+                <div class="foods-list-value-cell">
+                  <span class="foods-list-mobile-label">Ugljeni hidrati</span>
+                  <strong>${roundValue(carbsValue, 1)} g</strong>
+                </div>
+                <div class="foods-list-value-cell">
+                  <span class="foods-list-mobile-label">Masti</span>
+                  <strong>${roundValue(fatValue, 1)} g</strong>
                 </div>
                 <div class="entry-actions foods-card-actions foods-list-actions" style="justify-content:flex-start; margin-top:0;">
                   <button
