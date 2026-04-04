@@ -4940,9 +4940,11 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell.is-plan-shell > :not(.hero) {
-    width: auto;
+    width: 100%;
     max-width: none;
     justify-self: stretch;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .shell {
@@ -5619,7 +5621,9 @@ body.menu-open .menu-fab {
   }
 
   .app-main.shell.is-plan-shell > :not(.hero) {
-    width: auto;
+    width: 100%;
     max-width: none;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
