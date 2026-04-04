@@ -120,6 +120,8 @@ const MEAL_LABEL_MAP = {
 const state = {
   activeTab: getInitialTab(),
   selectedWeekday: getTodayWeekday(),
+  planSummaryExpanded: getInitialPlanSummaryExpanded(),
+  planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
   foodSearch: "",
   foodMacroFilter: "Sve",
@@ -4719,6 +4721,20 @@ function getInitialPlanQuickExpanded() {
   return window.innerWidth >= 960;
 }
 
+function getInitialPlanSummaryExpanded() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  return window.innerWidth >= 720;
+}
+
+function getInitialPlanSupplementsExpanded() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  return window.innerWidth >= 720;
+}
+
 function renderHero(entries, totals) {
   return `
     <section class="hero hero--plan">
@@ -5387,13 +5403,23 @@ function renderPlanSupplementsSection() {
   const doneCount = supplements.filter((supplement) => isSupplementDoneForDay(supplement, state.selectedWeekday)).length;
 
   return `
-    <section class="section plan-supplements-section">
-      <div class="section-header">
-        <div>
+    <section class="section plan-supplements-section ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
+      <button
+        class="section-disclosure"
+        type="button"
+        data-action="toggle-plan-supplements"
+        aria-expanded="${state.planSupplementsExpanded}"
+      >
+        <div class="section-disclosure-copy">
           <h2>Vitamini i suplementi</h2>
-          <p>Šta uzimaš za ${state.selectedWeekday}, da možeš brzo da čekiraš kroz dan.</p>
+          <p>${doneCount}/${supplements.length || 0} označeno za ${state.selectedWeekday}.</p>
         </div>
-      </div>
+        <div class="section-disclosure-meta">
+          <span class="pill note">${supplements.length} stavki</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${state.planSupplementsExpanded ? "▴" : "▾"}</span>
+        </div>
+      </button>
+      <div class="plan-section-body ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
       <div class="stats-grid plan-supplement-summary">
         <article class="stat-card">
           <strong>Za danas</strong>
@@ -5442,6 +5468,7 @@ function renderPlanSupplementsSection() {
             : `<div class="empty">Dodaj vitamine u tabu Ciljevi, pa će se ovde pojaviti dnevna checklist-a.</div>`
         }
       </div>
+      </div>
     </section>
   `;
 }
@@ -5467,13 +5494,23 @@ function renderPlanTab(entries) {
   const isDaySuggestionHidden = Boolean(store.ui?.plan?.hideDaySuggestion);
 
   return `
-    <section class="section plan-summary-section">
-      <div class="section-header">
-        <div>
+    <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
+      <button
+        class="section-disclosure"
+        type="button"
+        data-action="toggle-plan-summary"
+        aria-expanded="${state.planSummaryExpanded}"
+      >
+        <div class="section-disclosure-copy">
           <h2>Dnevni pregled</h2>
-          <p>Tvoj plan po obrocima, makroi i recepti na jednom mestu.</p>
+          <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 1)} · UH ${roundValue(totals.carbs, 1)} · M ${roundValue(totals.fat, 1)}</p>
         </div>
-      </div>
+        <div class="section-disclosure-meta">
+          <span class="pill note">${netCalories} neto</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${state.planSummaryExpanded ? "▴" : "▾"}</span>
+        </div>
+      </button>
+      <div class="plan-section-body ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
       <div class="plan-summary-layout">
         ${renderMacroCards(totals)}
         <div class="stats-grid plan-secondary-stats">
@@ -5488,6 +5525,7 @@ function renderPlanTab(entries) {
             <div class="footer-note">Uneto minus potrošeno na treningu</div>
           </article>
         </div>
+      </div>
       </div>
     </section>
 
@@ -8840,6 +8878,18 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-plan-quick") {
     state.planQuickExpanded = !state.planQuickExpanded;
+    render();
+    return;
+  }
+
+  if (action === "toggle-plan-summary") {
+    state.planSummaryExpanded = !state.planSummaryExpanded;
+    render();
+    return;
+  }
+
+  if (action === "toggle-plan-supplements") {
+    state.planSupplementsExpanded = !state.planSupplementsExpanded;
     render();
     return;
   }

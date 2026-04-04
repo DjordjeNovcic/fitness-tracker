@@ -537,6 +537,73 @@ textarea::placeholder {
   max-width: 46ch;
 }
 
+.section-disclosure {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+}
+
+.section-disclosure-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.section-disclosure-copy h2,
+.section-disclosure-copy p {
+  margin: 0;
+}
+
+.section-disclosure-copy h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.32rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+
+.section-disclosure-copy p {
+  color: var(--muted);
+  font-size: 0.93rem;
+  line-height: 1.42;
+  max-width: 46ch;
+}
+
+.section-disclosure-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.section-disclosure-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(24, 33, 30, 0.08);
+  color: var(--muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.plan-section-body.is-collapsed {
+  display: none;
+}
+
+.plan-section-body.is-expanded {
+  margin-top: 14px;
+}
+
 .chips {
   display: flex;
   gap: 7px;
@@ -4224,6 +4291,35 @@ body.menu-open .menu-fab {
 @media (max-width: 520px) {
   .plan-preview-section {
     display: none;
+  }
+
+  .section-disclosure {
+    gap: 10px;
+  }
+
+  .section-disclosure-copy h2 {
+    font-size: 1.04rem;
+  }
+
+  .section-disclosure-copy p {
+    font-size: 0.82rem;
+    line-height: 1.32;
+    max-width: 26ch;
+  }
+
+  .section-disclosure-meta {
+    gap: 6px;
+  }
+
+  .section-disclosure-icon {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+
+  .plan-section-body.is-expanded {
+    margin-top: 10px;
   }
 
   .shell {
