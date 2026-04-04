@@ -5544,7 +5544,7 @@ function renderPlanTab(entries) {
         <span class="plan-quick-toggle-icon" aria-hidden="true">${state.planQuickExpanded ? "▴" : "▾"}</span>
       </button>
       <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
-        <article class="food-card plan-quick-card">
+        <article class="food-card plan-quick-card plan-quick-card--primary">
           <div class="food-card-top plan-quick-card-top">
             <div class="plan-quick-card-copy">
               <h3>Kopiraj plan dana</h3>
@@ -5577,7 +5577,7 @@ function renderPlanTab(entries) {
           </form>
         </article>
 
-        <article class="food-card plan-quick-card">
+        <article class="food-card plan-quick-card plan-quick-card--secondary">
           <div class="food-card-top plan-quick-card-top">
             <div class="plan-quick-card-copy">
               <h3>Omiljene namirnice</h3>
@@ -5607,7 +5607,7 @@ function renderPlanTab(entries) {
         ${
           isDaySuggestionHidden
             ? `
-              <article class="food-card plan-quick-card plan-suggestion-card is-muted">
+              <article class="food-card plan-quick-card plan-quick-card--secondary plan-suggestion-card is-muted">
                 <div class="food-card-top">
                   <h3>Predlog dana</h3>
                   <span class="pill">pauzirano</span>
@@ -5619,7 +5619,7 @@ function renderPlanTab(entries) {
               </article>
             `
             : `
-              <article class="food-card suggestion-surface plan-suggestion-card">
+              <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
                 <div class="food-card-top">
                   <h3>Predlog celog dana</h3>
                   <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Skip</button>
@@ -5646,7 +5646,7 @@ function renderPlanTab(entries) {
               </article>
             `
         }
-        <article class="food-card suggestion-surface plan-recipes-card">
+        <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-recipes-card">
           <div class="food-card-top">
             <h3>Sačuvani recepti</h3>
             <span class="pill strong">${favorites.length}</span>

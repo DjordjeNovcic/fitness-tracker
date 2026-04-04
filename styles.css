@@ -1029,6 +1029,12 @@ textarea::placeholder {
   gap: 14px;
 }
 
+.plan-quick-card--secondary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 245, 237, 0.96)),
+    var(--surface-strong);
+}
+
 .plan-quick-card-top {
   align-items: flex-start;
 }
@@ -4216,6 +4222,10 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 520px) {
+  .plan-preview-section {
+    display: none;
+  }
+
   .shell {
     gap: 16px;
     padding: 14px 14px 30px;
@@ -4343,16 +4353,42 @@ body.menu-open .menu-fab {
   }
 
   .meal-card-summary-macros {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .meal-card-header {
-    padding: 13px;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .meal-card-summary {
+    grid-template-columns: minmax(110px, 126px) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .meal-card-summary-kcal,
+  .meal-summary-macro {
+    gap: 4px;
+    padding: 10px 11px;
+    border-radius: 15px;
+  }
+
+  .meal-card-summary-kcal strong {
+    font-size: 1.22rem;
+  }
+
+  .meal-card-summary-macros .meal-summary-label {
+    display: none;
+  }
+
+  .meal-summary-macro strong {
+    font-size: 0.9rem;
   }
 
   .meal-order {
-    min-width: 38px;
-    height: 38px;
+    min-width: 34px;
+    height: 34px;
+    font-size: 0.92rem;
   }
 
   .plan-quick-toggle {
@@ -4388,6 +4424,69 @@ body.menu-open .menu-fab {
   .plan-suggestion-card {
     padding: 13px;
     border-radius: 16px;
+  }
+
+  .plan-quick-card--primary {
+    gap: 12px;
+  }
+
+  .plan-quick-card--secondary {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 15px;
+    box-shadow: 0 8px 18px rgba(25, 34, 31, 0.045);
+  }
+
+  .plan-quick-card--secondary .food-card-top {
+    gap: 10px;
+  }
+
+  .plan-quick-card--secondary .plan-quick-card-copy p,
+  .plan-quick-card--secondary .footer-note {
+    font-size: 0.82rem;
+    line-height: 1.34;
+  }
+
+  .plan-quick-card--secondary .plan-quick-card-copy p {
+    display: none;
+  }
+
+  .plan-suggestion-card .footer-note {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .plan-quick-card-source {
+    padding: 9px 10px;
+    border-radius: 14px;
+  }
+
+  .plan-favorite-chips {
+    margin-top: 6px;
+    gap: 8px;
+    max-height: 88px;
+    overflow: hidden;
+  }
+
+  .plan-favorite-chips .chip {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+  }
+
+  .plan-quick-form {
+    gap: 10px;
+  }
+
+  .plan-quick-form .field label {
+    font-size: 0.82rem;
+  }
+
+  .plan-skip-button {
+    padding: 6px 9px;
+    font-size: 0.76rem;
   }
 
   .goal-grid,
