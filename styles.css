@@ -1876,6 +1876,59 @@ textarea::placeholder {
   overflow: hidden;
 }
 
+.training-day-spotlight {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.training-day-summary-card {
+  background:
+    radial-gradient(circle at top right, rgba(47, 128, 118, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 242, 234, 0.98)),
+    var(--surface-strong);
+}
+
+.training-day-summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.training-day-summary-top h3 {
+  margin: 0;
+}
+
+.training-day-summary-grid {
+  margin-top: 14px;
+  gap: 12px;
+}
+
+.training-weekday-card.is-active {
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 239, 229, 0.98)),
+    var(--surface-strong);
+  border-color: rgba(125, 139, 90, 0.16);
+  box-shadow:
+    0 12px 26px rgba(25, 34, 31, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.training-template-card {
+  background:
+    radial-gradient(circle at top right, rgba(139, 153, 97, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 244, 237, 0.99)),
+    var(--surface-strong);
+}
+
+.training-favorite-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 246, 239, 0.98)),
+    var(--surface-strong);
+}
+
 .training-exercise-list {
   display: grid;
   gap: 10px;
@@ -1904,6 +1957,11 @@ textarea::placeholder {
 
 .training-template-progress-copy {
   margin-top: 4px;
+}
+
+.training-template-actions,
+.training-favorite-actions {
+  gap: 10px;
 }
 
 .training-exercise-name {
@@ -3109,6 +3167,12 @@ label.is-invalid textarea:focus {
   border-radius: 22px;
 }
 
+.routine-habits-section {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 249, 0.94), rgba(246, 241, 233, 0.985)),
+    var(--surface);
+}
+
 .routine-card {
   padding: 18px;
   border-radius: 22px;
@@ -4297,6 +4361,16 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 520px) {
+  .training-day-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .training-template-actions,
+  .training-favorite-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .plan-preview-section {
     display: none;
   }
@@ -4852,6 +4926,11 @@ body.menu-open .menu-fab {
 
   .app-main.shell.is-plan-shell {
     padding-top: 0;
+  }
+
+  .training-day-spotlight {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
   }
 
   .app-main.shell > * {

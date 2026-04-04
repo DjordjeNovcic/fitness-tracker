@@ -6581,6 +6581,11 @@ function renderTrainingTab() {
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     })
     .slice(0, 10);
+  const todayExerciseTotal = templates.reduce((count, template) => count + template.exercises.length, 0);
+  const todayExerciseCompleted = templates.reduce(
+    (count, template) => count + getTrainingTemplateCompletionCount(template, state.selectedWeekday).completedCount,
+    0
+  );
 
   return `
     <section class="section routine-overview-section">
@@ -6594,7 +6599,7 @@ function renderTrainingTab() {
         ${weeklyTrainingPlan
           .map(
             (day) => `
-              <article class="stat-card">
+              <article class="stat-card training-weekday-card ${day.weekday === state.selectedWeekday ? "is-active" : ""}">
                 <strong>${day.weekday}</strong>
                 <div class="footer-note">
                   ${day.templates.length ? day.templates.map((template) => template.name).join(", ") : "Odmor / nije uneto"}
@@ -6616,36 +6621,67 @@ function renderTrainingTab() {
       <div class="section-header">
         <div>
           <h2>Trening za ${state.selectedWeekday}</h2>
-          <p>Za početak možeš držati sablon vežbi i kratke beleške po danu.</p>
+          <p>Današnji trening, progres i unos potrošnje na jednom mestu.</p>
         </div>
       </div>
-      <article class="food-card suggestion-surface training-burn-card">
-        <div class="food-card-top training-burn-top">
-          <div class="training-burn-copy">
-            <h3>Apple Watch potrosnja</h3>
-            <p>Upiši kalorije sa treninga za taj dan da plan odmah prikaže neto unos.</p>
+      <div class="training-day-spotlight">
+        <article class="food-card suggestion-surface training-day-summary-card">
+          <div class="training-day-summary-top">
+            <div>
+              <h3>Fokus dana</h3>
+              <div class="footer-note">
+                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening sablon" : "trening sablona"} za ${state.selectedWeekday}.` : `Još nema treninga za ${state.selectedWeekday}.`}
+              </div>
+            </div>
+            <span class="pill strong">${todayExerciseCompleted}/${todayExerciseTotal || 0}</span>
           </div>
-          <span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>
-        </div>
-        <form id="training-burn-form" class="form-grid split training-burn-form">
-          <div class="field">
-            <label for="training-burn-kcal">Potrošeno kcal</label>
-            <input
-              id="training-burn-kcal"
-              name="burnKcal"
-              type="number"
-              min="0"
-              step="1"
-              inputmode="numeric"
-              placeholder="npr. 540"
-              value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
-            />
+          <div class="stats-grid training-day-summary-grid">
+            <article class="stat-card">
+              <strong>Vežbe</strong>
+              <div class="macro-value">${todayExerciseTotal}</div>
+              <div class="footer-note">Ukupno za danas</div>
+            </article>
+            <article class="stat-card">
+              <strong>Odrađeno</strong>
+              <div class="macro-value">${todayExerciseCompleted}/${todayExerciseTotal || 0}</div>
+              <div class="footer-note">Čekirano po vežbi</div>
+            </article>
+            <article class="stat-card">
+              <strong>Apple Watch</strong>
+              <div class="macro-value">${roundValue(trainingBurn, 0)} kcal</div>
+              <div class="footer-note">Potrošnja za dan</div>
+            </article>
           </div>
-          <div class="training-burn-actions">
-            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+        </article>
+
+        <article class="food-card suggestion-surface training-burn-card">
+          <div class="food-card-top training-burn-top">
+            <div class="training-burn-copy">
+              <h3>Apple Watch potrošnja</h3>
+              <p>Upiši kalorije sa treninga za taj dan da plan odmah prikaže neto unos.</p>
+            </div>
+            <span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>
           </div>
-        </form>
-      </article>
+          <form id="training-burn-form" class="form-grid split training-burn-form">
+            <div class="field">
+              <label for="training-burn-kcal">Potrošeno kcal</label>
+              <input
+                id="training-burn-kcal"
+                name="burnKcal"
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                placeholder="npr. 540"
+                value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
+              />
+            </div>
+            <div class="training-burn-actions">
+              <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+            </div>
+          </form>
+        </article>
+      </div>
       <div class="stack training-template-stack">
         ${
           templates.length
@@ -6679,9 +6715,9 @@ function renderTrainingTab() {
                           )
                           .join("")}
                       </div>
-                      <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
-                        <button class="ghost-button" data-action="save-training-favorite" data-template-id="${template.id}">
-                          Sačuvaj kao omiljeni
+                      <div class="entry-actions training-template-actions" style="justify-content:flex-start; margin-top:12px;">
+                        <button class="ghost-button button-with-icon" data-action="save-training-favorite" data-template-id="${template.id}">
+                          ${renderButtonContent("Sačuvaj kao omiljeni", "save")}
                         </button>
                       </div>
                     </article>
@@ -6708,16 +6744,19 @@ function renderTrainingTab() {
                   (training) => `
                     <article class="training-card training-favorite-card">
                       <div class="training-top">
-                        <h3>${training.name}</h3>
-                        <span class="pill strong">${training.exerciseCount} vežbi</span>
+                        <div>
+                          <h3>${training.name}</h3>
+                          <div class="footer-note">${training.exerciseCount} ${training.exerciseCount === 1 ? "vežba" : training.exerciseCount < 5 ? "vežbe" : "vežbi"} spremno za ubacivanje</div>
+                        </div>
+                        <span class="pill strong">${training.exerciseCount}</span>
                       </div>
                       <div class="training-favorite-copy">${training.exercises.map((exercise) => exercise.details).join(" · ")}</div>
-                      <div class="entry-actions" style="justify-content:flex-start; margin-top:12px;">
-                        <button class="solid-button secondary-button" data-action="apply-favorite-training" data-favorite-training-id="${training.id}">
-                          Ubaci u ${state.selectedWeekday}
+                      <div class="entry-actions training-favorite-actions" style="justify-content:flex-start; margin-top:12px;">
+                        <button class="solid-button secondary-button button-with-icon" data-action="apply-favorite-training" data-favorite-training-id="${training.id}">
+                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
                         </button>
-                        <button class="danger-button" data-action="delete-favorite-training" data-favorite-training-id="${training.id}">
-                          Obriši
+                        <button class="danger-button button-with-icon" data-action="delete-favorite-training" data-favorite-training-id="${training.id}">
+                          ${renderButtonContent("Obriši", "delete")}
                         </button>
                       </div>
                     </article>
