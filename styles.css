@@ -977,6 +977,7 @@ textarea::placeholder {
 .plan-summary-section,
 .plan-preview-section,
 .plan-recipes-section,
+.plan-supplements-section,
 .plan-quick-section,
 .plan-meals-section {
   position: relative;
@@ -991,6 +992,7 @@ textarea::placeholder {
 .plan-summary-section::before,
 .plan-preview-section::before,
 .plan-recipes-section::before,
+.plan-supplements-section::before,
 .plan-quick-section::before,
 .plan-meals-section::before {
   content: "";
@@ -1264,6 +1266,12 @@ textarea::placeholder {
 
 .plan-quick-stack {
   margin-top: 14px;
+  gap: 16px;
+}
+
+.plan-quick-main,
+.plan-quick-aside {
+  display: grid;
   gap: 16px;
 }
 
@@ -4957,10 +4965,8 @@ body.menu-open .menu-fab {
     gap: 16px;
   }
 
-  .plan-preview-section .stack {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    gap: 16px;
+  .plan-preview-section {
+    display: none;
   }
 
   .plan-meals-section .stack {
@@ -4970,9 +4976,18 @@ body.menu-open .menu-fab {
   }
 
   .plan-quick-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
     align-items: start;
     gap: 18px;
+  }
+
+  .plan-quick-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan-quick-aside {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
   .foods-grid {
@@ -4989,14 +5004,6 @@ body.menu-open .menu-fab {
   .foods-editor-intro {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
-  }
-
-  .plan-suggestion-card {
-    grid-column: 1 / -1;
-  }
-
-  .plan-recipes-card {
-    grid-column: 1 / -1;
   }
 
   .meal-composer {
@@ -5050,6 +5057,29 @@ body.menu-open .menu-fab {
   .macro-card,
   .stat-card {
     height: 100%;
+  }
+
+  .plan-summary-section,
+  .plan-supplements-section,
+  .plan-quick-section {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 245, 237, 0.95)),
+      var(--surface);
+    box-shadow:
+      0 10px 22px rgba(25, 34, 31, 0.045),
+      inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  }
+
+  .plan-summary-section::before,
+  .plan-supplements-section::before,
+  .plan-quick-section::before {
+    opacity: 0.62;
+  }
+
+  .plan-meals-section {
+    box-shadow:
+      0 14px 32px rgba(25, 34, 31, 0.065),
+      inset 0 1px 0 rgba(255, 255, 255, 0.58);
   }
 
   .food-card.training-burn-card,

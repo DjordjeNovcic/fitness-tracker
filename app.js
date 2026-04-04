@@ -5582,118 +5582,121 @@ function renderPlanTab(entries) {
         <span class="plan-quick-toggle-icon" aria-hidden="true">${state.planQuickExpanded ? "▴" : "▾"}</span>
       </button>
       <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
-        <article class="food-card plan-quick-card plan-quick-card--primary">
-          <div class="food-card-top plan-quick-card-top">
-            <div class="plan-quick-card-copy">
-              <h3>Kopiraj plan dana</h3>
-              <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
+        <div class="plan-quick-main">
+          <article class="food-card plan-quick-card plan-quick-card--primary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Kopiraj plan dana</h3>
+                <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
+              </div>
+              <span class="pill strong">${state.selectedWeekday}</span>
             </div>
-            <span class="pill strong">${state.selectedWeekday}</span>
-          </div>
-          <div class="plan-quick-card-source">
-            <span class="footer-note">Izvor dana</span>
-            <strong>${state.selectedWeekday}</strong>
-          </div>
-          <form id="duplicate-day-form" class="form-grid split plan-quick-form">
-            <div class="field">
-              <label for="duplicate-target-weekday">Ciljni dan</label>
-              <select id="duplicate-target-weekday" name="targetWeekday" required>
-                <option value="">Izaberi dan</option>
-                ${WEEKDAYS.filter((weekday) => weekday !== state.selectedWeekday)
-                  .map((weekday) => `<option value="${weekday}">${weekday}</option>`)
-                  .join("")}
-              </select>
+            <div class="plan-quick-card-source">
+              <span class="footer-note">Izvor dana</span>
+              <strong>${state.selectedWeekday}</strong>
             </div>
-            <div class="field">
-              <label for="duplicate-mode">Način kopiranja</label>
-              <select id="duplicate-mode" name="mode">
-                <option value="append">Dodaj u plan</option>
-                <option value="replace">Prepiši dan</option>
-              </select>
-            </div>
-            <button class="solid-button button-with-icon plan-quick-submit" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
-          </form>
-        </article>
-
-        <article class="food-card plan-quick-card plan-quick-card--secondary">
-          <div class="food-card-top plan-quick-card-top">
-            <div class="plan-quick-card-copy">
-              <h3>Omiljene namirnice</h3>
-              <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
-            </div>
-            <span class="pill strong">${favoriteFoods.length}</span>
-          </div>
-          ${
-            favoriteFoods.length
-              ? `
-                <div class="chips plan-favorite-chips">
-                  ${favoriteFoods
-                    .map(
-                      (food) => `
-                        <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
-                          ${food.name}
-                        </button>
-                      `
-                    )
+            <form id="duplicate-day-form" class="form-grid split plan-quick-form">
+              <div class="field">
+                <label for="duplicate-target-weekday">Ciljni dan</label>
+                <select id="duplicate-target-weekday" name="targetWeekday" required>
+                  <option value="">Izaberi dan</option>
+                  ${WEEKDAYS.filter((weekday) => weekday !== state.selectedWeekday)
+                    .map((weekday) => `<option value="${weekday}">${weekday}</option>`)
                     .join("")}
-                </div>
-              `
-              : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
-          }
-        </article>
+                </select>
+              </div>
+              <div class="field">
+                <label for="duplicate-mode">Način kopiranja</label>
+                <select id="duplicate-mode" name="mode">
+                  <option value="append">Dodaj u plan</option>
+                  <option value="replace">Prepiši dan</option>
+                </select>
+              </div>
+              <button class="solid-button button-with-icon plan-quick-submit" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
+            </form>
+          </article>
+        </div>
+        <div class="plan-quick-aside">
+          <article class="food-card plan-quick-card plan-quick-card--secondary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Omiljene namirnice</h3>
+                <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
+              </div>
+              <span class="pill strong">${favoriteFoods.length}</span>
+            </div>
+            ${
+              favoriteFoods.length
+                ? `
+                  <div class="chips plan-favorite-chips">
+                    ${favoriteFoods
+                      .map(
+                        (food) => `
+                          <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
+                            ${food.name}
+                          </button>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
+            }
+          </article>
 
-        ${
-          isDaySuggestionHidden
-            ? `
-              <article class="food-card plan-quick-card plan-quick-card--secondary plan-suggestion-card is-muted">
-                <div class="food-card-top">
-                  <h3>Predlog dana</h3>
-                  <span class="pill">pauzirano</span>
-                </div>
-                <div class="footer-note">Sklonio si predlog sa ekrana. Možeš da ga vratiš kad ti zatreba.</div>
-                <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-                  <button class="ghost-button button-with-icon" data-action="show-day-suggestion">${renderButtonContent("Prikaži opet", "refresh")}</button>
-                </div>
-              </article>
-            `
-            : `
-              <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
-                <div class="food-card-top">
-                  <h3>Predlog celog dana</h3>
-                  <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Skip</button>
-                </div>
-                <div class="pill-row">
-                  <span class="pill note">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
-                  <span class="pill">P ${roundValue(daySuggestion.totals.protein, 1)} g</span>
-                  <span class="pill">UH ${roundValue(daySuggestion.totals.carbs, 1)} g</span>
-                  <span class="pill">M ${roundValue(daySuggestion.totals.fat, 1)} g</span>
-                </div>
-                <div class="footer-note">
-                  ${daySuggestion.meals
-                    .map((meal) => `${meal.mealLabel}: ${meal.items.map((item) => `${item.food.name} ${roundValue(item.grams, 0)}g`).join(", ")}`)
-                    .join(" | ")}
-                </div>
-                <div class="entry-actions entry-actions--start plan-inline-actions">
-                  <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
-                    ${renderButtonContent("Primeni na dan", "apply")}
-                  </button>
-                  <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
-                    ${renderButtonContent("Dodaj u plan", "add")}
-                  </button>
-                </div>
-              </article>
-            `
-        }
-        <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-recipes-card">
-          <div class="food-card-top">
-            <h3>Sačuvani recepti</h3>
-            <span class="pill strong">${favorites.length}</span>
-          </div>
-          <div class="footer-note">Kad ti zatreba gotov recept, otvori Recepti i ubaci ga direktno u ${state.selectedWeekday}.</div>
-          <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-            <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Recepti", "open")}</button>
-          </div>
-        </article>
+          ${
+            isDaySuggestionHidden
+              ? `
+                <article class="food-card plan-quick-card plan-quick-card--secondary plan-suggestion-card is-muted">
+                  <div class="food-card-top">
+                    <h3>Predlog dana</h3>
+                    <span class="pill">pauzirano</span>
+                  </div>
+                  <div class="footer-note">Sklonio si predlog sa ekrana. Možeš da ga vratiš kad ti zatreba.</div>
+                  <div class="entry-actions entry-actions--start" style="margin-top:12px;">
+                    <button class="ghost-button button-with-icon" data-action="show-day-suggestion">${renderButtonContent("Prikaži opet", "refresh")}</button>
+                  </div>
+                </article>
+              `
+              : `
+                <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
+                  <div class="food-card-top">
+                    <h3>Predlog celog dana</h3>
+                    <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Skip</button>
+                  </div>
+                  <div class="pill-row">
+                    <span class="pill note">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
+                    <span class="pill">P ${roundValue(daySuggestion.totals.protein, 1)} g</span>
+                    <span class="pill">UH ${roundValue(daySuggestion.totals.carbs, 1)} g</span>
+                    <span class="pill">M ${roundValue(daySuggestion.totals.fat, 1)} g</span>
+                  </div>
+                  <div class="footer-note">
+                    ${daySuggestion.meals
+                      .map((meal) => `${meal.mealLabel}: ${meal.items.map((item) => `${item.food.name} ${roundValue(item.grams, 0)}g`).join(", ")}`)
+                      .join(" | ")}
+                  </div>
+                  <div class="entry-actions entry-actions--start plan-inline-actions">
+                    <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
+                      ${renderButtonContent("Primeni na dan", "apply")}
+                    </button>
+                    <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
+                      ${renderButtonContent("Dodaj u plan", "add")}
+                    </button>
+                  </div>
+                </article>
+              `
+          }
+          <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-recipes-card">
+            <div class="food-card-top">
+              <h3>Sačuvani recepti</h3>
+              <span class="pill strong">${favorites.length}</span>
+            </div>
+            <div class="footer-note">Kad ti zatreba gotov recept, otvori Recepti i ubaci ga direktno u ${state.selectedWeekday}.</div>
+            <div class="entry-actions entry-actions--start" style="margin-top:12px;">
+              <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Recepti", "open")}</button>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
