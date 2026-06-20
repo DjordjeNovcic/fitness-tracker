@@ -6460,3 +6460,30 @@ body.menu-open .tab-bar {
   width: 19px;
   height: 19px;
 }
+
+/* ============================================================
+   Dark theme — color fixes for light values that didn't invert
+   (pill text was hardcoded dark; eyebrow pills kept a light bg).
+   ============================================================ */
+:root[data-theme="dark"] .pill {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .pill--success {
+  color: var(--status-success-text);
+}
+:root[data-theme="dark"] .pill--info {
+  color: var(--status-info-text);
+}
+:root[data-theme="dark"] .pill--warning {
+  color: var(--status-warning-text);
+}
+:root[data-theme="dark"] .pill--error {
+  color: var(--status-error-text);
+}
+
+:root[data-theme="dark"] .workspace-header-eyebrow,
+:root[data-theme="dark"] .section-eyebrow {
+  background: rgba(116, 179, 158, 0.16);
+  border-color: rgba(116, 179, 158, 0.28);
+  color: var(--accent-strong);
+}
