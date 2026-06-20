@@ -6487,3 +6487,33 @@ body.menu-open .tab-bar {
   border-color: rgba(116, 179, 158, 0.28);
   color: var(--accent-strong);
 }
+
+/* ============================================================
+   Dark theme — remaining opaque light surfaces on the Plan tab
+   (meal macro tiles, disclosure/quick toggles, quick & preview
+   cards, composer) that read as bright patches in dark mode.
+   ============================================================ */
+:root[data-theme="dark"] .section-disclosure,
+:root[data-theme="dark"] .plan-quick-toggle,
+:root[data-theme="dark"] .plan-quick-card,
+:root[data-theme="dark"] .plan-quick-card--primary,
+:root[data-theme="dark"] .plan-quick-card--secondary,
+:root[data-theme="dark"] .plan-preview-card,
+:root[data-theme="dark"] .composer-context,
+:root[data-theme="dark"] .meal-composer-context,
+:root[data-theme="dark"] .meal-summary-macro,
+:root[data-theme="dark"] .suggestion-surface {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  border-color: var(--line);
+  box-shadow: var(--shadow-tight);
+}
+
+:root[data-theme="dark"] .meal-card-summary-kcal {
+  background:
+    linear-gradient(135deg, rgba(116, 179, 158, 0.18), rgba(255, 255, 255, 0) 62%),
+    var(--surface-strong);
+  border-color: rgba(116, 179, 158, 0.24);
+  box-shadow: var(--shadow-tight);
+}
