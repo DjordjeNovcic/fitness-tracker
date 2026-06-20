@@ -6563,3 +6563,30 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .meal-card.is-done .meal-card-header {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
 }
+
+/* ============================================================
+   Dark theme — unify: dark sidebar, dark meal-entry rows, and
+   teal-tinted value pills (kill the grey/white inconsistency).
+   ============================================================ */
+:root[data-theme="dark"] {
+  --pill-bg: rgba(116, 179, 158, 0.1);
+  --pill-border: rgba(116, 179, 158, 0.18);
+}
+
+:root[data-theme="dark"] .mobile-menu {
+  background: var(--rail-bg);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .menu-tab-button {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .meal-entry {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  box-shadow: inset 3px 0 0 rgba(116, 179, 158, 0.32);
+}
