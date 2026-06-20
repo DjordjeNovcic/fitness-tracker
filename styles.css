@@ -6109,67 +6109,68 @@ body.menu-open .menu-fab {
    ============================================================ */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0e1c17;
-  --bg-strong: #16271f;
-  --surface: rgba(26, 42, 35, 0.92);
-  --surface-strong: #1a2c24;
-  --surface-soft: rgba(28, 45, 37, 0.82);
-  --surface-panel: rgba(22, 38, 31, 0.94);
-  --surface-elevated: #20342a;
-  --ink: #eef3ea;
-  --muted: #9fb1a7;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.15);
-  --accent: #74b39e;
-  --accent-strong: #8fc8b1;
-  --accent-soft: #1f3a30;
-  --secondary: #aabb7a;
-  --secondary-soft: #2a3520;
-  --teal: #56a89a;
-  --clay: #2a2620;
-  --button-primary-bg: linear-gradient(180deg, #2f8472, #1f5848);
-  --button-primary-text: #f3fbf6;
-  --button-primary-border: rgba(255, 255, 255, 0.12);
-  --button-secondary-bg: linear-gradient(180deg, #8d9d60, #6f7d49);
-  --button-secondary-text: #f7f9ee;
-  --button-secondary-border: rgba(255, 255, 255, 0.1);
-  --button-ghost-bg: rgba(40, 57, 48, 0.92);
+  /* Premium restrained dark: near-neutral charcoal surfaces barely tinted
+     toward the brand green hue (very low chroma); green only as an accent. */
+  --bg: oklch(0.17 0.006 155);
+  --bg-strong: oklch(0.205 0.007 155);
+  --surface: oklch(0.215 0.008 155 / 0.94);
+  --surface-strong: oklch(0.235 0.009 155);
+  --surface-soft: oklch(0.225 0.008 155 / 0.82);
+  --surface-panel: oklch(0.21 0.008 155 / 0.95);
+  --surface-elevated: oklch(0.27 0.01 155);
+  --ink: oklch(0.95 0.005 155);
+  --muted: oklch(0.7 0.01 155);
+  --line: oklch(1 0 0 / 0.08);
+  --line-strong: oklch(1 0 0 / 0.14);
+  --accent: oklch(0.76 0.115 158);
+  --accent-strong: oklch(0.83 0.12 158);
+  --accent-soft: oklch(0.27 0.032 158);
+  --secondary: oklch(0.8 0.07 118);
+  --secondary-soft: oklch(0.28 0.02 118);
+  --teal: oklch(0.72 0.09 178);
+  --clay: oklch(0.25 0.006 70);
+  --button-primary-bg: linear-gradient(180deg, oklch(0.64 0.11 158), oklch(0.52 0.1 158));
+  --button-primary-text: oklch(0.99 0.01 158);
+  --button-primary-border: oklch(1 0 0 / 0.1);
+  --button-secondary-bg: linear-gradient(180deg, oklch(0.27 0.01 155), oklch(0.23 0.008 155));
+  --button-secondary-text: var(--ink);
+  --button-secondary-border: oklch(1 0 0 / 0.1);
+  --button-ghost-bg: oklch(0.24 0.008 155 / 0.9);
   --button-ghost-text: var(--ink);
-  --button-ghost-border: rgba(255, 255, 255, 0.12);
-  --button-danger-bg: linear-gradient(180deg, #3c2c26, #30221d);
-  --button-danger-text: #ecb49a;
-  --button-danger-border: rgba(230, 150, 120, 0.22);
-  --pill-bg: rgba(255, 255, 255, 0.06);
-  --pill-border: rgba(255, 255, 255, 0.09);
-  --pill-strong-bg: rgba(86, 168, 154, 0.18);
-  --pill-strong-border: rgba(86, 168, 154, 0.3);
-  --pill-note-bg: rgba(170, 187, 122, 0.16);
-  --pill-note-border: rgba(170, 187, 122, 0.26);
-  --status-success-bg: rgba(63, 121, 87, 0.24);
-  --status-success-border: rgba(111, 174, 154, 0.32);
-  --status-success-text: #9fd9bd;
-  --status-info-bg: rgba(47, 128, 118, 0.24);
-  --status-info-border: rgba(86, 168, 154, 0.32);
-  --status-info-text: #8fcfc4;
-  --status-warning-bg: rgba(160, 127, 52, 0.26);
-  --status-warning-border: rgba(224, 168, 58, 0.34);
-  --status-warning-text: #edca7d;
-  --status-error-bg: rgba(150, 70, 50, 0.28);
-  --status-error-border: rgba(223, 122, 72, 0.36);
-  --status-error-text: #f2ab89;
-  --rail-bg: linear-gradient(180deg, rgba(26, 42, 35, 0.98), rgba(18, 30, 24, 0.96));
-  --shadow: 0 28px 70px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.42);
-  --shadow-tight: 0 10px 22px rgba(0, 0, 0, 0.35);
-  --shadow-card: 0 18px 34px rgba(0, 0, 0, 0.4);
-  --bar-track: rgba(255, 255, 255, 0.09);
-  --tabbar-bg: rgba(15, 26, 21, 0.78);
-  --tabbar-border: rgba(255, 255, 255, 0.08);
+  --button-ghost-border: oklch(1 0 0 / 0.12);
+  --button-danger-bg: oklch(0.27 0.02 28 / 0.9);
+  --button-danger-text: oklch(0.8 0.09 32);
+  --button-danger-border: oklch(0.6 0.12 32 / 0.34);
+  --pill-bg: oklch(1 0 0 / 0.05);
+  --pill-border: oklch(1 0 0 / 0.08);
+  --pill-strong-bg: oklch(0.76 0.115 158 / 0.16);
+  --pill-strong-border: oklch(0.76 0.115 158 / 0.3);
+  --pill-note-bg: oklch(1 0 0 / 0.06);
+  --pill-note-border: oklch(1 0 0 / 0.09);
+  --status-success-bg: oklch(0.55 0.1 158 / 0.2);
+  --status-success-border: oklch(0.7 0.1 158 / 0.32);
+  --status-success-text: oklch(0.84 0.11 158);
+  --status-info-bg: oklch(0.6 0.08 220 / 0.2);
+  --status-info-border: oklch(0.7 0.08 220 / 0.32);
+  --status-info-text: oklch(0.82 0.09 220);
+  --status-warning-bg: oklch(0.65 0.1 75 / 0.22);
+  --status-warning-border: oklch(0.75 0.11 75 / 0.34);
+  --status-warning-text: oklch(0.83 0.11 75);
+  --status-error-bg: oklch(0.55 0.13 28 / 0.22);
+  --status-error-border: oklch(0.65 0.15 28 / 0.34);
+  --status-error-text: oklch(0.78 0.13 32);
+  --rail-bg: linear-gradient(180deg, oklch(0.195 0.007 155), oklch(0.16 0.006 155));
+  --shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --shadow-tight: 0 10px 22px rgba(0, 0, 0, 0.38);
+  --shadow-card: 0 18px 34px rgba(0, 0, 0, 0.42);
+  --bar-track: oklch(1 0 0 / 0.08);
+  --tabbar-bg: oklch(0.17 0.006 155 / 0.82);
+  --tabbar-border: oklch(1 0 0 / 0.08);
   --tabbar-active: var(--accent-strong);
   background:
-    radial-gradient(circle at 12% 0%, rgba(86, 168, 154, 0.12), transparent 24%),
-    radial-gradient(circle at 86% 8%, rgba(170, 187, 122, 0.08), transparent 24%),
-    linear-gradient(180deg, #0b1813 0%, #0e1c17 100%);
+    radial-gradient(130% 80% at 50% -12%, oklch(0.32 0.04 158 / 0.22), transparent 58%),
+    oklch(0.155 0.006 155);
 }
 
 :root[data-theme="dark"] body {
@@ -6204,7 +6205,8 @@ body.menu-open .menu-fab {
 }
 
 :root[data-theme="dark"] .workspace-header-icon {
-  background: linear-gradient(135deg, rgba(116, 179, 158, 0.2), rgba(86, 168, 154, 0.14));
+  background: oklch(1 0 0 / 0.06);
+  border: 1px solid var(--line);
 }
 
 :root[data-theme="dark"] .workspace-header-icon .tab-icon {
@@ -6238,8 +6240,7 @@ body.menu-open .menu-fab {
 
 :root[data-theme="dark"] .app-dialog {
   background:
-    radial-gradient(circle at top right, rgba(116, 179, 158, 0.12), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, oklch(1 0 0 / 0.04), oklch(1 0 0 / 0)),
     var(--surface-elevated);
   border-color: var(--line-strong);
 }
@@ -6483,9 +6484,9 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .workspace-header-eyebrow,
 :root[data-theme="dark"] .section-eyebrow {
-  background: rgba(116, 179, 158, 0.16);
-  border-color: rgba(116, 179, 158, 0.28);
-  color: var(--accent-strong);
+  background: oklch(1 0 0 / 0.06);
+  border-color: var(--line);
+  color: var(--muted);
 }
 
 /* ============================================================
@@ -6512,9 +6513,9 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .meal-card-summary-kcal {
   background:
-    linear-gradient(135deg, rgba(116, 179, 158, 0.18), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0)),
     var(--surface-strong);
-  border-color: rgba(116, 179, 158, 0.24);
+  border-color: var(--line);
   box-shadow: var(--shadow-tight);
 }
 
@@ -6547,9 +6548,7 @@ body.menu-open .tab-bar {
    gradient header) and the "done" meal states.
    ============================================================ */
 :root[data-theme="dark"] .meal-card-header {
-  background:
-    radial-gradient(circle at top right, rgba(116, 179, 158, 0.1), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.02));
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
 }
@@ -6569,8 +6568,8 @@ body.menu-open .tab-bar {
    teal-tinted value pills (kill the grey/white inconsistency).
    ============================================================ */
 :root[data-theme="dark"] {
-  --pill-bg: rgba(116, 179, 158, 0.1);
-  --pill-border: rgba(116, 179, 158, 0.18);
+  --pill-bg: oklch(1 0 0 / 0.05);
+  --pill-border: oklch(1 0 0 / 0.08);
 }
 
 :root[data-theme="dark"] .mobile-menu {
@@ -6586,7 +6585,62 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .meal-entry {
   background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0)),
+    var(--surface-strong);
+  border-color: var(--line);
+  box-shadow: var(--shadow-tight);
+}
+
+/* ============================================================
+   Dark theme — sweep of remaining tab surfaces
+   (Trening / Rutina / Namirnice / Recepti / Nutricionista)
+   ============================================================ */
+:root[data-theme="dark"] .training-exercise-row,
+:root[data-theme="dark"] .plan-recipe-ingredient,
+:root[data-theme="dark"] .recipe-library-method,
+:root[data-theme="dark"] .nutrition-plan-notes,
+:root[data-theme="dark"] .foods-list-macro,
+:root[data-theme="dark"] .routine-day-picker,
+:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
+  background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
     var(--surface-strong);
-  box-shadow: inset 3px 0 0 rgba(116, 179, 158, 0.32);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .meal-order {
+  background: oklch(1 0 0 / 0.05);
+  border-color: var(--line);
+  color: var(--accent-strong);
+}
+
+:root[data-theme="dark"] .foods-toolbar-view-toggle,
+:root[data-theme="dark"] .foods-favorite-toggle,
+:root[data-theme="dark"] .meal-collapse-toggle,
+:root[data-theme="dark"] .routine-check-ui,
+:root[data-theme="dark"] .photo-picker,
+:root[data-theme="dark"] .plan-quick-toggle-icon,
+:root[data-theme="dark"] .section-disclosure-icon {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .foods-favorite-toggle.is-active,
+:root[data-theme="dark"] .routine-checkbox:checked + .routine-check-ui,
+:root[data-theme="dark"] .weekday-choice:has(input:checked) {
+  background: linear-gradient(135deg, rgba(116, 179, 158, 0.3), rgba(116, 179, 158, 0.16));
+  border-color: rgba(116, 179, 158, 0.5);
+}
+
+:root[data-theme="dark"] .update-banner,
+:root[data-theme="dark"] .feedback-toast {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    var(--surface-elevated);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .recipe-library-pills .pill {
+  background: var(--pill-bg);
+  border-color: var(--pill-border);
 }
