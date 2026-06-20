@@ -44,6 +44,57 @@ const TAB_META = {
   settings: { eyebrow: "Sigurnost", description: "Nalog, cloud sync i backup opcije za mirniji rad sa podacima." },
 };
 
+// Lucide-style line icons (ISC) so navigation renders identically across devices
+// instead of relying on platform emoji fonts.
+const TAB_ICON_PATHS = {
+  plan: '<path d="M3 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  recipes: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  nutrition: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  foods: '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>',
+  training: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/>',
+  routine: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+  progress: '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+  goals: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+};
+
+function renderTabIcon(id) {
+  const paths = TAB_ICON_PATHS[id];
+  if (!paths) return "";
+  return `<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
+}
+
+// Primary destinations for the iOS-style bottom tab bar (phones).
+// Everything else lives behind "Više", which opens the full sidebar.
+const PRIMARY_TABS = ["plan", "foods", "training", "progress"];
+
+function renderTabBar() {
+  const items = PRIMARY_TABS.map((id) => {
+    const tab = TABS.find((entry) => entry.id === id);
+    if (!tab) return "";
+    const isActive = state.activeTab === id;
+    return `
+      <button class="tab-bar-item ${isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${id}" aria-label="${tab.label}" aria-current="${isActive ? "page" : "false"}">
+        <span class="tab-bar-icon">${renderTabIcon(id)}</span>
+        <span class="tab-bar-label">${tab.label}</span>
+      </button>
+    `;
+  }).join("");
+
+  const isMoreActive = !PRIMARY_TABS.includes(state.activeTab);
+  return `
+    <nav class="tab-bar" aria-label="Glavna navigacija">
+      <div class="tab-bar-inner">
+        ${items}
+        <button class="tab-bar-item tab-bar-more ${isMoreActive ? "is-active" : ""} ${state.navMenuOpen ? "is-open" : ""}" type="button" data-action="toggle-nav-menu" aria-label="Više" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu">
+          <span class="tab-bar-icon"><svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></span>
+          <span class="tab-bar-label">Više</span>
+        </button>
+      </div>
+    </nav>
+  `;
+}
+
 const ACTIVITY_LEVELS = [
   { id: "sedentary", label: "Sedeći posao", multiplier: 1.2 },
   { id: "light", label: "Lagana aktivnost", multiplier: 1.375 },
@@ -128,6 +179,10 @@ const state = {
   foodNutritionFilter: "Sve",
   foodCatalogView: "list",
   foodEditorOpen: false,
+  scannerOpen: false,
+  scannerStatus: "",
+  scannedFood: null,
+  scannedBarcode: "",
   recipeMealFilter: "Sve",
   recipeNutritionFilter: "Sve",
   editingEntryId: "",
@@ -2953,6 +3008,8 @@ function resetFoodEditing() {
   state.editingFoodId = "";
   state.nutritionEditingFoodId = "";
   state.foodEditorOpen = false;
+  state.scannedFood = null;
+  state.scannedBarcode = "";
 }
 
 function openFoodEditorDialog(foodId = "") {
@@ -4421,12 +4478,238 @@ function renderRecipeApplyDialog() {
   `;
 }
 
+// --- Barcode scanning + shared food database ------------------------------
+
+function nutNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
+}
+
+let barcodeReaderPromise = null;
+let activeScanControls = null;
+
+function getBarcodeReader() {
+  if (!barcodeReaderPromise) {
+    barcodeReaderPromise = import("https://esm.sh/@zxing/browser@0.1.5")
+      .then((mod) => new mod.BrowserMultiFormatReader())
+      .catch((error) => {
+        barcodeReaderPromise = null;
+        throw error;
+      });
+  }
+  return barcodeReaderPromise;
+}
+
+async function startBarcodeScan() {
+  const video = document.querySelector("#barcode-video");
+  if (!video) {
+    return;
+  }
+  try {
+    const reader = await getBarcodeReader();
+    const onResult = (result) => {
+      if (!result) {
+        return;
+      }
+      const text = typeof result.getText === "function" ? result.getText() : result.text || "";
+      stopBarcodeScan();
+      handleScannedBarcode(text);
+    };
+    // Prefer the rear camera on phones; fall back to the default device.
+    if (typeof reader.decodeFromConstraints === "function") {
+      activeScanControls = await reader.decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } } },
+        video,
+        onResult
+      );
+    } else {
+      activeScanControls = await reader.decodeFromVideoDevice(undefined, video, onResult);
+    }
+  } catch (error) {
+    console.warn("Barcode scan failed", error);
+    state.scannerStatus = "Kamera nije dostupna ili je dozvola odbijena. Možeš da uneseš ručno.";
+    render();
+  }
+}
+
+function stopBarcodeScan() {
+  try {
+    if (activeScanControls) {
+      activeScanControls.stop();
+    }
+  } catch (error) {
+    /* ignore */
+  }
+  activeScanControls = null;
+}
+
+async function fetchOpenFoodFacts(barcode) {
+  try {
+    const response = await fetch(
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_sr,brands,nutriments`
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    if (data.status !== 1 || !data.product) {
+      return null;
+    }
+    const product = data.product;
+    const nutriments = product.nutriments || {};
+    let kcal = nutriments["energy-kcal_100g"];
+    if (kcal == null && nutriments["energy_100g"] != null) {
+      kcal = Number(nutriments["energy_100g"]) / 4.184;
+    }
+    const name = [product.brands, product.product_name_sr || product.product_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    return {
+      name,
+      kcal: nutNumber(kcal),
+      protein: nutNumber(nutriments.proteins_100g),
+      carbs: nutNumber(nutriments.carbohydrates_100g),
+      fat: nutNumber(nutriments.fat_100g),
+    };
+  } catch (error) {
+    console.warn("Open Food Facts lookup failed", error);
+    return null;
+  }
+}
+
+function sharedFoodRef(barcode) {
+  return doc(firebaseDb, "sharedFoods", String(barcode));
+}
+
+async function lookupSharedFood(barcode) {
+  if (!state.authUser || !barcode) {
+    return null;
+  }
+  try {
+    const snapshot = await getDoc(sharedFoodRef(barcode));
+    if (!snapshot.exists()) {
+      return null;
+    }
+    const data = snapshot.data();
+    return {
+      name: data.name || "",
+      kcal: nutNumber(data.kcal),
+      protein: nutNumber(data.protein),
+      carbs: nutNumber(data.carbs),
+      fat: nutNumber(data.fat),
+    };
+  } catch (error) {
+    console.warn("Shared food lookup failed", error);
+    return null;
+  }
+}
+
+async function saveSharedFood(barcode, food) {
+  if (!state.authUser || !barcode) {
+    return;
+  }
+  try {
+    await setDoc(
+      sharedFoodRef(barcode),
+      {
+        barcode: String(barcode),
+        name: food.name || "",
+        kcal: nutNumber(food.kcal),
+        protein: nutNumber(food.protein),
+        carbs: nutNumber(food.carbs),
+        fat: nutNumber(food.fat),
+        updatedAt: serverTimestamp(),
+        updatedBy: state.authUser?.uid || null,
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.warn("Shared food save failed", error);
+  }
+}
+
+async function handleScannedBarcode(barcode) {
+  const code = String(barcode || "").trim();
+  state.scannerOpen = false;
+  if (!code) {
+    render();
+    return;
+  }
+  showFeedbackToast({ title: "Skeniran kod", detail: code, tone: "info" });
+
+  let product = await lookupSharedFood(code);
+  if (!product) {
+    product = await fetchOpenFoodFacts(code);
+  }
+
+  const hasData = product && (product.name || product.kcal != null);
+  state.scannedFood = {
+    name: (product && product.name) || "",
+    kcal: (product && product.kcal) ?? null,
+    protein: (product && product.protein) ?? null,
+    carbs: (product && product.carbs) ?? null,
+    fat: (product && product.fat) ?? null,
+  };
+  state.scannedBarcode = code;
+  state.editingFoodId = "";
+  state.foodEditorOpen = true;
+
+  if (hasData) {
+    showFeedbackToast({ title: "Proizvod pronađen", detail: product.name || code, tone: "success" });
+  } else {
+    showFeedbackToast({
+      title: "Nije u bazi",
+      detail: "Unesi vrednosti ručno — sačuvaće se za sve.",
+      tone: "warning",
+    });
+  }
+  render();
+  window.requestAnimationFrame(() => {
+    document.querySelector(state.scannedFood?.name ? "#food-kcal" : "#food-name")?.focus();
+  });
+}
+
+function renderBarcodeScanner() {
+  if (!state.scannerOpen) {
+    return "";
+  }
+  return `
+    <div class="app-dialog-shell scanner-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-scanner" aria-label="Zatvori skener"></button>
+      <section class="app-dialog scanner-dialog" role="dialog" aria-modal="true" aria-label="Skeniranje barkoda">
+        <div class="app-dialog-head">
+          <div class="stack" style="gap:4px;">
+            <div class="hero-picker-label">Skener</div>
+            <h3>Skeniraj barkod</h3>
+            <p>Usmeri kameru na barkod proizvoda — vrednosti na 100 g se popunjavaju automatski.</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-scanner" aria-label="Zatvori skener">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+        <div class="scanner-viewport">
+          <video id="barcode-video" playsinline muted></video>
+          <div class="scanner-reticle" aria-hidden="true"></div>
+        </div>
+        <div class="footer-note scanner-status">${state.scannerStatus || "Tražim kameru…"}</div>
+        <div class="entry-actions" style="justify-content:flex-start;">
+          <button class="ghost-button button-with-icon" type="button" data-action="close-scanner">${renderButtonContent("Odustani", "close")}</button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderFoodEditorDialog() {
   if (!state.foodEditorOpen) {
     return "";
   }
 
   const editingFood = state.editingFoodId ? getFoodById(state.editingFoodId) : null;
+  // For a fresh scan there is no editingFood, but state.scannedFood pre-fills the inputs.
+  const prefill = editingFood || state.scannedFood || null;
+  const isScannedDraft = !editingFood && Boolean(state.scannedBarcode);
   const macroClassMap = {
     Proteini: "proteins",
     UH: "carbs",
@@ -4462,7 +4745,7 @@ function renderFoodEditorDialog() {
             <div class="foods-editor-copy">
               <div class="foods-card-kicker">${editingFood ? "Uređivanje" : "Novi unos"}</div>
               <h3>${editingFood ? escapeHtml(editingFood.name) : "Nova namirnica u bazi"}</h3>
-              <p>${editingFood ? `Ažuriraš vrednosti za ${editingFoodBasisLabel.toLowerCase()} i promene će važiti svuda gde koristiš ovu namirnicu.` : foodEditorHelpText}</p>
+              <p>${editingFood ? `Ažuriraš vrednosti za ${editingFoodBasisLabel.toLowerCase()} i promene će važiti svuda gde koristiš ovu namirnicu.` : isScannedDraft ? `Vrednosti su povučene sa barkoda <strong>${escapeHtml(state.scannedBarcode)}</strong>. Proveri ih i sačuvaj — sačuvaće se i u zajedničkoj bazi.` : foodEditorHelpText}</p>
             </div>
             <div class="pill-row foods-editor-pills">
               <span class="pill strong foods-group-badge foods-group-badge--${editorToneClass}">${editingFood ? editorGroup : "Ručno dodavanje"}</span>
@@ -4472,7 +4755,7 @@ function renderFoodEditorDialog() {
           <form id="food-form" class="form-grid split foods-editor-form">
             <div class="field">
               <label for="food-name">Naziv</label>
-              <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${editingFood?.name || ""}" required />
+              <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${prefill?.name ? escapeHtml(prefill.name) : ""}" required />
             </div>
             <div class="field">
               <label for="food-category">Kategorija</label>
@@ -4487,19 +4770,19 @@ function renderFoodEditorDialog() {
             </div>
             <div class="field">
               <label for="food-kcal">Kalorije</label>
-              <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.kcal, 1) : ""}" required />
+              <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${prefill && prefill.kcal != null ? roundValue(prefill.kcal, 1) : ""}" required />
             </div>
             <div class="field">
               <label for="food-protein">Proteini</label>
-              <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.protein, 1) : ""}" required />
+              <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${prefill && prefill.protein != null ? roundValue(prefill.protein, 1) : ""}" required />
             </div>
             <div class="field">
               <label for="food-carbs">Ugljeni hidrati</label>
-              <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.carbs, 1) : ""}" required />
+              <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />
             </div>
             <div class="field">
               <label for="food-fat">Masti</label>
-              <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${editingFood ? roundValue(editingFood.fat, 1) : ""}" required />
+              <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />
             </div>
             <div class="entry-actions foods-editor-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
               <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
@@ -4782,9 +5065,25 @@ function generateCompanionSuggestions() {
   return suggestions.slice(0, 3);
 }
 
-function renderProgress(value, goal) {
-  const ratio = goal ? Math.min((value / goal) * 100, 100) : 0;
-  return `<div class="progress"><span style="width:${ratio}%"></span></div>`;
+function renderProgress(value, goal, kind = "neutral") {
+  const ratio = goal ? value / goal : 0;
+  const width = Math.max(0, Math.min(ratio * 100, 100));
+  let progressState = "neutral";
+  if (goal) {
+    if (kind === "limit") {
+      // Calories / carbs / fat: staying within budget is good, over is a warning.
+      if (ratio > 1.1) progressState = "over";
+      else if (ratio > 1.0) progressState = "near";
+      else progressState = "ok";
+    } else if (kind === "target") {
+      // Protein: hitting (or nearly hitting) the goal is good; below that is just
+      // "still building" — neutral, never an amber/red warning.
+      progressState = ratio >= 0.9 ? "ok" : "low";
+    } else {
+      progressState = ratio > 1.0 ? "over" : "ok";
+    }
+  }
+  return `<div class="progress" data-state="${progressState}"><span style="width:${width}%"></span></div>`;
 }
 
 function formatPlanDelta(delta, unit) {
@@ -4809,7 +5108,7 @@ function renderMetricsGrid(metrics) {
                 <span class="muted">${roundValue(metric.goal, 1)} ${metric.unit}</span>
               </header>
               <div class="macro-value">${metric.value} ${metric.unit}</div>
-              ${renderProgress(metric.value, metric.goal)}
+              ${renderProgress(metric.value, metric.goal, metric.kind)}
               ${metric.note ? `<div class="footer-note">${metric.note}</div>` : ""}
             </article>
           `
@@ -4878,7 +5177,7 @@ function renderWorkspaceHeader() {
         <div class="workspace-header-copy">
           <span class="workspace-header-eyebrow">${tabMeta.eyebrow}</span>
           <div class="workspace-header-title-row">
-            <span class="workspace-header-icon" aria-hidden="true">${activeTab.icon}</span>
+            <span class="workspace-header-icon" aria-hidden="true">${renderTabIcon(activeTab.id)}</span>
             <div>
               <h1>${activeTab.label}</h1>
               <p>${tabMeta.description}</p>
@@ -5267,10 +5566,10 @@ function updateHeroScrollState() {
 
 function renderMacroCards(totals) {
   const metrics = [
-    { label: "Kalorije", value: roundValue(totals.kcal, 0), goal: roundValue(store.goals.calories, 0), unit: "kcal" },
-    { label: "Proteini", value: roundValue(totals.protein, 1), goal: store.goals.protein, unit: "g" },
-    { label: "Ugljeni hidrati", value: roundValue(totals.carbs, 1), goal: store.goals.carbs, unit: "g" },
-    { label: "Masti", value: roundValue(totals.fat, 1), goal: store.goals.fat, unit: "g" },
+    { label: "Kalorije", value: roundValue(totals.kcal, 0), goal: roundValue(store.goals.calories, 0), unit: "kcal", kind: "limit" },
+    { label: "Proteini", value: roundValue(totals.protein, 1), goal: store.goals.protein, unit: "g", kind: "target" },
+    { label: "Ugljeni hidrati", value: roundValue(totals.carbs, 1), goal: store.goals.carbs, unit: "g", kind: "limit" },
+    { label: "Masti", value: roundValue(totals.fat, 1), goal: store.goals.fat, unit: "g", kind: "limit" },
   ];
 
   return renderMetricsGrid(metrics);
@@ -5583,6 +5882,10 @@ function renderPlanTab(entries) {
   const totals = getDayTotals(entries);
   const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
   const netCalories = roundValue(totals.kcal - trainingBurn, 0);
+  const calorieGoal = roundValue(store.goals.calories, 0);
+  const remainingCalories = roundValue(calorieGoal - totals.kcal, 0);
+  const calorieRatio = calorieGoal ? totals.kcal / calorieGoal : 0;
+  const calorieState = !calorieGoal ? "neutral" : calorieRatio > 1.1 ? "over" : calorieRatio > 1.0 ? "near" : "ok";
   const favorites = getFavoriteMealsDetailed();
   const meals = [
     ...new Set([
@@ -5616,6 +5919,16 @@ function renderPlanTab(entries) {
         </div>
       </button>
       <div class="plan-section-body ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
+      <div class="plan-summary-headline" data-state="${calorieState}">
+        <div class="plan-summary-headline-main">
+          <span class="plan-summary-headline-label">${calorieGoal ? (remainingCalories >= 0 ? "Preostalo danas" : "Preko cilja") : "Postavi kalorijski cilj"}</span>
+          <strong class="plan-summary-headline-value">${calorieGoal ? Math.abs(remainingCalories) : "—"}<span class="plan-summary-headline-unit">kcal</span></strong>
+        </div>
+        <div class="plan-summary-headline-meta">
+          <span class="footer-note">${roundValue(totals.kcal, 0)}${calorieGoal ? ` / ${calorieGoal}` : ""} kcal uneto</span>
+          ${calorieGoal ? renderProgress(totals.kcal, calorieGoal, "limit") : ""}
+        </div>
+      </div>
       <div class="plan-summary-layout">
         ${renderMacroCards(totals)}
         <div class="stats-grid plan-secondary-stats">
@@ -5667,8 +5980,6 @@ function renderPlanTab(entries) {
         }
       </div>
     </section>
-
-    ${renderPlanSupplementsSection()}
 
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
@@ -5980,6 +6291,8 @@ function renderPlanTab(entries) {
         }
       </div>
     </section>
+
+    ${renderPlanSupplementsSection()}
   `;
 }
 
@@ -6128,6 +6441,10 @@ function renderFoodsTab() {
             Thumbnails
           </button>
         </div>
+        <button class="ghost-button button-with-icon foods-toolbar-scan" type="button" data-action="open-scanner">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+          <span class="button-label">Skeniraj</span>
+        </button>
         <button class="solid-button secondary-button button-with-icon foods-toolbar-add" type="button" data-action="open-food-editor-dialog">
           ${renderButtonContent("Dodaj namirnicu", "add")}
         </button>
@@ -7390,6 +7707,7 @@ function renderGoalsTab() {
       value: roundValue(weeklyOverview.totals.kcal, 0),
       goal: roundValue(weeklyOverview.goals.kcal, 0),
       unit: "kcal",
+      kind: "limit",
       note: formatPlanDelta(weeklyOverview.totals.kcal - weeklyOverview.goals.kcal, "kcal"),
     },
     {
@@ -7397,6 +7715,7 @@ function renderGoalsTab() {
       value: roundValue(weeklyOverview.totals.protein, 1),
       goal: weeklyOverview.goals.protein,
       unit: "g",
+      kind: "target",
       note: formatPlanDelta(weeklyOverview.totals.protein - weeklyOverview.goals.protein, "g"),
     },
     {
@@ -7404,6 +7723,7 @@ function renderGoalsTab() {
       value: roundValue(weeklyOverview.totals.carbs, 1),
       goal: weeklyOverview.goals.carbs,
       unit: "g",
+      kind: "limit",
       note: formatPlanDelta(weeklyOverview.totals.carbs - weeklyOverview.goals.carbs, "g"),
     },
     {
@@ -7411,6 +7731,7 @@ function renderGoalsTab() {
       value: roundValue(weeklyOverview.totals.fat, 1),
       goal: weeklyOverview.goals.fat,
       unit: "g",
+      kind: "limit",
       note: formatPlanDelta(weeklyOverview.totals.fat - weeklyOverview.goals.fat, "g"),
     },
   ];
@@ -8515,33 +8836,6 @@ function renderProgressTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Težina i mere</h2>
-          <p>Brz unos merenja, da sa telefona pratiš kako napreduješ kroz vreme.</p>
-        </div>
-      </div>
-      <div class="stats-grid">
-        ${measurementFields
-          .filter((field) => field.id !== "trainingType")
-          .map((field) => renderMeasurementCard(field))
-          .join("")}
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Trend</h2>
-          <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
-        </div>
-      </div>
-      <div class="chart-grid">
-        ${chartFields.map((field) => renderTrendCard(field)).join("")}
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-header">
-        <div>
           <h2>Dodaj merenje</h2>
           <p>Ne moraš popuniti sve, upiši samo ono što si izmerio tog dana.</p>
         </div>
@@ -8571,6 +8865,33 @@ function renderProgressTab() {
         <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
       <div class="footer-note progress-form-note">Ako meriš samo par stvari, slobodno ostavi ostala polja prazna. App čuva samo ono što si zaista uneo.</div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Težina i mere</h2>
+          <p>Brz unos merenja, da sa telefona pratiš kako napreduješ kroz vreme.</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        ${measurementFields
+          .filter((field) => field.id !== "trainingType")
+          .map((field) => renderMeasurementCard(field))
+          .join("")}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Trend</h2>
+          <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
+        </div>
+      </div>
+      <div class="chart-grid">
+        ${chartFields.map((field) => renderTrendCard(field)).join("")}
+      </div>
     </section>
 
     <section class="section">
@@ -8797,6 +9118,8 @@ function render() {
         <span class="menu-fab-label">Meni</span>
       </button>
 
+      ${renderTabBar()}
+
       ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
 
       <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""} ${state.sidebarCollapsed ? "is-collapsed" : ""}" aria-label="Glavna navigacija">
@@ -8819,7 +9142,7 @@ function render() {
           ${TABS.map(
             (tab) => `
               <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}" title="${tab.label}" aria-label="${tab.label}">
-                <span class="icon">${tab.icon}</span>
+                <span class="icon">${renderTabIcon(tab.id)}</span>
                 <span class="menu-tab-label">${tab.label}</span>
               </button>
             `
@@ -8829,6 +9152,16 @@ function render() {
           <div class="pill-row app-sidebar-status-row">
             <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
           </div>
+          <button class="ghost-button theme-toggle button-with-icon" type="button" data-action="toggle-theme" aria-label="Promeni temu">
+            <span class="theme-toggle-face to-dark">
+              <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              <span class="button-label">Tamna tema</span>
+            </span>
+            <span class="theme-toggle-face to-light">
+              <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              <span class="button-label">Svetla tema</span>
+            </span>
+          </button>
           <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
         </div>
       </aside>
@@ -8869,6 +9202,7 @@ function render() {
 
       ${renderRecipeApplyDialog()}
       ${renderFoodEditorDialog()}
+      ${renderBarcodeScanner()}
     </div>
   `;
 
@@ -9147,6 +9481,23 @@ async function handleDocumentClick(event) {
 
   if (action === "close-food-editor-dialog") {
     closeFoodEditorDialog();
+    render();
+    return;
+  }
+
+  if (action === "open-scanner") {
+    state.scannerOpen = true;
+    state.scannerStatus = "Tražim kameru…";
+    render();
+    window.requestAnimationFrame(() => {
+      startBarcodeScan();
+    });
+    return;
+  }
+
+  if (action === "close-scanner") {
+    stopBarcodeScan();
+    state.scannerOpen = false;
     render();
     return;
   }
@@ -10402,6 +10753,8 @@ async function handleSubmit(event) {
     if (!name) {
       return;
     }
+    // Captured before reset/close clears it; only per-100g values go to the shared DB.
+    const scannedBarcode = state.scannedBarcode;
     const servingUnit = String(formData.get("servingUnit") || "grams").trim() === "piece" ? "piece" : "grams";
     const nextFoodBase = {
       name,
@@ -10433,6 +10786,10 @@ async function handleSubmit(event) {
         id: uid("food"),
         ...nextFood,
       });
+    }
+
+    if (scannedBarcode && servingUnit === "grams") {
+      saveSharedFood(scannedBarcode, nextFood);
     }
 
     persist();

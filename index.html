@@ -9,6 +9,41 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fit Tracker" />
     <title>Fit Tracker</title>
+    <script>
+      // Resolve theme to an explicit data-theme before first paint (no flash of wrong theme).
+      (function () {
+        var root = document.documentElement;
+        var mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+        function resolve(pref) {
+          return pref === "dark" || (pref !== "light" && mql && mql.matches) ? "dark" : "light";
+        }
+        function apply(pref) {
+          var mode = resolve(pref);
+          root.dataset.theme = mode;
+          root.style.colorScheme = mode;
+          root.setAttribute("data-theme-pref", pref || "auto");
+        }
+        var stored;
+        try { stored = localStorage.getItem("ft-theme"); } catch (e) {}
+        apply(stored || "auto");
+        if (mql) {
+          try {
+            mql.addEventListener("change", function () {
+              var p; try { p = localStorage.getItem("ft-theme"); } catch (e) {}
+              if (!p || p === "auto") apply("auto");
+            });
+          } catch (e) {}
+        }
+        // Delegated so it keeps working across the app's full re-renders.
+        document.addEventListener("click", function (event) {
+          var trigger = event.target.closest && event.target.closest('[data-action="toggle-theme"]');
+          if (!trigger) return;
+          var next = root.dataset.theme === "dark" ? "light" : "dark";
+          try { localStorage.setItem("ft-theme", next); } catch (e) {}
+          apply(next);
+        });
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
