@@ -6765,3 +6765,87 @@ body.menu-open .tab-bar {
   white-space: nowrap;
   padding-top: 1px;
 }
+
+/* ============================================================
+   Premium of premium — luxury detailing.
+   Tabular figures, number/unit hierarchy, tactile hero,
+   refined depth, glossier bars, crisp active chip.
+   ============================================================ */
+
+/* Tabular figures so data never jitters or misaligns */
+.macro-value,
+.plan-summary-headline-value,
+.plan-summary-headline-meta,
+.meal-card-summary-kcal strong,
+.meal-summary-macro strong,
+.pill,
+.stat-card .macro-value,
+.meal-entry .footer-note {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+}
+
+/* Number carries the weight; unit recedes */
+.macro-unit {
+  margin-left: 4px;
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  vertical-align: baseline;
+}
+
+/* Refined depth: hairline top light + soft, far drop shadow */
+.macro-card,
+.stat-card,
+.section,
+.meal-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(25, 34, 31, 0.04),
+    0 16px 30px -22px rgba(25, 34, 31, 0.22);
+}
+
+:root[data-theme="dark"] .macro-card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .section,
+:root[data-theme="dark"] .meal-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 34px -24px rgba(0, 0, 0, 0.8);
+}
+
+/* Glossier, calmer progress bars */
+.progress {
+  height: 12px;
+}
+
+.progress > span {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* Tactile grain + top sheen on the hero so the gradient reads as a
+   crafted surface, not a flat fill */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+}
+
+/* Crisp, confident active day chip on the hero */
+.hero-day-chips .chip.is-active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 248, 240, 0.92));
+  border-color: rgba(255, 255, 255, 0.9);
+  color: var(--accent-strong);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .hero-day-chips .chip.is-active {
+  color: oklch(0.32 0.07 158);
+}

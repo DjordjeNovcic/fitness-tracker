@@ -5107,7 +5107,7 @@ function renderMetricsGrid(metrics) {
                 <h3>${metric.label}</h3>
                 <span class="muted">${roundValue(metric.goal, 1)} ${metric.unit}</span>
               </header>
-              <div class="macro-value">${metric.value} ${metric.unit}</div>
+              <div class="macro-value">${metric.value}<span class="macro-unit">${metric.unit}</span></div>
               ${renderProgress(metric.value, metric.goal, metric.kind)}
               ${metric.note ? `<div class="footer-note">${metric.note}</div>` : ""}
             </article>
