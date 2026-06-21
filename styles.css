@@ -6111,17 +6111,17 @@ body.menu-open .menu-fab {
   color-scheme: dark;
   /* Premium restrained dark: near-neutral charcoal surfaces barely tinted
      toward the brand green hue (very low chroma); green only as an accent. */
-  --bg: oklch(0.17 0.006 155);
-  --bg-strong: oklch(0.205 0.007 155);
-  --surface: oklch(0.215 0.008 155 / 0.94);
-  --surface-strong: oklch(0.235 0.009 155);
-  --surface-soft: oklch(0.225 0.008 155 / 0.82);
-  --surface-panel: oklch(0.21 0.008 155 / 0.95);
-  --surface-elevated: oklch(0.27 0.01 155);
-  --ink: oklch(0.95 0.005 155);
-  --muted: oklch(0.7 0.01 155);
-  --line: oklch(1 0 0 / 0.08);
-  --line-strong: oklch(1 0 0 / 0.14);
+  --bg: oklch(0.14 0.006 155);
+  --bg-strong: oklch(0.18 0.007 155);
+  --surface: oklch(0.192 0.008 155 / 0.96);
+  --surface-strong: oklch(0.225 0.009 155);
+  --surface-soft: oklch(0.205 0.008 155 / 0.84);
+  --surface-panel: oklch(0.188 0.008 155 / 0.96);
+  --surface-elevated: oklch(0.275 0.011 155);
+  --ink: oklch(0.96 0.005 155);
+  --muted: oklch(0.68 0.012 155);
+  --line: oklch(1 0 0 / 0.07);
+  --line-strong: oklch(1 0 0 / 0.13);
   --accent: oklch(0.76 0.115 158);
   --accent-strong: oklch(0.83 0.12 158);
   --accent-soft: oklch(0.27 0.032 158);
@@ -6169,8 +6169,8 @@ body.menu-open .menu-fab {
   --tabbar-border: oklch(1 0 0 / 0.08);
   --tabbar-active: var(--accent-strong);
   background:
-    radial-gradient(130% 80% at 50% -12%, oklch(0.32 0.04 158 / 0.22), transparent 58%),
-    oklch(0.155 0.006 155);
+    radial-gradient(130% 80% at 50% -14%, oklch(0.3 0.035 158 / 0.18), transparent 55%),
+    oklch(0.125 0.006 155);
 }
 
 :root[data-theme="dark"] body {
@@ -6887,4 +6887,119 @@ body.menu-open .tab-bar {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 18px 34px -24px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================================
+   Critique fixes (design-director + UX + detector consensus):
+   one dominant hero number, flatten nesting, quieter hero,
+   premium charts, remove duplicate summary line.
+   ============================================================ */
+
+/* One unmistakable hero number; supporting numbers recede */
+.plan-summary-headline-value {
+  font-size: clamp(3.2rem, 13vw, 4.2rem);
+  line-height: 0.9;
+}
+
+.macro-value {
+  font-weight: 700;
+}
+
+.plan-summary-layout .macro-value {
+  font-size: 1.55rem;
+  font-weight: 600;
+}
+
+/* Primary metric numbers share the Fraunces language */
+.meal-card-summary-kcal strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Flatten nesting: the meals block is not its own box; food rows are
+   divided, not boxed (kills the card-in-card-in-card depth) */
+.section.plan-meals-section {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+}
+
+.meal-entry {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 13px 2px;
+  border-top: 1px solid var(--line);
+}
+
+.meal-entry:first-of-type {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+:root[data-theme="dark"] .meal-entry {
+  background: none;
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+/* Macro label fits a line; headers align across the row */
+.macro-card header h3 {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.macro-card header {
+  min-height: 2.3em;
+}
+
+/* Quieter, deeper hero in dark; active day chip is the accent (not olive/white) */
+:root[data-theme="dark"] .hero {
+  background:
+    linear-gradient(168deg, oklch(0.27 0.045 162), oklch(0.18 0.018 158) 64%, oklch(0.15 0.008 155));
+  border-color: var(--line);
+}
+
+.hero-day-chips .chip.is-active {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--button-primary-text);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="dark"] .hero-day-chips .chip.is-active {
+  color: oklch(0.16 0.02 158);
+}
+
+/* Premium charts: faint gridlines, soft area fill, one current marker */
+.chart-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.chart-area {
+  stroke: none;
+}
+
+.chart-card {
+  padding: 16px 16px 14px;
+}
+
+.trend-chart {
+  min-height: 132px;
+}
+
+.chart-dot.is-current {
+  fill: var(--accent);
+  stroke: var(--surface-strong);
+  stroke-width: 3;
+}
+
+/* When expanded, the disclosure subtitle just repeats the body */
+.plan-summary-section.is-expanded .section-disclosure-copy p {
+  display: none;
 }

@@ -5917,7 +5917,6 @@ function renderPlanTab(entries) {
           <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 1)} · UH ${roundValue(totals.carbs, 1)} · M ${roundValue(totals.fat, 1)}</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="pill note">${netCalories} neto</span>
           <span class="section-disclosure-icon" aria-hidden="true">${state.planSummaryExpanded ? "▴" : "▾"}</span>
         </div>
       </button>
@@ -8559,6 +8558,16 @@ function renderTrendCard(field) {
   const latest = series[series.length - 1];
   const first = series[0];
   const delta = roundValue(latest.value - first.value, 1);
+  const last = points[points.length - 1];
+  const gradId = `chart-grad-${field.id}`;
+  const baseline = height - paddingY;
+  const areaPoints = `${points[0].x},${baseline} ${polyline} ${last.x},${baseline}`;
+  const gridLines = [0.5, 1]
+    .map((factor) => {
+      const gy = roundValue(paddingY + factor * (height - paddingY * 2) * 0.66, 1);
+      return `<line x1="${paddingX}" y1="${gy}" x2="${width - paddingX}" y2="${gy}" class="chart-grid"></line>`;
+    })
+    .join("");
 
   return `
     <article class="chart-card">
@@ -8566,17 +8575,17 @@ function renderTrendCard(field) {
         <h3>${field.label}</h3>
         <span class="pill strong">${formatFieldValue(field, latest.value)}</span>
       </div>
-      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Trend za ${field.label}">
-        <line x1="${paddingX}" y1="${height - paddingY}" x2="${width - paddingX}" y2="${height - paddingY}" class="chart-axis"></line>
-        <line x1="${paddingX}" y1="${paddingY}" x2="${paddingX}" y2="${height - paddingY}" class="chart-axis"></line>
+      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trend za ${field.label}">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.2"></stop>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        ${gridLines}
+        <polygon points="${areaPoints}" class="chart-area" fill="url(#${gradId})"></polygon>
         <polyline points="${polyline}" class="chart-line"></polyline>
-        ${points
-          .map(
-            (point) => `
-              <circle cx="${point.x}" cy="${point.y}" r="4.5" class="chart-dot"></circle>
-            `
-          )
-          .join("")}
+        <circle cx="${last.x}" cy="${last.y}" r="4" class="chart-dot is-current"></circle>
       </svg>
       <div class="meta-row">
         <span class="pill">${first.label}</span>
