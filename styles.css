@@ -6644,3 +6644,124 @@ body.menu-open .tab-bar {
   background: var(--pill-bg);
   border-color: var(--pill-border);
 }
+
+/* ============================================================
+   Premium refinement (refined organic): more air, stronger
+   hierarchy, bigger key numbers, flatter cards, less nesting.
+   Applies to both themes.
+   ============================================================ */
+.shell {
+  gap: 22px;
+}
+
+.section-header h2,
+.section-disclosure-copy h2 {
+  font-size: 1.4rem;
+  letter-spacing: -0.025em;
+}
+
+.macro-card,
+.stat-card {
+  padding: 18px 18px 20px;
+  box-shadow: none;
+}
+
+.section {
+  box-shadow: none;
+}
+
+.macro-card header h3 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.macro-card header .muted {
+  font-size: 0.72rem;
+}
+
+.macro-value {
+  font-size: 1.95rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  margin-top: 8px;
+}
+
+/* Plan summary shows calories as the big headline, so the macro grid is
+   just the three macros — one confident row. */
+.plan-summary-layout .macro-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.plan-summary-headline {
+  padding: 20px 22px;
+}
+
+.plan-summary-headline-value {
+  font-size: 3rem;
+}
+
+/* Un-nest the meal summary: a clean inline strip, not boxed tiles. */
+.meal-card-summary {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.meal-card-summary-kcal {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.meal-card-summary-kcal .meal-summary-label {
+  order: 2;
+}
+
+.meal-card-summary-kcal strong {
+  font-size: 1.55rem;
+}
+
+.meal-card-summary-macros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.meal-summary-macro {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.meal-summary-macro .meal-summary-label {
+  display: none;
+}
+
+.meal-summary-macro strong {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Align macro card headers so values line up even when a label wraps */
+.macro-card header {
+  align-items: flex-start;
+  min-height: 2.5em;
+  gap: 8px;
+}
+
+.macro-card header h3 {
+  line-height: 1.15;
+}
+
+.macro-card header .muted {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding-top: 1px;
+}

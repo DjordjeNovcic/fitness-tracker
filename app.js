@@ -5564,7 +5564,7 @@ function updateHeroScrollState() {
   });
 }
 
-function renderMacroCards(totals) {
+function renderMacroCards(totals, options = {}) {
   const metrics = [
     { label: "Kalorije", value: roundValue(totals.kcal, 0), goal: roundValue(store.goals.calories, 0), unit: "kcal", kind: "limit" },
     { label: "Proteini", value: roundValue(totals.protein, 1), goal: store.goals.protein, unit: "g", kind: "target" },
@@ -5572,7 +5572,10 @@ function renderMacroCards(totals) {
     { label: "Masti", value: roundValue(totals.fat, 1), goal: store.goals.fat, unit: "g", kind: "limit" },
   ];
 
-  return renderMetricsGrid(metrics);
+  // The plan summary already shows calories as the big headline, so the
+  // calorie card is redundant noise there.
+  const visible = options.excludeCalories ? metrics.filter((metric) => metric.label !== "Kalorije") : metrics;
+  return renderMetricsGrid(visible);
 }
 
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
@@ -5930,7 +5933,7 @@ function renderPlanTab(entries) {
         </div>
       </div>
       <div class="plan-summary-layout">
-        ${renderMacroCards(totals)}
+        ${renderMacroCards(totals, { excludeCalories: true })}
         <div class="stats-grid plan-secondary-stats">
           <article class="stat-card">
             <strong>Potrošeno trening</strong>
