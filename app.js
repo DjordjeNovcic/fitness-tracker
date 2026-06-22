@@ -5941,6 +5941,9 @@ function renderPlanTab(entries) {
   const remainingCalories = roundValue(calorieGoal - totals.kcal, 0);
   const calorieRatio = calorieGoal ? totals.kcal / calorieGoal : 0;
   const calorieState = !calorieGoal ? "neutral" : calorieRatio > 1.1 ? "over" : calorieRatio > 1.0 ? "near" : "ok";
+  const ringCircumference = 326.7; // 2π·52
+  const ringOffset = roundValue(ringCircumference * (1 - Math.max(0, Math.min(calorieRatio, 1))), 1);
+  const caloriePct = calorieGoal ? Math.round(calorieRatio * 100) : 0;
   const favorites = getFavoriteMealsDetailed();
   const meals = [
     ...new Set([
@@ -5976,15 +5979,19 @@ function renderPlanTab(entries) {
       ${
         calorieGoal
           ? `
-      <div class="plan-summary-headline" data-state="${calorieState}">
-        <div class="plan-summary-headline-main">
-          <span class="plan-summary-headline-label">${remainingCalories >= 0 ? "Preostalo danas" : "Preko cilja"}</span>
-          <strong class="plan-summary-headline-value">${remainingCalories < 0 ? "+" : ""}${Math.abs(remainingCalories)}<span class="plan-summary-headline-unit">kcal</span></strong>
+      <div class="cal-ring" data-state="${calorieState}">
+        <div class="cal-ring-dial">
+          <svg class="cal-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="cal-ring-track" cx="60" cy="60" r="52"></circle>
+            <circle class="cal-ring-fill" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringOffset};"></circle>
+          </svg>
+          <div class="cal-ring-center">
+            <span class="cal-ring-label">${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span>
+            <strong class="cal-ring-value">${Math.abs(remainingCalories)}</strong>
+            <span class="cal-ring-unit">kcal</span>
+          </div>
         </div>
-        <div class="plan-summary-headline-meta">
-          <span class="footer-note">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal uneto</span>
-          ${renderProgress(totals.kcal, calorieGoal, "limit")}
-        </div>
+        <div class="cal-ring-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal · ${caloriePct}%</div>
       </div>
       `
           : `

@@ -7096,3 +7096,103 @@ body.app-header-hidden .workspace-header {
     animation: none;
   }
 }
+
+/* ============================================================
+   Calorie ring — the signature daily metric (remaining kcal).
+   ============================================================ */
+.cal-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 10px;
+  margin-bottom: 6px;
+}
+
+.cal-ring-dial {
+  position: relative;
+  width: 172px;
+  height: 172px;
+}
+
+.cal-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.cal-ring-track {
+  fill: none;
+  stroke: var(--bar-track);
+  stroke-width: 8;
+}
+
+.cal-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+    stroke 0.3s ease;
+}
+
+.cal-ring[data-state="near"] .cal-ring-fill {
+  stroke: var(--status-warning-text);
+}
+
+.cal-ring[data-state="over"] .cal-ring-fill {
+  stroke: var(--status-error-text);
+}
+
+.cal-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.cal-ring-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cal-ring-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2.85rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-ring[data-state="over"] .cal-ring-value {
+  color: var(--status-error-text);
+}
+
+.cal-ring-unit {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.cal-ring-meta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-ring-fill {
+    transition: none;
+  }
+}
