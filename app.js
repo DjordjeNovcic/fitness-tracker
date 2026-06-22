@@ -7338,13 +7338,11 @@ function renderTrainingTab() {
       </form>
     </details>
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Progres po vežbi</h2>
-          <p>Upiši kilažu za vežbu i prati kako napreduješ kroz vreme.</p>
-        </div>
-      </div>
+    <details class="section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Progres po vežbi</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <form id="training-progress-form" class="form-grid split">
         <div class="field date-field">
           <label for="progress-date">Datum</label>
@@ -7361,7 +7359,7 @@ function renderTrainingTab() {
           </select>
         </div>
         <div class="field">
-          <label for="progress-exercise">Vezba</label>
+          <label for="progress-exercise">Vežba</label>
           <input id="progress-exercise" name="exerciseName" list="training-exercise-options" placeholder="npr. Cucanj" required />
           <datalist id="training-exercise-options">
             ${exerciseOptions.map((name) => `<option value="${name}"></option>`).join("")}
@@ -7388,15 +7386,13 @@ function renderTrainingTab() {
             : `<div class="empty">Dodaj prvi unos kilaže za neku vežbu pa će se ovde pojaviti progres.</div>`
         }
       </div>
-    </section>
+    </details>
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Poslednji unosi opterecenja</h2>
-          <p>Brza istorija zadnjih kilaža po vežbama.</p>
-        </div>
-      </div>
+    <details class="section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Poslednji unosi opterećenja</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <div class="stack">
         ${
           recentProgressLogs.length
@@ -7422,15 +7418,13 @@ function renderTrainingTab() {
             : `<div class="empty">Još nema sačuvanih unosa opterećenja.</div>`
         }
       </div>
-    </section>
+    </details>
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Beleške</h2>
-          <p>Kratak log ako hoćeš da zabeležiš kako je prošao trening.</p>
-        </div>
-      </div>
+    <details class="section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Beleške</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <form id="training-log-form" class="form-grid">
         <div class="field">
           <label for="training-note">Beleska</label>
@@ -7457,7 +7451,7 @@ function renderTrainingTab() {
             : `<div class="empty">Još nema beleški za ovaj dan.</div>`
         }
       </div>
-    </section>
+    </details>
   `;
 }
 
