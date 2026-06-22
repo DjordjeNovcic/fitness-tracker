@@ -6160,7 +6160,7 @@ function renderPlanTab(entries) {
                           ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                           <div class="meal-card-heading">
                             <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
-                            <div class="footer-note">${isEditingMeal ? "Uređuješ ovaj obrok" : `Obrok za ${state.selectedWeekday}`}</div>
+                            ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
                           </div>
                           ${
                             mealEntries.length
@@ -6223,13 +6223,13 @@ function renderPlanTab(entries) {
                               ? `
                                 <div class="entry-actions meal-card-actions">
                                   <button class="solid-button secondary-button button-with-icon" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
-                                    ${renderButtonContent("Dodaj stavku", "add")}
+                                    ${renderButtonContent("Dodaj namirnicu", "add")}
                                   </button>
                                   <button class="ghost-button button-with-icon" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
-                                    ${renderButtonContent(isEditingMeal ? "Zavrsi uredjivanje" : "Uredi obrok", "edit")}
+                                    ${renderButtonContent(isEditingMeal ? "Završi uređivanje" : "Uredi", "edit")}
                                   </button>
                                   ${
-                                    mealEntries.length
+                                    isEditingMeal && mealEntries.length
                                       ? `
                                         <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
                                           ${renderButtonContent("Sačuvaj kao recept", "save")}
@@ -6275,11 +6275,9 @@ function renderPlanTab(entries) {
                                           <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
                                         </div>
                                       </div>
-                                      <div class="pill-row meal-entry-pills">
+                                      <div class="meal-entry-stats">
                                         <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                        <span class="pill">P ${roundValue(entry.totals.protein, 1)} g</span>
-                                        <span class="pill">UH ${roundValue(entry.totals.carbs, 1)} g</span>
-                                        <span class="pill">M ${roundValue(entry.totals.fat, 1)} g</span>
+                                        <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
                                       </div>
                                       </div>
                                       ${

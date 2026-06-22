@@ -7196,3 +7196,71 @@ body.app-header-hidden .workspace-header {
     transition: none;
   }
 }
+
+/* ============================================================
+   Plan meal card — clearer "obrok vs namirnice" hierarchy,
+   compact actions, quiet per-food stats.
+   ============================================================ */
+
+/* Meal actions: compact inline, not a full-width button wall */
+.meal-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+.meal-card-actions > button {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 9px 15px;
+}
+
+/* "Namirnice u obroku" reads as a clear label introducing the foods */
+.meal-items-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.meal-items-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.meal-items-count {
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Each food = a clean item: name + amount, one kcal pill, quiet macros */
+.meal-entry-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meal-entry-title-group strong {
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+.meal-entry-grams {
+  font-size: 0.84rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.meal-entry-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+.meal-entry-macros {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
