@@ -7028,19 +7028,20 @@ function renderRecipesTab() {
                               </button>
                             </div>
                           </div>
-                          <div class="pill-row recipe-library-pills">
-                            <span class="pill">${favorite.mealLabel || favorite.name}</span>
-                            <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
-                            ${
-                              favorite.prepTimeMinutes
-                                ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
-                                : ""
-                            }
-                            <span class="pill note">Ukupno ${roundValue(favorite.totals.kcal, 0)} kcal</span>
-                            <span class="pill">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
-                            <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
-                            <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
-                            <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
+                          <div class="recipe-library-meta">
+                            ${[
+                              favorite.mealLabel || favorite.name,
+                              `${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}`,
+                              favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
+                            ]
+                              .filter(Boolean)
+                              .map((part) => `<span>${part}</span>`)
+                              .join("")}
+                          </div>
+                          <div class="recipe-library-stats">
+                            <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal <span class="recipe-library-stat-sub">po porciji</span></span>
+                            <span class="recipe-library-stat-macros">P ${roundValue(favorite.perServingTotals.protein, 1)} · UH ${roundValue(favorite.perServingTotals.carbs, 1)} · M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
+                            <span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>
                           </div>
                           ${
                             isExpanded

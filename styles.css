@@ -8559,3 +8559,66 @@ body.app-header-hidden .workspace-header {
   justify-content: center;
   color: var(--muted);
 }
+
+/* ============================================================
+   Recipe library card — clear hierarchy instead of a wall of pills:
+   quiet meta line (meal · servings · time), a prominent per-serving
+   kcal + macros, and a small total.
+   ============================================================ */
+.recipe-library-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.recipe-library-meta span:not(:last-child)::after {
+  content: "·";
+  margin: 0 8px;
+  opacity: 0.5;
+}
+
+.recipe-library-stats {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 13px;
+  margin-top: 12px;
+}
+
+.recipe-library-stat-kcal {
+  color: var(--accent-strong);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.recipe-library-stat-kcal strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.recipe-library-stat-sub {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.recipe-library-stat-macros {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-library-stat-total {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.82;
+}
