@@ -5509,6 +5509,22 @@ function renderButtonContent(label, iconKind, labelClass = "") {
   return `${renderActionIcon(iconKind)}<span class="button-label ${labelClass}">${label}</span>`;
 }
 
+// Crafted disclosure chevron — rotates 180° when open. Replaces the ▴/▾ glyphs.
+function renderChevronIcon(isOpen) {
+  return `<svg class="chevron-icon ${isOpen ? "is-open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+}
+
+// Horizontal chevron for the sidebar collapse control.
+function renderSideChevronIcon(pointsLeft) {
+  const path = pointsLeft ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6";
+  return `<svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
+}
+
+// Crafted favorite star — outline when off, filled when active. Replaces ★/☆.
+function renderStarIcon(isActive) {
+  return `<svg class="star-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4l2.55 5.17 5.7.83-4.13 4.02.98 5.68L12 16.6l-5.1 2.68.98-5.68L3.75 9.4l5.7-.83z"/></svg>`;
+}
+
 function renderAuthShell() {
   const submitLabel = state.authPending
     ? state.authMode === "register"
@@ -5865,7 +5881,7 @@ function renderPlanSupplementsSection() {
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${supplements.length} stavki</span>
-          <span class="section-disclosure-icon" aria-hidden="true">${state.planSupplementsExpanded ? "▴" : "▾"}</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSupplementsExpanded)}</span>
         </div>
       </button>
       <div class="plan-section-body ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
@@ -5962,7 +5978,7 @@ function renderPlanTab(entries) {
           <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 1)} · UH ${roundValue(totals.carbs, 1)} · M ${roundValue(totals.fat, 1)}</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="section-disclosure-icon" aria-hidden="true">${state.planSummaryExpanded ? "▴" : "▾"}</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSummaryExpanded)}</span>
         </div>
       </button>
       <div class="plan-section-body ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
@@ -6015,7 +6031,7 @@ function renderPlanTab(entries) {
           </div>
           <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
         </div>
-        <span class="plan-quick-toggle-icon" aria-hidden="true">${state.planQuickExpanded ? "▴" : "▾"}</span>
+        <span class="plan-quick-toggle-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
       </button>
       <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
         <div class="plan-quick-main">
@@ -6436,7 +6452,7 @@ function renderFoodsTab() {
           ? `
             <div class="foods-list-table-wrap">
               <div class="foods-list-table-head" aria-hidden="true">
-                <span class="foods-list-table-head-favorite">☆</span>
+                <span class="foods-list-table-head-favorite">${renderStarIcon(false)}</span>
                 <span class="foods-list-table-head-name">Namirnica</span>
                 <span class="foods-list-table-head-value">kcal</span>
                 <span class="foods-list-table-head-value">Proteini</span>
@@ -6483,7 +6499,7 @@ function renderFoodsTab() {
                       aria-pressed="${isFavoriteFood ? "true" : "false"}"
                       title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
                     >
-                      ${isFavoriteFood ? "★" : "☆"}
+                      ${renderStarIcon(isFavoriteFood)}
                     </button>
                   </div>
                 </div>
@@ -6528,7 +6544,7 @@ function renderFoodsTab() {
                     aria-pressed="${isFavoriteFood ? "true" : "false"}"
                     title="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
                   >
-                    ${isFavoriteFood ? "★" : "☆"}
+                    ${renderStarIcon(isFavoriteFood)}
                   </button>
                 </div>
                 <div class="foods-list-main">
@@ -6625,7 +6641,7 @@ function renderRecipesTab() {
           <h2>Napravi recept</h2>
           <p>Sastavi novi recept iz sastojaka.</p>
         </div>
-        <span class="section-disclosure-icon" aria-hidden="true">${state.recipesBuilderExpanded ? "▴" : "▾"}</span>
+        <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.recipesBuilderExpanded)}</span>
       </button>
       <div class="plan-section-body ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
       <article class="food-card suggestion-surface recipe-studio-card">
@@ -6893,7 +6909,7 @@ function renderRecipesTab() {
                                 aria-expanded="${isExpanded}"
                                 aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}"
                               >
-                                ${isExpanded ? "▾" : "▸"}
+                                ${renderChevronIcon(isExpanded)}
                               </button>
                             </div>
                           </div>
@@ -9144,7 +9160,7 @@ function render() {
           </div>
           <div class="app-sidebar-top-actions">
             <button class="ghost-button sidebar-toggle" type="button" data-action="toggle-sidebar-collapse" aria-label="${state.sidebarCollapsed ? "Raširi navigaciju" : "Skupi navigaciju"}" aria-pressed="${state.sidebarCollapsed}">
-              ${state.sidebarCollapsed ? "▸" : "◂"}
+              ${state.sidebarCollapsed ? renderSideChevronIcon(false) : renderSideChevronIcon(true)}
             </button>
             <button class="ghost-button menu-close" type="button" data-action="close-nav-menu" aria-label="Zatvori meni">
               ${renderMenuToggleIcon(true)}

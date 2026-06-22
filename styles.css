@@ -8038,3 +8038,50 @@ body.app-header-hidden .workspace-header {
     transition: none;
   }
 }
+
+/* ============================================================
+   Crafted iconography — disclosure chevrons + favorite stars
+   replace the old ▴/▾/★/☆ text glyphs for a consistent, premium
+   look across the app (matches the meal-card chevron).
+   ============================================================ */
+.chevron-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.chevron-icon.is-open {
+  transform: rotate(180deg);
+}
+
+.section-disclosure-icon .chevron-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.plan-quick-toggle-icon .chevron-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.star-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.foods-favorite-toggle .star-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.foods-list-table-head-favorite .star-icon {
+  width: 13px;
+  height: 13px;
+  opacity: 0.65;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron-icon {
+    transition: none;
+  }
+}
