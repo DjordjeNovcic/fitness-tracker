@@ -4491,8 +4491,25 @@ let activeScanControls = null;
 
 function getBarcodeReader() {
   if (!barcodeReaderPromise) {
-    barcodeReaderPromise = import("https://esm.sh/@zxing/browser@0.1.5")
-      .then((mod) => new mod.BrowserMultiFormatReader())
+    barcodeReaderPromise = Promise.all([
+      import("https://esm.sh/@zxing/browser@0.1.5"),
+      import("https://esm.sh/@zxing/library@0.21.3"),
+    ])
+      .then(([browser, library]) => {
+        // Target product barcodes explicitly + try harder — the default
+        // "decode any format" mode often fails to read EAN/UPC on phones.
+        const hints = new Map();
+        hints.set(library.DecodeHintType.POSSIBLE_FORMATS, [
+          library.BarcodeFormat.EAN_13,
+          library.BarcodeFormat.EAN_8,
+          library.BarcodeFormat.UPC_A,
+          library.BarcodeFormat.UPC_E,
+          library.BarcodeFormat.CODE_128,
+          library.BarcodeFormat.CODE_39,
+        ]);
+        hints.set(library.DecodeHintType.TRY_HARDER, true);
+        return new browser.BrowserMultiFormatReader(hints);
+      })
       .catch((error) => {
         barcodeReaderPromise = null;
         throw error;
@@ -4519,7 +4536,13 @@ async function startBarcodeScan() {
     // Prefer the rear camera on phones; fall back to the default device.
     if (typeof reader.decodeFromConstraints === "function") {
       activeScanControls = await reader.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } } },
+        {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        },
         video,
         onResult
       );
