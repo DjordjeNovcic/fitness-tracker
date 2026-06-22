@@ -8243,3 +8243,8 @@ body.app-header-hidden .workspace-header {
     animation: none;
   }
 }
+
+/* Trend chart: a soft glow on the current point so the latest reading pops. */
+.chart-dot.is-current {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent));
+}

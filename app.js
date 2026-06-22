@@ -8509,6 +8509,30 @@ function getMeasurementSeries(fieldId) {
     }));
 }
 
+// Catmull-Rom → cubic Bézier so the trend reads as a smooth curve, not a
+// jagged polyline. Passes through every point; gentle 1/6 tension.
+function buildSmoothLinePath(pts) {
+  if (!pts.length) {
+    return "";
+  }
+  if (pts.length < 3) {
+    return `M ${pts.map((p) => `${p.x},${p.y}`).join(" L ")}`;
+  }
+  let d = `M ${pts[0].x},${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = roundValue(p1.x + (p2.x - p0.x) / 6, 2);
+    const cp1y = roundValue(p1.y + (p2.y - p0.y) / 6, 2);
+    const cp2x = roundValue(p2.x - (p3.x - p1.x) / 6, 2);
+    const cp2y = roundValue(p2.y - (p3.y - p1.y) / 6, 2);
+    d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+  return d;
+}
+
 function renderTrendCard(field) {
   const series = getMeasurementSeries(field.id);
 
@@ -8537,14 +8561,14 @@ function renderTrendCard(field) {
     const y = height - paddingY - ((point.value - min) / range) * (height - paddingY * 2);
     return { ...point, x: roundValue(x, 1), y: roundValue(y, 1) };
   });
-  const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
   const latest = series[series.length - 1];
   const first = series[0];
   const delta = roundValue(latest.value - first.value, 1);
   const last = points[points.length - 1];
   const gradId = `chart-grad-${field.id}`;
   const baseline = height - paddingY;
-  const areaPoints = `${points[0].x},${baseline} ${polyline} ${last.x},${baseline}`;
+  const linePath = buildSmoothLinePath(points);
+  const areaPath = `${linePath} L ${last.x},${baseline} L ${points[0].x},${baseline} Z`;
   const gridLines = [0.5, 1]
     .map((factor) => {
       const gy = roundValue(paddingY + factor * (height - paddingY * 2) * 0.66, 1);
@@ -8566,14 +8590,14 @@ function renderTrendCard(field) {
           </linearGradient>
         </defs>
         ${gridLines}
-        <polygon points="${areaPoints}" class="chart-area" fill="url(#${gradId})"></polygon>
-        <polyline points="${polyline}" class="chart-line"></polyline>
-        <circle cx="${last.x}" cy="${last.y}" r="4" class="chart-dot is-current"></circle>
+        <path d="${areaPath}" class="chart-area" fill="url(#${gradId})"></path>
+        <path d="${linePath}" class="chart-line" fill="none"></path>
+        <circle cx="${last.x}" cy="${last.y}" r="3.6" class="chart-dot is-current"></circle>
       </svg>
       <div class="meta-row">
         <span class="pill">${first.label}</span>
         <span class="pill">${latest.label}</span>
-        <span class="pill note">${delta > 0 ? "+" : ""}${delta}${field.unit ? ` ${field.unit}` : ""}</span>
+        ${renderMeasurementDelta(delta, field.unit)}
       </div>
     </article>
   `;
