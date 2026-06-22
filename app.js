@@ -5921,16 +5921,31 @@ function renderPlanTab(entries) {
         </div>
       </button>
       <div class="plan-section-body ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
+      ${
+        calorieGoal
+          ? `
       <div class="plan-summary-headline" data-state="${calorieState}">
         <div class="plan-summary-headline-main">
-          <span class="plan-summary-headline-label">${calorieGoal ? (remainingCalories >= 0 ? "Preostalo danas" : "Preko cilja") : "Postavi kalorijski cilj"}</span>
-          <strong class="plan-summary-headline-value">${calorieGoal ? Math.abs(remainingCalories) : "—"}<span class="plan-summary-headline-unit">kcal</span></strong>
+          <span class="plan-summary-headline-label">${remainingCalories >= 0 ? "Preostalo danas" : "Preko cilja"}</span>
+          <strong class="plan-summary-headline-value">${remainingCalories < 0 ? "+" : ""}${Math.abs(remainingCalories)}<span class="plan-summary-headline-unit">kcal</span></strong>
         </div>
         <div class="plan-summary-headline-meta">
-          <span class="footer-note">${roundValue(totals.kcal, 0)}${calorieGoal ? ` / ${calorieGoal}` : ""} kcal uneto</span>
-          ${calorieGoal ? renderProgress(totals.kcal, calorieGoal, "limit") : ""}
+          <span class="footer-note">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal uneto</span>
+          ${renderProgress(totals.kcal, calorieGoal, "limit")}
         </div>
       </div>
+      `
+          : `
+      <div class="plan-summary-headline is-empty">
+        <div class="plan-summary-headline-main">
+          <span class="plan-summary-headline-label">Danas uneto</span>
+          <strong class="plan-summary-headline-value plan-summary-headline-value--prompt">${roundValue(totals.kcal, 0)}<span class="plan-summary-headline-unit">kcal</span></strong>
+          <span class="footer-note">Postavi kalorijski cilj da pratiš koliko ti je ostalo.</span>
+        </div>
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "open")}</button>
+      </div>
+      `
+      }
       <div class="plan-summary-layout">
         ${renderMacroCards(totals, { excludeCalories: true })}
         <div class="stats-grid plan-secondary-stats">

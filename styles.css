@@ -1,6 +1,6 @@
 :root {
-  --bg: #f4eee4;
-  --bg-strong: #e8ddd0;
+  --bg: #ece2d3;
+  --bg-strong: #ddd0bd;
   --surface: rgba(255, 251, 246, 0.92);
   --surface-strong: #fffaf5;
   --surface-soft: rgba(255, 253, 249, 0.82);
@@ -78,8 +78,8 @@ html {
   background:
     radial-gradient(circle at 10% 0%, rgba(139, 153, 97, 0.13), transparent 22%),
     radial-gradient(circle at 86% 8%, rgba(47, 128, 118, 0.13), transparent 22%),
-    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.52), transparent 32%),
-    linear-gradient(180deg, #fbf6ef 0%, #f2e7d9 100%);
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.42), transparent 32%),
+    linear-gradient(180deg, #f3ece0 0%, #e8dccb 100%);
   scroll-behavior: smooth;
 }
 
@@ -7002,4 +7002,20 @@ body.menu-open .tab-bar {
 /* When expanded, the disclosure subtitle just repeats the body */
 .plan-summary-section.is-expanded .section-disclosure-copy p {
   display: none;
+}
+
+/* ============================================================
+   Tier 2 — empty calorie state (useful prompt, not a giant dash)
+   ============================================================ */
+.plan-summary-headline.is-empty {
+  align-items: center;
+}
+
+.plan-summary-headline.is-empty .plan-summary-headline-main {
+  gap: 6px;
+}
+
+.plan-summary-headline-value--prompt {
+  font-size: 2.1rem;
+  color: var(--ink);
 }
