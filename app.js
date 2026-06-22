@@ -175,6 +175,7 @@ const MEAL_LABEL_MAP = {
 
 const state = {
   activeTab: getInitialTab(),
+  onboarding: null,
   selectedWeekday: getTodayWeekday(),
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
@@ -289,6 +290,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     ...rawStore,
     profile: { ...profileDefaults, ...fallback.profile, ...(rawStore.profile || {}) },
     goals: { ...goalDefaults, ...fallback.goals, ...(rawStore.goals || {}) },
+    onboarded: Boolean(rawStore.onboarded),
     meta: { ...fallback.meta, ...(rawStore.meta || {}) },
     foods: Array.isArray(rawStore.foods) ? rawStore.foods : fallback.foods,
     weeklyPlanEntries: Array.isArray(rawStore.weeklyPlanEntries)
@@ -5245,6 +5247,103 @@ function renderLoadingShell() {
   `;
 }
 
+// First-run onboarding only for a genuinely fresh account — never for users
+// who already set a goal or logged any meals.
+function shouldShowOnboarding() {
+  if (store.onboarded) {
+    return false;
+  }
+  if (toNumber(store.goals.calories) > 0) {
+    return false;
+  }
+  return (store.weeklyPlanEntries || []).length === 0;
+}
+
+function renderOnboardingPreview() {
+  const ob = state.onboarding || {};
+  const rec = getGoalRecommendation(
+    {
+      sex: ob.sex,
+      age: ob.age,
+      heightCm: ob.heightCm,
+      weightKg: ob.weightKg,
+      activityLevel: ob.activityLevel,
+    },
+    { targetMode: ob.targetMode }
+  );
+  if (!rec) {
+    return `<div class="onboarding-preview-empty">Popuni pol, godine, visinu i težinu pa odmah računamo tvoj dnevni cilj.</div>`;
+  }
+  return `
+    <div class="onboarding-preview-label">Tvoj dnevni cilj</div>
+    <div class="onboarding-preview-kcal"><strong>${rec.targetCalories}</strong> kcal</div>
+    <div class="onboarding-preview-macros">
+      <span>P <strong>${rec.protein}</strong> g</span>
+      <span>UH <strong>${rec.carbs}</strong> g</span>
+      <span>M <strong>${rec.fat}</strong> g</span>
+    </div>`;
+}
+
+function syncOnboardingPreview() {
+  const el = document.querySelector("#onboarding-preview");
+  if (el) {
+    el.innerHTML = renderOnboardingPreview();
+  }
+}
+
+function renderOnboarding() {
+  const ob = state.onboarding || {};
+  return `
+    <main class="shell onboarding-shell" aria-label="Početno podešavanje">
+      <div class="onboarding-card">
+        <div class="onboarding-head">
+          <span class="onboarding-logo" aria-hidden="true">${renderTabIcon("plan")}</span>
+          <h1>Dobrodošao u Fit Tracker</h1>
+          <p>Par brzih podataka i odmah dobijaš dnevni kalorijski cilj i makroe. Sve kasnije možeš da promeniš u Ciljevima.</p>
+        </div>
+        <form id="onboarding-form" class="onboarding-form" autocomplete="off">
+          <div class="field">
+            <label>Pol</label>
+            <div class="chips onboarding-chips">
+              <button type="button" class="chip ${ob.sex === "male" ? "is-active" : ""}" data-action="set-onboarding-sex" data-sex="male">Muško</button>
+              <button type="button" class="chip ${ob.sex === "female" ? "is-active" : ""}" data-action="set-onboarding-sex" data-sex="female">Žensko</button>
+            </div>
+          </div>
+          <div class="onboarding-grid">
+            <div class="field">
+              <label for="ob-age">Godine</label>
+              <input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" placeholder="30" />
+            </div>
+            <div class="field">
+              <label for="ob-height">Visina (cm)</label>
+              <input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" placeholder="180" />
+            </div>
+            <div class="field">
+              <label for="ob-weight">Težina (kg)</label>
+              <input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" placeholder="84" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="ob-activity">Nivo aktivnosti</label>
+            <select id="ob-activity">
+              ${ACTIVITY_LEVELS.map((level) => `<option value="${level.id}" ${level.id === ob.activityLevel ? "selected" : ""}>${level.label}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>Cilj</label>
+            <div class="chips onboarding-chips">
+              ${GOAL_MODES.map((mode) => `<button type="button" class="chip ${mode.id === ob.targetMode ? "is-active" : ""}" data-action="set-onboarding-mode" data-mode="${mode.id}">${mode.label}</button>`).join("")}
+            </div>
+          </div>
+          <div class="onboarding-preview" id="onboarding-preview">${renderOnboardingPreview()}</div>
+          <button class="solid-button button-with-icon onboarding-cta" type="button" data-action="finish-onboarding">${renderButtonContent("Sačuvaj i počni", "apply")}</button>
+          <button class="ghost-button onboarding-skip" type="button" data-action="skip-onboarding">Preskoči zasad</button>
+        </form>
+      </div>
+    </main>
+  `;
+}
+
 function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
   lastHeaderScrollY = 0;
@@ -9159,6 +9258,24 @@ function render() {
     return;
   }
 
+  if (shouldShowOnboarding()) {
+    document.body.classList.remove("plan-compact");
+    state.navMenuOpen = false;
+    if (!state.onboarding) {
+      state.onboarding = {
+        sex: store.profile.sex || "",
+        age: store.profile.age || "",
+        heightCm: store.profile.heightCm || "",
+        weightKg: store.profile.weightKg || "",
+        activityLevel: store.profile.activityLevel || "moderate",
+        targetMode: store.goals.targetMode || "lose",
+      };
+    }
+    syncBodyScrollLock();
+    document.querySelector("#app").innerHTML = renderOnboarding();
+    return;
+  }
+
   const entries = getPlanEntriesForDay(state.selectedWeekday);
   const totals = getDayTotals(entries);
   const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
@@ -9545,6 +9662,64 @@ async function handleDocumentClick(event) {
       }
       window.location.reload();
     })();
+    return;
+  }
+
+  if (action === "set-onboarding-sex") {
+    if (state.onboarding) {
+      state.onboarding.sex = actionTarget.dataset.sex || "";
+      render();
+    }
+    return;
+  }
+
+  if (action === "set-onboarding-mode") {
+    if (state.onboarding) {
+      state.onboarding.targetMode = actionTarget.dataset.mode || "lose";
+      render();
+    }
+    return;
+  }
+
+  if (action === "skip-onboarding") {
+    store.onboarded = true;
+    state.onboarding = null;
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "finish-onboarding") {
+    const ob = state.onboarding || {};
+    const profile = {
+      ...store.profile,
+      sex: ob.sex || "",
+      age: toNumber(ob.age),
+      heightCm: toNumber(ob.heightCm),
+      weightKg: toNumber(ob.weightKg),
+      activityLevel: ob.activityLevel || "moderate",
+    };
+    const rec = getGoalRecommendation(profile, { targetMode: ob.targetMode || "lose" });
+    store.profile = profile;
+    store.goals.targetMode = ob.targetMode || "lose";
+    if (rec) {
+      store.goals.calories = rec.targetCalories;
+      store.goals.protein = rec.protein;
+      store.goals.carbs = rec.carbs;
+      store.goals.fat = rec.fat;
+    }
+    store.onboarded = true;
+    state.onboarding = null;
+    state.activeTab = "plan";
+    state.tabEnter = true;
+    persist();
+    render();
+    showFeedbackToast({
+      title: "Spremno! 🎉",
+      detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal. Dodaj prvi obrok.` : "Cilj možeš da postaviš u tabu Ciljevi.",
+      tone: "success",
+      duration: 3600,
+    });
     return;
   }
 
@@ -11430,6 +11605,15 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
     filterFoodsListInline(target.value);
+    return;
+  }
+
+  if (state.onboarding && (target.id === "ob-age" || target.id === "ob-height" || target.id === "ob-weight" || target.id === "ob-activity")) {
+    if (target.id === "ob-age") state.onboarding.age = target.value;
+    if (target.id === "ob-height") state.onboarding.heightCm = target.value;
+    if (target.id === "ob-weight") state.onboarding.weightKg = target.value;
+    if (target.id === "ob-activity") state.onboarding.activityLevel = target.value;
+    syncOnboardingPreview();
     return;
   }
 

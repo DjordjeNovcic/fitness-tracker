@@ -8248,3 +8248,168 @@ body.app-header-hidden .workspace-header {
 .chart-dot.is-current {
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent));
 }
+
+/* ============================================================
+   First-run onboarding — a centered card that collects a quick
+   profile + goal and previews the computed daily target live.
+   ============================================================ */
+.onboarding-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+}
+
+.onboarding-card {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 18px;
+  padding: 26px 22px;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 10%, transparent), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 244, 0.97)),
+    var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.onboarding-head {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.onboarding-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  margin-bottom: 2px;
+  color: #fefbf3;
+  background: linear-gradient(135deg, #10271f 0%, #194236 55%, #2d7e74 100%);
+  box-shadow: 0 12px 26px rgba(17, 40, 32, 0.22);
+}
+
+.onboarding-logo svg,
+.onboarding-logo .tab-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.onboarding-head h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 1.92rem);
+  letter-spacing: -0.01em;
+}
+
+.onboarding-head p {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 15px;
+}
+
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboarding-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onboarding-chips .chip {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.onboarding-preview {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  text-align: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 4%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
+}
+
+.onboarding-preview-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.onboarding-preview-kcal {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2.1rem;
+  line-height: 1;
+  color: var(--accent-strong);
+}
+
+.onboarding-preview-kcal strong {
+  font-weight: 700;
+}
+
+.onboarding-preview-macros {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.onboarding-preview-macros strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.onboarding-preview-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.onboarding-cta {
+  width: 100%;
+  justify-content: center;
+  min-height: 50px;
+  font-size: 1.02rem;
+  margin-top: 2px;
+}
+
+.onboarding-skip {
+  width: 100%;
+  justify-content: center;
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .onboarding-card {
+  background:
+    radial-gradient(circle at top right, oklch(0.8 0.132 82 / 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .onboarding-preview {
+  background: linear-gradient(135deg, oklch(0.8 0.132 82 / 0.16), oklch(0.8 0.132 82 / 0.05));
+  border-color: oklch(0.8 0.132 82 / 0.3);
+}
