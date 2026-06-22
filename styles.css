@@ -7364,11 +7364,6 @@ body.app-header-hidden .workspace-header {
   .foods-list-value-cell--kcal {
     flex-direction: row-reverse;
   }
-  .foods-list-value-cell + .foods-list-value-cell::before {
-    content: "·";
-    margin-right: 6px;
-    color: var(--muted);
-  }
   .foods-list-mobile-label {
     font-size: 0.74rem;
     font-weight: 600;

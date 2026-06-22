@@ -6421,7 +6421,7 @@ function renderFoodsTab() {
     Ostalo: "other",
     Sve: "all",
   };
-  const isListView = state.foodCatalogView !== "thumbnails";
+  const isListView = true; // single list view — the thumbnails toggle added clutter
 
   return `
     <section class="section goals-sync-section foods-section">
@@ -6437,28 +6437,6 @@ function renderFoodsTab() {
         </div>
       </div>
       <div class="foods-toolbar">
-        <div class="foods-toolbar-view-toggle" role="tablist" aria-label="Prikaz namirnica">
-          <button
-            class="chip is-light ${isListView ? "is-active" : ""}"
-            type="button"
-            role="tab"
-            aria-selected="${isListView ? "true" : "false"}"
-            data-action="set-food-catalog-view"
-            data-view="list"
-          >
-            Lista
-          </button>
-          <button
-            class="chip is-light ${!isListView ? "is-active" : ""}"
-            type="button"
-            role="tab"
-            aria-selected="${!isListView ? "true" : "false"}"
-            data-action="set-food-catalog-view"
-            data-view="thumbnails"
-          >
-            Thumbnails
-          </button>
-        </div>
         <button class="ghost-button button-with-icon foods-toolbar-scan" type="button" data-action="open-scanner">
           <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
           <span class="button-label">Skeniraj</span>
@@ -6479,24 +6457,6 @@ function renderFoodsTab() {
             </button>
           `
         ).join("")}
-      </div>
-      <div class="stack recipe-filter-stack" style="margin-bottom:14px;">
-        <div>
-          <div class="footer-note" style="margin-bottom:8px;">Filtriraj po nutritivnom profilu</div>
-          <div class="chips recipe-filter-bar">
-            ${NUTRITION_PROFILE_FILTERS.map(
-              (filter) => `
-                <button
-                  class="chip is-light recipe-filter-chip ${filter.id === state.foodNutritionFilter ? "is-active" : ""}"
-                  data-action="set-food-nutrition-filter"
-                  data-filter="${filter.id}"
-                >
-                  ${filter.label}
-                </button>
-              `
-            ).join("")}
-          </div>
-        </div>
       </div>
       <div class="field">
         <label for="food-search">Pretraga</label>
@@ -6601,7 +6561,6 @@ function renderFoodsTab() {
                   <div class="foods-list-title-block">
                     <h3>${food.name}</h3>
                     <div class="foods-list-meta">
-                      <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
                       <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
                     </div>
                   </div>
