@@ -29,14 +29,18 @@ function weekdayLabel(weekday) {
 const TABS = [
   { id: "plan", label: "Plan", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
-  { id: "nutrition", label: "Nutricionista", icon: "🗂" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
   { id: "routine", label: "Rutina", icon: "✅" },
   { id: "progress", label: "Napredak", icon: "📏" },
   { id: "goals", label: "Ciljevi", icon: "🎯" },
-  { id: "settings", label: "Podešavanja", icon: "⚙️" },
 ];
+// Routable but hidden from the main nav: Nutricionista (rarely used; reachable
+// from a link in Namirnice). Settings is folded into the Ciljevi tab.
+const HIDDEN_ROUTES = ["nutrition"];
+// Includes the hidden routes so the header title/icon + hash routing still
+// resolve when one is opened, even though they're not in the nav menu.
+const ALL_TABS = [...TABS, { id: "nutrition", label: "Nutricionista", icon: "🗂" }];
 const TAB_META = {
   plan: { eyebrow: "Dnevni plan", description: "Pregled obroka, kalorija i dnevnog ritma za izabrani dan." },
   recipes: { eyebrow: "Biblioteka", description: "Sastavljaj obroke, čuvaj favorite i ubacuj ih u plan bez duplog unosa." },
@@ -691,7 +695,7 @@ function getTodayWeekday() {
 
 function getInitialTab() {
   const hash = window.location.hash.replace("#", "");
-  return TABS.some((tab) => tab.id === hash) ? hash : "plan";
+  return ALL_TABS.some((tab) => tab.id === hash) ? hash : "plan";
 }
 
 function toNumber(value) {
@@ -5206,7 +5210,7 @@ function renderHero(entries, totals) {
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
               ${weekdayLabel(weekday).slice(0, 3)}
             </button>
           `
@@ -5218,7 +5222,7 @@ function renderHero(entries, totals) {
 }
 
 function renderWorkspaceHeader() {
-  const activeTab = TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
+  const activeTab = ALL_TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
   const tabMeta = TAB_META[state.activeTab] || TAB_META.plan;
 
   return `
@@ -6529,11 +6533,12 @@ function renderFoodsTab() {
         <div>
           <h2>Baza namirnica</h2>
           <p>Trenutno imaš ${selectableFoods.length} spremnih namirnica u glavnoj bazi.</p>
-          ${
-            pendingNutritionFoods.length
-              ? `<p class="footer-note">${pendingNutritionFoods.length} importovanih sastojaka još čeka kcal/makroe i ostaje u tabu Nutricionista dok ih ne dopuniš.</p>`
-              : ""
-          }
+          <button class="ghost-button button-with-icon foods-nutrition-link" type="button" data-action="switch-tab" data-tab="nutrition">
+            ${renderButtonContent(
+              pendingNutritionFoods.length ? `Nutricionista · ${pendingNutritionFoods.length} za sređivanje` : "Nutricionista — uvoz dokumenata",
+              "open"
+            )}
+          </button>
         </div>
       </div>
       <div class="foods-toolbar">
@@ -7490,7 +7495,7 @@ function renderRoutineTab() {
         <div class="chips" style="margin-top:12px;">
           ${WEEKDAYS.map(
             (weekday) => `
-              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
                 ${weekdayLabel(weekday).slice(0, 3)}
               </button>
             `
@@ -8033,6 +8038,7 @@ function renderGoalsTab() {
           .join("")}
       </div>
     </details>
+    ${renderAccountSection()}
   `;
 }
 
@@ -8553,7 +8559,7 @@ function renderNutritionTab() {
   `;
 }
 
-function renderSettingsTab() {
+function renderAccountSection() {
   const syncStatusTone = getSyncStatusTone();
 
   return `
@@ -9342,7 +9348,6 @@ function render() {
     routine: renderRoutineTab(),
     progress: renderProgressTab(),
     goals: renderGoalsTab(),
-    settings: renderSettingsTab(),
   };
 
   document.querySelector("#app").innerHTML = `
