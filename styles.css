@@ -1814,7 +1814,7 @@ textarea::placeholder {
 }
 
 .foods-list-value-cell--kcal strong {
-  color: #56643e;
+  color: var(--teal);
 }
 
 .foods-list-mobile-label {
@@ -7426,8 +7426,12 @@ body.app-header-hidden .workspace-header {
     font-weight: 700;
   }
 
+  /* kcal is the headline number — bring it forward (brand green in light,
+     gold in dark via the data-theme override) and a touch bolder/larger. */
   .foods-list-value-cell--kcal strong {
-    color: var(--ink);
+    color: var(--teal);
+    font-weight: 800;
+    font-size: 0.96rem;
   }
 
   .foods-list-actions .button-with-icon {
