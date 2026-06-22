@@ -8085,3 +8085,161 @@ body.app-header-hidden .workspace-header {
     transition: none;
   }
 }
+
+/* ============================================================
+   Empty states — a soft centered icon above the message so a
+   blank section reads as "nothing here yet" rather than a stray
+   sentence. Skips the two variants that reuse .empty for real
+   content (notes list / onboarding guide).
+   ============================================================ */
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding-block: 26px;
+}
+
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide)::before {
+  content: "";
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: currentColor;
+  opacity: 0.4;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='9'/%3E%3Cpath%20d='M12%208.5v7M8.5%2012h7'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='9'/%3E%3Cpath%20d='M12%208.5v7M8.5%2012h7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ============================================================
+   Loading skeleton — a shimmering placeholder layout instead of
+   a "Sačekaj trenutak…" line while Firebase warms up.
+   ============================================================ */
+.loading-shell {
+  display: grid;
+  gap: 16px;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 24px 18px 40px;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-strong) 25%,
+    color-mix(in srgb, var(--accent) 10%, var(--surface-strong)) 37%,
+    var(--surface-strong) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 12px;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.skeleton-hero {
+  height: 116px;
+  border-radius: var(--radius-xl);
+}
+
+.skeleton-card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.skeleton-line {
+  height: 13px;
+  border-radius: 7px;
+}
+
+.skeleton-line--title {
+  height: 20px;
+  width: 52%;
+}
+
+.skeleton-line--short {
+  width: 68%;
+}
+
+.loading-shell-note {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+/* ============================================================
+   Measurement change chip — coloured ↑/↓ instead of "| Promena: +X".
+   Down = progress (green), up = warm clay, flat = muted.
+   ============================================================ */
+.stat-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.measure-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.measure-delta svg {
+  width: 12px;
+  height: 12px;
+}
+
+.measure-delta--down {
+  color: #2f8076;
+  background: color-mix(in srgb, #2f8076 12%, transparent);
+  border-color: color-mix(in srgb, #2f8076 24%, transparent);
+}
+
+.measure-delta--up {
+  color: #b06a3c;
+  background: color-mix(in srgb, #b06a3c 12%, transparent);
+  border-color: color-mix(in srgb, #b06a3c 24%, transparent);
+}
+
+.measure-delta--flat {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+:root[data-theme="dark"] .measure-delta--down {
+  color: oklch(0.8 0.12 168);
+  background: oklch(0.8 0.12 168 / 0.14);
+  border-color: oklch(0.8 0.12 168 / 0.32);
+}
+
+:root[data-theme="dark"] .measure-delta--up {
+  color: oklch(0.8 0.1 62);
+  background: oklch(0.8 0.1 62 / 0.14);
+  border-color: oklch(0.8 0.1 62 / 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

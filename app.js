@@ -5229,16 +5229,18 @@ function renderWorkspaceHeader() {
 
 function renderLoadingShell() {
   return `
-    <main class="shell auth-shell">
-      <section class="section auth-card auth-card--centered">
-        <div class="section-header">
-          <div>
-            <h2>Povezujem app</h2>
-            <p>Proveravam nalog i spremam tvoje podatke.</p>
-          </div>
-        </div>
-        <div class="empty">Sačekaj trenutak...</div>
-      </section>
+    <main class="shell app-main loading-shell" aria-busy="true" aria-label="Učitavanje">
+      <div class="skeleton skeleton-hero"></div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line skeleton-line--title"></div>
+        <div class="skeleton skeleton-line"></div>
+        <div class="skeleton skeleton-line skeleton-line--short"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line skeleton-line--title"></div>
+        <div class="skeleton skeleton-line"></div>
+      </div>
+      <p class="loading-shell-note">Povezujem aplikaciju…</p>
     </main>
   `;
 }
@@ -8796,20 +8798,29 @@ function renderMeasurementCard(field) {
       <div class="macro-value">
         ${latestValue !== null ? `${latestValue}${field.unit ? ` ${field.unit}` : ""}` : "-"}
       </div>
-      <div class="footer-note">
-        ${
-          latest
-            ? `Poslednje: ${new Date(latest.date).toLocaleDateString("sr-RS")}`
-            : "Još nema unosa"
-        }
-        ${
-          delta !== null
-            ? ` | Promena: ${delta > 0 ? "+" : ""}${delta}${field.unit ? ` ${field.unit}` : ""}`
-            : ""
-        }
+      <div class="stat-card-meta">
+        <span class="footer-note">${latest ? `Poslednje: ${new Date(latest.date).toLocaleDateString("sr-RS")}` : "Još nema unosa"}</span>
+        ${renderMeasurementDelta(delta, field.unit)}
       </div>
     </article>
   `;
+}
+
+// Change vs the previous reading as a coloured directional chip. Down reads as
+// progress (teal) since the app is deficit/cut-oriented; up is a warm clay.
+function renderMeasurementDelta(delta, unit) {
+  if (delta === null) {
+    return "";
+  }
+  const suffix = unit ? ` ${unit}` : "";
+  if (delta === 0) {
+    return `<span class="measure-delta measure-delta--flat">bez promene</span>`;
+  }
+  const down = delta < 0;
+  return `<span class="measure-delta ${down ? "measure-delta--down" : "measure-delta--up"}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${down ? "M12 5v14M6 13l6 6 6-6" : "M12 19V5M6 11l6-6 6 6"}"/></svg>
+    ${Math.abs(delta)}${suffix}
+  </span>`;
 }
 
 function renderProgressTab() {
