@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-tracker-v16";
+const CACHE_NAME = "fit-tracker-v17";
 const ASSETS = [
   "./",
   "./index.html",
@@ -40,14 +40,21 @@ self.addEventListener("fetch", (event) => {
   const isNavigation = event.request.mode === "navigate";
 
   if (isNavigation) {
+    // Stale-while-revalidate: serve the cached shell instantly (no waiting on
+    // the network to paint), and refresh the cached copy in the background.
+    // Freshness for app.js/styles.css is handled by the CACHE_NAME bump on
+    // activate + the in-app update banner, so we don't need a blocking fetch.
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
-          return response;
-        })
-        .catch(() => caches.match("./index.html"))
+      caches.match("./index.html").then((cached) => {
+        const networkFetch = fetch(event.request)
+          .then((response) => {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
+            return response;
+          })
+          .catch(() => cached);
+        return cached || networkFetch;
+      })
     );
     return;
   }

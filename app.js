@@ -5745,78 +5745,79 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const quantityLabel = getFoodQuantityLabel(draftFood);
   const quantityPlaceholder = getFoodQuantityPlaceholder(draftFood);
 
+  const isEditing = Boolean(state.editingEntryId);
+  const draftGrams = toNumber(state.planDraft.grams);
+
   return `
-    <form id="plan-entry-form" class="form-grid split meal-composer">
+    <form id="plan-entry-form" class="meal-composer">
       <input id="mealLabel" name="mealLabel" type="hidden" value="${activeMealLabel}" />
-      <div class="composer-context meal-composer-context">
-        ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
-        <div>
-          <strong>${mealParts.title || activeMealLabel}</strong>
-          <div class="footer-note">
-            ${state.editingEntryId ? "Menjaš postojeću stavku u ovom obroku." : "Dodaješ novu namirnicu direktno u ovaj obrok."}
-          </div>
-        </div>
+      <div class="meal-composer-head">
+        <span class="meal-composer-eyebrow">${isEditing ? "Izmena stavke" : "Nova stavka"}</span>
+        <h4>${isEditing ? "Izmeni stavku" : `Dodaj u ${mealParts.title || activeMealLabel}`}</h4>
       </div>
       <div class="field meal-composer-field">
-        <label for="foodId">Namirnica</label>
+        <label for="foodId">1. Koju namirnicu?</label>
         <select id="foodId" name="foodId" required>
-          <option value="">Izaberi namirnicu</option>
+          <option value="">Izaberi namirnicu…</option>
           ${selectableFoods
             .map((food) => `<option value="${food.id}" ${food.id === state.planDraft.foodId ? "selected" : ""}>${food.name}</option>`)
             .join("")}
         </select>
       </div>
       <div class="field meal-composer-field">
-        <label for="grams">${quantityLabel}</label>
+        <label for="grams">2. ${quantityLabel}</label>
         <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
       </div>
-      <div class="preview-box meal-composer-preview" id="entry-preview">
-        <h3>Preview</h3>
-        <p>Izaberi namirnicu i gramažu da odmah vidiš makroe.</p>
-      </div>
+      <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
       ${
         companionSuggestions.length
           ? `
-            <div class="food-card suggestion-surface meal-composer-suggestions" id="companion-suggestions">
-              <div class="food-card-top">
-                <h3>Brzi predlozi uz ${draftFood?.name || "stavku"}</h3>
-                <span class="pill strong">auto</span>
-              </div>
-              <div class="stack" style="margin-top:10px;">
-                ${companionSuggestions
-                  .map(
-                    (suggestion) => `
-                      <div class="suggestion-row">
-                        <div>
-                          <strong>${suggestion.food.name}</strong>
-                          <div class="footer-note">${suggestion.reason}</div>
-                          <div class="pill-row">
-                            <span class="pill">${formatFoodAmount(suggestion.food, suggestion.grams)}</span>
-                            <span class="pill note">${roundValue(suggestion.totals.kcal, 0)} kcal</span>
-                          </div>
-                        </div>
-                        <button class="ghost-button" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
-                          Ubaci
-                        </button>
+            <div class="meal-composer-suggestions" id="companion-suggestions">
+              <div class="meal-composer-suggestions-label">Ide uz ovo</div>
+              ${companionSuggestions
+                .map(
+                  (suggestion) => `
+                    <div class="suggestion-row">
+                      <div class="suggestion-row-copy">
+                        <strong>${suggestion.food.name}</strong>
+                        <div class="footer-note">${formatFoodAmount(suggestion.food, suggestion.grams)} · ${roundValue(suggestion.totals.kcal, 0)} kcal</div>
                       </div>
-                    `
-                  )
-                  .join("")}
-              </div>
+                      <button class="ghost-button button-with-icon" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
+                        ${renderButtonContent("Ubaci", "add")}
+                      </button>
+                    </div>
+                  `
+                )
+                .join("")}
             </div>
           `
           : ""
       }
-      <div class="entry-actions entry-actions--start meal-composer-actions">
-        <button class="solid-button secondary-button" type="submit">${state.editingEntryId ? "Sačuvaj izmene" : "Dodaj namirnicu"}</button>
+      <div class="meal-composer-actions">
+        <button class="solid-button button-with-icon meal-composer-submit" type="submit">${renderButtonContent(isEditing ? "Sačuvaj izmene" : "Dodaj namirnicu", isEditing ? "save" : "add")}</button>
         ${
-          state.editingEntryId
+          isEditing
             ? `<button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
             : `<button class="ghost-button" type="button" data-action="finish-edit-meal" data-meal-label="${state.editingMealLabel}">Zatvori</button>`
         }
       </div>
     </form>
   `;
+}
+
+// Shared preview body for the plan composer — used both on first render and by
+// syncEntryPreview as you pick a food / type the amount.
+function renderEntryPreviewInner(food, grams) {
+  if (!food || !grams) {
+    return `<div class="meal-composer-preview-empty">Izaberi namirnicu i količinu — odmah ti pokažem kalorije i makroe.</div>`;
+  }
+  const totals = calculateEntry(food, grams);
+  return `
+    <div class="meal-composer-preview-label">${escapeHtml(food.name)} · ${formatFoodAmount(food, grams)}</div>
+    <div class="meal-composer-preview-result">
+      <span class="meal-composer-preview-kcal"><strong>${roundValue(totals.kcal, 0)}</strong> kcal</span>
+      <span class="meal-composer-preview-macros">P <strong>${totals.protein}</strong> · UH <strong>${totals.carbs}</strong> · M <strong>${totals.fat}</strong> g</span>
+    </div>`;
 }
 
 function truncateText(value, maxLength = 140) {
@@ -9551,20 +9552,7 @@ function syncEntryPreview() {
 
   const food = getFoodById(foodSelect.value);
   const grams = toNumber(gramsInput.value);
-
-  if (!food || !grams) {
-    preview.innerHTML = `
-      <h3>Preview</h3>
-      <p>Izaberi namirnicu i količinu da odmah vidiš makroe.</p>
-    `;
-    return;
-  }
-
-  const totals = calculateEntry(food, grams);
-  preview.innerHTML = `
-    <h3>${food.name} za ${formatFoodAmount(food, grams)}</h3>
-    <p>${roundValue(totals.kcal, 0)} kcal, P ${totals.protein} g, UH ${totals.carbs} g, M ${totals.fat} g</p>
-  `;
+  preview.innerHTML = renderEntryPreviewInner(food, grams);
 }
 
 async function handleDocumentClick(event) {
@@ -11904,11 +11892,9 @@ window.addEventListener("hashchange", () => {
 
 window.addEventListener("scroll", updateHeroScrollState, { passive: true });
 
-// Warm the barcode scanner lib shortly after load so the first scan tap can
-// open the camera within the user gesture (avoids the iOS getUserMedia drop).
-if (typeof window !== "undefined") {
-  window.setTimeout(preloadBarcodeReader, 2500);
-}
+// The barcode scanner lib (ZXing, ~hundreds of KB from a CDN) is loaded lazily
+// — on opening the Foods tab (where the scan button lives) and on scan tap —
+// rather than eagerly on every launch, which was a background stall.
 
 onAuthStateChanged(firebaseAuth, async (user) => {
   state.authPending = false;

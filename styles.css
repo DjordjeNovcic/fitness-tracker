@@ -8434,3 +8434,128 @@ body.app-header-hidden .workspace-header {
     animation: none;
   }
 }
+
+/* ============================================================
+   Plan meal composer — a clearly-bounded "add / edit item" panel.
+   Was a loose pile that repeated the meal name; now one title, two
+   numbered fields, a live result, then the actions. Theme-aware via
+   tokens (sage tint in light, gold tint in dark).
+   ============================================================ */
+.meal-composer {
+  margin-top: 16px;
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+}
+
+.meal-composer-head {
+  display: grid;
+  gap: 2px;
+}
+
+.meal-composer-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.meal-composer-head h4 {
+  margin: 0;
+  font-size: 1.16rem;
+  letter-spacing: -0.01em;
+}
+
+.meal-composer-field {
+  margin: 0;
+}
+
+.meal-composer-preview {
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  border: 1px dashed color-mix(in srgb, var(--accent) 26%, var(--line-strong));
+}
+
+.meal-composer-preview-empty {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.meal-composer-preview-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.meal-composer-preview-result {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meal-composer-preview-kcal {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--accent-strong);
+}
+
+.meal-composer-preview-kcal strong {
+  font-weight: 700;
+}
+
+.meal-composer-preview-macros {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.meal-composer-preview-macros strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.meal-composer-suggestions {
+  display: grid;
+  gap: 2px;
+}
+
+.meal-composer-suggestions-label {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.meal-composer-suggestions .suggestion-row-copy strong {
+  display: block;
+}
+
+.meal-composer-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.meal-composer-submit {
+  width: 100%;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.meal-composer-actions .ghost-button {
+  width: 100%;
+  justify-content: center;
+  color: var(--muted);
+}
