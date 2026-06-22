@@ -5985,6 +5985,10 @@ function renderPlanRecipesSection(planMeals, favorites) {
 function renderPlanSupplementsSection() {
   const supplements = getSupplementsForDay(state.selectedWeekday);
   const doneCount = supplements.filter((supplement) => isSupplementDoneForDay(supplement, state.selectedWeekday)).length;
+  const editingSupplement = state.editingSupplementId
+    ? store.supplements.find((supplement) => supplement.id === state.editingSupplementId)
+    : null;
+  const allSupplements = getSupplements();
 
   return `
     <section class="section plan-supplements-section ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
@@ -6049,9 +6053,77 @@ function renderPlanSupplementsSection() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Dodaj vitamine u tabu Ciljevi, pa će se ovde pojaviti dnevna checklist-a.</div>`
+            : `<div class="empty">Još nema suplemenata za danas — dodaj prvi ispod.</div>`
         }
       </div>
+      <details class="form-collapse plan-supplement-manage" ${editingSupplement ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">${editingSupplement ? "Izmena suplementa" : "Dodaj ili uredi suplemente"}</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
+        <form id="supplement-form" class="form-grid split goals-form-layout">
+          <div class="field">
+            <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
+            <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${editingSupplement?.name || ""}" required />
+          </div>
+          <div class="field">
+            <label for="supplement-timing">Kada se uzima</label>
+            <select id="supplement-timing" name="timing">
+              ${SUPPLEMENT_TIMINGS.map((timing) => `<option value="${timing.id}" ${(editingSupplement?.timing || "breakfast") === timing.id ? "selected" : ""}>${timing.label}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field supplement-weekdays-field">
+            <label>Za koje dane</label>
+            <div class="chips weekday-choice-grid">
+              ${WEEKDAYS.map((weekday) => {
+                const checked = editingSupplement ? (editingSupplement.weekdays || []).includes(weekday) : true;
+                return `
+                  <label class="chip weekday-choice ${checked ? "is-active" : ""}">
+                    <input type="checkbox" name="supplementWeekday" value="${weekday}" ${checked ? "checked" : ""} />
+                    <span>${weekdayLabel(weekday).slice(0, 3)}</span>
+                  </label>
+                `;
+              }).join("")}
+            </div>
+          </div>
+          <div class="field">
+            <label for="supplement-note">Napomena</label>
+            <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${editingSupplement?.note || ""}" />
+          </div>
+          <div class="meta-row">
+            <button class="solid-button secondary-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
+            ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
+          </div>
+        </form>
+        <div class="stack" style="margin-top:14px;">
+          ${
+            allSupplements.length
+              ? allSupplements
+                  .map(
+                    (supplement) => `
+                      <article class="food-card routine-card supplement-card">
+                        <div class="routine-row">
+                          <div class="routine-content">
+                            <strong>${supplement.name}</strong>
+                            <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
+                            <div class="pill-row">
+                              <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
+                              <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
+                            </div>
+                          </div>
+                          <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
+                            <button class="ghost-button" data-action="edit-supplement" data-supplement-id="${supplement.id}">Izmeni</button>
+                            <button class="danger-button" data-action="delete-supplement" data-supplement-id="${supplement.id}">Obriši</button>
+                          </div>
+                        </div>
+                      </article>
+                    `
+                  )
+                  .join("")
+              : `<div class="empty">Dodaj prvi vitamin ili suplement.</div>`
+          }
+        </div>
+      </details>
       </div>
     </section>
   `;
@@ -7794,9 +7866,6 @@ function renderRoutineTab() {
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
   const goalRecommendation = getGoalRecommendation();
-  const editingSupplement = state.editingSupplementId
-    ? store.supplements.find((supplement) => supplement.id === state.editingSupplementId)
-    : null;
   const weeklyMetrics = [
     // Calories already shown in the stat cards above; keep only macros here.
     {
@@ -7908,80 +7977,6 @@ function renderGoalsTab() {
           <button class="solid-button" type="submit">Sačuvaj ciljeve</button>
         </div>
       </form>
-    </section>
-
-    <section class="section goals-supplements-section">
-      ${renderSectionLead("Vitamini i suplementi", "Dodaj šta piješ i kada, pa ćeš u Planu dobiti dnevni checkbox pregled.", { eyebrow: "Rutina" })}
-      <details class="form-collapse" ${editingSupplement ? "open" : ""}>
-        <summary>
-          <span class="form-collapse-title">${editingSupplement ? "Izmena suplementa" : "Dodaj suplement"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
-        </summary>
-      <form id="supplement-form" class="form-grid split goals-form-layout">
-        <div class="field">
-          <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
-          <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${editingSupplement?.name || ""}" required />
-        </div>
-        <div class="field">
-          <label for="supplement-timing">Kada se uzima</label>
-          <select id="supplement-timing" name="timing">
-            ${SUPPLEMENT_TIMINGS.map((timing) => `<option value="${timing.id}" ${(editingSupplement?.timing || "breakfast") === timing.id ? "selected" : ""}>${timing.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field supplement-weekdays-field">
-          <label>Za koje dane</label>
-          <div class="chips weekday-choice-grid">
-            ${WEEKDAYS.map((weekday) => {
-              const checked = editingSupplement
-                ? (editingSupplement.weekdays || []).includes(weekday)
-                : true;
-              return `
-                <label class="chip weekday-choice ${checked ? "is-active" : ""}">
-                  <input type="checkbox" name="supplementWeekday" value="${weekday}" ${checked ? "checked" : ""} />
-                  <span>${weekdayLabel(weekday).slice(0, 3)}</span>
-                </label>
-              `;
-            }).join("")}
-          </div>
-        </div>
-        <div class="field">
-          <label for="supplement-note">Napomena</label>
-          <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${editingSupplement?.note || ""}" />
-        </div>
-        <div class="meta-row">
-          <button class="solid-button secondary-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
-          ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
-        </div>
-      </form>
-      </details>
-      <div class="stack" style="margin-top:14px;">
-        ${
-          getSupplements().length
-            ? getSupplements()
-                .map(
-                  (supplement) => `
-                    <article class="food-card routine-card supplement-card">
-                      <div class="routine-row">
-                        <div class="routine-content">
-                          <strong>${supplement.name}</strong>
-                          <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
-                          <div class="pill-row">
-                            <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
-                            <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
-                          </div>
-                        </div>
-                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button" data-action="edit-supplement" data-supplement-id="${supplement.id}">Izmeni</button>
-                          <button class="danger-button" data-action="delete-supplement" data-supplement-id="${supplement.id}">Obriši</button>
-                        </div>
-                      </div>
-                    </article>
-                  `
-                )
-                .join("")
-            : '<div class="empty">Dodaj prvi vitamin ili suplement, pa će se pojaviti i u dnevnom Planu.</div>'
-        }
-      </div>
     </section>
 
     <section class="section goals-weekly-section">
