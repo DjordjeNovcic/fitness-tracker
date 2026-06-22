@@ -7448,3 +7448,96 @@ body.app-header-hidden .workspace-header {
   border-radius: 999px;
   background: var(--accent);
 }
+
+/* ============================================================
+   Login — simple, centered, single column (replaces the split).
+   ============================================================ */
+.auth-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
+}
+
+.auth-box {
+  width: min(390px, 100%);
+  display: grid;
+  gap: 22px;
+  padding: 32px 26px 26px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.auth-logo {
+  width: 62px;
+  height: 62px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: 0 12px 26px -10px var(--accent);
+}
+
+.auth-logo .tab-icon {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.9;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.95rem;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.auth-brand p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.45;
+  max-width: 30ch;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 4px;
+  min-height: 50px;
+}
+
+.auth-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.auth-switch-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
