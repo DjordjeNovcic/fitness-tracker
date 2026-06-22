@@ -5561,16 +5561,15 @@ function updateHeroScrollState() {
       state.isPlanHeroCompact = false;
       document.body.classList.remove("plan-compact");
     }
-    // Collapse the (non-interactive) workspace header on scroll-down, reveal
-    // it on scroll-up or near the top — iOS-style large-title behaviour.
+    // The (non-interactive) workspace header shows ONLY at the very top of
+    // the page. Once scrolled away it stays hidden — it does not reappear on
+    // scroll-up, only when you return to the top.
     const y = window.scrollY || 0;
     const body = document.body;
     if (y < 28) {
       body.classList.remove("app-header-hidden");
-    } else if (y > lastHeaderScrollY + 6) {
+    } else {
       body.classList.add("app-header-hidden");
-    } else if (y < lastHeaderScrollY - 6) {
-      body.classList.remove("app-header-hidden");
     }
     lastHeaderScrollY = y;
   });
