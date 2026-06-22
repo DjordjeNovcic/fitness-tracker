@@ -8665,3 +8665,48 @@ body.app-header-hidden .workspace-header {
   color: var(--accent-strong);
   background: none;
 }
+
+/* ============================================================
+   Plan hero refinements: all 7 days fit evenly (no scroll/cut),
+   a lighter day-picker container, and the daily-overview summary
+   stays on one line.
+   ============================================================ */
+.chips.hero-day-chips {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  overflow: visible;
+  margin-top: 0;
+}
+
+.chips.hero-day-chips .chip {
+  flex: none;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 0;
+  font-size: 0.82rem;
+  justify-content: center;
+  text-align: center;
+  box-shadow: none;
+}
+
+.hero-day-picker {
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: none;
+}
+
+/* The today dot sits tighter in the now-narrower chips. */
+.chip.is-today::after {
+  top: 4px;
+  right: 5px;
+}
+
+/* Daily-overview summary on one line (rounded macros keep it short). */
+.section-disclosure-copy p {
+  max-width: none;
+  font-size: 0.8rem;
+}

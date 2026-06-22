@@ -5206,7 +5206,6 @@ function renderHero(entries, totals) {
         </button>
       </div>
       <div class="hero-day-picker">
-        <div class="hero-picker-label">Dan</div>
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
@@ -6166,7 +6165,7 @@ function renderPlanTab(entries) {
       >
         <div class="section-disclosure-copy">
           <h2>Dnevni pregled</h2>
-          <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 1)} · UH ${roundValue(totals.carbs, 1)} · M ${roundValue(totals.fat, 1)}</p>
+          <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSummaryExpanded)}</span>
