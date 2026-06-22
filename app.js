@@ -4491,24 +4491,15 @@ let activeScanControls = null;
 
 function getBarcodeReader() {
   if (!barcodeReaderPromise) {
-    barcodeReaderPromise = Promise.all([
-      import("https://esm.sh/@zxing/browser@0.1.5"),
-      import("https://esm.sh/@zxing/library@0.21.3"),
-    ])
-      .then(([browser, library]) => {
-        // Target product barcodes explicitly + try harder — the default
-        // "decode any format" mode often fails to read EAN/UPC on phones.
+    barcodeReaderPromise = import("https://esm.sh/@zxing/browser@0.1.5")
+      .then((mod) => {
+        // Use raw ZXing enum values so we only need this one (reliable) import.
+        // DecodeHintType: POSSIBLE_FORMATS = 2, TRY_HARDER = 3.
+        // BarcodeFormat: CODE_39 = 2, CODE_128 = 4, EAN_8 = 6, EAN_13 = 7, UPC_A = 14, UPC_E = 15.
         const hints = new Map();
-        hints.set(library.DecodeHintType.POSSIBLE_FORMATS, [
-          library.BarcodeFormat.EAN_13,
-          library.BarcodeFormat.EAN_8,
-          library.BarcodeFormat.UPC_A,
-          library.BarcodeFormat.UPC_E,
-          library.BarcodeFormat.CODE_128,
-          library.BarcodeFormat.CODE_39,
-        ]);
-        hints.set(library.DecodeHintType.TRY_HARDER, true);
-        return new browser.BrowserMultiFormatReader(hints);
+        hints.set(2, [7, 6, 14, 15, 4, 2]);
+        hints.set(3, true);
+        return new mod.BrowserMultiFormatReader(hints);
       })
       .catch((error) => {
         barcodeReaderPromise = null;
