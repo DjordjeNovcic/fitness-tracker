@@ -6109,68 +6109,72 @@ body.menu-open .menu-fab {
    ============================================================ */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* Premium restrained dark: near-neutral charcoal surfaces barely tinted
-     toward the brand green hue (very low chroma); green only as an accent. */
-  --bg: oklch(0.14 0.006 155);
-  --bg-strong: oklch(0.18 0.007 155);
-  --surface: oklch(0.192 0.008 155 / 0.96);
-  --surface-strong: oklch(0.225 0.009 155);
-  --surface-soft: oklch(0.205 0.008 155 / 0.84);
-  --surface-panel: oklch(0.188 0.008 155 / 0.96);
-  --surface-elevated: oklch(0.275 0.011 155);
-  --ink: oklch(0.96 0.005 155);
-  --muted: oklch(0.68 0.012 155);
-  --line: oklch(1 0 0 / 0.07);
-  --line-strong: oklch(1 0 0 / 0.13);
-  --accent: oklch(0.76 0.115 158);
-  --accent-strong: oklch(0.83 0.12 158);
-  --accent-soft: oklch(0.27 0.032 158);
-  --secondary: oklch(0.8 0.07 118);
-  --secondary-soft: oklch(0.28 0.02 118);
-  --teal: oklch(0.72 0.09 178);
-  --clay: oklch(0.25 0.006 70);
-  --button-primary-bg: linear-gradient(180deg, oklch(0.64 0.11 158), oklch(0.52 0.1 158));
-  --button-primary-text: oklch(0.99 0.01 158);
-  --button-primary-border: oklch(1 0 0 / 0.1);
-  --button-secondary-bg: linear-gradient(180deg, oklch(0.27 0.01 155), oklch(0.23 0.008 155));
+  /* Luxe dark: warm graphite surfaces (low-chroma, hue ~66) with a single
+     gold accent (hue ~82). Green is dropped here; gold carries the brand. */
+  --bg: oklch(0.155 0.009 66);
+  --bg-strong: oklch(0.19 0.01 66);
+  --surface: oklch(0.207 0.011 64 / 0.96);
+  --surface-strong: oklch(0.237 0.012 64);
+  --surface-soft: oklch(0.207 0.011 64 / 0.84);
+  --surface-panel: oklch(0.197 0.011 64 / 0.96);
+  --surface-elevated: oklch(0.282 0.013 64);
+  --ink: oklch(0.94 0.013 78);
+  --muted: oklch(0.69 0.018 72);
+  --line: oklch(0.92 0.03 80 / 0.09);
+  --line-strong: oklch(0.92 0.03 80 / 0.15);
+  --accent: oklch(0.8 0.132 82);
+  --accent-strong: oklch(0.87 0.13 84);
+  --accent-soft: oklch(0.29 0.05 78);
+  --secondary: oklch(0.78 0.08 68);
+  --secondary-soft: oklch(0.29 0.03 68);
+  --teal: oklch(0.8 0.1 82);
+  --clay: oklch(0.26 0.013 60);
+  --button-primary-bg: linear-gradient(180deg, oklch(0.83 0.132 84), oklch(0.73 0.13 80));
+  --button-primary-text: oklch(0.21 0.035 72);
+  --button-primary-border: oklch(0.9 0.04 84 / 0.2);
+  --button-secondary-bg: linear-gradient(180deg, oklch(0.27 0.012 64), oklch(0.23 0.011 64));
   --button-secondary-text: var(--ink);
-  --button-secondary-border: oklch(1 0 0 / 0.1);
-  --button-ghost-bg: oklch(0.24 0.008 155 / 0.9);
+  --button-secondary-border: oklch(0.92 0.03 80 / 0.12);
+  --button-ghost-bg: oklch(0.245 0.011 64 / 0.9);
   --button-ghost-text: var(--ink);
-  --button-ghost-border: oklch(1 0 0 / 0.12);
-  --button-danger-bg: oklch(0.27 0.02 28 / 0.9);
-  --button-danger-text: oklch(0.8 0.09 32);
-  --button-danger-border: oklch(0.6 0.12 32 / 0.34);
-  --pill-bg: oklch(1 0 0 / 0.05);
-  --pill-border: oklch(1 0 0 / 0.08);
-  --pill-strong-bg: oklch(0.76 0.115 158 / 0.16);
-  --pill-strong-border: oklch(0.76 0.115 158 / 0.3);
-  --pill-note-bg: oklch(1 0 0 / 0.06);
-  --pill-note-border: oklch(1 0 0 / 0.09);
-  --status-success-bg: oklch(0.55 0.1 158 / 0.2);
-  --status-success-border: oklch(0.7 0.1 158 / 0.32);
-  --status-success-text: oklch(0.84 0.11 158);
-  --status-info-bg: oklch(0.6 0.08 220 / 0.2);
-  --status-info-border: oklch(0.7 0.08 220 / 0.32);
-  --status-info-text: oklch(0.82 0.09 220);
-  --status-warning-bg: oklch(0.65 0.1 75 / 0.22);
-  --status-warning-border: oklch(0.75 0.11 75 / 0.34);
-  --status-warning-text: oklch(0.83 0.11 75);
-  --status-error-bg: oklch(0.55 0.13 28 / 0.22);
-  --status-error-border: oklch(0.65 0.15 28 / 0.34);
-  --status-error-text: oklch(0.78 0.13 32);
-  --rail-bg: linear-gradient(180deg, oklch(0.195 0.007 155), oklch(0.16 0.006 155));
-  --shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
-  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --shadow-tight: 0 10px 22px rgba(0, 0, 0, 0.38);
-  --shadow-card: 0 18px 34px rgba(0, 0, 0, 0.42);
-  --bar-track: oklch(1 0 0 / 0.08);
-  --tabbar-bg: oklch(0.17 0.006 155 / 0.82);
-  --tabbar-border: oklch(1 0 0 / 0.08);
+  --button-ghost-border: oklch(0.92 0.03 80 / 0.14);
+  --button-danger-bg: oklch(0.27 0.03 28 / 0.9);
+  --button-danger-text: oklch(0.8 0.1 32);
+  --button-danger-border: oklch(0.6 0.13 32 / 0.34);
+  --pill-bg: oklch(0.92 0.03 80 / 0.05);
+  --pill-border: oklch(0.92 0.03 80 / 0.09);
+  --pill-strong-bg: oklch(0.8 0.132 82 / 0.16);
+  --pill-strong-border: oklch(0.8 0.132 82 / 0.32);
+  --pill-note-bg: oklch(0.92 0.03 80 / 0.06);
+  --pill-note-border: oklch(0.92 0.03 80 / 0.1);
+  --status-success-bg: oklch(0.6 0.09 150 / 0.2);
+  --status-success-border: oklch(0.72 0.09 150 / 0.32);
+  --status-success-text: oklch(0.82 0.1 150);
+  --status-info-bg: oklch(0.6 0.06 80 / 0.2);
+  --status-info-border: oklch(0.72 0.07 80 / 0.32);
+  --status-info-text: oklch(0.84 0.08 82);
+  --status-warning-bg: oklch(0.66 0.12 55 / 0.22);
+  --status-warning-border: oklch(0.74 0.13 52 / 0.34);
+  --status-warning-text: oklch(0.81 0.13 52);
+  --status-error-bg: oklch(0.55 0.14 28 / 0.22);
+  --status-error-border: oklch(0.65 0.16 28 / 0.34);
+  --status-error-text: oklch(0.78 0.15 30);
+  --rail-bg: linear-gradient(180deg, oklch(0.2 0.011 64), oklch(0.165 0.009 64));
+  --shadow: 0 28px 70px rgba(0, 0, 0, 0.6);
+  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.48);
+  --shadow-tight: 0 10px 22px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 18px 34px rgba(0, 0, 0, 0.45);
+  --bar-track: oklch(0.92 0.03 80 / 0.09);
+  --bar-ok: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.83 0.132 84));
+  --bar-low: linear-gradient(90deg, oklch(0.5 0.07 78), oklch(0.64 0.1 80));
+  --bar-near: linear-gradient(90deg, oklch(0.7 0.15 55), oklch(0.78 0.16 50));
+  --bar-over: linear-gradient(90deg, oklch(0.6 0.18 28), oklch(0.7 0.19 33));
+  --tabbar-bg: oklch(0.165 0.009 64 / 0.82);
+  --tabbar-border: oklch(0.92 0.03 80 / 0.08);
   --tabbar-active: var(--accent-strong);
   background:
-    radial-gradient(130% 80% at 50% -14%, oklch(0.3 0.035 158 / 0.18), transparent 55%),
-    oklch(0.125 0.006 155);
+    radial-gradient(130% 80% at 50% -14%, oklch(0.34 0.07 82 / 0.16), transparent 55%),
+    oklch(0.13 0.009 64);
 }
 
 :root[data-theme="dark"] body {
@@ -6534,13 +6538,13 @@ body.menu-open .tab-bar {
 }
 
 :root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui {
-  background: linear-gradient(135deg, rgba(116, 179, 158, 0.3), rgba(116, 179, 158, 0.16));
-  border-color: rgba(116, 179, 158, 0.5);
+  background: linear-gradient(135deg, oklch(0.8 0.132 82 / 0.3), oklch(0.8 0.132 82 / 0.16));
+  border-color: oklch(0.8 0.132 82 / 0.5);
 }
 
 :root[data-theme="dark"] .meal-done-note {
-  background: rgba(116, 179, 158, 0.12);
-  border-color: rgba(116, 179, 158, 0.2);
+  background: oklch(0.8 0.132 82 / 0.12);
+  border-color: oklch(0.8 0.132 82 / 0.2);
 }
 
 /* ============================================================
@@ -6628,8 +6632,8 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .foods-favorite-toggle.is-active,
 :root[data-theme="dark"] .routine-checkbox:checked + .routine-check-ui,
 :root[data-theme="dark"] .weekday-choice:has(input:checked) {
-  background: linear-gradient(135deg, rgba(116, 179, 158, 0.3), rgba(116, 179, 158, 0.16));
-  border-color: rgba(116, 179, 158, 0.5);
+  background: linear-gradient(135deg, oklch(0.8 0.132 82 / 0.3), oklch(0.8 0.132 82 / 0.16));
+  border-color: oklch(0.8 0.132 82 / 0.5);
 }
 
 :root[data-theme="dark"] .update-banner,
@@ -6960,8 +6964,9 @@ body.menu-open .tab-bar {
 /* Quieter, deeper hero in dark; active day chip is the accent (not olive/white) */
 :root[data-theme="dark"] .hero {
   background:
-    linear-gradient(168deg, oklch(0.27 0.045 162), oklch(0.18 0.018 158) 64%, oklch(0.15 0.008 155));
-  border-color: var(--line);
+    radial-gradient(120% 90% at 85% 0%, oklch(0.4 0.09 84 / 0.22), transparent 45%),
+    linear-gradient(168deg, oklch(0.24 0.03 78), oklch(0.17 0.012 64) 62%, oklch(0.14 0.009 64));
+  border-color: var(--line-strong);
 }
 
 .hero-day-chips .chip.is-active {
@@ -6972,7 +6977,7 @@ body.menu-open .tab-bar {
 }
 
 :root[data-theme="dark"] .hero-day-chips .chip.is-active {
-  color: oklch(0.16 0.02 158);
+  color: oklch(0.2 0.04 72);
 }
 
 /* Premium charts: faint gridlines, soft area fill, one current marker */
