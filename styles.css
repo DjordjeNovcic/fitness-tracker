@@ -133,8 +133,9 @@ button:not(:disabled):active {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
-  outline: 3px solid rgba(44, 123, 116, 0.18);
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus, rgba(44, 123, 116, 0.45));
   outline-offset: 2px;
 }
 
@@ -7395,4 +7396,55 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .foods-editor-card--other::before,
 :root[data-theme="dark"] .foods-editor-card--all::before {
   background: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.85 0.132 84));
+}
+
+/* ============================================================
+   Finesse pass — theme-aware focus, selection, ring glow,
+   gentle card hover, active-tab indicator.
+   ============================================================ */
+:root {
+  --focus: rgba(44, 123, 116, 0.5);
+}
+:root[data-theme="dark"] {
+  --focus: oklch(0.82 0.13 84 / 0.65);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Signature ring gets a soft gold glow in dark */
+:root[data-theme="dark"] .cal-ring-fill {
+  filter: drop-shadow(0 0 6px oklch(0.82 0.13 84 / 0.4));
+}
+
+/* Gentle hover on cards (pointer devices only) — borders breathe, no jump */
+@media (hover: hover) and (pointer: fine) {
+  .macro-card,
+  .stat-card,
+  .food-card,
+  .chart-card,
+  .meal-card,
+  .recipe-library-card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .food-card:hover,
+  .chart-card:hover,
+  .recipe-library-card:hover {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--line-strong));
+  }
+}
+
+/* Active bottom-tab gets a small accent indicator dot above the icon */
+.tab-bar-item {
+  position: relative;
+}
+.tab-bar-item.is-active::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--accent);
 }
