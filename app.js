@@ -9225,8 +9225,17 @@ function render() {
   `;
 
   // The entrance stagger is a one-shot: consume the flag so routine
-  // re-renders (toggles, typing) don't replay the animation.
+  // re-renders (toggles, typing) don't replay the animation. It ships in
+  // the initial HTML (no flash), then the class is stripped once the
+  // animation is done so its `fill: both` stops pinning `transform`
+  // (which would otherwise block the scroll-to-hide header).
+  const didEnter = state.tabEnter;
   state.tabEnter = false;
+  if (didEnter) {
+    window.setTimeout(() => {
+      document.querySelector(".app-main.is-entering")?.classList.remove("is-entering");
+    }, 850);
+  }
 
   syncBodyScrollLock();
   updateHeroScrollState();
