@@ -174,6 +174,7 @@ const state = {
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
+  recipesBuilderExpanded: false,
   foodSearch: "",
   foodMacroFilter: "Sve",
   foodNutritionFilter: "Sve",
@@ -6674,13 +6675,15 @@ function renderRecipesTab() {
   });
 
   return `
-    <section class="section recipes-builder-section">
-      <div class="section-header">
-        <div>
-          <h2>Studio za recepte</h2>
-          <p>Sačuvaj obrok kao pravi recept: sastojci, vreme pripreme i kratko uputstvo koje ćeš posle videti i u Plan tabu.</p>
+    <section class="section recipes-builder-section ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
+      <button class="section-disclosure" type="button" data-action="toggle-recipes-builder" aria-expanded="${state.recipesBuilderExpanded}">
+        <div class="section-disclosure-copy">
+          <h2>Napravi recept</h2>
+          <p>Sastavi novi recept iz sastojaka.</p>
         </div>
-      </div>
+        <span class="section-disclosure-icon" aria-hidden="true">${state.recipesBuilderExpanded ? "▴" : "▾"}</span>
+      </button>
+      <div class="plan-section-body ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
       <article class="food-card suggestion-surface recipe-studio-card">
         <form id="favorite-meal-form" class="form-grid split recipe-builder-form">
           <div class="field">
@@ -6856,6 +6859,7 @@ function renderRecipesTab() {
           </div>
         </div>
       </article>
+      </div>
     </section>
 
     <section class="section recipes-library-section">
@@ -9399,6 +9403,12 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-plan-quick") {
     state.planQuickExpanded = !state.planQuickExpanded;
+    render();
+    return;
+  }
+
+  if (action === "toggle-recipes-builder") {
+    state.recipesBuilderExpanded = !state.recipesBuilderExpanded;
     render();
     return;
   }
