@@ -248,7 +248,6 @@ let lockedScrollY = 0;
 let feedbackToastTimer = null;
 let heroScrollFrame = 0;
 let lastHeaderScrollY = 0;
-let foodSearchRenderTimer = null;
 const externalScriptPromises = new Map();
 
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
@@ -5575,6 +5574,33 @@ function updateHeroScrollState() {
   });
 }
 
+// Live food search: filter the already-rendered rows in the DOM instead of
+// re-rendering the whole app on every keystroke (which made typing stutter
+// and dropped focus). Each row carries its searchable text in data-search.
+function filterFoodsListInline(query) {
+  const list = document.querySelector(".foods-list");
+  if (!list) {
+    return;
+  }
+  const tokens = normalizeLookupValue(query || "")
+    .split(" ")
+    .filter(Boolean);
+  const rows = list.querySelectorAll(".foods-list-row");
+  let visible = 0;
+  rows.forEach((row) => {
+    const haystack = row.dataset.search || "";
+    const match = tokens.every((token) => haystack.includes(token));
+    row.style.display = match ? "" : "none";
+    if (match) {
+      visible += 1;
+    }
+  });
+  const empty = list.querySelector(".foods-list-empty");
+  if (empty) {
+    empty.hidden = !(tokens.length > 0 && rows.length > 0 && visible === 0);
+  }
+}
+
 function renderMacroCards(totals, options = {}) {
   const metrics = [
     { label: "Kalorije", value: roundValue(totals.kcal, 0), goal: roundValue(store.goals.calories, 0), unit: "kcal", kind: "limit" },
@@ -6272,8 +6298,6 @@ function renderPlanTab(entries) {
 }
 
 function renderFoodsTab() {
-  const normalizedQuery = normalizeLookupValue(state.foodSearch);
-  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
   const selectableFoods = getSelectableFoods();
   const pendingNutritionFoods = getFoods().filter((food) => shouldHidePendingImportedFood(food));
   const foods = selectableFoods
@@ -6308,23 +6332,10 @@ function renderFoodsTab() {
                   : state.foodNutritionFilter === "Manje kcal"
                     ? kcal <= 120
                     : true;
-      if (!matchesNutritionProfile) {
-        return false;
-      }
-      if (!queryTokens.length) {
-        return true;
-      }
-      const searchableText = normalizeLookupValue(
-        [
-          food.name,
-          canonicalizeImportedFoodName(food.name),
-          food.category,
-          food.macroGroup,
-        ]
-          .filter(Boolean)
-          .join(" ")
-      );
-      return queryTokens.every((token) => searchableText.includes(token));
+      // Text search is applied live in the DOM (see filterFoodsListInline)
+      // so typing never triggers a full re-render — only the macro/nutrition
+      // filters narrow which rows are rendered here.
+      return matchesNutritionProfile;
     })
     .sort((left, right) => {
       const leftProtein = toNumber(left.protein);
@@ -6445,6 +6456,11 @@ function renderFoodsTab() {
                   const proteinValue = Number(food.protein) || 0;
                   const carbsValue = Number(food.carbs) || 0;
                   const fatValue = Number(food.fat) || 0;
+                  const searchText = normalizeLookupValue(
+                    [food.name, canonicalizeImportedFoodName(food.name), food.category, food.macroGroup]
+                      .filter(Boolean)
+                      .join(" ")
+                  );
                   if (!isListView) {
                     const macroTotal = proteinValue + carbsValue + fatValue;
                     const proteinShare = macroTotal > 0 ? (proteinValue / macroTotal) * 100 : 33.33;
@@ -6501,7 +6517,7 @@ function renderFoodsTab() {
             `;
                   }
                   return `
-              <article class="food-card foods-list-row foods-list-row--${toneClass}">
+              <article class="food-card foods-list-row foods-list-row--${toneClass}" data-search="${escapeHtml(searchText)}">
                 <div class="foods-list-favorite-cell">
                   <button
                     class="foods-favorite-toggle foods-list-favorite ${isFavoriteFood ? "is-active" : ""}"
@@ -6564,6 +6580,7 @@ function renderFoodsTab() {
                 .join("")
             : `<div class="empty">Nema namirnica za ovaj filter. Nedovršeni nutrition import ostaje u tabu Nutricionista dok mu ne dodaš vrednosti.</div>`
         }
+        <div class="empty foods-list-empty" hidden>Nema rezultata za pretragu.</div>
       </div>
       ${isListView ? `</div>` : ""}
     </section>
@@ -9221,6 +9238,9 @@ function render() {
   syncRequiredLabelMarkers();
   syncValidationState();
   syncEntryPreview();
+  if (state.activeTab === "foods" && state.foodSearch) {
+    filterFoodsListInline(state.foodSearch);
+  }
 }
 
 function exportData() {
@@ -11357,25 +11377,7 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
-    const selectionStart = target.selectionStart ?? target.value.length;
-    const selectionEnd = target.selectionEnd ?? target.value.length;
-    if (foodSearchRenderTimer) {
-      window.clearTimeout(foodSearchRenderTimer);
-    }
-    foodSearchRenderTimer = window.setTimeout(() => {
-      foodSearchRenderTimer = null;
-      render();
-      window.requestAnimationFrame(() => {
-        const searchInput = document.querySelector("#food-search");
-        if (!(searchInput instanceof HTMLInputElement)) {
-          return;
-        }
-        searchInput.focus();
-        const safeStart = Math.min(selectionStart, searchInput.value.length);
-        const safeEnd = Math.min(selectionEnd, searchInput.value.length);
-        searchInput.setSelectionRange(safeStart, safeEnd);
-      });
-    }, 120);
+    filterFoodsListInline(target.value);
     return;
   }
 
