@@ -4527,13 +4527,7 @@ async function startBarcodeScan() {
     // Prefer the rear camera on phones; fall back to the default device.
     if (typeof reader.decodeFromConstraints === "function") {
       activeScanControls = await reader.decodeFromConstraints(
-        {
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        },
+        { video: { facingMode: { ideal: "environment" } } },
         video,
         onResult
       );
