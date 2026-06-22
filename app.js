@@ -21,6 +21,11 @@ const FIREBASE_CONFIG = {
   appId: "1:573104342048:web:626332b425b77051756845",
 };
 const WEEKDAYS = ["Ponedeljak", "Utorak", "Sreda", "Cetvrtak", "Petak", "Subota", "Nedelja"];
+// "Cetvrtak" stays the stored key (existing data is keyed by it); only the
+// displayed label gets its diacritic. Other days need none.
+function weekdayLabel(weekday) {
+  return weekday === "Cetvrtak" ? "Četvrtak" : weekday;
+}
 const TABS = [
   { id: "plan", label: "Plan", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
@@ -540,7 +545,7 @@ async function saveCloudStateNow(options = {}) {
       },
       { merge: true }
     );
-    state.syncStatus = "Sync je ukljucen";
+    state.syncStatus = "Sync je uključen";
     if (options.renderAfterSave) {
       render();
     }
@@ -572,7 +577,7 @@ function scheduleCloudPersist() {
 
 async function hydrateStoreFromCloud(user) {
   isHydratingCloudState = true;
-  state.syncStatus = "Ucitavam podatke iz clouda...";
+  state.syncStatus = "Učitavam podatke iz clouda...";
   render();
 
   try {
@@ -584,17 +589,17 @@ async function hydrateStoreFromCloud(user) {
       const cloudData = snapshot.data()?.state || {};
       replaceStore({ ...cloudData, progressPhotos: localPhotos });
       persistLocal();
-      state.syncStatus = "Sync je ukljucen";
+      state.syncStatus = "Sync je uključen";
       return;
     }
 
     replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
     persistLocal();
     await saveCloudStateNow({ force: true });
-    state.syncStatus = "Prvi sync je zavrsen";
+    state.syncStatus = "Prvi sync je završen";
   } catch (error) {
     console.error("Cloud hydration failed", error);
-    state.syncStatus = "Cloud nije dostupan, radis lokalno";
+    state.syncStatus = "Cloud nije dostupan, radiš lokalno";
   } finally {
     isHydratingCloudState = false;
   }
@@ -2889,7 +2894,7 @@ function getFoodNutritionStatus(food = {}) {
       isEstimatedKcal: false,
       needsAttention: false,
       statusLabel: "0 kcal potvrdeno",
-      statusDetail: "Vrednosti su sacuvane kao nula na 100 g.",
+      statusDetail: "Vrednosti su sačuvane kao nula na 100 g.",
       tone: "success",
     };
   }
@@ -4453,7 +4458,7 @@ function renderRecipeApplyDialog() {
             <label>
               <span>Dan</span>
               <select name="weekday">
-                ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === selectedWeekday ? "selected" : ""}>${weekday}</option>`).join("")}
+                ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>`).join("")}
               </select>
             </label>
             <label>
@@ -4783,11 +4788,11 @@ function renderFoodEditorDialog() {
           <form id="food-form" class="form-grid split foods-editor-form">
             <div class="field">
               <label for="food-name">Naziv</label>
-              <input id="food-name" name="name" placeholder="npr. Grcki jogurt" value="${prefill?.name ? escapeHtml(prefill.name) : ""}" required />
+              <input id="food-name" name="name" placeholder="npr. Grčki jogurt" value="${prefill?.name ? escapeHtml(prefill.name) : ""}" required />
             </div>
             <div class="field">
               <label for="food-category">Kategorija</label>
-              <input id="food-category" name="category" placeholder="Proteini, masti, voce..." value="${editingFood?.category || ""}" />
+              <input id="food-category" name="category" placeholder="Proteini, masti, voće..." value="${editingFood?.category || ""}" />
             </div>
             <div class="field">
               <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
@@ -5087,7 +5092,7 @@ function generateCompanionSuggestions() {
     pushSuggestion(carbFood, calculateGramsForTarget(carbFood, "carbs", Math.max(18, remaining.carbs * 0.25), 80, 40, 180), "Da dodas UH");
   } else {
     pushSuggestion(leanProtein, calculateGramsForTarget(leanProtein, "protein", Math.max(18, remaining.protein * 0.22), 150, 80, 250), "Dobar par");
-    pushSuggestion(carbFood, calculateGramsForTarget(carbFood, "carbs", Math.max(18, remaining.carbs * 0.25), 80, 40, 180), "Za vise energije");
+    pushSuggestion(carbFood, calculateGramsForTarget(carbFood, "carbs", Math.max(18, remaining.carbs * 0.25), 80, 40, 180), "Za više energije");
   }
 
   return suggestions.slice(0, 3);
@@ -5116,7 +5121,7 @@ function renderProgress(value, goal, kind = "neutral") {
 
 function formatPlanDelta(delta, unit) {
   if (Math.abs(delta) < 0.05) {
-    return `Tacno po planu`;
+    return `Tačno po planu`;
   }
   if (delta > 0) {
     return `+${roundValue(delta, 1)} ${unit} preko plana`;
@@ -5187,7 +5192,7 @@ function renderHero(entries, totals) {
         ${WEEKDAYS.map(
           (weekday) => `
             <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
-              ${weekday.slice(0, 3)}
+              ${weekdayLabel(weekday).slice(0, 3)}
             </button>
           `
         ).join("")}
@@ -5232,7 +5237,7 @@ function renderLoadingShell() {
             <p>Proveravam nalog i spremam tvoje podatke.</p>
           </div>
         </div>
-        <div class="empty">Sacekaj trenutak...</div>
+        <div class="empty">Sačekaj trenutak...</div>
       </section>
     </main>
   `;
@@ -5452,9 +5457,9 @@ function getSyncStatusTone(status = state.syncStatus) {
   const value = `${status || ""}`.toLowerCase();
   if (!value) return "info";
   if (value.includes("uspeo")) return "error";
-  if (value.includes("nije dostupan") || value.includes("radis lokalno")) return "warning";
-  if (value.includes("prijavi se") || value.includes("cuvam") || value.includes("učitavam") || value.includes("ucitavam")) return "info";
-  if (value.includes("ukljucen") || value.includes("zavrsen") || value.includes("završen")) return "success";
+  if (value.includes("nije dostupan") || value.includes("radiš lokalno") || value.includes("radis lokalno")) return "warning";
+  if (value.includes("prijavi se") || value.includes("čuvam") || value.includes("cuvam") || value.includes("učitavam") || value.includes("ucitavam")) return "info";
+  if (value.includes("uključen") || value.includes("ukljucen") || value.includes("završen") || value.includes("zavrsen")) return "success";
   return "info";
 }
 
@@ -5856,7 +5861,7 @@ function renderPlanSupplementsSection() {
       >
         <div class="section-disclosure-copy">
           <h2>Vitamini i suplementi</h2>
-          <p>${doneCount}/${supplements.length || 0} označeno za ${state.selectedWeekday}.</p>
+          <p>${doneCount}/${supplements.length || 0} označeno za ${weekdayLabel(state.selectedWeekday)}.</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${supplements.length} stavki</span>
@@ -5873,7 +5878,7 @@ function renderPlanSupplementsSection() {
         <article class="stat-card">
           <strong>Označeno</strong>
           <div class="macro-value">${doneCount}/${supplements.length || 0}</div>
-          <div class="footer-note">Čekirano za ${state.selectedWeekday}</div>
+          <div class="footer-note">Čekirano za ${weekdayLabel(state.selectedWeekday)}</div>
         </article>
       </div>
       <div class="stack" style="margin-top:14px;">
@@ -6020,11 +6025,11 @@ function renderPlanTab(entries) {
                 <h3>Kopiraj plan dana</h3>
                 <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
               </div>
-              <span class="pill strong">${state.selectedWeekday}</span>
+              <span class="pill strong">${weekdayLabel(state.selectedWeekday)}</span>
             </div>
             <div class="plan-quick-card-source">
               <span class="footer-note">Izvor dana</span>
-              <strong>${state.selectedWeekday}</strong>
+              <strong>${weekdayLabel(state.selectedWeekday)}</strong>
             </div>
             <form id="duplicate-day-form" class="form-grid split plan-quick-form">
               <div class="field">
@@ -6032,7 +6037,7 @@ function renderPlanTab(entries) {
                 <select id="duplicate-target-weekday" name="targetWeekday" required>
                   <option value="">Izaberi dan</option>
                   ${WEEKDAYS.filter((weekday) => weekday !== state.selectedWeekday)
-                    .map((weekday) => `<option value="${weekday}">${weekday}</option>`)
+                    .map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`)
                     .join("")}
                 </select>
               </div>
@@ -6124,7 +6129,7 @@ function renderPlanTab(entries) {
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
-          <h2>Obroci za ${state.selectedWeekday}</h2>
+          <h2>Obroci za ${weekdayLabel(state.selectedWeekday)}</h2>
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
@@ -6288,7 +6293,7 @@ function renderPlanTab(entries) {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi obrok za ${state.selectedWeekday} i aplikacija će odmah sabirati makroe.</div>`
+            : `<div class="empty">Dodaj prvi obrok za ${weekdayLabel(state.selectedWeekday)} i aplikacija će odmah sabirati makroe.</div>`
         }
       </div>
     </section>
@@ -6428,7 +6433,7 @@ function renderFoodsTab() {
       </div>
       <div class="field">
         <label for="food-search">Pretraga</label>
-        <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinac..." />
+        <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Piletina, banana, pirinač..." />
       </div>
       ${
         isListView
@@ -6715,7 +6720,7 @@ function renderRecipesTab() {
               : ""
           }
           <div class="pill-row recipe-draft-pills">
-            <span class="pill">${draftPreview.mealLabel || "Tip obroka nije jos izabran"}</span>
+            <span class="pill">${draftPreview.mealLabel || "Tip obroka nije još izabran"}</span>
             <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
             ${
               draftPreview.prepTimeMinutes
@@ -7024,7 +7029,7 @@ function renderTrainingTab() {
     <section class="section routine-habits-section">
       <div class="section-header">
         <div>
-          <h2>Trening za ${state.selectedWeekday}</h2>
+          <h2>Trening za ${weekdayLabel(state.selectedWeekday)}</h2>
           <p>Današnji trening, progres i unos potrošnje na jednom mestu.</p>
         </div>
       </div>
@@ -7034,7 +7039,7 @@ function renderTrainingTab() {
             <div>
               <h3>Fokus dana</h3>
               <div class="footer-note">
-                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening sablon" : "trening sablona"} za ${state.selectedWeekday}.` : `Još nema treninga za ${state.selectedWeekday}.`}
+                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening sablon" : "trening sablona"} za ${weekdayLabel(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayLabel(state.selectedWeekday)}.`}
               </div>
             </div>
             <span class="pill strong">${todayExerciseCompleted}/${todayExerciseTotal || 0}</span>
@@ -7128,7 +7133,7 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema trening sablona za ${state.selectedWeekday}. Dodaj ga ispod.</div>`
+            : `<div class="empty">Još nema trening sablona za ${weekdayLabel(state.selectedWeekday)}. Dodaj ga ispod.</div>`
         }
       </div>
     </section>
@@ -7157,7 +7162,7 @@ function renderTrainingTab() {
                       <div class="training-favorite-copy">${training.exercises.map((exercise) => exercise.details).join(" · ")}</div>
                       <div class="entry-actions training-favorite-actions" style="justify-content:flex-start; margin-top:12px;">
                         <button class="solid-button secondary-button button-with-icon" data-action="apply-favorite-training" data-favorite-training-id="${training.id}">
-                          ${renderButtonContent(`Ubaci u ${state.selectedWeekday}`, "apply")}
+                          ${renderButtonContent(`Ubaci u ${weekdayLabel(state.selectedWeekday)}`, "apply")}
                         </button>
                         <button class="danger-button button-with-icon" data-action="delete-favorite-training" data-favorite-training-id="${training.id}">
                           ${renderButtonContent("Obriši", "delete")}
@@ -7183,7 +7188,7 @@ function renderTrainingTab() {
           <select id="training-weekday" name="weekday" required>
             ${WEEKDAYS.map(
               (weekday) => `
-                <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekday}</option>
+                <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>
               `
             ).join("")}
           </select>
@@ -7217,7 +7222,7 @@ function renderTrainingTab() {
           <select id="progress-weekday" name="weekday" required>
             ${WEEKDAYS.map(
               (weekday) => `
-                <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekday}</option>
+                <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>
               `
             ).join("")}
           </select>
@@ -7239,7 +7244,7 @@ function renderTrainingTab() {
         </div>
         <div class="field">
           <label for="progress-note">Napomena</label>
-          <input id="progress-note" name="note" placeholder="npr. lagano, ostalo jos" />
+          <input id="progress-note" name="note" placeholder="npr. lagano, ostalo još" />
         </div>
         <button class="solid-button secondary-button" type="submit">Sačuvaj unos</button>
       </form>
@@ -7289,7 +7294,7 @@ function renderTrainingTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Beleske</h2>
+          <h2>Beleške</h2>
           <p>Kratak log ako hoćeš da zabeležiš kako je prošao trening.</p>
         </div>
       </div>
@@ -7348,7 +7353,7 @@ function renderRoutineTab() {
     <section class="section routine-overview-section">
       <div class="section-header">
         <div>
-          <h2>Rutina za ${state.selectedWeekday}</h2>
+          <h2>Rutina za ${weekdayLabel(state.selectedWeekday)}</h2>
           <p>Velike navike, sitni taskovi i dugoročni streakovi, sve na jednom mestu.</p>
         </div>
       </div>
@@ -7358,7 +7363,7 @@ function renderRoutineTab() {
           ${WEEKDAYS.map(
             (weekday) => `
               <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""}" data-action="select-weekday" data-weekday="${weekday}">
-                ${weekday.slice(0, 3)}
+                ${weekdayLabel(weekday).slice(0, 3)}
               </button>
             `
           ).join("")}
@@ -7373,7 +7378,7 @@ function renderRoutineTab() {
         <article class="stat-card">
           <strong>Nedeljne navike</strong>
           <div class="macro-value">${summary.doneHabits}/${summary.habits.length}</div>
-          <div class="footer-note">Završeno za ${state.selectedWeekday}</div>
+          <div class="footer-note">Završeno za ${weekdayLabel(state.selectedWeekday)}</div>
         </article>
         <article class="stat-card">
           <strong>Taskovi</strong>
@@ -7557,7 +7562,7 @@ function renderRoutineTab() {
     <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
-          <h2>Taskovi za ${state.selectedWeekday}</h2>
+          <h2>Taskovi za ${weekdayLabel(state.selectedWeekday)}</h2>
           <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak.</p>
         </div>
       </div>
@@ -7624,7 +7629,7 @@ function renderRoutineTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Još nema taskova za ${state.selectedWeekday}. Dodaj prvi pa čekiraj kad završiš.</div>`
+            : `<div class="empty">Još nema taskova za ${weekdayLabel(state.selectedWeekday)}. Dodaj prvi pa čekiraj kad završiš.</div>`
         }
       </div>
     </section>
@@ -7806,7 +7811,7 @@ function renderGoalsTab() {
               return `
                 <label class="chip weekday-choice ${checked ? "is-active" : ""}">
                   <input type="checkbox" name="supplementWeekday" value="${weekday}" ${checked ? "checked" : ""} />
-                  <span>${weekday.slice(0, 3)}</span>
+                  <span>${weekdayLabel(weekday).slice(0, 3)}</span>
                 </label>
               `;
             }).join("")}
@@ -7835,7 +7840,7 @@ function renderGoalsTab() {
                           <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
                           <div class="pill-row">
                             <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
-                            <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekday.slice(0, 3)).join(", ")}</span>
+                            <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
                           </div>
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
@@ -7970,10 +7975,10 @@ function renderNutritionPlansSection(plans) {
         }
         <div class="entry-actions entry-actions--start nutrition-plan-actions">
           <button class="solid-button secondary-button button-with-icon" data-action="apply-nutrition-plan-day" data-plan-id="${selectedPlan.id}" data-mode="replace">
-            ${renderButtonContent(`Primeni u ${state.selectedWeekday}`, "apply")}
+            ${renderButtonContent(`Primeni u ${weekdayLabel(state.selectedWeekday)}`, "apply")}
           </button>
           <button class="ghost-button button-with-icon" data-action="apply-nutrition-plan-day" data-plan-id="${selectedPlan.id}" data-mode="append">
-            ${renderButtonContent(`Dodaj u ${state.selectedWeekday}`, "add")}
+            ${renderButtonContent(`Dodaj u ${weekdayLabel(state.selectedWeekday)}`, "add")}
           </button>
         </div>
       </article>
@@ -9191,7 +9196,7 @@ function render() {
             <div class="undo-banner" role="status" aria-live="polite">
               <div>
                 <strong>Stavka obrisana.</strong>
-                <div class="footer-note" style="margin-top:4px;">Mozes odmah da je vratis.</div>
+                <div class="footer-note" style="margin-top:4px;">Možeš odmah da je vratiš.</div>
               </div>
               <button class="solid-button secondary-button button-with-icon" data-action="undo-delete-entry">${renderButtonContent("Vrati", "undo")}</button>
             </div>
@@ -9205,9 +9210,9 @@ function render() {
             <div class="update-banner" role="status" aria-live="polite">
               <div>
                 <strong>Nova verzija je spremna.</strong>
-                <div class="footer-note" style="margin-top:4px;">Osvezi app da povuces poslednje izmene.</div>
+                <div class="footer-note" style="margin-top:4px;">Osveži app da povučeš poslednje izmene.</div>
               </div>
-              <button class="solid-button secondary-button button-with-icon" data-action="apply-app-update">${renderButtonContent("Osvezi", "refresh")}</button>
+              <button class="solid-button secondary-button button-with-icon" data-action="apply-app-update">${renderButtonContent("Osveži", "refresh")}</button>
             </div>
           `
           : ""
@@ -9792,7 +9797,7 @@ async function handleDocumentClick(event) {
     if (!hasCompleted) {
       return;
     }
-    const confirmed = window.confirm(`Obriši sve završene taskove za ${state.selectedWeekday}?`);
+    const confirmed = window.confirm(`Obriši sve završene taskove za ${weekdayLabel(state.selectedWeekday)}?`);
     if (!confirmed) {
       return;
     }
@@ -9861,7 +9866,7 @@ async function handleDocumentClick(event) {
     }
 
     if (mode === "replace") {
-      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${state.selectedWeekday} dnevnim planom "${plan.title}"?`);
+      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${weekdayLabel(state.selectedWeekday)} dnevnim planom "${plan.title}"?`);
       if (!confirmed) {
         return;
       }
@@ -9874,8 +9879,8 @@ async function handleDocumentClick(event) {
       title: "Nutricionista dan je prebačen",
       detail:
         result.skippedMeals > 0
-          ? `${result.appliedCount} stavki je ubačeno u ${state.selectedWeekday}, a ${result.skippedMeals} obroka je ostalo samo kao hint jer nema dovoljno podataka za automatsko prebacivanje.`
-          : `${result.appliedCount} stavki je ubačeno u ${state.selectedWeekday}.`,
+          ? `${result.appliedCount} stavki je ubačeno u ${weekdayLabel(state.selectedWeekday)}, a ${result.skippedMeals} obroka je ostalo samo kao hint jer nema dovoljno podataka za automatsko prebacivanje.`
+          : `${result.appliedCount} stavki je ubačeno u ${weekdayLabel(state.selectedWeekday)}.`,
       tone: result.appliedCount ? "success" : "warning",
     });
     return;
@@ -10144,7 +10149,7 @@ async function handleDocumentClick(event) {
       return;
     }
     if (mode === "replace") {
-      const confirmed = window.confirm(`Da li zelis da zamenis ceo ${state.selectedWeekday} ovim predlogom?`);
+      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${weekdayLabel(state.selectedWeekday)} ovim predlogom?`);
       if (!confirmed) {
         return;
       }
@@ -10814,7 +10819,7 @@ async function handleSubmit(event) {
 
     const targetHasEntries = store.weeklyPlanEntries.some((entry) => entry.weekday === targetWeekday);
     if (mode === "replace" && targetHasEntries) {
-      const confirmed = window.confirm(`Da li zelis da zamenis sve stavke za ${targetWeekday}?`);
+      const confirmed = window.confirm(`Da li želiš da zameniš sve stavke za ${targetWeekday}?`);
       if (!confirmed) {
         return;
       }
@@ -11245,7 +11250,7 @@ async function handleSubmit(event) {
       {
         busyLabel: "Čuvam...",
         successTitle: "Potrošnja je sačuvana",
-        successDetail: `Apple Watch unos za ${state.selectedWeekday} je ažuriran.`,
+        successDetail: `Apple Watch unos za ${weekdayLabel(state.selectedWeekday)} je ažuriran.`,
       }
     );
     return;
