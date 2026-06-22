@@ -7042,3 +7042,25 @@ body.app-header-hidden .workspace-header {
     transition: opacity 0.26s ease;
   }
 }
+
+/* ============================================================
+   Dialogs: scroll inside the sheet (background is scroll-locked),
+   and simplify the food editor (no card-in-card, no duplicate header).
+   ============================================================ */
+.app-dialog {
+  max-height: min(86dvh, calc(100dvh - 32px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.food-editor-dialog .foods-editor-card {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.food-editor-dialog .foods-editor-intro {
+  display: none;
+}

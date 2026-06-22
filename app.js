@@ -4528,9 +4528,26 @@ async function startBarcodeScan() {
     }
   } catch (error) {
     console.warn("Barcode scan failed", error);
-    state.scannerStatus = "Kamera nije dostupna ili je dozvola odbijena. Možeš da uneseš ručno.";
+    const name = (error && error.name) || "";
+    let msg = "Kamera nije dostupna. Unesi vrednosti ručno.";
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      msg = "Pristup kameri je odbijen. Dozvoli kameru za ovaj sajt pa probaj ponovo.";
+    } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+      msg = "Nije pronađena kamera. Unesi vrednosti ručno.";
+    } else if (name === "NotReadableError") {
+      msg = "Kamera je zauzeta drugom aplikacijom. Zatvori je pa probaj ponovo.";
+    } else if (!barcodeReaderPromise) {
+      msg = "Ne mogu da učitam skener (proveri internet). Unesi vrednosti ručno.";
+    }
+    state.scannerStatus = msg;
     render();
   }
+}
+
+// Warm up the scanner library so the first tap can open the camera within
+// the user gesture (iOS drops getUserMedia if an await sits before it).
+function preloadBarcodeReader() {
+  getBarcodeReader().catch(() => {});
 }
 
 function stopBarcodeScan() {
@@ -4690,11 +4707,12 @@ function renderBarcodeScanner() {
           </button>
         </div>
         <div class="scanner-viewport">
-          <video id="barcode-video" playsinline muted></video>
+          <video id="barcode-video" playsinline muted autoplay></video>
           <div class="scanner-reticle" aria-hidden="true"></div>
         </div>
         <div class="footer-note scanner-status">${state.scannerStatus || "Tražim kameru…"}</div>
         <div class="entry-actions" style="justify-content:flex-start;">
+          <button class="solid-button secondary-button button-with-icon" type="button" data-action="scan-manual">${renderButtonContent("Unesi ručno", "add")}</button>
           <button class="ghost-button button-with-icon" type="button" data-action="close-scanner">${renderButtonContent("Odustani", "close")}</button>
         </div>
       </section>
@@ -5219,34 +5237,43 @@ function scrollPageTop(behavior = "smooth") {
   document.body.classList.remove("app-header-hidden");
 }
 
+function isOverlayOpen() {
+  return Boolean(
+    state.navMenuOpen ||
+      state.foodEditorOpen ||
+      state.scannerOpen ||
+      (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
+  );
+}
+
 function syncBodyScrollLock() {
-  if (state.navMenuOpen) {
-    if (!document.body.classList.contains("menu-open")) {
-      lockedScrollY = window.scrollY;
-    }
-    document.body.classList.add("menu-open");
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
+  const body = document.body;
+  // Sidebar-specific CSS still keys off `menu-open`.
+  body.classList.toggle("menu-open", Boolean(state.navMenuOpen));
+
+  const shouldLock = isOverlayOpen();
+  const isLocked = body.classList.contains("scroll-locked");
+
+  if (shouldLock && !isLocked) {
+    lockedScrollY = window.scrollY;
+    body.classList.add("scroll-locked");
+    body.style.position = "fixed";
+    body.style.top = `-${lockedScrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
     return;
   }
 
-  if (!document.body.classList.contains("menu-open")) {
-    return;
-  }
-
-  const topValue = document.body.style.top;
-  document.body.classList.remove("menu-open");
-  document.body.style.position = "";
-  document.body.style.top = "";
-  document.body.style.left = "";
-  document.body.style.right = "";
-  document.body.style.width = "";
-
-  if (topValue) {
-    window.scrollTo(0, Math.abs(parseInt(topValue, 10)) || lockedScrollY || 0);
+  if (!shouldLock && isLocked) {
+    const topValue = body.style.top;
+    body.classList.remove("scroll-locked");
+    body.style.position = "";
+    body.style.top = "";
+    body.style.left = "";
+    body.style.right = "";
+    body.style.width = "";
+    window.scrollTo(0, topValue ? Math.abs(parseInt(topValue, 10)) || lockedScrollY || 0 : lockedScrollY || 0);
   }
 }
 
@@ -9381,6 +9408,9 @@ async function handleDocumentClick(event) {
     state.navMenuOpen = false;
     resetFoodEditing();
     resetRoutineEditing();
+    if (state.activeTab === "foods") {
+      preloadBarcodeReader();
+    }
     window.location.hash = state.activeTab;
     render();
     window.requestAnimationFrame(() => scrollPageTop("auto"));
@@ -9541,6 +9571,17 @@ async function handleDocumentClick(event) {
     stopBarcodeScan();
     state.scannerOpen = false;
     render();
+    return;
+  }
+
+  if (action === "scan-manual") {
+    stopBarcodeScan();
+    state.scannerOpen = false;
+    openFoodEditorDialog("");
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#food-name")?.focus();
+    });
     return;
   }
 
@@ -11594,6 +11635,12 @@ window.addEventListener("hashchange", () => {
 });
 
 window.addEventListener("scroll", updateHeroScrollState, { passive: true });
+
+// Warm the barcode scanner lib shortly after load so the first scan tap can
+// open the camera within the user gesture (avoids the iOS getUserMedia drop).
+if (typeof window !== "undefined") {
+  window.setTimeout(preloadBarcodeReader, 2500);
+}
 
 onAuthStateChanged(firebaseAuth, async (user) => {
   state.authPending = false;
