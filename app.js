@@ -9038,6 +9038,42 @@ function renderProgressTab() {
   `;
 }
 
+// Count the calorie-ring number up from 0 to its value on tab entry — a
+// premium hero moment that pairs with the ring fill. One-shot, self-cancels
+// if a re-render replaces the element, and respects reduced-motion.
+function animateRingCountUp() {
+  const el = document.querySelector(".cal-ring-value");
+  if (!el) {
+    return;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const target = parseInt(String(el.textContent).replace(/\D/g, ""), 10);
+  if (!Number.isFinite(target) || target <= 0) {
+    return;
+  }
+  const duration = 750;
+  let startTs = null;
+  const step = (ts) => {
+    if (!el.isConnected) {
+      return;
+    }
+    if (startTs === null) {
+      startTs = ts;
+    }
+    const progress = Math.min((ts - startTs) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = String(Math.round(target * eased));
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      el.textContent = String(target);
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
 function render() {
   if (!state.authReady) {
     document.body.classList.remove("plan-compact");
@@ -9177,6 +9213,7 @@ function render() {
     window.setTimeout(() => {
       document.querySelector(".app-main.is-entering")?.classList.remove("is-entering");
     }, 850);
+    window.requestAnimationFrame(animateRingCountUp);
   }
 
   syncBodyScrollLock();
