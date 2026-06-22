@@ -175,6 +175,7 @@ const state = {
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
   recipesBuilderExpanded: false,
+  tabEnter: true,
   foodSearch: "",
   foodMacroFilter: "Sve",
   foodNutritionFilter: "Sve",
@@ -9178,7 +9179,7 @@ function render() {
         </div>
       </aside>
 
-      <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""}">
+      <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""} ${state.tabEnter ? "is-entering" : ""}">
         ${workspaceHeaderMarkup}
         ${heroMarkup}
         ${sections[state.activeTab]}
@@ -9217,6 +9218,10 @@ function render() {
       ${renderBarcodeScanner()}
     </div>
   `;
+
+  // The entrance stagger is a one-shot: consume the flag so routine
+  // re-renders (toggles, typing) don't replay the animation.
+  state.tabEnter = false;
 
   syncBodyScrollLock();
   updateHeroScrollState();
@@ -9346,7 +9351,11 @@ async function handleDocumentClick(event) {
   const action = actionTarget.dataset.action;
 
   if (action === "switch-tab") {
-    state.activeTab = actionTarget.dataset.tab;
+    const nextTab = actionTarget.dataset.tab;
+    if (nextTab !== state.activeTab) {
+      state.tabEnter = true;
+    }
+    state.activeTab = nextTab;
     state.editingMealLabel = "";
     state.navMenuOpen = false;
     resetFoodEditing();
