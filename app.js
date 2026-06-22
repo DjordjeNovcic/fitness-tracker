@@ -5998,53 +5998,7 @@ function renderPlanTab(entries) {
       }
       <div class="plan-summary-layout">
         ${renderMacroCards(totals, { excludeCalories: true })}
-        <div class="stats-grid plan-secondary-stats">
-          <article class="stat-card">
-            <strong>Potrošeno trening</strong>
-            <div class="macro-value">${roundValue(trainingBurn, 0)} kcal</div>
-            <div class="footer-note">Apple Watch unos za ${state.selectedWeekday}</div>
-          </article>
-          <article class="stat-card">
-            <strong>Neto kcal</strong>
-            <div class="macro-value">${netCalories} kcal</div>
-            <div class="footer-note">Uneto minus potrošeno na treningu</div>
-          </article>
-        </div>
       </div>
-      </div>
-    </section>
-
-    <section class="section plan-preview-section">
-      <div class="section-header">
-        <div>
-          <h2>Pregled po obrocima</h2>
-          <p>Jasan mini pregled svakog obroka, da odmah vidiš kako izgleda ceo dan.</p>
-        </div>
-      </div>
-      <div class="stack">
-        ${
-          mealPreviewRows.length
-            ? mealPreviewRows
-                .map((row) => {
-                  const mealParts = getMealDisplayParts(row.mealLabel);
-                  return `
-                    <article class="food-card plan-preview-card">
-                      <div class="meal-heading-block">
-                        ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
-                        <h3 class="meal-title">${mealParts.title || row.mealLabel}</h3>
-                      </div>
-                      <div class="pill-row">
-                        <span class="pill note">${roundValue(row.totals.kcal, 0)} kcal</span>
-                        <span class="pill">P ${roundValue(row.totals.protein, 1)} g</span>
-                        <span class="pill">UH ${roundValue(row.totals.carbs, 1)} g</span>
-                        <span class="pill">M ${roundValue(row.totals.fat, 1)} g</span>
-                      </div>
-                    </article>
-                  `;
-                })
-                .join("")
-            : `<div class="empty">Još nema stavki za preview dana.</div>`
-        }
       </div>
     </section>
 
@@ -6169,16 +6123,6 @@ function renderPlanTab(entries) {
                 </article>
               `
           }
-          <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-recipes-card">
-            <div class="food-card-top">
-              <h3>Sačuvani recepti</h3>
-              <span class="pill strong">${favorites.length}</span>
-            </div>
-            <div class="footer-note">Kad ti zatreba gotov recept, otvori Recepti i ubaci ga direktno u ${state.selectedWeekday}.</div>
-            <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-              <button class="solid-button secondary-button button-with-icon" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Otvori Recepti", "open")}</button>
-            </div>
-          </article>
         </div>
       </div>
     </section>
@@ -6187,7 +6131,7 @@ function renderPlanTab(entries) {
       <div class="section-header">
         <div>
           <h2>Obroci za ${state.selectedWeekday}</h2>
-          <p>${entries.length ? "Sve za taj dan je ovde: dodavanje, izmene i brzo čuvanje kao recept." : "Još nema stavki za ovaj dan."}</p>
+          <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
       <div class="stack">
@@ -6810,10 +6754,6 @@ function renderRecipesTab() {
             ${state.editingFavoriteItem.itemId ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-favorite-item">${renderButtonContent("Odustani", "close")}</button>` : ""}
           </div>
         </form>
-        <div class="footer-note recipe-builder-note">
-          Ovde samo sklapaš preview recepta. Dodaj sastojke, proveri kalorije ispod, pa klikni Sačuvaj recept.
-        </div>
-        <div class="footer-note" style="margin-top:10px;">Sačuvavanje ostaje dole, uz kompletan preview recepta.</div>
         <div class="recipe-studio-divider"></div>
         <div class="recipe-draft-panel">
           <div class="food-card-top recipe-draft-top">
@@ -6990,7 +6930,7 @@ function renderRecipesTab() {
                         <div class="recipe-library-body">
                           <div class="food-card-top recipe-library-top">
                             <div class="recipe-library-copy">
-                              <h2>${favorite.name}</h2>
+                              <h3>${favorite.name}</h3>
                               ${
                                 isExpanded
                                   ? `<p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>`
@@ -7769,14 +7709,7 @@ function renderGoalsTab() {
     ? store.supplements.find((supplement) => supplement.id === state.editingSupplementId)
     : null;
   const weeklyMetrics = [
-    {
-      label: "Kalorije",
-      value: roundValue(weeklyOverview.totals.kcal, 0),
-      goal: roundValue(weeklyOverview.goals.kcal, 0),
-      unit: "kcal",
-      kind: "limit",
-      note: formatPlanDelta(weeklyOverview.totals.kcal - weeklyOverview.goals.kcal, "kcal"),
-    },
+    // Calories already shown in the stat cards above; keep only macros here.
     {
       label: "Proteini",
       value: roundValue(weeklyOverview.totals.protein, 1),
@@ -8941,19 +8874,17 @@ function renderProgressTab() {
           .join("")}
         <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
-      <div class="footer-note progress-form-note">Ako meriš samo par stvari, slobodno ostavi ostala polja prazna. App čuva samo ono što si zaista uneo.</div>
     </section>
 
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Težina i mere</h2>
-          <p>Brz unos merenja, da sa telefona pratiš kako napreduješ kroz vreme.</p>
+          <h2>Ostale mere</h2>
         </div>
       </div>
       <div class="stats-grid">
         ${measurementFields
-          .filter((field) => field.id !== "trainingType")
+          .filter((field) => !["trainingType", "weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id))
           .map((field) => renderMeasurementCard(field))
           .join("")}
       </div>
