@@ -6611,15 +6611,15 @@ function renderFoodsTab() {
                   <strong>${roundValue(food.kcal, 0)}</strong>
                 </div>
                 <div class="foods-list-value-cell foods-list-value-cell--protein">
-                  <span class="foods-list-mobile-label">Proteini</span>
+                  <span class="foods-list-mobile-label">P</span>
                   <strong>${roundValue(proteinValue, 1)} g</strong>
                 </div>
                 <div class="foods-list-value-cell foods-list-value-cell--carbs">
-                  <span class="foods-list-mobile-label">Ugljeni hidrati</span>
+                  <span class="foods-list-mobile-label">UH</span>
                   <strong>${roundValue(carbsValue, 1)} g</strong>
                 </div>
                 <div class="foods-list-value-cell foods-list-value-cell--fat">
-                  <span class="foods-list-mobile-label">Masti</span>
+                  <span class="foods-list-mobile-label">M</span>
                   <strong>${roundValue(fatValue, 1)} g</strong>
                 </div>
                 <div class="entry-actions foods-card-actions foods-list-actions" style="justify-content:flex-start; margin-top:0;">

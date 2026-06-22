@@ -1690,7 +1690,7 @@ textarea::placeholder {
   line-height: 1.05;
   letter-spacing: -0.03em;
   font-weight: 800;
-  color: #274554;
+  color: var(--ink);
   text-wrap: pretty;
 }
 
@@ -7306,4 +7306,84 @@ body.app-header-hidden .workspace-header {
 }
 .form-collapse[open] .form-collapse-icon {
   transform: rotate(45deg);
+}
+
+/* ============================================================
+   Namirnice — dark-aware action buttons + compact food rows on
+   narrow screens (macros were stacking into a tall block).
+   ============================================================ */
+:root[data-theme="dark"] .foods-card-actions .ghost-button {
+  background: var(--button-ghost-bg);
+}
+:root[data-theme="dark"] .foods-card-actions .danger-button {
+  background: var(--button-danger-bg);
+  color: var(--button-danger-text);
+}
+
+@media (max-width: 1024px) {
+  .foods-list-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px 12px;
+    min-height: 0;
+    padding: 13px 15px;
+  }
+  .foods-list-favorite-cell {
+    order: 1;
+    flex: 0 0 auto;
+    margin: 0;
+    justify-content: flex-start;
+  }
+  .foods-list-main {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .foods-list-actions {
+    order: 3;
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  /* All four macros become one compact inline line */
+  .foods-list-value-cell {
+    order: 4;
+    flex: 0 0 auto;
+    width: auto;
+    border-top: 0;
+    padding: 0;
+    text-align: left;
+    justify-self: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .foods-list-value-cell--kcal {
+    flex-direction: row-reverse;
+  }
+  .foods-list-value-cell + .foods-list-value-cell::before {
+    content: "·";
+    margin-right: 6px;
+    color: var(--muted);
+  }
+  .foods-list-mobile-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .foods-list-value-cell strong {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .foods-list-value-cell--kcal strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .foods-list-actions .button-with-icon {
+    flex: 0 0 auto;
+    padding: 8px 13px;
+  }
 }
