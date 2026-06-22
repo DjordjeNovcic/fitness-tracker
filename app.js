@@ -5219,10 +5219,6 @@ function renderWorkspaceHeader() {
           ${renderMenuToggleIcon(state.navMenuOpen)}
         </button>
       </div>
-      <div class="workspace-header-status-row">
-        <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
-        ${state.authUser?.email ? `<span class="pill">${escapeHtml(state.authUser.email)}</span>` : ""}
-      </div>
     </section>
   `;
 }
