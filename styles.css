@@ -7762,3 +7762,90 @@ body.app-header-hidden .workspace-header {
     flex-shrink: 0;
   }
 }
+
+/* ============================================================
+   App-wide mobile layout fixes (audit sweep, 2026-06):
+   - Foods rows no longer overflow the card (macro values were
+     clipped off the right edge); name + actions on line 1,
+     macros wrap to line 2.
+   - Routine/supplement rows: actions drop to their own full-width
+     row instead of crushing the content into a sliver.
+   - Weekday multi-select wraps so all 7 days are visible/tappable.
+   Appended last to win the cascade.
+   ============================================================ */
+@media (max-width: 1024px) {
+  /* Let the whole foods list chain shrink to the card width so a row's
+     intrinsic content can't blow the section past the viewport. */
+  .foods-section,
+  .foods-list-table-wrap,
+  .food-list,
+  .foods-list {
+    min-width: 0;
+  }
+  .foods-list-row {
+    grid-template-columns: none;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+  /* Order: ⭐ name (line 1) → macros → edit/delete last */
+  .foods-list-actions {
+    order: 6;
+  }
+}
+
+@media (max-width: 520px) {
+  /* Foods actions become compact icon buttons on phones (like meal rows)
+     so macros + actions share one line under the name. */
+  .foods-list-actions .button-label--mobile-hidden {
+    display: none;
+  }
+  .foods-list-actions .ghost-button,
+  .foods-list-actions .danger-button {
+    min-width: 40px;
+    padding-inline: 10px;
+  }
+
+  /* Routine habits/tasks + supplement cards: the action buttons sit on
+     their own full-width row instead of stealing a grid track and
+     crushing the content into a narrow sliver. */
+  .routine-row > .routine-content {
+    grid-column: 2;
+  }
+  .routine-row > .entry-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    margin-top: 2px;
+  }
+
+  /* "Za koje dane" weekday multi-select: wrap so all 7 days show
+     (was a hidden horizontal scroller cutting off Pet/Sub/Ned). */
+  .weekday-choice-grid {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/* Burn-card header pill ("540 kcal") must not wrap into a circle */
+.training-burn-top .pill,
+.food-card-top .pill.strong {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Dark-theme surfaces that were left light (illegible in dark):
+   recipe ingredient cards, recipe/plan method boxes, routine
+   streak spotlight + meter. Mirror the existing dark sweep.
+   ============================================================ */
+:root[data-theme="dark"] .recipe-library-ingredient-card,
+:root[data-theme="dark"] .recipe-draft-method,
+:root[data-theme="dark"] .plan-recipe-method,
+:root[data-theme="dark"] .routine-streak-spotlight,
+:root[data-theme="dark"] .routine-streak-meter {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  border-color: var(--line);
+  color: var(--ink);
+}

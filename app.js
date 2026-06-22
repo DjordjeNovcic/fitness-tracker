@@ -6545,15 +6545,17 @@ function renderFoodsTab() {
                     class="ghost-button button-with-icon"
                     data-action="edit-food"
                     data-food-id="${food.id}"
+                    aria-label="Izmeni namirnicu"
                   >
-                    ${renderButtonContent("Izmeni", "edit")}
+                    ${renderButtonContent("Izmeni", "edit", "button-label--mobile-hidden")}
                   </button>
                   <button
                     class="danger-button button-with-icon"
                     data-action="delete-food"
                     data-food-id="${food.id}"
+                    aria-label="Obriši namirnicu"
                   >
-                    ${renderButtonContent("Obriši", "delete")}
+                    ${renderButtonContent("Obriši", "delete", "button-label--mobile-hidden")}
                   </button>
                 </div>
               </article>
