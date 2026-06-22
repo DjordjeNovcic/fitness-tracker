@@ -7067,6 +7067,15 @@ body.app-header-hidden .workspace-header {
   border: 0;
   box-shadow: none;
   padding: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+/* The decorative top stripe belongs on the standalone card; in the dialog
+   the card is flattened (no padding) so the stripe fell over the first
+   label ("Naziv"). Hide it here. */
+.food-editor-dialog .foods-editor-card::before {
+  display: none;
 }
 
 .food-editor-dialog .foods-editor-intro {
