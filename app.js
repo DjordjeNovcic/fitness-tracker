@@ -245,6 +245,7 @@ let serviceWorkerRegistration = null;
 let lockedScrollY = 0;
 let feedbackToastTimer = null;
 let heroScrollFrame = 0;
+let lastHeaderScrollY = 0;
 let foodSearchRenderTimer = null;
 const externalScriptPromises = new Map();
 
@@ -5214,6 +5215,8 @@ function renderLoadingShell() {
 
 function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
+  lastHeaderScrollY = 0;
+  document.body.classList.remove("app-header-hidden");
 }
 
 function syncBodyScrollLock() {
@@ -5561,6 +5564,18 @@ function updateHeroScrollState() {
       state.isPlanHeroCompact = false;
       document.body.classList.remove("plan-compact");
     }
+    // Collapse the (non-interactive) workspace header on scroll-down, reveal
+    // it on scroll-up or near the top — iOS-style large-title behaviour.
+    const y = window.scrollY || 0;
+    const body = document.body;
+    if (y < 28) {
+      body.classList.remove("app-header-hidden");
+    } else if (y > lastHeaderScrollY + 6) {
+      body.classList.add("app-header-hidden");
+    } else if (y < lastHeaderScrollY - 6) {
+      body.classList.remove("app-header-hidden");
+    }
+    lastHeaderScrollY = y;
   });
 }
 

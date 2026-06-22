@@ -7019,3 +7019,26 @@ body.menu-open .tab-bar {
   font-size: 2.1rem;
   color: var(--ink);
 }
+
+/* ============================================================
+   Hide the (non-interactive) workspace header on scroll-down,
+   reveal on scroll-up / at top. Mobile only (header shows < 720px).
+   ============================================================ */
+.workspace-header {
+  transition:
+    transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.26s ease;
+  will-change: transform;
+}
+
+body.app-header-hidden .workspace-header {
+  transform: translateY(calc(-100% - 28px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-header {
+    transition: opacity 0.26s ease;
+  }
+}
