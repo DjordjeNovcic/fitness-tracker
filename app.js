@@ -251,6 +251,18 @@ let undoDeleteTimer = null;
 let cloudSaveTimer = null;
 let isHydratingCloudState = false;
 let serviceWorkerRegistration = null;
+let appUpdateReloading = false;
+
+// One guarded reload for the update flow — whichever signal fires first
+// (worker "activated", controllerchange, or a fallback timeout) wins, and the
+// others are ignored so we never double-reload or loop.
+function reloadForUpdate() {
+  if (appUpdateReloading) {
+    return;
+  }
+  appUpdateReloading = true;
+  window.location.reload();
+}
 let lockedScrollY = 0;
 let feedbackToastTimer = null;
 let heroScrollFrame = 0;
@@ -9654,11 +9666,22 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "apply-app-update") {
-    if (serviceWorkerRegistration?.waiting) {
-      serviceWorkerRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+    const waiting = serviceWorkerRegistration?.waiting;
+    if (!waiting) {
+      reloadForUpdate();
       return;
     }
-    window.location.reload();
+    showFeedbackToast({ title: "Ažuriram…", detail: "Učitavam novu verziju.", tone: "info", duration: 4000 });
+    // Reload as soon as the new worker takes over. iOS standalone PWAs don't
+    // always fire controllerchange, so we also watch the worker's own state
+    // and keep a hard fallback so the app never just hangs.
+    waiting.addEventListener("statechange", () => {
+      if (waiting.state === "activated") {
+        reloadForUpdate();
+      }
+    });
+    waiting.postMessage({ type: "SKIP_WAITING" });
+    window.setTimeout(reloadForUpdate, 2500);
     return;
   }
 
@@ -11951,7 +11974,7 @@ if ("serviceWorker" in navigator) {
 
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       state.updateReady = false;
-      window.location.reload();
+      reloadForUpdate();
     });
   });
 }
