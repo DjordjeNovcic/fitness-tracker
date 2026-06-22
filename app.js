@@ -5953,7 +5953,7 @@ function renderPlanTab(entries) {
             <span class="cal-ring-unit">kcal</span>
           </div>
         </div>
-        <div class="cal-ring-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal · ${caloriePct}%</div>
+        <div class="cal-ring-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal</div>
       </div>
       `
           : `
@@ -6415,7 +6415,7 @@ function renderFoodsTab() {
               data-action="set-food-filter"
               data-filter="${filter}"
             >
-              ${filter} (${filterCounts[filter] || 0})
+              ${filter}<span class="foods-filter-count">${filterCounts[filter] || 0}</span>
             </button>
           `
         ).join("")}

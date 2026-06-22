@@ -7594,3 +7594,82 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .foods-list-value-cell--kcal strong {
   color: var(--accent-strong);
 }
+
+/* ============================================================
+   Max-tighten pass — surgical consistency refinements.
+   ============================================================ */
+
+/* 1. Macro bars read as one warm family: protein (low) joins gold, not olive */
+:root[data-theme="dark"] .progress[data-state="low"] > span {
+  background: var(--bar-ok);
+}
+
+/* 2. Macro values share a baseline even when a label wraps to 2 lines */
+.macro-card header {
+  min-height: 2.6em;
+}
+
+/* 4 + 7. One uppercase micro-label rhythm everywhere (0.08em) */
+.macro-card header h3 {
+  letter-spacing: 0.08em;
+}
+.auth-form .field label {
+  letter-spacing: 0.06em;
+}
+
+/* 3. Confident ring stroke to match the heavy Fraunces numeral */
+.cal-ring-track,
+.cal-ring-fill {
+  stroke-width: 10;
+}
+
+/* 5. The meal total is the hero; "UKUPNO" whispers */
+.meal-card-summary-kcal {
+  gap: 6px;
+}
+.meal-card-summary-kcal .meal-summary-label {
+  font-size: 0.62rem;
+  opacity: 0.8;
+}
+
+/* 6. Per-food actions recede; delete isn't the loudest thing in a row */
+.meal-entry-actions .ghost-button,
+.meal-entry-actions .danger-button {
+  font-size: 0.84rem;
+}
+.meal-entry-actions .danger-button {
+  border-color: transparent;
+}
+.meal-entry-actions .danger-button:hover {
+  border-color: var(--button-danger-border);
+}
+
+/* 8. Foods kcal unit lowercase like everywhere else */
+.foods-list-value-cell--kcal .foods-list-mobile-label {
+  text-transform: none;
+}
+
+/* 9. NAMIRNICE label sits as a proper divider (more air below) */
+.meal-items-label-row {
+  margin: 18px 0 8px;
+}
+
+/* 10. One in-app section-title size */
+.form-collapse-title {
+  font-size: 1.4rem;
+}
+
+/* 11. Filter count: a quiet number, no parentheses */
+.foods-filter-count {
+  margin-left: 6px;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+/* 12. Consistent pill weight + meal-header radius */
+.pill {
+  font-weight: 700;
+}
+.meal-card-header {
+  border-radius: var(--radius-md);
+}
