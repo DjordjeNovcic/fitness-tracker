@@ -7941,3 +7941,100 @@ body.app-header-hidden .workspace-header {
 .plan-meals-section::before {
   display: none;
 }
+
+/* ============================================================
+   Plan meal-card header controls — the two top-right buttons read
+   distinctly now: a labelled circular "Pojedeno" checkbox (was a
+   blank rounded square) and a rotating collapse chevron (was a tiny
+   ▴ glyph). Appended last to win over the earlier square styles.
+   ============================================================ */
+.meal-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  flex-shrink: 0;
+  padding: 5px;
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.meal-toggle-ui {
+  position: static;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.6px solid color-mix(in srgb, var(--muted) 48%, transparent);
+  background: var(--surface-strong);
+  color: var(--muted);
+  box-shadow: none;
+  transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+
+.meal-toggle:hover .meal-toggle-ui {
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--line-strong));
+}
+
+.meal-toggle-ui::after {
+  content: none;
+}
+
+.meal-toggle-ui svg {
+  width: 15px;
+  height: 15px;
+  opacity: 0.3;
+  transition: opacity 0.18s ease;
+}
+
+.meal-toggle-checkbox:checked + .meal-toggle-ui {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.meal-toggle-checkbox:checked + .meal-toggle-ui svg {
+  opacity: 1;
+}
+
+.meal-collapse-toggle {
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.meal-collapse-chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.meal-collapse-toggle[aria-expanded="true"] .meal-collapse-chevron {
+  transform: rotate(180deg);
+}
+
+:root[data-theme="dark"] .meal-toggle-ui {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: oklch(0.2 0.02 70);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meal-collapse-chevron {
+    transition: none;
+  }
+}

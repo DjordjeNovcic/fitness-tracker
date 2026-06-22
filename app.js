@@ -6155,6 +6155,12 @@ function renderPlanTab(entries) {
                           ${
                             mealEntries.length
                               ? `
+                                <label class="meal-toggle ${isMealDone ? "is-done" : ""}" title="${isMealDone ? "Obrok je pojeden — klikni da skineš oznaku" : "Označi obrok kao pojeden"}">
+                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
+                                  <span class="meal-toggle-ui" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                                  </span>
+                                </label>
                                 <button
                                   class="ghost-button meal-collapse-toggle"
                                   type="button"
@@ -6163,18 +6169,8 @@ function renderPlanTab(entries) {
                                   aria-expanded="${!isMealCollapsed}"
                                   aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
                                 >
-                                  <span aria-hidden="true">${isMealCollapsed ? "▾" : "▴"}</span>
+                                  <svg class="meal-collapse-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
                                 </button>
-                              `
-                              : ""
-                          }
-                          ${
-                            mealEntries.length
-                              ? `
-                                <label class="meal-toggle">
-                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} />
-                                  <span class="meal-toggle-ui" aria-hidden="true"></span>
-                                </label>
                               `
                               : ""
                           }
