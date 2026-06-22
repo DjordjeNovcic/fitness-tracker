@@ -7387,3 +7387,12 @@ body.app-header-hidden .workspace-header {
     padding: 8px 13px;
   }
 }
+
+/* Food editor top stripe: gold in dark (was green/olive by macro group) */
+:root[data-theme="dark"] .foods-editor-card--proteins::before,
+:root[data-theme="dark"] .foods-editor-card--carbs::before,
+:root[data-theme="dark"] .foods-editor-card--fats::before,
+:root[data-theme="dark"] .foods-editor-card--other::before,
+:root[data-theme="dark"] .foods-editor-card--all::before {
+  background: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.85 0.132 84));
+}

@@ -7903,8 +7903,11 @@ function renderGoalsTab() {
       </div>
     </section>
 
-    <section class="section goals-days-section">
-      ${renderSectionLead("Pregled po danima", "Svaki dan sa kalorijama i razlikom u odnosu na dnevni cilj.", { eyebrow: "Nedelja" })}
+    <details class="section goals-days-section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Pregled po danima</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <div class="stats-grid">
         ${weeklyOverview.days
           .map(
@@ -7918,7 +7921,7 @@ function renderGoalsTab() {
           )
           .join("")}
       </div>
-    </section>
+    </details>
   `;
 }
 
@@ -9031,13 +9034,11 @@ function renderProgressTab() {
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Istorija unosa</h2>
-          <p>${history.length ? "Najnoviji unos je prvi." : "Još nema sačuvanih merenja."}</p>
-        </div>
-      </div>
+    <details class="section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Istorija unosa</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <div class="stack">
         ${
           history.length
@@ -9071,7 +9072,7 @@ function renderProgressTab() {
             : `<div class="empty">Dodaj prvo merenje pa će ovde ostati istorija.</div>`
         }
       </div>
-    </section>
+    </details>
   `;
 }
 
