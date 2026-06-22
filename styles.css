@@ -8413,3 +8413,24 @@ body.app-header-hidden .workspace-header {
   background: linear-gradient(135deg, oklch(0.8 0.132 82 / 0.16), oklch(0.8 0.132 82 / 0.05));
   border-color: oklch(0.8 0.132 82 / 0.3);
 }
+
+/* A freshly added meal item glows softly once, so the eye lands on it. */
+@keyframes meal-entry-reveal {
+  0% {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.meal-entry.is-new {
+  animation: meal-entry-reveal 1.2s ease;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meal-entry.is-new {
+    animation: none;
+  }
+}

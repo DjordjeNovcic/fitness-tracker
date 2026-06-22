@@ -176,6 +176,7 @@ const MEAL_LABEL_MAP = {
 const state = {
   activeTab: getInitialTab(),
   onboarding: null,
+  lastAddedEntryId: "",
   selectedWeekday: getTodayWeekday(),
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
@@ -6370,7 +6371,7 @@ function renderPlanTab(entries) {
                             ? mealEntries
                                 .map(
                                   (entry) => `
-                                    <div class="meal-entry ${entry.done ? "is-done" : ""}">
+                                    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""}">
                                       <div class="meal-entry-main">
                                         <div class="meal-entry-title-group">
                                           <strong>${entry.foodName}</strong>
@@ -9241,6 +9242,44 @@ function animateRingCountUp() {
   window.requestAnimationFrame(step);
 }
 
+// Count the daily-overview macro numbers up from 0 too, in step with the ring.
+function animateMacroCountUps() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  document.querySelectorAll(".plan-summary-layout .macro-value").forEach((el) => {
+    const node = el.firstChild;
+    if (!node || node.nodeType !== 3) {
+      return;
+    }
+    const raw = String(node.textContent).trim();
+    const target = parseFloat(raw);
+    if (!Number.isFinite(target) || target <= 0) {
+      return;
+    }
+    const decimals = raw.includes(".") ? (raw.split(".")[1] || "").length : 0;
+    const duration = 750;
+    let startTs = null;
+    const step = (ts) => {
+      if (!node.isConnected) {
+        return;
+      }
+      if (startTs === null) {
+        startTs = ts;
+      }
+      const progress = Math.min((ts - startTs) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = (target * eased).toFixed(decimals);
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      } else {
+        node.textContent = decimals ? target.toFixed(decimals) : String(target);
+      }
+    };
+    window.requestAnimationFrame(step);
+  });
+}
+
 function render() {
   if (!state.authReady) {
     document.body.classList.remove("plan-compact");
@@ -9400,6 +9439,7 @@ function render() {
       document.querySelector(".app-main.is-entering")?.classList.remove("is-entering");
     }, 850);
     window.requestAnimationFrame(animateRingCountUp);
+    window.requestAnimationFrame(animateMacroCountUps);
   }
 
   syncBodyScrollLock();
@@ -9410,6 +9450,9 @@ function render() {
   if (state.activeTab === "foods" && state.foodSearch) {
     filterFoodsListInline(state.foodSearch);
   }
+  // The "just added" highlight is one-shot — consume it so it doesn't replay
+  // on the next routine re-render.
+  state.lastAddedEntryId = "";
 }
 
 function exportData() {
@@ -11010,8 +11053,9 @@ async function handleSubmit(event) {
           : entry
       );
     } else {
+      const newEntryId = uid("plan");
       store.weeklyPlanEntries.push({
-        id: uid("plan"),
+        id: newEntryId,
         weekday: state.selectedWeekday,
         mealLabel,
         foodId: food.id,
@@ -11019,6 +11063,7 @@ async function handleSubmit(event) {
         grams,
         done: false,
       });
+      state.lastAddedEntryId = newEntryId;
     }
     persist();
     resetPlanDraft();
