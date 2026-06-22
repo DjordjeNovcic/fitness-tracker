@@ -1752,6 +1752,13 @@ textarea::placeholder {
   width: 100%;
 }
 
+/* On the wide table the values wrapper dissolves so each cell aligns under
+   its column header; on narrow screens it becomes a real flex row (see the
+   max-width:1024px block). */
+.foods-list-values {
+  display: contents;
+}
+
 .foods-list-value-cell--kcal {
   grid-column: 3;
 }
@@ -7337,63 +7344,92 @@ body.app-header-hidden .workspace-header {
   color: var(--button-danger-text);
 }
 
+/* Below the table breakpoint every row has the SAME shape, regardless of
+   name length: row 1 = star + name/serving + edit/delete; row 2 = one tidy
+   "kcal · P · UH · M" line. (Was a flex-wrap that packed greedily and wrapped
+   differently on every row.) */
 @media (max-width: 1024px) {
   .foods-list-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "fav main actions"
+      "vals vals vals";
     align-items: center;
-    gap: 7px 12px;
+    column-gap: 12px;
+    row-gap: 10px;
     min-height: 0;
-    padding: 13px 15px;
+    padding: 14px 15px;
+    width: 100%;
+    max-width: 100%;
   }
+
   .foods-list-favorite-cell {
-    order: 1;
-    flex: 0 0 auto;
+    grid-area: fav;
+    align-self: start;
     margin: 0;
-    justify-content: flex-start;
+    justify-content: center;
   }
+
   .foods-list-main {
-    order: 2;
-    flex: 1 1 auto;
+    grid-area: main;
+    align-self: center;
     min-width: 0;
   }
+
   .foods-list-actions {
-    order: 3;
-    flex: 0 0 auto;
+    grid-area: actions;
+    align-self: start;
     width: auto;
     margin: 0;
     gap: 6px;
     justify-content: flex-end;
   }
-  /* All four macros become one compact inline line */
+
+  /* The four macros sit on one consistent line under the name. */
+  .foods-list-values {
+    grid-area: vals;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    min-width: 0;
+  }
+
   .foods-list-value-cell {
-    order: 4;
-    flex: 0 0 auto;
-    width: auto;
-    border-top: 0;
-    padding: 0;
-    text-align: left;
-    justify-self: auto;
     display: inline-flex;
     align-items: baseline;
     gap: 4px;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border-top: 0;
+    text-align: left;
+    justify-self: auto;
   }
+
   .foods-list-value-cell--kcal {
     flex-direction: row-reverse;
   }
+
   .foods-list-mobile-label {
-    font-size: 0.74rem;
+    display: inline;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0;
   }
+
   .foods-list-value-cell strong {
-    font-size: 0.88rem;
-    font-weight: 600;
-  }
-  .foods-list-value-cell--kcal strong {
-    color: var(--ink);
+    font-size: 0.9rem;
     font-weight: 700;
   }
+
+  .foods-list-value-cell--kcal strong {
+    color: var(--ink);
+  }
+
   .foods-list-actions .button-with-icon {
     flex: 0 0 auto;
     padding: 8px 13px;
@@ -7784,22 +7820,13 @@ body.app-header-hidden .workspace-header {
    ============================================================ */
 @media (max-width: 1024px) {
   /* Let the whole foods list chain shrink to the card width so a row's
-     intrinsic content can't blow the section past the viewport. */
+     intrinsic content can't blow the section past the viewport.
+     (The row's own grid layout is defined in the block above.) */
   .foods-section,
   .foods-list-table-wrap,
   .food-list,
   .foods-list {
     min-width: 0;
-  }
-  .foods-list-row {
-    grid-template-columns: none;
-    min-width: 0;
-    max-width: 100%;
-    width: 100%;
-  }
-  /* Order: ⭐ name (line 1) → macros → edit/delete last */
-  .foods-list-actions {
-    order: 6;
   }
 }
 
