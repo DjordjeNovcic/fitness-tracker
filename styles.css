@@ -7673,3 +7673,92 @@ body.app-header-hidden .workspace-header {
 .meal-card-header {
   border-radius: var(--radius-md);
 }
+
+/* Goal lives next to the value ("96 / 150 g") so the card header is just
+   the label, with full width for long names like "Ugljeni hidrati". */
+.macro-goal {
+  margin-left: 7px;
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  vertical-align: baseline;
+}
+.macro-goal + .macro-unit {
+  margin-left: 3px;
+}
+
+/* ============================================================
+   Plan tab fixes: food rows are tighter (name + actions on one
+   line, one quiet meta line below) and the daily-overview macro
+   labels no longer clip on narrow phones. Appended last so these
+   win the cascade over the earlier mobile + global rules.
+   ============================================================ */
+
+/* Food row: name + edit/delete share the top line; kcal + macros
+   sit on a single quiet line below. Replaces the older grid that
+   pushed actions onto their own row and made each item too tall. */
+.meal-entry {
+  display: block;
+}
+
+.meal-entry-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.meal-entry-main .meal-entry-title-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.meal-entry-main .meal-entry-actions {
+  flex: 0 0 auto;
+  margin-top: 0;
+  align-self: flex-start;
+}
+
+.meal-entry-stats {
+  margin-top: 6px;
+}
+
+.meal-entry.is-done .meal-entry-title-group strong {
+  text-decoration: line-through;
+}
+
+@media (max-width: 520px) {
+  .meal-entry {
+    padding-block: 11px;
+  }
+
+  .meal-entry-main .meal-entry-actions {
+    gap: 6px;
+  }
+
+  .meal-entry-actions .ghost-button,
+  .meal-entry-actions .danger-button {
+    min-width: 40px;
+    padding-inline: 10px;
+  }
+
+  /* Daily-overview macros: 2-up instead of 3-up so the long Serbian
+     labels ("Ugljeni hidrati") have room to wrap at the space instead
+     of clipping mid-word. */
+  .plan-summary-layout .macro-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .macro-card header h3 {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: normal;
+  }
+
+  .macro-card header .muted {
+    flex-shrink: 0;
+  }
+}

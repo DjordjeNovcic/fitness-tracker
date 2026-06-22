@@ -5134,9 +5134,8 @@ function renderMetricsGrid(metrics) {
             <article class="macro-card">
               <header>
                 <h3>${metric.label}</h3>
-                <span class="muted">${roundValue(metric.goal, 1)} ${metric.unit}</span>
               </header>
-              <div class="macro-value">${metric.value}<span class="macro-unit">${metric.unit}</span></div>
+              <div class="macro-value">${metric.value}<span class="macro-goal">/ ${roundValue(metric.goal, 1)}</span><span class="macro-unit">${metric.unit}</span></div>
               ${renderProgress(metric.value, metric.goal, metric.kind)}
               ${metric.note ? `<div class="footer-note">${metric.note}</div>` : ""}
             </article>
@@ -6230,32 +6229,30 @@ function renderPlanTab(entries) {
                                 .map(
                                   (entry) => `
                                     <div class="meal-entry ${entry.done ? "is-done" : ""}">
-                                    <div class="meal-entry-body">
-                                      <div class="meal-entry-top">
+                                      <div class="meal-entry-main">
                                         <div class="meal-entry-title-group">
                                           <strong>${entry.foodName}</strong>
-                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
                                         </div>
+                                        ${
+                                          !isMealDone
+                                            ? `
+                                              <div class="entry-actions meal-entry-actions">
+                                                <button class="ghost-button button-with-icon" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni stavku">
+                                                  ${renderButtonContent("Izmeni", "edit", "button-label--mobile-hidden")}
+                                                </button>
+                                                <button class="danger-button button-with-icon" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši stavku">
+                                                  ${renderButtonContent("Obriši", "delete", "button-label--mobile-hidden")}
+                                                </button>
+                                              </div>
+                                            `
+                                            : ""
+                                        }
                                       </div>
                                       <div class="meal-entry-stats">
+                                        <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
                                         <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
                                         <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
                                       </div>
-                                      </div>
-                                      ${
-                                        !isMealDone
-                                          ? `
-                                            <div class="entry-actions meal-entry-actions">
-                                              <button class="ghost-button button-with-icon" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni stavku">
-                                                ${renderButtonContent("Izmeni", "edit", "button-label--mobile-hidden")}
-                                              </button>
-                                              <button class="danger-button button-with-icon" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši stavku">
-                                                ${renderButtonContent("Obriši", "delete", "button-label--mobile-hidden")}
-                                              </button>
-                                            </div>
-                                          `
-                                          : ""
-                                      }
                                     </div>
                                   `
                                 )
