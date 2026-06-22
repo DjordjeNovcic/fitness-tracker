@@ -7900,3 +7900,13 @@ body.app-header-hidden .workspace-header {
   width: 19px;
   height: 19px;
 }
+
+/* The meals section is transparent (padding:0), so its overflow:hidden plus
+   the decorative top stripe were slicing the tops off the "Obroci za <dan>"
+   heading. Let it breathe and drop the stripe here (other sections keep it). */
+.section.plan-meals-section {
+  overflow: visible;
+}
+.plan-meals-section::before {
+  display: none;
+}

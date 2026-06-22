@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-tracker-v2";
+const CACHE_NAME = "fit-tracker-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,6 +11,11 @@ const ASSETS = [
   "./icons/icon-512.png",
   "./icons/apple-touch-icon.png",
 ];
+const APP_SHELL_PATHS = new Set(ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
+
+function cacheResponse(request, response) {
+  return caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
@@ -51,13 +56,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (APP_SHELL_PATHS.has(requestUrl.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            cacheResponse(event.request, response.clone());
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const networkFetch = fetch(event.request)
         .then((response) => {
           if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+            cacheResponse(event.request, response.clone());
           }
           return response;
         })
