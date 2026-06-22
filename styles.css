@@ -7264,3 +7264,46 @@ body.app-header-hidden .workspace-header {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================
+   Collapsible "add" forms — default closed so tabs open to
+   their content (lists/data), not to a wall of inputs.
+   ============================================================ */
+.form-collapse > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.form-collapse > summary::-webkit-details-marker {
+  display: none;
+}
+.form-collapse-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.32rem;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.form-collapse-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  flex: 0 0 auto;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.form-collapse[open] > summary {
+  margin-bottom: 16px;
+}
+.form-collapse[open] .form-collapse-icon {
+  transform: rotate(45deg);
+}

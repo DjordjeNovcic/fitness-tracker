@@ -7235,13 +7235,11 @@ function renderTrainingTab() {
       </div>
     </section>
 
-    <section class="section routine-weekly-section">
-      <div class="section-header">
-        <div>
-          <h2>Dodaj trening sablon</h2>
-          <p>Jedan red je jedna vežba. Možeš odmah da biraš i za koji dan u nedelji ga čuvaš.</p>
-        </div>
-      </div>
+    <details class="section routine-weekly-section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Dodaj trening šablon</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <form id="training-form" class="form-grid">
         <div class="field">
           <label for="training-weekday">Dan</label>
@@ -7263,7 +7261,7 @@ function renderTrainingTab() {
         </div>
         <button class="solid-button" type="submit">Sačuvaj sablon</button>
       </form>
-    </section>
+    </details>
 
     <section class="section">
       <div class="section-header">
@@ -7466,6 +7464,11 @@ function renderRoutineTab() {
           <p>Npr. 10k koraka, čitanje ili bez slatkiša. Čekiraš kad ispuniš za izabrani dan.</p>
         </div>
       </div>
+      <details class="form-collapse" ${editingHabit ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">${editingHabit ? "Izmena navike" : "Dodaj naviku"}</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
       <form id="habit-form" class="form-grid split routine-habit-form">
         <div class="field">
           <label for="habit-name">${editingHabit ? "Naziv navike" : "Nova navika"}</label>
@@ -7506,6 +7509,7 @@ function renderRoutineTab() {
           ${editingHabit ? '<button class="ghost-button" type="button" data-action="cancel-edit-habit">Odustani</button>' : ""}
         </div>
       </form>
+      </details>
       <div class="stack" style="margin-top:14px;">
         ${
           summary.habits.length
@@ -7632,6 +7636,11 @@ function renderRoutineTab() {
             : ""
         }
       </div>
+      <details class="form-collapse" ${editingTask ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">${editingTask ? "Izmena taska" : "Dodaj task"}</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
       <form id="task-form" class="form-grid split">
         <div class="field">
           <label for="task-title">${editingTask ? "Izmena taska" : "Novi task"}</label>
@@ -7646,6 +7655,7 @@ function renderRoutineTab() {
           ${editingTask ? '<button class="ghost-button" type="button" data-action="cancel-edit-task">Odustani</button>' : ""}
         </div>
       </form>
+      </details>
       <div class="stack" style="margin-top:14px;">
         ${
           summary.tasks.length
@@ -7833,6 +7843,11 @@ function renderGoalsTab() {
 
     <section class="section goals-supplements-section">
       ${renderSectionLead("Vitamini i suplementi", "Dodaj šta piješ i kada, pa ćeš u Planu dobiti dnevni checkbox pregled.", { eyebrow: "Rutina" })}
+      <details class="form-collapse" ${editingSupplement ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">${editingSupplement ? "Izmena suplementa" : "Dodaj suplement"}</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
       <form id="supplement-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
@@ -7869,6 +7884,7 @@ function renderGoalsTab() {
           ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
         </div>
       </form>
+      </details>
       <div class="stack" style="margin-top:14px;">
         ${
           getSupplements().length
@@ -8853,13 +8869,11 @@ function renderProgressTab() {
   return `
     ${renderProgressSummary(summary)}
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Dodaj merenje</h2>
-          <p>Ne moraš popuniti sve, upiši samo ono što si izmerio tog dana.</p>
-        </div>
-      </div>
+    <details class="section form-collapse">
+      <summary>
+        <span class="form-collapse-title">Dodaj merenje</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
       <form id="measurement-form" class="form-grid split">
         <div class="field">
           <label for="measurement-date">Datum</label>
@@ -8884,7 +8898,7 @@ function renderProgressTab() {
           .join("")}
         <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
-    </section>
+    </details>
 
     <section class="section">
       <div class="section-header">
@@ -8919,6 +8933,11 @@ function renderProgressTab() {
           <p>Ubaci sliku sa telefona i ostavi kratku napomenu tipa front, side ili back.</p>
         </div>
       </div>
+      <details class="form-collapse">
+        <summary>
+          <span class="form-collapse-title">Dodaj sliku</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
       <form id="photo-form" class="form-grid split">
         <div class="field">
           <label for="photo-date">Datum</label>
@@ -8941,6 +8960,7 @@ function renderProgressTab() {
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
+      </details>
       <div class="compare-block progress-compare-block">
         <div class="section-header">
           <div>
