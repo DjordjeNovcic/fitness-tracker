@@ -5178,6 +5178,9 @@ function renderHero(entries, totals) {
             <p>Izaberi dan i odmah sredi obroke.</p>
           </div>
         </div>
+        <button class="ghost-button hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
+          ${renderActionIcon("refresh")}
+        </button>
       </div>
       <div class="hero-day-picker">
         <div class="hero-picker-label">Dan</div>
@@ -9157,6 +9160,7 @@ function render() {
               <span class="button-label">Svetla tema</span>
             </span>
           </button>
+          <button class="ghost-button button-with-icon" type="button" data-action="force-refresh">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
           <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
         </div>
       </aside>
@@ -9438,6 +9442,40 @@ async function handleDocumentClick(event) {
       return;
     }
     window.location.reload();
+    return;
+  }
+
+  if (action === "force-refresh") {
+    state.navMenuOpen = false;
+    showFeedbackToast({
+      title: "Osvežavam…",
+      detail: "Povlačim najnoviju verziju aplikacije.",
+      tone: "info",
+      duration: 4000,
+    });
+    (async () => {
+      try {
+        if (serviceWorkerRegistration) {
+          await serviceWorkerRegistration.update().catch(() => {});
+          // A newer version is already installed and waiting — activate it.
+          // The controllerchange listener then reloads into the new version.
+          if (serviceWorkerRegistration.waiting) {
+            serviceWorkerRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+            return;
+          }
+        }
+        // No new worker, but the cached assets may be stale. Drop the cache so
+        // the reload re-fetches the latest files from the network. Skip this
+        // when offline so we don't wipe the only working copy.
+        if (navigator.onLine !== false && window.caches?.keys) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch (error) {
+        // Ignore — fall through to a plain reload.
+      }
+      window.location.reload();
+    })();
     return;
   }
 
