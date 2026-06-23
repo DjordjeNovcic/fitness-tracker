@@ -104,6 +104,43 @@ function renderTabBar() {
   `;
 }
 
+// Compact "Više" popover for mobile — the few secondary destinations + quick
+// toggles, popping up above the tab bar instead of a full-screen slide-out.
+function renderMoreSheet() {
+  const moreTabs = TABS.filter((tab) => !PRIMARY_TABS.includes(tab.id));
+  return `
+    <div class="more-sheet ${state.navMenuOpen ? "is-open" : ""}" role="menu" aria-label="Više">
+      <div class="more-sheet-tabs">
+        ${moreTabs
+          .map(
+            (tab) => `
+              <button class="more-sheet-item ${tab.id === state.activeTab ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${tab.id}" role="menuitem">
+                <span class="more-sheet-icon">${renderTabIcon(tab.id)}</span>
+                <span class="more-sheet-label">${tab.label}</span>
+                ${tab.id === state.activeTab ? `<span class="more-sheet-dot" aria-hidden="true"></span>` : ""}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+      <div class="more-sheet-footer">
+        <button class="ghost-button theme-toggle button-with-icon" type="button" data-action="toggle-theme" aria-label="Promeni temu">
+          <span class="theme-toggle-face to-dark">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <span class="button-label">Tamna tema</span>
+          </span>
+          <span class="theme-toggle-face to-light">
+            <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <span class="button-label">Svetla tema</span>
+          </span>
+        </button>
+        <button class="ghost-button button-with-icon" type="button" data-action="force-refresh">${renderButtonContent("Osveži", "refresh")}</button>
+        <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
+      </div>
+    </div>
+  `;
+}
+
 const ACTIVITY_LEVELS = [
   { id: "sedentary", label: "Sedeći posao", multiplier: 1.2 },
   { id: "light", label: "Lagana aktivnost", multiplier: 1.375 },
@@ -9346,6 +9383,7 @@ function render() {
       </button>
 
       ${renderTabBar()}
+      ${renderMoreSheet()}
 
       ${state.navMenuOpen ? '<button class="menu-overlay" type="button" data-action="close-nav-menu" aria-label="Zatvori meni"></button>' : ""}
 

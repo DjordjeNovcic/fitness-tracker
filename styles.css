@@ -8735,3 +8735,137 @@ body.app-header-hidden .workspace-header {
   max-width: none;
   font-size: 0.8rem;
 }
+
+/* ============================================================
+   "Više" — a compact popover above the tab bar (phones), instead
+   of a full-screen slide-out, since only a few destinations live
+   behind it. Desktop keeps its persistent sidebar.
+   ============================================================ */
+.more-sheet {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  /* Slide-out sidebar is replaced by the sheet on phones (the old menu
+     triggers are already hidden on mobile elsewhere; the "Više" tab is the
+     single, bottom-anchored entry point to the sheet). */
+  .app-sidebar {
+    display: none !important;
+  }
+
+  /* Tab bar stays put (and above the dim) while the sheet is open. */
+  body.menu-open .tab-bar {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    z-index: 56;
+  }
+
+  .more-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: fixed;
+    right: 12px;
+    left: auto;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    z-index: 58;
+    width: min(290px, calc(100vw - 24px));
+    padding: 8px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
+      var(--surface-elevated);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 18px 44px rgba(15, 25, 20, 0.26);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    transform-origin: bottom right;
+    transform: translateY(10px) scale(0.97);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .more-sheet.is-open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .more-sheet-tabs {
+    display: grid;
+    gap: 2px;
+  }
+
+  .more-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 12px;
+    border: 0;
+    border-radius: 14px;
+    background: none;
+    color: var(--ink);
+    font-size: 0.98rem;
+    font-weight: 600;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .more-sheet-item.is-active {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-strong);
+  }
+
+  .more-sheet-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+
+  .more-sheet-icon .tab-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .more-sheet-dot {
+    margin-left: auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .more-sheet-footer {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+
+  .more-sheet-footer .ghost-button {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 0;
+    padding: 10px 12px;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 14px;
+  }
+
+  /* Više tab shows the active capsule while its sheet is open. */
+  .tab-bar-more.is-open .tab-bar-icon {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .tab-bar-more.is-open {
+    color: var(--tabbar-active);
+  }
+}
