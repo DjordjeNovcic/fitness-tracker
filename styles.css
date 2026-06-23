@@ -7486,18 +7486,43 @@ body.app-header-hidden .workspace-header {
   }
 }
 
-/* Active bottom-tab gets a small accent indicator dot above the icon */
 .tab-bar-item {
   position: relative;
 }
-.tab-bar-item.is-active::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  width: 5px;
-  height: 5px;
+
+/* Active tab: a soft accent capsule behind the icon (iOS/Material style),
+   clearer and more polished than the old indicator dot. */
+.tab-bar-item {
+  min-width: 0;
+}
+
+.tab-bar-label {
+  min-width: 0;
+}
+
+.tab-bar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 30px;
   border-radius: 999px;
-  background: var(--accent);
+  flex: 0 0 auto;
+  transition: background 0.22s ease;
+}
+
+.tab-bar-item.is-active .tab-bar-icon {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.tab-bar-item.is-active .tab-bar-label {
+  font-weight: 800;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tab-bar-item:not(.is-active):hover .tab-bar-icon {
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
 }
 
 /* ============================================================
