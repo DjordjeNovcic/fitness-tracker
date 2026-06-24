@@ -158,6 +158,13 @@ const GOAL_MODES = [
   { id: "maintain", label: "Održavanje", calorieFactor: 1, proteinFactor: 2, fatFactor: 0.9 },
   { id: "gain", label: "Ugoji se", calorieFactor: 1.12, proteinFactor: 1.8, fatFactor: 1 },
 ];
+// Weekly rate (kg/week) per pace level → exact daily kcal deficit/surplus.
+const PACE_LEVELS = [
+  { id: "blago", label: "Blago", loseKgPerWeek: 0.25, gainKgPerWeek: 0.125 },
+  { id: "umereno", label: "Umereno", loseKgPerWeek: 0.5, gainKgPerWeek: 0.25 },
+  { id: "agresivno", label: "Agresivno", loseKgPerWeek: 0.75, gainKgPerWeek: 0.5 },
+];
+const KCAL_PER_KG = 7700;
 
 const SUPPLEMENT_TIMINGS = [
   { id: "morning", label: "Ujutru" },
@@ -343,7 +350,9 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
 
   const goalDefaults = {
     targetMode: "lose",
+    paceLevel: "umereno",
     waterMl: 2500,
+    basisWeightKg: null,
   };
 
   return {
@@ -3695,9 +3704,22 @@ function getGoalRecommendation(profile = store.profile, goals = store.goals) {
 
   const activity = ACTIVITY_LEVELS.find((entry) => entry.id === profile.activityLevel) || ACTIVITY_LEVELS[2];
   const goalMode = GOAL_MODES.find((entry) => entry.id === goals.targetMode) || GOAL_MODES[0];
+  const pace = PACE_LEVELS.find((entry) => entry.id === goals.paceLevel) || PACE_LEVELS[1];
   const weightKg = Math.max(0, toNumber(profile.weightKg));
   const maintenance = roundValue(bmr * activity.multiplier, 0);
-  const targetCalories = roundValue(maintenance * goalMode.calorieFactor, 0);
+  // Calorie target from a concrete weekly rate (kg/week), not a flat %.
+  // 1 kg ≈ 7700 kcal → daily adjustment = rate * 7700 / 7.
+  let rateKgPerWeek = 0;
+  if (goalMode.id === "lose") {
+    rateKgPerWeek = -pace.loseKgPerWeek;
+  } else if (goalMode.id === "gain") {
+    rateKgPerWeek = pace.gainKgPerWeek;
+  }
+  const floorCalories = Math.max(1200, roundValue(bmr, 0));
+  let targetCalories = roundValue(maintenance + (rateKgPerWeek * KCAL_PER_KG) / 7, 0);
+  if (rateKgPerWeek < 0) {
+    targetCalories = Math.max(targetCalories, floorCalories);
+  }
   const protein = roundValue(weightKg * goalMode.proteinFactor, 1);
   const fat = roundValue(weightKg * goalMode.fatFactor, 1);
   const remainingCalories = Math.max(0, targetCalories - protein * 4 - fat * 9);
@@ -3712,6 +3734,8 @@ function getGoalRecommendation(profile = store.profile, goals = store.goals) {
     carbs,
     activity,
     goalMode,
+    pace,
+    rateKgPerWeek,
   };
 }
 
@@ -5387,7 +5411,7 @@ function renderOnboardingPreview() {
       weightKg: ob.weightKg,
       activityLevel: ob.activityLevel,
     },
-    { targetMode: ob.targetMode }
+    { targetMode: ob.targetMode, paceLevel: ob.paceLevel }
   );
   if (!rec) {
     return `<div class="onboarding-preview-empty">Popuni pol, godine, visinu i težinu pa odmah računamo tvoj dnevni cilj.</div>`;
@@ -5395,6 +5419,7 @@ function renderOnboardingPreview() {
   return `
     <div class="onboarding-preview-label">Tvoj dnevni cilj</div>
     <div class="onboarding-preview-kcal"><strong>${rec.targetCalories}</strong> kcal</div>
+    ${rec.rateKgPerWeek ? `<div class="footer-note">${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/nedeljno</div>` : ""}
     <div class="onboarding-preview-macros">
       <span>P <strong>${rec.protein}</strong> g</span>
       <span>UH <strong>${rec.carbs}</strong> g</span>
@@ -5453,6 +5478,16 @@ function renderOnboarding() {
               ${GOAL_MODES.map((mode) => `<button type="button" class="chip ${mode.id === ob.targetMode ? "is-active" : ""}" data-action="set-onboarding-mode" data-mode="${mode.id}">${mode.label}</button>`).join("")}
             </div>
           </div>
+          ${
+            ob.targetMode !== "maintain"
+              ? `<div class="field">
+            <label>Tempo</label>
+            <div class="chips onboarding-chips">
+              ${PACE_LEVELS.map((level) => `<button type="button" class="chip ${level.id === (ob.paceLevel || "umereno") ? "is-active" : ""}" data-action="set-onboarding-pace" data-pace="${level.id}">${level.label}</button>`).join("")}
+            </div>
+          </div>`
+              : ""
+          }
           <div class="onboarding-preview" id="onboarding-preview">${renderOnboardingPreview()}</div>
           <button class="solid-button button-with-icon onboarding-cta" type="button" data-action="finish-onboarding">${renderButtonContent("Sačuvaj i počni", "apply")}</button>
           <button class="ghost-button onboarding-skip" type="button" data-action="skip-onboarding">Preskoči zasad</button>
@@ -8028,6 +8063,39 @@ function renderRoutineTab() {
   `;
 }
 
+// Adaptive correction: when measured weight drifts from the weight the goal
+// was computed on, offer a one-tap recompute so the deficit stays accurate.
+function renderAdaptiveGoalNudge() {
+  const basis = toNumber(store.goals?.basisWeightKg);
+  if (!basis) {
+    return "";
+  }
+  const measurements = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!measurements.length) {
+    return "";
+  }
+  const currentWeight = toNumber(measurements[0].weightKg);
+  if (Math.abs(currentWeight - basis) < 2) {
+    return "";
+  }
+  const rec = getGoalRecommendation({ ...store.profile, weightKg: currentWeight }, store.goals);
+  if (!rec) {
+    return "";
+  }
+  return `
+    <section class="section adaptive-goal-nudge">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Ažuriraj cilj</h2>
+          <p>Težina se promenila (${roundValue(basis, 1)} → ${roundValue(currentWeight, 1)} kg). Da deficit ostane tačan, predlog je <strong>${rec.targetCalories} kcal</strong>${rec.rateKgPerWeek ? ` (${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/ned)` : ""}.</p>
+        </div>
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="apply-adaptive-goal">${renderButtonContent("Ažuriraj", "apply")}</button>
+      </div>
+    </section>`;
+}
+
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
   const goalRecommendation = getGoalRecommendation();
@@ -8060,6 +8128,8 @@ function renderGoalsTab() {
   ];
 
   return `
+    ${renderAdaptiveGoalNudge()}
+
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
       <div class="stats-grid goals-insight-grid">
@@ -8076,7 +8146,13 @@ function renderGoalsTab() {
         <article class="stat-card">
           <strong>Cilj</strong>
           <div class="macro-value">${goalRecommendation ? `${goalRecommendation.targetCalories} kcal` : "—"}</div>
-          <div class="footer-note">${goalRecommendation ? goalRecommendation.goalMode.label : "Izaberi cilj"}</div>
+          <div class="footer-note">${
+            goalRecommendation
+              ? goalRecommendation.rateKgPerWeek
+                ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned`
+                : goalRecommendation.goalMode.label
+              : "Izaberi cilj"
+          }</div>
         </article>
         <article class="stat-card">
           <strong>Preporučeni makroi</strong>
@@ -8119,6 +8195,12 @@ function renderGoalsTab() {
           <label for="goal-target-mode">Cilj</label>
           <select id="goal-target-mode" name="targetMode">
             ${GOAL_MODES.map((mode) => `<option value="${mode.id}" ${store.goals.targetMode === mode.id ? "selected" : ""}>${mode.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="goal-pace">Tempo</label>
+          <select id="goal-pace" name="paceLevel">
+            ${PACE_LEVELS.map((level) => `<option value="${level.id}" ${(store.goals.paceLevel || "umereno") === level.id ? "selected" : ""}>${level.label}</option>`).join("")}
           </select>
         </div>
         <div class="field">
@@ -9733,6 +9815,7 @@ function render() {
         weightKg: store.profile.weightKg || "",
         activityLevel: store.profile.activityLevel || "moderate",
         targetMode: store.goals.targetMode || "lose",
+        paceLevel: store.goals.paceLevel || "umereno",
       };
     }
     syncBodyScrollLock();
@@ -10193,6 +10276,14 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "set-onboarding-pace") {
+    if (state.onboarding) {
+      state.onboarding.paceLevel = actionTarget.dataset.pace || "umereno";
+      render();
+    }
+    return;
+  }
+
   if (action === "skip-onboarding") {
     store.onboarded = true;
     state.onboarding = null;
@@ -10211,14 +10302,16 @@ async function handleDocumentClick(event) {
       weightKg: toNumber(ob.weightKg),
       activityLevel: ob.activityLevel || "moderate",
     };
-    const rec = getGoalRecommendation(profile, { targetMode: ob.targetMode || "lose" });
+    const rec = getGoalRecommendation(profile, { targetMode: ob.targetMode || "lose", paceLevel: ob.paceLevel || "umereno" });
     store.profile = profile;
     store.goals.targetMode = ob.targetMode || "lose";
+    store.goals.paceLevel = ob.paceLevel || "umereno";
     if (rec) {
       store.goals.calories = rec.targetCalories;
       store.goals.protein = rec.protein;
       store.goals.carbs = rec.carbs;
       store.goals.fat = rec.fat;
+      store.goals.basisWeightKg = toNumber(profile.weightKg) || null;
     }
     store.onboarded = true;
     state.onboarding = null;
@@ -11446,6 +11539,33 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "apply-adaptive-goal") {
+    const measurements = [...(store.measurements || [])]
+      .filter((m) => toNumber(m.weightKg) > 0)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (!measurements.length) {
+      return;
+    }
+    const currentWeight = toNumber(measurements[0].weightKg);
+    store.profile.weightKg = currentWeight;
+    const rec = getGoalRecommendation(store.profile, store.goals);
+    if (rec) {
+      store.goals.calories = rec.targetCalories;
+      store.goals.protein = rec.protein;
+      store.goals.carbs = rec.carbs;
+      store.goals.fat = rec.fat;
+      store.goals.basisWeightKg = currentWeight;
+    }
+    persist();
+    render();
+    showFeedbackToast({
+      title: "Cilj je ažuriran",
+      detail: rec ? `Novi dnevni cilj: ${rec.targetCalories} kcal.` : "",
+      tone: "success",
+    });
+    return;
+  }
+
   if (action === "recalculate-goals") {
     await runButtonAction(
       actionTarget,
@@ -11459,6 +11579,7 @@ async function handleDocumentClick(event) {
         };
         const goalsDraft = {
           targetMode: String(document.querySelector("#goal-target-mode")?.value || store.goals.targetMode || "lose").trim(),
+          paceLevel: String(document.querySelector("#goal-pace")?.value || store.goals.paceLevel || "umereno").trim(),
         };
         const recommendation = getGoalRecommendation(profileDraft, goalsDraft);
 
@@ -12213,7 +12334,9 @@ async function handleSubmit(event) {
         store.profile.heightCm = toNumber(formData.get("heightCm"));
         store.profile.activityLevel = String(formData.get("activityLevel") || "moderate").trim();
         store.goals.targetMode = String(formData.get("targetMode") || "lose").trim();
+        store.goals.paceLevel = String(formData.get("paceLevel") || "umereno").trim();
         store.goals.calories = toNumber(formData.get("calories"));
+        store.goals.basisWeightKg = toNumber(formData.get("weightKg")) || store.goals.basisWeightKg || null;
         store.goals.protein = toNumber(formData.get("protein"));
         store.goals.carbs = toNumber(formData.get("carbs"));
         store.goals.fat = toNumber(formData.get("fat"));
