@@ -272,7 +272,7 @@ const state = {
   progressCompareTag: PHOTO_TAGS[0],
   progressCompareLeftId: "",
   progressCompareRightId: "",
-  deletedPlanEntry: null,
+  pendingUndo: null,
   editingFoodId: "",
   nutritionEditingFoodId: "",
   nutritionSelectedPlanId: "",
@@ -292,7 +292,7 @@ const state = {
   updateReady: false,
 };
 
-let undoDeleteTimer = null;
+let pendingUndoTimer = null;
 let cloudSaveTimer = null;
 let isHydratingCloudState = false;
 let serviceWorkerRegistration = null;
@@ -717,23 +717,22 @@ function persist(rollback) {
   return savedLocal;
 }
 
-function clearDeletedPlanEntry() {
-  state.deletedPlanEntry = null;
-  if (undoDeleteTimer) {
-    window.clearTimeout(undoDeleteTimer);
-    undoDeleteTimer = null;
+function clearPendingUndo() {
+  state.pendingUndo = null;
+  if (pendingUndoTimer) {
+    window.clearTimeout(pendingUndoTimer);
+    pendingUndoTimer = null;
   }
 }
 
-function queueDeletedPlanEntry(entry, index) {
-  clearDeletedPlanEntry();
-  state.deletedPlanEntry = {
-    entry,
-    index,
-  };
-  undoDeleteTimer = window.setTimeout(() => {
-    state.deletedPlanEntry = null;
-    undoDeleteTimer = null;
+// Generic "soft delete with undo": stash a restore() closure and show an undo
+// banner for a few seconds instead of a blocking confirm() dialog.
+function queuePendingUndo(message, restore) {
+  clearPendingUndo();
+  state.pendingUndo = { message, restore };
+  pendingUndoTimer = window.setTimeout(() => {
+    state.pendingUndo = null;
+    pendingUndoTimer = null;
     render();
   }, 7000);
 }
@@ -9547,14 +9546,14 @@ function render() {
       </main>
 
       ${
-        state.deletedPlanEntry
+        state.pendingUndo
           ? `
             <div class="undo-banner" role="status" aria-live="polite">
               <div>
-                <strong>Stavka obrisana.</strong>
-                <div class="footer-note" style="margin-top:4px;">Možeš odmah da je vratiš.</div>
+                <strong>${escapeHtml(state.pendingUndo.message)}</strong>
+                <div class="footer-note" style="margin-top:4px;">Možeš odmah da vratiš.</div>
               </div>
-              <button class="solid-button secondary-button button-with-icon" data-action="undo-delete-entry">${renderButtonContent("Vrati", "undo")}</button>
+              <button class="solid-button secondary-button button-with-icon" data-action="undo-pending">${renderButtonContent("Vrati", "undo")}</button>
             </div>
           `
           : ""
@@ -10110,14 +10109,17 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-habit") {
-    const habit = store.habits.find((entry) => entry.id === actionTarget.dataset.habitId);
-    const confirmed = window.confirm(habit ? `Obriši naviku "${habit.name}"?` : "Obriši ovu naviku?");
-    if (!confirmed) {
+    const habitId = actionTarget.dataset.habitId;
+    const prevHabits = store.habits;
+    if (!prevHabits.some((entry) => entry.id === habitId)) {
       return;
     }
-
-    store.habits = store.habits.filter((entry) => entry.id !== actionTarget.dataset.habitId);
+    store.habits = store.habits.filter((entry) => entry.id !== habitId);
     persist();
+    queuePendingUndo("Navika obrisana.", () => {
+      store.habits = prevHabits;
+      persist();
+    });
     render();
     return;
   }
@@ -10397,19 +10399,14 @@ async function handleDocumentClick(event) {
       return;
     }
 
-    const planUsageCount = (store.weeklyPlanEntries || []).filter((entry) => entry.foodId === foodId).length;
-    const recipeUsageCount = (store.favoriteMeals || []).reduce(
-      (count, favorite) => count + (favorite.items || []).filter((item) => item.foodId === foodId).length,
-      0
-    );
-    const usageNote =
-      planUsageCount || recipeUsageCount
-        ? ` Ovo će ukloniti ${planUsageCount} stavki iz plana i ${recipeUsageCount} sastojaka iz recepata.`
-        : "";
-    const confirmed = window.confirm(`Obriši namirnicu "${food.name}"?${usageNote}`);
-    if (!confirmed) {
-      return;
-    }
+    // Deleting a food cascades (plan entries, recipe items, favorite refs), so
+    // snapshot the affected collections for a clean one-tap undo.
+    const undoSnapshot = {
+      foods: JSON.parse(JSON.stringify(store.foods)),
+      weeklyPlanEntries: JSON.parse(JSON.stringify(store.weeklyPlanEntries)),
+      favoriteMeals: JSON.parse(JSON.stringify(store.favoriteMeals)),
+      favoriteFoods: JSON.parse(JSON.stringify(store.favoriteFoods)),
+    };
 
     const result = deleteFoodFromCollections(store, foodId);
     if (state.editingFoodId === foodId) {
@@ -10417,7 +10414,6 @@ async function handleDocumentClick(event) {
     }
     state.foodSearch = state.foodSearch && normalizeLookupValue(food.name).includes(normalizeLookupValue(state.foodSearch)) ? "" : state.foodSearch;
     persist();
-    render();
 
     const detailParts = [];
     if (result.removedPlanEntries) {
@@ -10429,15 +10425,16 @@ async function handleDocumentClick(event) {
     if (result.removedRecipes) {
       detailParts.push(`${result.removedRecipes} praznih recepata`);
     }
-    if (result.removedFavoriteReferences) {
-      detailParts.push("favorit oznaka");
-    }
+    const cascadeNote = detailParts.length ? ` (uklonjeno i ${detailParts.join(", ")})` : "";
 
-    showFeedbackToast({
-      title: "Namirnica je obrisana",
-      detail: detailParts.length ? `Uklonjeno: ${detailParts.join(", ")}.` : `${food.name} je uklonjena iz baze.`,
-      tone: "success",
+    queuePendingUndo(`Namirnica obrisana${cascadeNote}.`, () => {
+      store.foods = undoSnapshot.foods;
+      store.weeklyPlanEntries = undoSnapshot.weeklyPlanEntries;
+      store.favoriteMeals = undoSnapshot.favoriteMeals;
+      store.favoriteFoods = undoSnapshot.favoriteFoods;
+      persist();
     });
+    render();
     return;
   }
 
@@ -10914,16 +10911,20 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-favorite-meal") {
-    const favorite = store.favoriteMeals.find((entry) => entry.id === actionTarget.dataset.favoriteId);
-    const confirmed = window.confirm(favorite ? `Obriši recept "${favorite.name}"?` : "Obriši ovaj recept?");
-    if (!confirmed) {
+    const favoriteId = actionTarget.dataset.favoriteId;
+    const prevFavoriteMeals = store.favoriteMeals;
+    if (!prevFavoriteMeals.some((entry) => entry.id === favoriteId)) {
       return;
     }
-    store.favoriteMeals = store.favoriteMeals.filter((entry) => entry.id !== actionTarget.dataset.favoriteId);
-    if (state.editingFavoriteItem.favoriteId === actionTarget.dataset.favoriteId) {
+    store.favoriteMeals = store.favoriteMeals.filter((entry) => entry.id !== favoriteId);
+    if (state.editingFavoriteItem.favoriteId === favoriteId) {
       resetFavoriteDraft();
     }
     persist();
+    queuePendingUndo("Recept obrisan.", () => {
+      store.favoriteMeals = prevFavoriteMeals;
+      persist();
+    });
     render();
     return;
   }
@@ -10934,16 +10935,6 @@ async function handleDocumentClick(event) {
     if (entry && isMealCompletedForWeekday(state.selectedWeekday, entry.mealLabel)) {
       return;
     }
-    const confirmed = window.confirm(
-      entry
-        ? `Obriši stavku "${entry.foodName}" (${formatFoodAmount(entry.food, entry.grams)}) iz ${entry.mealLabel}?`
-        : "Obriši ovu stavku iz plana?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     const removedIndex = store.weeklyPlanEntries.findIndex((item) => item.id === entryId);
     const removedEntry = removedIndex >= 0 ? { ...store.weeklyPlanEntries[removedIndex] } : null;
     if (state.editingEntryId === entryId) {
@@ -10952,22 +10943,25 @@ async function handleDocumentClick(event) {
     store.weeklyPlanEntries = store.weeklyPlanEntries.filter((item) => item.id !== entryId);
     persist();
     if (removedEntry) {
-      queueDeletedPlanEntry(removedEntry, removedIndex);
+      queuePendingUndo("Stavka obrisana.", () => {
+        const safeIndex = removedIndex >= 0 ? removedIndex : store.weeklyPlanEntries.length;
+        store.weeklyPlanEntries.splice(safeIndex, 0, removedEntry);
+        persist();
+      });
     }
     render();
     return;
   }
 
-  if (action === "undo-delete-entry") {
-    if (!state.deletedPlanEntry) {
+  if (action === "undo-pending") {
+    if (!state.pendingUndo) {
       return;
     }
-
-    const { entry, index } = state.deletedPlanEntry;
-    const safeIndex = typeof index === "number" && index >= 0 ? index : store.weeklyPlanEntries.length;
-    store.weeklyPlanEntries.splice(safeIndex, 0, entry);
-    persist();
-    clearDeletedPlanEntry();
+    const { restore } = state.pendingUndo;
+    clearPendingUndo();
+    if (typeof restore === "function") {
+      restore();
+    }
     render();
     return;
   }
@@ -11079,8 +11073,17 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-photo") {
-    store.progressPhotos = store.progressPhotos.filter((photo) => photo.id !== actionTarget.dataset.photoId);
+    const photoId = actionTarget.dataset.photoId;
+    const prevPhotos = store.progressPhotos;
+    if (!prevPhotos.some((photo) => photo.id === photoId)) {
+      return;
+    }
+    store.progressPhotos = store.progressPhotos.filter((photo) => photo.id !== photoId);
     persist();
+    queuePendingUndo("Slika obrisana.", () => {
+      store.progressPhotos = prevPhotos;
+      persist();
+    });
     render();
     return;
   }
