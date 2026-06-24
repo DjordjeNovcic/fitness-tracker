@@ -341,6 +341,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
 
   const goalDefaults = {
     targetMode: "lose",
+    waterMl: 2500,
   };
 
   return {
@@ -475,6 +476,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
   targetStore.progressPhotos = targetStore.progressPhotos || [];
+  targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
   targetStore.nutritionLibrary = targetStore.nutritionLibrary || {};
@@ -6106,6 +6108,38 @@ function renderPlanSupplementsSection() {
   `;
 }
 
+function getTodayWaterMl() {
+  const today = getTodayDateValue();
+  return Math.max(0, Math.round(toNumber((store.waterByDate || {})[today]) || 0));
+}
+
+function renderPlanWaterSection() {
+  const current = getTodayWaterMl();
+  const target = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
+  const pct = target ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const reached = target > 0 && current >= target;
+  const toL = (ml) => (ml % 1000 === 0 ? String(ml / 1000) : (ml / 1000).toFixed(1));
+  return `
+    <section class="section plan-water-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Voda danas</h2>
+          <p>${toL(current)} / ${toL(target)} L${reached ? " · cilj ispunjen 💧" : ""}</p>
+        </div>
+        <span class="pill strong pill--${reached ? "success" : "info"}">${pct}%</span>
+      </div>
+      <div style="height:12px;border-radius:999px;background:var(--bar-track);overflow:hidden;margin:10px 0 14px;">
+        <div style="height:100%;width:${pct}%;border-radius:999px;background:var(--bar-ok);transition:width 0.3s ease;"></div>
+      </div>
+      <div class="meta-row meta-row--compact">
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="add-water" data-ml="250">+ Čaša · 250 ml</button>
+        <button class="ghost-button button-with-icon" type="button" data-action="add-water" data-ml="500">+ 500 ml</button>
+        ${current > 0 ? `<button class="ghost-button" type="button" data-action="add-water" data-ml="-250">−250 ml</button>` : ""}
+      </div>
+    </section>
+  `;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
@@ -6479,6 +6513,8 @@ function renderPlanTab(entries) {
     </section>
 
     ${renderPlanSupplementsSection()}
+
+    ${renderPlanWaterSection()}
   `;
 }
 
@@ -10409,6 +10445,20 @@ async function handleDocumentClick(event) {
       state.editingMealLabel = "";
       resetPlanDraft();
     }
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "add-water") {
+    const delta = toNumber(actionTarget.dataset.ml);
+    if (!delta) {
+      return;
+    }
+    const today = getTodayDateValue();
+    store.waterByDate = store.waterByDate && typeof store.waterByDate === "object" ? store.waterByDate : {};
+    const next = Math.max(0, Math.round((toNumber(store.waterByDate[today]) || 0) + delta));
+    store.waterByDate[today] = next;
     persist();
     render();
     return;
