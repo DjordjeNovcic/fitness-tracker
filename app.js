@@ -3814,6 +3814,43 @@ function getTodayDateValue() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
+// Stable id for the current week = the date of this week's Monday. Used so that
+// per-weekday completion marks reset once a week instead of persisting on the
+// same weekday forever.
+function getCurrentWeekId() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((day + 6) % 7));
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+}
+
+// When a new week starts, clear this-week's completion marks so the new week
+// doesn't start pre-checked with last week's state. Returns true if it changed
+// anything (so the caller can persist). Leaves dated history (training/weight
+// logs, measurements), streaks and one-off day tasks untouched.
+function ensureCurrentWeek() {
+  const weekId = getCurrentWeekId();
+  store.meta = store.meta || {};
+  if (store.meta.weekId === weekId) {
+    return false;
+  }
+  (store.weeklyPlanEntries || []).forEach((entry) => {
+    entry.done = false;
+  });
+  (store.supplements || []).forEach((supplement) => {
+    supplement.completions = {};
+  });
+  (store.habits || []).forEach((habit) => {
+    if (habit.trackingMode !== "streak") {
+      habit.completions = {};
+    }
+  });
+  store.trainingCompletionsByWeekday = {};
+  store.trainingBurnByWeekday = {};
+  store.meta.weekId = weekId;
+  return true;
+}
+
 function getTrainingCompletionBucket(weekday) {
   const normalizedWeekday = String(weekday || "").trim();
   if (!normalizedWeekday) {
@@ -9425,6 +9462,25 @@ function render() {
     goals: renderGoalsTab(),
   };
 
+  // Snapshot scroll + focused field before we blow away and rebuild the DOM,
+  // so a toggle/keystroke doesn't bounce the user to the top or drop the field.
+  const preservedScrollY = window.scrollY;
+  const activeEl = document.activeElement;
+  let preservedFocus = null;
+  if (activeEl && activeEl.id && activeEl !== document.body) {
+    let selStart = null;
+    let selEnd = null;
+    try {
+      if (typeof activeEl.selectionStart === "number") {
+        selStart = activeEl.selectionStart;
+        selEnd = activeEl.selectionEnd;
+      }
+    } catch (error) {
+      /* number/email inputs throw on selectionStart access — ignore */
+    }
+    preservedFocus = { id: activeEl.id, start: selStart, end: selEnd };
+  }
+
   document.querySelector("#app").innerHTML = `
     <div class="app-frame app-frame--${state.activeTab} ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
       <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
@@ -9535,6 +9591,29 @@ function render() {
     }, 850);
     window.requestAnimationFrame(animateRingCountUp);
     window.requestAnimationFrame(animateMacroCountUps);
+  }
+
+  // Put the user back where they were (before the scroll-dependent syncs below
+  // run). On a tab switch start at the top of the new tab; otherwise restore the
+  // prior scroll position and re-focus the field they were in, so typing or
+  // toggling a checkbox doesn't bounce to the top or drop focus.
+  if (didEnter) {
+    window.scrollTo(0, 0);
+  } else {
+    if (preservedFocus) {
+      const focusEl = document.getElementById(preservedFocus.id);
+      if (focusEl) {
+        focusEl.focus({ preventScroll: true });
+        if (preservedFocus.start != null && typeof focusEl.setSelectionRange === "function") {
+          try {
+            focusEl.setSelectionRange(preservedFocus.start, preservedFocus.end);
+          } catch (error) {
+            /* some input types don't support setSelectionRange — ignore */
+          }
+        }
+      }
+    }
+    window.scrollTo(0, preservedScrollY);
   }
 
   syncBodyScrollLock();
@@ -12008,6 +12087,15 @@ document.addEventListener("change", handleValidationInteraction, true);
 document.addEventListener("invalid", handleInvalidField, true);
 document.addEventListener("change", handleImport);
 
+// If the app was left open across a week boundary, roll the week over (clear
+// last week's completion marks) the next time it returns to the foreground.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.authUser && state.authReady && ensureCurrentWeek()) {
+    persist();
+    render();
+  }
+});
+
 window.addEventListener("hashchange", () => {
   const nextTab = getInitialTab();
   if (nextTab !== state.activeTab) {
@@ -12040,6 +12128,9 @@ onAuthStateChanged(firebaseAuth, async (user) => {
   state.authReady = false;
   render();
   await hydrateStoreFromCloud(user);
+  if (ensureCurrentWeek()) {
+    persist();
+  }
   state.authReady = true;
   render();
 });
