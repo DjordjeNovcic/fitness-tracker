@@ -575,7 +575,7 @@ function isDemoAccount() {
 async function resetDemoToFactory() {
   replaceStore(cloneSeed());
   persistLocal();
-  await saveCloudStateNow({ force: true });
+  await saveCloudStateNow({ force: true, overwrite: true });
 }
 
 function getAuthErrorMessage(error) {
@@ -615,7 +615,10 @@ async function saveCloudStateNow(options = {}) {
         updatedAt: serverTimestamp(),
         state: getCloudStoreSnapshot(),
       },
-      { merge: true }
+      // Reset path passes overwrite:true to fully replace the doc (no merge), so
+      // stale nested map keys (training completions/burns, collapsed-meal UI) are
+      // actually wiped instead of deep-merged.
+      options.overwrite ? {} : { merge: true }
     );
     state.syncStatus = "Sync je uključen";
     if (options.renderAfterSave) {
@@ -665,7 +668,21 @@ async function hydrateStoreFromCloud(user) {
       return;
     }
 
+    // No cloud doc = brand-new account. The demo account inherits the full
+    // factory plan (the creator's seed) as a template; a real new user keeps the
+    // generic food database but starts WITHOUT the creator's identity, goals,
+    // plan, recipes or training, so onboarding runs and they start clean.
+    // (The app is gated behind the login screen, so nothing real could have been
+    // entered before this point — localSnapshot here is only the untouched seed.)
     replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
+    if (!isDemoAccount()) {
+      store.profile = { ...store.profile, name: "", age: null, weightKg: null };
+      store.goals = { ...store.goals, calories: 0, protein: 0, carbs: 0, fat: 0 };
+      store.weeklyPlanEntries = [];
+      store.favoriteMeals = [];
+      store.trainingTemplates = [];
+      store.onboarded = false;
+    }
     persistLocal();
     await saveCloudStateNow({ force: true });
     state.syncStatus = "Prvi sync je završen";
@@ -4536,7 +4553,7 @@ function renderRecipeApplyDialog() {
             <label>
               <span>Obrok</span>
               <select name="mealLabel">
-                ${mealOptions.map((mealLabel) => `<option value="${mealLabel}" ${mealLabel === selectedMealLabel ? "selected" : ""}>${mealLabel}</option>`).join("")}
+                ${mealOptions.map((mealLabel) => `<option value="${escapeHtml(mealLabel)}" ${mealLabel === selectedMealLabel ? "selected" : ""}>${escapeHtml(mealLabel)}</option>`).join("")}
               </select>
             </label>
           </div>
@@ -5213,7 +5230,7 @@ function renderMetricsGrid(metrics) {
               </header>
               <div class="macro-value">${metric.value}<span class="macro-goal">/ ${roundValue(metric.goal, 1)}</span><span class="macro-unit">${metric.unit}</span></div>
               ${renderProgress(metric.value, metric.goal, metric.kind)}
-              ${metric.note ? `<div class="footer-note">${metric.note}</div>` : ""}
+              ${metric.note ? `<div class="footer-note">${escapeHtml(metric.note)}</div>` : ""}
             </article>
           `
         )
@@ -5508,8 +5525,8 @@ function showFeedbackToast({ title, detail = "", tone = "success", duration = 24
   toast.setAttribute("role", "status");
   toast.setAttribute("aria-live", "polite");
   toast.innerHTML = `
-    <div class="feedback-toast-title">${title}</div>
-    ${detail ? `<div class="feedback-toast-detail">${detail}</div>` : ""}
+    <div class="feedback-toast-title">${escapeHtml(title)}</div>
+    ${detail ? `<div class="feedback-toast-detail">${escapeHtml(detail)}</div>` : ""}
   `;
   document.body.appendChild(toast);
 
@@ -5651,8 +5668,8 @@ function renderStatusSummaryCard({ title, detail = "", statusLabel = "", tone = 
     <article class="status-summary-card">
       <div class="status-summary-top">
         <div class="status-summary-copy">
-          <strong>${title}</strong>
-          ${detail ? `<div class="footer-note">${detail}</div>` : ""}
+          <strong>${escapeHtml(title)}</strong>
+          ${detail ? `<div class="footer-note">${escapeHtml(detail)}</div>` : ""}
         </div>
         ${statusLabel ? `<span class="pill strong pill--${tone}">${statusLabel}</span>` : ""}
       </div>
@@ -5818,17 +5835,17 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
 
   return `
     <form id="plan-entry-form" class="meal-composer">
-      <input id="mealLabel" name="mealLabel" type="hidden" value="${activeMealLabel}" />
+      <input id="mealLabel" name="mealLabel" type="hidden" value="${escapeHtml(activeMealLabel)}" />
       <div class="meal-composer-head">
         <span class="meal-composer-eyebrow">${isEditing ? "Izmena stavke" : "Nova stavka"}</span>
-        <h4>${isEditing ? "Izmeni stavku" : `Dodaj u ${mealParts.title || activeMealLabel}`}</h4>
+        <h4>${isEditing ? "Izmeni stavku" : `Dodaj u ${escapeHtml(mealParts.title || activeMealLabel)}`}</h4>
       </div>
       <div class="field meal-composer-field">
         <label for="foodId">1. Koju namirnicu?</label>
         <select id="foodId" name="foodId" required>
           <option value="">Izaberi namirnicu…</option>
           ${selectableFoods
-            .map((food) => `<option value="${food.id}" ${food.id === state.planDraft.foodId ? "selected" : ""}>${food.name}</option>`)
+            .map((food) => `<option value="${food.id}" ${food.id === state.planDraft.foodId ? "selected" : ""}>${escapeHtml(food.name)}</option>`)
             .join("")}
         </select>
       </div>
@@ -5847,7 +5864,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
                   (suggestion) => `
                     <div class="suggestion-row">
                       <div class="suggestion-row-copy">
-                        <strong>${suggestion.food.name}</strong>
+                        <strong>${escapeHtml(suggestion.food.name)}</strong>
                         <div class="footer-note">${formatFoodAmount(suggestion.food, suggestion.grams)} · ${roundValue(suggestion.totals.kcal, 0)} kcal</div>
                       </div>
                       <button class="ghost-button button-with-icon" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
@@ -5866,7 +5883,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         ${
           isEditing
             ? `<button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
-            : `<button class="ghost-button" type="button" data-action="finish-edit-meal" data-meal-label="${state.editingMealLabel}">Zatvori</button>`
+            : `<button class="ghost-button" type="button" data-action="finish-edit-meal" data-meal-label="${escapeHtml(state.editingMealLabel)}">Zatvori</button>`
         }
       </div>
     </form>
@@ -5926,7 +5943,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                         <div class="meal-heading-block">
                           ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                           <div>
-                            <h3 class="meal-title">${mealParts.title || group.mealLabel}</h3>
+                            <h3 class="meal-title">${escapeHtml(mealParts.title || group.mealLabel)}</h3>
                             <div class="footer-note">${group.recipes.length} ${group.recipes.length === 1 ? "recept" : "recepta"} za ovaj obrok</div>
                           </div>
                         </div>
@@ -5940,13 +5957,13 @@ function renderPlanRecipesSection(planMeals, favorites) {
                               <article class="food-card suggestion-surface plan-recipe-card">
                                 <div class="food-card-top plan-recipe-top">
                                   <div class="plan-recipe-copy">
-                                    <h3>${favorite.name}</h3>
-                                    <p>${truncateText(favorite.description || favorite.instructions || "Sačuvan recept koji možeš brzo da ubaciš u plan.", 132)}</p>
+                                    <h3>${escapeHtml(favorite.name)}</h3>
+                                    <p>${escapeHtml(truncateText(favorite.description || favorite.instructions || "Sačuvan recept koji možeš brzo da ubaciš u plan.", 132))}</p>
                                   </div>
                                   <span class="pill strong pill--${matchState.tone}">${matchState.label}</span>
                                 </div>
                                 <div class="pill-row plan-recipe-pills">
-                                  <span class="pill">${favorite.mealLabel || favorite.name}</span>
+                                  <span class="pill">${escapeHtml(favorite.mealLabel || favorite.name)}</span>
                                   <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
                                   ${
                                     favorite.prepTimeMinutes
@@ -5964,7 +5981,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                     .map(
                                       (item) => `
                                         <span class="plan-recipe-ingredient">
-                                          <strong>${item.displayName || item.foodName}</strong>
+                                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
                                           <span>${roundValue(item.grams, 0)} g</span>
                                         </span>
                                       `
@@ -5978,7 +5995,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                 </div>
                                 ${
                                   favorite.instructions
-                                    ? `<div class="plan-recipe-method">${truncateText(favorite.instructions, 170)}</div>`
+                                    ? `<div class="plan-recipe-method">${escapeHtml(truncateText(favorite.instructions, 170))}</div>`
                                     : ""
                                 }
                                 <div class="entry-actions entry-actions--start plan-recipe-actions">
@@ -5986,7 +6003,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                     class="solid-button secondary-button button-with-icon"
                                     data-action="apply-recipe-to-meal"
                                     data-favorite-id="${favorite.id}"
-                                    data-meal-label="${group.mealLabel}"
+                                    data-meal-label="${escapeHtml(group.mealLabel)}"
                                     data-mode="append"
                                   >
                                     ${renderButtonContent(favorite.servings > 1 ? "Dodaj 1 porciju" : "Dodaj u obrok", "add")}
@@ -5998,7 +6015,7 @@ function renderPlanRecipesSection(planMeals, favorites) {
                                           class="ghost-button button-with-icon"
                                           data-action="apply-recipe-to-meal"
                                           data-favorite-id="${favorite.id}"
-                                          data-meal-label="${group.mealLabel}"
+                                          data-meal-label="${escapeHtml(group.mealLabel)}"
                                           data-mode="replace"
                                         >
                                           ${renderButtonContent("Zameni", "apply")}
@@ -6091,8 +6108,8 @@ function renderPlanSupplementsSection() {
                           <span class="routine-check-ui" aria-hidden="true"></span>
                         </label>
                         <div class="routine-content">
-                          <strong>${supplement.name}</strong>
-                          <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
+                          <strong>${escapeHtml(supplement.name)}</strong>
+                          <div class="footer-note">${escapeHtml(supplement.note || "Bez dodatne napomene")}</div>
                           <div class="pill-row">
                             <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
                             <span class="pill ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "pill--success" : "pill--info"}">
@@ -6116,7 +6133,7 @@ function renderPlanSupplementsSection() {
         <form id="supplement-form" class="form-grid split goals-form-layout">
           <div class="field">
             <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
-            <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${editingSupplement?.name || ""}" required />
+            <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${escapeHtml(editingSupplement?.name || "")}" required />
           </div>
           <div class="field">
             <label for="supplement-timing">Kada se uzima</label>
@@ -6140,7 +6157,7 @@ function renderPlanSupplementsSection() {
           </div>
           <div class="field">
             <label for="supplement-note">Napomena</label>
-            <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${editingSupplement?.note || ""}" />
+            <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${escapeHtml(editingSupplement?.note || "")}" />
           </div>
           <div class="meta-row">
             <button class="solid-button secondary-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
@@ -6156,8 +6173,8 @@ function renderPlanSupplementsSection() {
                       <article class="food-card routine-card supplement-card">
                         <div class="routine-row">
                           <div class="routine-content">
-                            <strong>${supplement.name}</strong>
-                            <div class="footer-note">${supplement.note || "Bez dodatne napomene"}</div>
+                            <strong>${escapeHtml(supplement.name)}</strong>
+                            <div class="footer-note">${escapeHtml(supplement.note || "Bez dodatne napomene")}</div>
                             <div class="pill-row">
                               <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
                               <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
@@ -6328,7 +6345,7 @@ function renderPlanTab(entries) {
                       .map(
                         (food) => `
                           <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
-                            ${food.name}
+                            ${escapeHtml(food.name)}
                           </button>
                         `
                       )
@@ -6367,7 +6384,7 @@ function renderPlanTab(entries) {
                   </div>
                   <div class="footer-note">
                     ${daySuggestion.meals
-                      .map((meal) => `${meal.mealLabel}: ${meal.items.map((item) => `${item.food.name} ${roundValue(item.grams, 0)}g`).join(", ")}`)
+                      .map((meal) => `${escapeHtml(meal.mealLabel)}: ${meal.items.map((item) => `${escapeHtml(item.food.name)} ${roundValue(item.grams, 0)}g`).join(", ")}`)
                       .join(" | ")}
                   </div>
                   <div class="entry-actions entry-actions--start plan-inline-actions">
@@ -6408,14 +6425,14 @@ function renderPlanTab(entries) {
                         <div class="meal-card-topline">
                           ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                           <div class="meal-card-heading">
-                            <h3 class="meal-title">${mealParts.title || mealLabel}</h3>
+                            <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
                             ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
                           </div>
                           ${
                             mealEntries.length
                               ? `
                                 <label class="meal-toggle ${isMealDone ? "is-done" : ""}" title="${isMealDone ? "Obrok je pojeden — klikni da skineš oznaku" : "Označi obrok kao pojeden"}">
-                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${mealLabel}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
+                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${escapeHtml(mealLabel)}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
                                   <span class="meal-toggle-ui" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                                   </span>
@@ -6424,7 +6441,7 @@ function renderPlanTab(entries) {
                                   class="ghost-button meal-collapse-toggle"
                                   type="button"
                                   data-action="toggle-plan-meal-collapse"
-                                  data-meal-label="${mealLabel}"
+                                  data-meal-label="${escapeHtml(mealLabel)}"
                                   aria-expanded="${!isMealCollapsed}"
                                   aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
                                 >
@@ -6467,16 +6484,16 @@ function renderPlanTab(entries) {
                             !isMealDone
                               ? `
                                 <div class="entry-actions meal-card-actions">
-                                  <button class="solid-button secondary-button button-with-icon" data-action="start-add-to-meal" data-meal-label="${mealLabel}">
+                                  <button class="solid-button secondary-button button-with-icon" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}">
                                     ${renderButtonContent("Dodaj namirnicu", "add")}
                                   </button>
-                                  <button class="ghost-button button-with-icon" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${mealLabel}">
+                                  <button class="ghost-button button-with-icon" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${escapeHtml(mealLabel)}">
                                     ${renderButtonContent(isEditingMeal ? "Završi uređivanje" : "Uredi", "edit")}
                                   </button>
                                   ${
                                     isEditingMeal && mealEntries.length
                                       ? `
-                                        <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${mealLabel}">
+                                        <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">
                                           ${renderButtonContent("Sačuvaj kao recept", "save")}
                                         </button>
                                       `
@@ -6515,7 +6532,7 @@ function renderPlanTab(entries) {
                                     <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""}">
                                       <div class="meal-entry-main">
                                         <div class="meal-entry-title-group">
-                                          <strong>${entry.foodName}</strong>
+                                          <strong>${escapeHtml(entry.foodName)}</strong>
                                         </div>
                                         ${
                                           !isMealDone
@@ -6731,7 +6748,7 @@ function renderFoodsTab() {
               <article class="food-card foods-thumbnail-card foods-card--${toneClass}">
                 <div class="food-card-top foods-card-top">
                   <div class="foods-title-block">
-                    <h3>${food.name}</h3>
+                    <h3>${escapeHtml(food.name)}</h3>
                   </div>
                   <div class="foods-card-top-actions">
                     <span class="pill strong foods-group-badge foods-group-badge--${toneClass}">${food.macroGroup}</span>
@@ -6793,7 +6810,7 @@ function renderFoodsTab() {
                 </div>
                 <div class="foods-list-main">
                   <div class="foods-list-title-block">
-                    <h3>${food.name}</h3>
+                    <h3>${escapeHtml(food.name)}</h3>
                     <div class="foods-list-meta">
                       <span class="foods-list-basis">${getFoodNutritionBasisLabel(food)}</span>
                     </div>
@@ -6892,16 +6909,16 @@ function renderRecipesTab() {
         <form id="favorite-meal-form" class="form-grid split recipe-builder-form">
           <div class="field">
             <label for="favorite-name">Naziv recepta</label>
-            <input id="favorite-name" name="favoriteName" placeholder="npr. Tortilja sa jajima i piletinom" list="favorite-meal-options" value="${state.favoriteDraft.favoriteName}" required />
+            <input id="favorite-name" name="favoriteName" placeholder="npr. Tortilja sa jajima i piletinom" list="favorite-meal-options" value="${escapeHtml(state.favoriteDraft.favoriteName)}" required />
             <datalist id="favorite-meal-options">
-              ${favorites.map((favorite) => `<option value="${favorite.name}"></option>`).join("")}
+              ${favorites.map((favorite) => `<option value="${escapeHtml(favorite.name)}"></option>`).join("")}
             </datalist>
           </div>
           <div class="field">
             <label for="favorite-meal-label">Tip obroka</label>
-            <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${state.favoriteDraft.mealLabel}" required />
+            <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${escapeHtml(state.favoriteDraft.mealLabel)}" required />
             <datalist id="recipe-meal-options">
-              ${meals.map((meal) => `<option value="${meal}"></option>`).join("")}
+              ${meals.map((meal) => `<option value="${escapeHtml(meal)}"></option>`).join("")}
             </datalist>
           </div>
           <div class="field recipe-builder-field-wide">
@@ -6910,7 +6927,7 @@ function renderRecipesTab() {
               id="favorite-description"
               name="description"
               placeholder="npr. brz proteinski doručak koji drži sitost do treninga"
-              value="${state.favoriteDraft.description}"
+              value="${escapeHtml(state.favoriteDraft.description)}"
             />
           </div>
           <div class="field recipe-builder-field-wide">
@@ -6940,14 +6957,14 @@ function renderRecipesTab() {
           </div>
           <div class="field recipe-builder-field-wide">
             <label for="favorite-instructions">Priprema</label>
-            <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${state.favoriteDraft.instructions}</textarea>
+            <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${escapeHtml(state.favoriteDraft.instructions)}</textarea>
           </div>
           <div class="field">
             <label for="favorite-food-search">Sastojak</label>
             <input id="favorite-food-search" name="foodSearch" list="recipe-food-options" placeholder="Počni da kucaš namirnicu" value="${favoriteFoodSearchValue}" autocomplete="off" required />
             <input id="favorite-food-id" name="foodId" type="hidden" value="${state.favoriteDraft.foodId}" />
             <datalist id="recipe-food-options">
-              ${selectableFoods.map((food) => `<option value="${food.name}"></option>`).join("")}
+              ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
             </datalist>
           </div>
           <div class="field">
@@ -6965,8 +6982,8 @@ function renderRecipesTab() {
         <div class="recipe-draft-panel">
           <div class="food-card-top recipe-draft-top">
             <div class="recipe-draft-copy">
-              <h3>${draftPreview.favoriteName || "Recept u izradi"}</h3>
-              <p>${draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta."}</p>
+              <h3>${escapeHtml(draftPreview.favoriteName || "Recept u izradi")}</h3>
+              <p>${escapeHtml(draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta.")}</p>
             </div>
             <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
           </div>
@@ -6976,7 +6993,7 @@ function renderRecipesTab() {
               : ""
           }
           <div class="pill-row recipe-draft-pills">
-            <span class="pill">${draftPreview.mealLabel || "Tip obroka nije još izabran"}</span>
+            <span class="pill">${escapeHtml(draftPreview.mealLabel || "Tip obroka nije još izabran")}</span>
             <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
             ${
               draftPreview.prepTimeMinutes
@@ -6991,7 +7008,7 @@ function renderRecipesTab() {
           </div>
           ${
             draftPreview.instructions
-              ? `<div class="recipe-draft-method">${draftPreview.instructions}</div>`
+              ? `<div class="recipe-draft-method">${escapeHtml(draftPreview.instructions)}</div>`
               : ""
           }
           <div class="footer-note" style="margin-top:10px;">Sastojci recepta koji praviš:</div>
@@ -7025,7 +7042,7 @@ function renderRecipesTab() {
                                   <select data-recipe-draft-item-food-id="${item.id}">
                                     <option value="">Poveži sa namirnicom</option>
                                     ${selectableFoods
-                                      .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${food.name}</option>`)
+                                      .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${escapeHtml(food.name)}</option>`)
                                       .join("")}
                                   </select>
                                 `
@@ -7138,10 +7155,10 @@ function renderRecipesTab() {
                         <div class="recipe-library-body">
                           <div class="food-card-top recipe-library-top">
                             <div class="recipe-library-copy">
-                              <h3>${favorite.name}</h3>
+                              <h3>${escapeHtml(favorite.name)}</h3>
                               ${
                                 isExpanded
-                                  ? `<p>${favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa."}</p>`
+                                  ? `<p>${escapeHtml(favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa.")}</p>`
                                   : ""
                               }
                             </div>
@@ -7164,7 +7181,7 @@ function renderRecipesTab() {
                               favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
                             ]
                               .filter(Boolean)
-                              .map((part) => `<span>${part}</span>`)
+                              .map((part) => `<span>${escapeHtml(part)}</span>`)
                               .join("")}
                           </div>
                           <div class="recipe-library-stats">
@@ -7177,7 +7194,7 @@ function renderRecipesTab() {
                               ? `
                                 ${
                                   favorite.instructions
-                                    ? `<div class="recipe-library-method">${truncateText(favorite.instructions, 220)}</div>`
+                                    ? `<div class="recipe-library-method">${escapeHtml(truncateText(favorite.instructions, 220))}</div>`
                                     : ""
                                 }
                                 <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
@@ -7187,7 +7204,7 @@ function renderRecipesTab() {
                                       (item) => `
                                         <div class="recipe-library-ingredient-card">
                                         <div class="recipe-library-ingredient-head">
-                                            <strong>${item.displayName || item.foodName}</strong>
+                                            <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
                                             <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
                                           </div>
                                           <div class="pill-row recipe-library-ingredient-macros">
@@ -7268,7 +7285,7 @@ function renderTrainingTab() {
               <article class="stat-card training-weekday-card ${day.weekday === state.selectedWeekday ? "is-active" : ""}">
                 <strong>${day.weekday}</strong>
                 <div class="footer-note">
-                  ${day.templates.length ? day.templates.map((template) => template.name).join(", ") : "Odmor / nije uneto"}
+                  ${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : "Odmor / nije uneto"}
                 </div>
                 <div class="pill-row">
                   <span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vežbi</span>
@@ -7358,7 +7375,7 @@ function renderTrainingTab() {
                     <article class="training-card training-template-card">
                       <div class="training-top">
                         <div>
-                          <h3>${template.name}</h3>
+                          <h3>${escapeHtml(template.name)}</h3>
                           <div class="footer-note training-template-progress-copy">${completion.completedCount}/${completion.totalCount} vežbi označeno kao odrađeno</div>
                         </div>
                         <span class="pill strong">${completion.completedCount}/${completion.totalCount}</span>
@@ -7373,8 +7390,8 @@ function renderTrainingTab() {
                                   <span class="routine-check-ui" aria-hidden="true"></span>
                                 </label>
                                 <div class="training-exercise-copy">
-                                  <strong class="training-exercise-name">${exercise.name}</strong>
-                                  <div class="training-exercise-detail">${exercise.details}</div>
+                                  <strong class="training-exercise-name">${escapeHtml(exercise.name)}</strong>
+                                  <div class="training-exercise-detail">${escapeHtml(exercise.details)}</div>
                                 </div>
                               </div>
                             `
@@ -7411,12 +7428,12 @@ function renderTrainingTab() {
                     <article class="training-card training-favorite-card">
                       <div class="training-top">
                         <div>
-                          <h3>${training.name}</h3>
+                          <h3>${escapeHtml(training.name)}</h3>
                           <div class="footer-note">${training.exerciseCount} ${training.exerciseCount === 1 ? "vežba" : training.exerciseCount < 5 ? "vežbe" : "vežbi"} spremno za ubacivanje</div>
                         </div>
                         <span class="pill strong">${training.exerciseCount}</span>
                       </div>
-                      <div class="training-favorite-copy">${training.exercises.map((exercise) => exercise.details).join(" · ")}</div>
+                      <div class="training-favorite-copy">${training.exercises.map((exercise) => escapeHtml(exercise.details)).join(" · ")}</div>
                       <div class="entry-actions training-favorite-actions" style="justify-content:flex-start; margin-top:12px;">
                         <button class="solid-button secondary-button button-with-icon" data-action="apply-favorite-training" data-favorite-training-id="${training.id}">
                           ${renderButtonContent(`Ubaci u ${weekdayLabel(state.selectedWeekday)}`, "apply")}
@@ -7486,7 +7503,7 @@ function renderTrainingTab() {
           <label for="progress-exercise">Vežba</label>
           <input id="progress-exercise" name="exerciseName" list="training-exercise-options" placeholder="npr. Cucanj" required />
           <datalist id="training-exercise-options">
-            ${exerciseOptions.map((name) => `<option value="${name}"></option>`).join("")}
+            ${exerciseOptions.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("")}
           </datalist>
         </div>
         <div class="field">
@@ -7525,16 +7542,16 @@ function renderTrainingTab() {
                   (log) => `
                     <article class="food-card">
                       <div class="food-card-top">
-                        <strong>${log.exerciseName}</strong>
+                        <strong>${escapeHtml(log.exerciseName)}</strong>
                         <button class="danger-button" data-action="delete-training-progress" data-progress-id="${log.id}">Obriši</button>
                       </div>
                       <div class="pill-row">
                         <span class="pill strong">${roundValue(log.weightKg, 1)} kg</span>
                         <span class="pill">${new Date(log.date).toLocaleDateString("sr-RS")}</span>
                         <span class="pill">${log.weekday}</span>
-                        ${log.reps ? `<span class="pill">${log.reps}</span>` : ""}
+                        ${log.reps ? `<span class="pill">${escapeHtml(log.reps)}</span>` : ""}
                       </div>
-                      <div class="footer-note">${log.note || "Bez napomene"}</div>
+                      <div class="footer-note">${escapeHtml(log.note || "Bez napomene")}</div>
                     </article>
                   `
                 )
@@ -7567,7 +7584,7 @@ function renderTrainingTab() {
                         <strong>${log.createdAt}</strong>
                         <button class="danger-button" data-action="delete-training-log" data-log-id="${log.id}">Obriši</button>
                       </div>
-                      <div class="footer-note">${log.note}</div>
+                      <div class="footer-note">${escapeHtml(log.note)}</div>
                     </article>
                   `
                 )
@@ -7669,7 +7686,7 @@ function renderRoutineTab() {
             id="habit-name"
             name="name"
             placeholder="npr. 10k koraka ili bez alkohola"
-            value="${editingHabit?.name || ""}"
+            value="${escapeHtml(editingHabit?.name || "")}"
             required
           />
         </div>
@@ -7682,7 +7699,7 @@ function renderRoutineTab() {
         </div>
         <div class="field">
           <label for="habit-note">Opis / cilj</label>
-          <input id="habit-note" name="note" placeholder="npr. svaki dan, makar 10 min" value="${editingHabit?.note || ""}" />
+          <input id="habit-note" name="note" placeholder="npr. svaki dan, makar 10 min" value="${escapeHtml(editingHabit?.note || "")}" />
         </div>
         <div class="field">
           <label for="habit-start-date">Brojanje od</label>
@@ -7722,8 +7739,8 @@ function renderRoutineTab() {
                           <span class="routine-check-ui" aria-hidden="true"></span>
                         </label>
                         <div class="routine-content">
-                          <strong>${habit.name}</strong>
-                          <div class="footer-note">${habit.note || "Bez dodatne napomene"}</div>
+                          <strong>${escapeHtml(habit.name)}</strong>
+                          <div class="footer-note">${escapeHtml(habit.note || "Bez dodatne napomene")}</div>
                           <div class="pill-row">
                             <span class="pill">${getHabitWeeklyCount(habit)}/7 dana</span>
                             <span class="pill note">${isHabitDoneForDay(habit, state.selectedWeekday) ? "Označeno danas" : "Čeka za danas"}</span>
@@ -7756,7 +7773,7 @@ function renderRoutineTab() {
             <article class="routine-streak-spotlight">
               <div>
                 <div class="routine-streak-spotlight-label">Najduži aktivni streak</div>
-                <h3>${topStreakHabit.name}</h3>
+                <h3>${escapeHtml(topStreakHabit.name)}</h3>
                 <p>${getHabitStreakSentence(topStreakHabit)}</p>
               </div>
               <div class="routine-streak-spotlight-metric">
@@ -7785,8 +7802,8 @@ function renderRoutineTab() {
                           <span class="routine-streak-unit">${currentStreakDays === 1 ? "dan" : "dana"}</span>
                         </div>
                         <div class="routine-content routine-streak-content">
-                          <strong>${habit.name}</strong>
-                          <div class="footer-note">${habit.note || "Dugoročna evidencija je uključena za ovu naviku."}</div>
+                          <strong>${escapeHtml(habit.name)}</strong>
+                          <div class="footer-note">${escapeHtml(habit.note || "Dugoročna evidencija je uključena za ovu naviku.")}</div>
                           <div class="pill-row">
                             <span class="pill strong">${getHabitStreakSentence(habit)}</span>
                             ${startedLabel ? `<span class="pill">Od ${startedLabel}</span>` : ""}
@@ -7837,11 +7854,11 @@ function renderRoutineTab() {
       <form id="task-form" class="form-grid split">
         <div class="field">
           <label for="task-title">${editingTask ? "Izmena taska" : "Novi task"}</label>
-          <input id="task-title" name="title" placeholder="npr. Spremi ručak" value="${editingTask?.title || ""}" required />
+          <input id="task-title" name="title" placeholder="npr. Spremi ručak" value="${escapeHtml(editingTask?.title || "")}" required />
         </div>
         <div class="field">
           <label for="task-note">Napomena</label>
-          <input id="task-note" name="note" placeholder="opciono" value="${editingTask?.note || ""}" />
+          <input id="task-note" name="note" placeholder="opciono" value="${escapeHtml(editingTask?.note || "")}" />
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
           <button class="solid-button secondary-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj task"}</button>
@@ -7868,8 +7885,8 @@ function renderRoutineTab() {
                           <span class="routine-check-ui" aria-hidden="true"></span>
                         </label>
                         <div class="routine-content">
-                          <strong>${task.title}</strong>
-                          <div class="footer-note">${task.note || "Bez dodatne napomene"}</div>
+                          <strong>${escapeHtml(task.title)}</strong>
+                          <div class="footer-note">${escapeHtml(task.note || "Bez dodatne napomene")}</div>
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
                           <button class="ghost-button" data-action="edit-task" data-task-id="${task.id}">Izmeni</button>
@@ -7974,7 +7991,7 @@ function renderGoalsTab() {
       <form id="goals-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="profile-name">Ime</label>
-          <input id="profile-name" name="name" value="${store.profile.name || ""}" />
+          <input id="profile-name" name="name" value="${escapeHtml(store.profile.name || "")}" />
         </div>
         <div class="field">
           <label for="profile-sex">Pol</label>
@@ -8806,10 +8823,10 @@ function renderExerciseProgressCard(group) {
   return `
     <article class="chart-card">
       <div class="chart-card-top">
-        <h3>${group.exerciseName}</h3>
+        <h3>${escapeHtml(group.exerciseName)}</h3>
         <span class="pill strong">${roundValue(group.latest.weightKg, 1)} kg</span>
       </div>
-      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Trend za ${group.exerciseName}">
+      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Trend za ${escapeHtml(group.exerciseName)}">
         <line x1="${paddingX}" y1="${height - paddingY}" x2="${width - paddingX}" y2="${height - paddingY}" class="chart-axis"></line>
         <line x1="${paddingX}" y1="${paddingY}" x2="${paddingX}" y2="${height - paddingY}" class="chart-axis"></line>
         <polyline points="${polyline}" class="chart-line"></polyline>
@@ -8838,7 +8855,7 @@ function renderExerciseProgressCard(group) {
           .join("")}
       </div>
       <div class="footer-note">
-        Poslednje: ${new Date(group.latest.date).toLocaleDateString("sr-RS")}${group.latest.weekday ? ` · ${group.latest.weekday}` : ""}${group.latest.note ? ` · ${group.latest.note}` : ""}
+        Poslednje: ${new Date(group.latest.date).toLocaleDateString("sr-RS")}${group.latest.weekday ? ` · ${group.latest.weekday}` : ""}${group.latest.note ? ` · ${escapeHtml(group.latest.note)}` : ""}
       </div>
     </article>
   `;
@@ -9161,7 +9178,7 @@ function renderProgressTab() {
                       .map(
                         (photo) => `
                           <option value="${photo.id}" ${photo.id === compare.leftId ? "selected" : ""}>
-                            ${getPhotoLabel(photo)}
+                            ${escapeHtml(getPhotoLabel(photo))}
                           </option>
                         `
                       )
@@ -9175,7 +9192,7 @@ function renderProgressTab() {
                       .map(
                         (photo) => `
                           <option value="${photo.id}" ${photo.id === compare.rightId ? "selected" : ""}>
-                            ${getPhotoLabel(photo)}
+                            ${escapeHtml(getPhotoLabel(photo))}
                           </option>
                         `
                       )
@@ -9192,9 +9209,9 @@ function renderProgressTab() {
                         <div class="photo-card-body">
                           <strong>${new Date(compare.leftPhoto.date).toLocaleDateString("sr-RS")}</strong>
                           <div class="pill-row">
-                            <span class="pill strong">${compare.leftPhoto.tag || "bez taga"}</span>
+                            <span class="pill strong">${escapeHtml(compare.leftPhoto.tag || "bez taga")}</span>
                           </div>
-                          <div class="footer-note">${compare.leftPhoto.note || "Bez napomene"}</div>
+                          <div class="footer-note">${escapeHtml(compare.leftPhoto.note || "Bez napomene")}</div>
                         </div>
                       </article>
                       <article class="photo-card compare-card">
@@ -9202,14 +9219,14 @@ function renderProgressTab() {
                         <div class="photo-card-body">
                           <strong>${new Date(compare.rightPhoto.date).toLocaleDateString("sr-RS")}</strong>
                           <div class="pill-row">
-                            <span class="pill strong">${compare.rightPhoto.tag || "bez taga"}</span>
+                            <span class="pill strong">${escapeHtml(compare.rightPhoto.tag || "bez taga")}</span>
                           </div>
-                          <div class="footer-note">${compare.rightPhoto.note || "Bez napomene"}</div>
+                          <div class="footer-note">${escapeHtml(compare.rightPhoto.note || "Bez napomene")}</div>
                         </div>
                       </article>
                     </div>
                   `
-                  : `<div class="empty">Za tag "${activeCompareTag}" dodaj bar dve slike ili izaberi druge dve razlicite slike.</div>`
+                  : `<div class="empty">Za tag "${escapeHtml(activeCompareTag)}" dodaj bar dve slike ili izaberi druge dve razlicite slike.</div>`
               }
             `
             : `<div class="empty">Dodaj bar dve slike da bi radio side by side prikaz.</div>`
@@ -9229,9 +9246,9 @@ function renderProgressTab() {
                           <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obriši</button>
                         </div>
                         <div class="pill-row">
-                          <span class="pill strong">${photo.tag || "bez taga"}</span>
+                          <span class="pill strong">${escapeHtml(photo.tag || "bez taga")}</span>
                         </div>
-                        <div class="footer-note">${photo.note || "Bez napomene"}</div>
+                        <div class="footer-note">${escapeHtml(photo.note || "Bez napomene")}</div>
                       </div>
                     </article>
                   `
@@ -9425,7 +9442,7 @@ function render() {
           <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
             <strong>Fit tracker</strong>
-            <div class="footer-note app-sidebar-email">${state.authUser?.email || ""}</div>
+            <div class="footer-note app-sidebar-email">${escapeHtml(state.authUser?.email || "")}</div>
           </div>
           <div class="app-sidebar-top-actions">
             <button class="ghost-button sidebar-toggle" type="button" data-action="toggle-sidebar-collapse" aria-label="${state.sidebarCollapsed ? "Raširi navigaciju" : "Skupi navigaciju"}" aria-pressed="${state.sidebarCollapsed}">

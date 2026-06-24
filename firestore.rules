@@ -22,36 +22,24 @@ service cloud.firestore {
     }
 
     // Deljeni keš barkod -> makroi. Svaki ulogovan može da čita; upis je
-    // ograničen na tačno onih 8 ključeva koje app šalje (saveSharedFood).
+    // ograničen i validiran da spreči "trovanje" keša i cross-user XSS:
+    // tačno 8 ključeva, barkod mora da odgovara ID-u dokumenta, updatedBy ne
+    // može da se laže, makroi su broj ili prazno, ime je kratak string.
+    // (nutNumber() može da vrati null, zato brojevi moraju biti "broj ILI prazno".)
     match /sharedFoods/{barcode} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
         && request.resource.data.keys().hasOnly(
              ['barcode','name','kcal','protein','carbs','fat','updatedAt','updatedBy'])
+        && request.resource.data.barcode == barcode
+        && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.name is string
-        && request.resource.data.name.size() < 200;
+        && request.resource.data.name.size() < 200
+        && (request.resource.data.kcal is number    || request.resource.data.kcal == null)
+        && (request.resource.data.protein is number || request.resource.data.protein == null)
+        && (request.resource.data.carbs is number   || request.resource.data.carbs == null)
+        && (request.resource.data.fat is number     || request.resource.data.fat == null);
     }
-
-    // -------------------------------------------------------------------------
-    // OJAČANA verzija sharedFoods — ubaci pred javni launch (sprečava "trovanje"
-    // deljenog keša). Bezbedna je: app kod već poštuje sve ove uslove.
-    // nutNumber() može da vrati null, zato brojevi moraju biti "broj ILI prazno".
-    //
-    // match /sharedFoods/{barcode} {
-    //   allow read: if request.auth != null;
-    //   allow write: if request.auth != null
-    //     && request.resource.data.keys().hasOnly(
-    //          ['barcode','name','kcal','protein','carbs','fat','updatedAt','updatedBy'])
-    //     && request.resource.data.barcode == barcode
-    //     && request.resource.data.updatedBy == request.auth.uid
-    //     && request.resource.data.name is string
-    //     && request.resource.data.name.size() < 200
-    //     && (request.resource.data.kcal is number    || request.resource.data.kcal == null)
-    //     && (request.resource.data.protein is number || request.resource.data.protein == null)
-    //     && (request.resource.data.carbs is number   || request.resource.data.carbs == null)
-    //     && (request.resource.data.fat is number     || request.resource.data.fat == null);
-    // }
-    // -------------------------------------------------------------------------
 
   }
 }
