@@ -6146,6 +6146,60 @@ function renderPlanWaterSection() {
   `;
 }
 
+// In-app reminders (no backend / push needed — works on static hosting).
+// Surfaced as a dismissible banner at the top of the Plan tab on open.
+function getTodayReminders() {
+  const reminders = [];
+  const entries = getPlanEntriesForDay(getTodayWeekday());
+  const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
+  const mealsDone = mealLabels.filter((label) => {
+    const mealEntries = entries.filter((entry) => entry.mealLabel === label);
+    return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+  }).length;
+  if (mealLabels.length > 0 && mealsDone < mealLabels.length) {
+    reminders.push(`🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`);
+  }
+  const water = getTodayWaterMl();
+  const waterTarget = Math.round(toNumber(store.goals?.waterMl) || 2500);
+  if (waterTarget > 0 && water < waterTarget) {
+    reminders.push(`💧 Voda: ${(water / 1000).toFixed(1)} / ${(waterTarget / 1000).toFixed(1)} L`);
+  }
+  const measurements = store.measurements || [];
+  if (!measurements.length) {
+    reminders.push("⚖️ Dodaj prvo merenje");
+  } else {
+    const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
+    const days = Math.floor((Date.now() - new Date(latest.date).getTime()) / 86400000);
+    if (days >= 7) {
+      reminders.push(`⚖️ Merenje: poslednje pre ${days} dana`);
+    }
+  }
+  return reminders;
+}
+
+function renderTodayRemindersBanner() {
+  if (store.ui?.plan?.remindersDismissedDate === getTodayDateValue()) {
+    return "";
+  }
+  const reminders = getTodayReminders();
+  if (!reminders.length) {
+    return "";
+  }
+  return `
+    <section class="section today-reminders">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Danas te čeka</h2>
+          <p>Kratak podsetnik za današnji dan.</p>
+        </div>
+        <button class="ghost-button" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas">✕</button>
+      </div>
+      <div class="pill-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+        ${reminders.map((text) => `<span class="pill strong pill--info">${text}</span>`).join("")}
+      </div>
+    </section>`;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
@@ -6174,6 +6228,8 @@ function renderPlanTab(entries) {
   const isDaySuggestionHidden = Boolean(store.ui?.plan?.hideDaySuggestion);
 
   return `
+    ${renderTodayRemindersBanner()}
+
     <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
@@ -10597,6 +10653,15 @@ async function handleDocumentClick(event) {
       state.editingMealLabel = "";
       resetPlanDraft();
     }
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "dismiss-reminders") {
+    store.ui = store.ui || {};
+    store.ui.plan = store.ui.plan || {};
+    store.ui.plan.remindersDismissedDate = getTodayDateValue();
     persist();
     render();
     return;
