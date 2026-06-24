@@ -11,6 +11,9 @@ import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.
 const STORAGE_KEY = "fitness-tracker-state-v1";
 const CLOUD_SCHEMA_VERSION = 1;
 const DEMO_RECIPE_SEED_VERSION = 1;
+// "Vrati na fabrička" dugme se prikazuje SAMO za ovaj nalog. Napravi Firebase
+// Email/Password korisnika sa tačno ovim emailom da bude javni demo nalog.
+const DEMO_EMAIL = "demo@fittracker.app";
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBvfd2HVPJlfA1XvXaEKf8_FpvQZcESPzg",
@@ -560,6 +563,19 @@ function getCloudStoreSnapshot(source = store) {
 
 function getUserStateRef(uid) {
   return doc(firebaseDb, "users", uid, "app", "state");
+}
+
+function isDemoAccount() {
+  const email = state.authUser?.email;
+  return Boolean(email) && email.toLowerCase() === DEMO_EMAIL.toLowerCase();
+}
+
+// Vrati trenutni nalog na originalni seed (jelovnik, namirnice, trening, obroci).
+// Briše i lokalne slike napretka (one ionako nisu na cloudu) i forsira upis u cloud.
+async function resetDemoToFactory() {
+  replaceStore(cloneSeed());
+  persistLocal();
+  await saveCloudStateNow({ force: true });
 }
 
 function getAuthErrorMessage(error) {
@@ -8617,6 +8633,23 @@ function renderAccountSection() {
             <input id="import-json" type="file" accept="application/json" hidden />
           </div>
         </article>
+${
+          isDemoAccount()
+            ? `
+        <article class="status-summary-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Demo nalog</strong>
+              <div class="footer-note">Vrati ovaj nalog na početni plan, namirnice i trening. Briše sve izmene na demo nalogu (i lokalne slike na ovom uređaju). Tvoji lični nalozi se ne diraju.</div>
+            </div>
+            <span class="pill strong pill--warning">Demo</span>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati na fabrička", "refresh")}</button>
+          </div>
+        </article>`
+            : ""
+        }
       </div>
     </section>
   `;
@@ -11005,6 +11038,30 @@ async function handleDocumentClick(event) {
         successDetail: "JSON backup je preuzet na uređaj.",
       }
     );
+    return;
+  }
+
+  if (action === "reset-demo-data") {
+    if (!isDemoAccount()) {
+      return;
+    }
+    const confirmed = window.confirm(
+      "Vrati demo nalog na fabrička podešavanja?\n\nOvo briše SVE izmene na demo nalogu i vraća početni plan, namirnice, trening i obroke. Ne može da se poništi."
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await runButtonAction(actionTarget, () => resetDemoToFactory(), {
+        busyLabel: "Vraćam...",
+        successTitle: "Demo je resetovan",
+        successDetail: "Nalog je vraćen na početni plan, namirnice i trening.",
+        errorTitle: "Reset nije uspeo",
+        errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
+      });
+    } finally {
+      render();
+    }
     return;
   }
 
