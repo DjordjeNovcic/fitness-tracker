@@ -477,6 +477,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.measurements = targetStore.measurements || [];
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
+  targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
   targetStore.nutritionLibrary = targetStore.nutritionLibrary || {};
@@ -712,6 +713,11 @@ function persistLocal(rollback) {
 }
 
 function persist(rollback) {
+  try {
+    recordTodaySnapshot();
+  } catch (error) {
+    console.error("History snapshot failed", error);
+  }
   const savedLocal = persistLocal(rollback);
   if (savedLocal) {
     scheduleCloudPersist();
@@ -8988,6 +8994,150 @@ function renderMeasurementDelta(delta, unit) {
   </span>`;
 }
 
+// ---- Daily history / dnevnik ----------------------------------------------
+// Each day's actual numbers are snapshotted by date so the plan (a weekly
+// template) gains a longitudinal record: calendar heatmap, averages, streak.
+function recordTodaySnapshot() {
+  const date = getTodayDateValue();
+  const weekday = getTodayWeekday();
+  const entries = getPlanEntriesForDay(weekday);
+  const eaten = getDayTotals(entries.filter((entry) => entry.done));
+  const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
+  const mealsDone = mealLabels.filter((label) => {
+    const mealEntries = entries.filter((entry) => entry.mealLabel === label);
+    return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+  }).length;
+  store.history = store.history && typeof store.history === "object" ? store.history : {};
+  store.history[date] = {
+    date,
+    kcal: roundValue(eaten.kcal, 0),
+    protein: roundValue(eaten.protein, 1),
+    carbs: roundValue(eaten.carbs, 1),
+    fat: roundValue(eaten.fat, 1),
+    calorieGoal: roundValue(store.goals?.calories || 0, 0),
+    waterMl: getTodayWaterMl(),
+    mealsDone,
+    mealsTotal: mealLabels.length,
+  };
+}
+
+function getHistoryDays(count) {
+  const now = new Date();
+  const days = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    days.push({ date: key, snap: (store.history || {})[key] || null });
+  }
+  return days;
+}
+
+function isHistoryDayOnTarget(snap) {
+  if (!snap || !(snap.kcal > 0)) {
+    return false;
+  }
+  const goal = snap.calorieGoal;
+  if (goal > 0) {
+    return snap.kcal >= goal * 0.8 && snap.kcal <= goal * 1.1;
+  }
+  return true;
+}
+
+function getHistoryStats() {
+  const days = getHistoryDays(30);
+  const avgOver = (windowDays, key) => {
+    const xs = windowDays.map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
+    return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
+  };
+  const last7 = days.slice(-7);
+  let streak = 0;
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (isHistoryDayOnTarget(days[i].snap)) {
+      streak++;
+    } else if (i === days.length - 1) {
+      continue; // today still in progress — don't break the streak
+    } else {
+      break;
+    }
+  }
+  return {
+    avgKcal7: avgOver(last7, "kcal"),
+    avgProtein7: avgOver(last7, "protein"),
+    avgWater7: avgOver(last7, "waterMl"),
+    streak,
+  };
+}
+
+function renderProgressHistorySection() {
+  const days = getHistoryDays(35);
+  const hasAny = days.some((d) => d.snap && d.snap.kcal > 0);
+  if (!hasAny) {
+    return `
+    <section class="section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Dnevnik ishrane</h2>
+          <p>Čekiraj obroke kao pojedene i unesi vodu — ovde se gradi tvoja istorija: kalendar doslednosti, proseci i streak.</p>
+        </div>
+      </div>
+    </section>`;
+  }
+  const stats = getHistoryStats();
+  const toneColor = { none: "var(--bar-track)", low: "rgba(47, 128, 118, 0.32)", ok: "var(--teal)", over: "#df7a48" };
+  const cellTone = (snap) => {
+    if (!snap || !(snap.kcal > 0)) return "none";
+    const goal = snap.calorieGoal;
+    if (!goal) return "ok";
+    const r = snap.kcal / goal;
+    return r > 1.1 ? "over" : r >= 0.8 ? "ok" : "low";
+  };
+  const cells = days
+    .map((d) => {
+      const tone = cellTone(d.snap);
+      const title = d.snap && d.snap.kcal > 0 ? `${d.date}: ${d.snap.kcal} kcal` : `${d.date}: nema unosa`;
+      return `<span title="${title}" style="aspect-ratio:1;border-radius:5px;background:${toneColor[tone]};"></span>`;
+    })
+    .join("");
+  return `
+    <section class="section progress-history-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Dnevnik ishrane</h2>
+          <p>Poslednjih 5 nedelja — zeleno je dan na cilju.</p>
+        </div>
+        ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
+      </div>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <article class="stat-card">
+          <strong>Prosek kcal</strong>
+          <div class="macro-value">${stats.avgKcal7 || "—"}</div>
+          <div class="footer-note">7 dana</div>
+        </article>
+        <article class="stat-card">
+          <strong>Prosek proteina</strong>
+          <div class="macro-value">${stats.avgProtein7 ? `${stats.avgProtein7} g` : "—"}</div>
+          <div class="footer-note">7 dana</div>
+        </article>
+        <article class="stat-card">
+          <strong>Prosek vode</strong>
+          <div class="macro-value">${stats.avgWater7 ? `${(stats.avgWater7 / 1000).toFixed(1)} L` : "—"}</div>
+          <div class="footer-note">7 dana</div>
+        </article>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">
+        ${cells}
+      </div>
+      <div class="meta-row" style="margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span class="footer-note">Manje</span>
+        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.low};display:inline-block;"></span>
+        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.ok};display:inline-block;"></span>
+        <span class="footer-note">na cilju</span>
+        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.over};display:inline-block;"></span>
+        <span class="footer-note">preko</span>
+      </div>
+    </section>`;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -9001,6 +9151,8 @@ function renderProgressTab() {
 
   return `
     ${renderProgressSummary(summary)}
+
+    ${renderProgressHistorySection()}
 
     <details class="section form-collapse">
       <summary>
