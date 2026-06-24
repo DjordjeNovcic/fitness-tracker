@@ -9282,6 +9282,92 @@ function renderProgressHistorySection() {
     </section>`;
 }
 
+function getWeeklyReport() {
+  const days = getHistoryDays(14);
+  const thisWeek = days.slice(7);
+  const lastWeek = days.slice(0, 7);
+  const avg = (arr, key) => {
+    const xs = arr.map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
+    return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
+  };
+  const onTarget = (arr) => arr.filter((d) => isHistoryDayOnTarget(d.snap)).length;
+  const loggedDays = thisWeek.filter((d) => d.snap && d.snap.kcal > 0).length;
+  const measurements = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  let weightDelta = null;
+  if (measurements.length >= 2) {
+    const recent = measurements[measurements.length - 1];
+    const prior = [...measurements].reverse().find((m) => new Date(recent.date) - new Date(m.date) >= 6 * 86400000);
+    if (prior) {
+      weightDelta = roundValue(toNumber(recent.weightKg) - toNumber(prior.weightKg), 1);
+    }
+  }
+  return {
+    avgKcal: avg(thisWeek, "kcal"),
+    avgKcalLast: avg(lastWeek, "kcal"),
+    avgWater: avg(thisWeek, "waterMl"),
+    onTarget: onTarget(thisWeek),
+    onTargetLast: onTarget(lastWeek),
+    loggedDays,
+    weightDelta,
+    hasData: loggedDays > 0,
+  };
+}
+
+function renderWeeklyReportSection() {
+  const r = getWeeklyReport();
+  if (!r.hasData) {
+    return "";
+  }
+  const verdict =
+    r.onTarget >= 5
+      ? "Sjajna nedelja 💪 — većinu dana si bio na cilju."
+      : r.onTarget >= 3
+        ? "Solidna nedelja, samo nastavi."
+        : r.loggedDays >= 4
+          ? "Logovao si redovno — sledeće nedelje fokus na pogađanje cilja."
+          : "Čekiraj obroke svaki dan pa ćemo imati precizniji uvid.";
+  const onTargetDelta = r.onTarget - r.onTargetLast;
+  const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
+  const deltaTag = (value, unit) =>
+    value ? `<span class="footer-note">${value > 0 ? "▲" : "▼"} ${Math.abs(value)}${unit} vs prošle</span>` : "";
+  return `
+    <section class="section weekly-report-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Nedeljni izveštaj</h2>
+          <p>${verdict}</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <strong>Dana na cilju</strong>
+          <div class="macro-value">${r.onTarget}/7</div>
+          ${onTargetDelta ? deltaTag(onTargetDelta, "") : `<div class="footer-note">poslednjih 7 dana</div>`}
+        </article>
+        <article class="stat-card">
+          <strong>Prosek kcal</strong>
+          <div class="macro-value">${r.avgKcal || "—"}</div>
+          ${kcalDelta ? deltaTag(kcalDelta, "") : `<div class="footer-note">poslednjih 7 dana</div>`}
+        </article>
+        ${
+          r.weightDelta !== null
+            ? `<article class="stat-card">
+                 <strong>Težina</strong>
+                 <div class="macro-value">${r.weightDelta > 0 ? "+" : ""}${r.weightDelta} kg</div>
+                 <div class="footer-note">ove nedelje</div>
+               </article>`
+            : `<article class="stat-card">
+                 <strong>Prosek vode</strong>
+                 <div class="macro-value">${r.avgWater ? `${(r.avgWater / 1000).toFixed(1)} L` : "—"}</div>
+                 <div class="footer-note">poslednjih 7 dana</div>
+               </article>`
+        }
+      </div>
+    </section>`;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -9295,6 +9381,8 @@ function renderProgressTab() {
 
   return `
     ${renderProgressSummary(summary)}
+
+    ${renderWeeklyReportSection()}
 
     ${renderProgressHistorySection()}
 
