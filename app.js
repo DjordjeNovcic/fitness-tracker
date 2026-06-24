@@ -326,7 +326,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
   const fallbackUi = {
     plan: {
       hideDaySuggestion: false,
-      collapsedMealsByWeekday: {},
+      expandedMealsByWeekday: {},
     },
     recipes: {
       expandedRecipeIds: [],
@@ -503,8 +503,8 @@ function ensureStoreCollections(targetStore) {
   if (typeof targetStore.ui.plan.hideDaySuggestion !== "boolean") {
     targetStore.ui.plan.hideDaySuggestion = false;
   }
-  if (!targetStore.ui.plan.collapsedMealsByWeekday || typeof targetStore.ui.plan.collapsedMealsByWeekday !== "object") {
-    targetStore.ui.plan.collapsedMealsByWeekday = {};
+  if (!targetStore.ui.plan.expandedMealsByWeekday || typeof targetStore.ui.plan.expandedMealsByWeekday !== "object") {
+    targetStore.ui.plan.expandedMealsByWeekday = {};
   }
   if (!Array.isArray(targetStore.ui.recipes.expandedRecipeIds)) {
     targetStore.ui.recipes.expandedRecipeIds = [];
@@ -4400,6 +4400,7 @@ function resetPlanDraft() {
 function setPlanDraftFromEntry(entry) {
   state.editingEntryId = entry.id;
   state.editingMealLabel = entry.mealLabel || "";
+  expandMealForWeekday(entry.weekday || state.selectedWeekday, entry.mealLabel);
   state.planDraft = {
     mealLabel: entry.mealLabel || "",
     foodId: entry.foodId || "",
@@ -4481,6 +4482,7 @@ function applyFavoriteMealToDay(favorite, options = {}) {
     });
   });
 
+  expandMealForWeekday(weekday, targetMealLabel);
   return true;
 }
 
@@ -4922,27 +4924,47 @@ function isMealCompletedForWeekday(weekday, mealLabel) {
   return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
 }
 
+// Meals are collapsed by default; we track which ones the user has expanded
+// (per weekday). Absence from the set = collapsed.
 function isMealCollapsedForWeekday(weekday, mealLabel) {
-  const collapsedMeals = store.ui?.plan?.collapsedMealsByWeekday?.[weekday];
+  const expandedMeals = store.ui?.plan?.expandedMealsByWeekday?.[weekday];
   const normalizedMealLabel = normalizeMealLabel(mealLabel);
-  return Array.isArray(collapsedMeals)
-    ? collapsedMeals.includes(normalizedMealLabel)
-    : Boolean(collapsedMeals?.[normalizedMealLabel]);
+  const isExpanded = Array.isArray(expandedMeals)
+    ? expandedMeals.includes(normalizedMealLabel)
+    : Boolean(expandedMeals?.[normalizedMealLabel]);
+  return !isExpanded;
+}
+
+function readExpandedMeals(weekday) {
+  const current = store.ui.plan.expandedMealsByWeekday?.[weekday];
+  return Array.isArray(current)
+    ? [...current]
+    : Object.keys(current || {}).filter((label) => current[label]);
 }
 
 function toggleMealCollapsedState(weekday, mealLabel) {
   const normalizedMealLabel = normalizeMealLabel(mealLabel);
-  const current = store.ui.plan.collapsedMealsByWeekday?.[weekday];
-  const collapsedMeals = Array.isArray(current)
-    ? [...current]
-    : Object.keys(current || {}).filter((label) => current[label]);
-
-  if (collapsedMeals.includes(normalizedMealLabel)) {
-    store.ui.plan.collapsedMealsByWeekday[weekday] = collapsedMeals.filter((label) => label !== normalizedMealLabel);
+  const expandedMeals = readExpandedMeals(weekday);
+  if (expandedMeals.includes(normalizedMealLabel)) {
+    store.ui.plan.expandedMealsByWeekday[weekday] = expandedMeals.filter((label) => label !== normalizedMealLabel);
     return;
   }
+  store.ui.plan.expandedMealsByWeekday[weekday] = [...expandedMeals, normalizedMealLabel];
+}
 
-  store.ui.plan.collapsedMealsByWeekday[weekday] = [...collapsedMeals, normalizedMealLabel];
+// Force a meal open (used when editing/adding items so the change is visible).
+function expandMealForWeekday(weekday, mealLabel) {
+  if (!weekday || !mealLabel) {
+    return;
+  }
+  store.ui = store.ui || {};
+  store.ui.plan = store.ui.plan || {};
+  store.ui.plan.expandedMealsByWeekday = store.ui.plan.expandedMealsByWeekday || {};
+  const normalizedMealLabel = normalizeMealLabel(mealLabel);
+  const expandedMeals = readExpandedMeals(weekday);
+  if (!expandedMeals.includes(normalizedMealLabel)) {
+    store.ui.plan.expandedMealsByWeekday[weekday] = [...expandedMeals, normalizedMealLabel];
+  }
 }
 
 function isRecipeExpanded(recipeId) {
@@ -10328,6 +10350,7 @@ async function handleDocumentClick(event) {
     }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
+    expandMealForWeekday(state.selectedWeekday, mealLabel);
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
     render();
     window.requestAnimationFrame(() => {
@@ -10344,6 +10367,7 @@ async function handleDocumentClick(event) {
     }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
+    expandMealForWeekday(state.selectedWeekday, mealLabel);
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
     render();
     window.requestAnimationFrame(() => {
@@ -11146,6 +11170,7 @@ async function handleSubmit(event) {
       });
       state.lastAddedEntryId = newEntryId;
     }
+    expandMealForWeekday(state.selectedWeekday, mealLabel);
     persist();
     resetPlanDraft();
     event.target.reset();
