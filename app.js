@@ -1227,12 +1227,6 @@ function isMealHeadingLine(line) {
   );
 }
 
-function formatImportedDayMealName(dayTitle, mealTitle) {
-  const normalizedDayTitle = cleanImportLine(dayTitle).replace(/\s+/g, " ").trim();
-  const normalizedMealTitle = cleanImportLine(mealTitle).replace(/\s+/g, " ").trim();
-  return `${normalizedDayTitle} · ${normalizedMealTitle}`;
-}
-
 function mergeImportedIngredientCandidates(primary = [], supplemental = []) {
   const merged = new Map();
 
@@ -4375,37 +4369,6 @@ function saveFavoriteMealMetadata(payload = {}) {
   return nextFavorite;
 }
 
-function saveFavoriteMealItem(payload = {}) {
-  const favorite = saveFavoriteMealMetadata(payload);
-  const normalizedFoodId = String(payload.foodId || "").trim();
-  const normalizedGrams = toNumber(payload.grams);
-  const food = getFoodById(normalizedFoodId);
-
-  if (!favorite || !food || !normalizedGrams) {
-    return false;
-  }
-
-  const nextItem = {
-    id: state.editingFavoriteItem.itemId || uid("favorite-item"),
-    foodId: food.id,
-    foodName: food.name,
-    grams: normalizedGrams,
-  };
-
-  if (state.editingFavoriteItem.favoriteId) {
-    favorite.items =
-      state.editingFavoriteItem.itemIndex >= 0 && state.editingFavoriteItem.itemIndex < favorite.items.length
-        ? favorite.items.map((item, index) => (index === state.editingFavoriteItem.itemIndex ? nextItem : item))
-        : [...favorite.items, nextItem];
-    favorite.updatedAt = new Date().toISOString();
-    return true;
-  }
-
-  favorite.items = [...favorite.items, nextItem];
-  favorite.updatedAt = new Date().toISOString();
-  return true;
-}
-
 function saveFavoriteMealDraft(payload = {}) {
   const favorite = saveFavoriteMealMetadata(payload);
   const items = Array.isArray(payload.items) ? payload.items : [];
@@ -5971,144 +5934,6 @@ function truncateText(value, maxLength = 140) {
     return normalized;
   }
   return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
-}
-
-function renderPlanRecipesSection(planMeals, favorites) {
-  const recipeGroups = planMeals
-    .map(([mealLabel, mealEntries]) => ({
-      mealLabel,
-      mealEntries,
-      recipes: getRecipesForMealLabel(mealLabel, favorites),
-    }))
-    .filter((group) => group.recipes.length);
-
-  return `
-    <section class="section plan-recipes-section">
-      <div class="section-header">
-        <div>
-          <h2>Recepti u planu</h2>
-          <p>Za svaki tip obroka imaš recepte koje možeš da ubaciš odmah ili da njima zameniš postojeći sastav.</p>
-        </div>
-      </div>
-      ${
-        recipeGroups.length
-          ? `
-            <div class="stack plan-recipes-groups">
-              ${recipeGroups
-                .map((group) => {
-                  const mealParts = getMealDisplayParts(group.mealLabel);
-                  return `
-                    <div class="plan-recipes-group">
-                      <div class="plan-recipes-group-head">
-                        <div class="meal-heading-block">
-                          ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
-                          <div>
-                            <h3 class="meal-title">${escapeHtml(mealParts.title || group.mealLabel)}</h3>
-                            <div class="footer-note">${group.recipes.length} ${group.recipes.length === 1 ? "recept" : "recepta"} za ovaj obrok</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="stack plan-recipes-grid">
-                        ${group.recipes
-                          .map((favorite) => {
-                            const matchState = getRecipeMatchState(favorite, group.mealEntries);
-                            const hasExistingMeal = group.mealEntries.length > 0;
-                            return `
-                              <article class="food-card suggestion-surface plan-recipe-card">
-                                <div class="food-card-top plan-recipe-top">
-                                  <div class="plan-recipe-copy">
-                                    <h3>${escapeHtml(favorite.name)}</h3>
-                                    <p>${escapeHtml(truncateText(favorite.description || favorite.instructions || "Sačuvan recept koji možeš brzo da ubaciš u plan.", 132))}</p>
-                                  </div>
-                                  <span class="pill strong pill--${matchState.tone}">${matchState.label}</span>
-                                </div>
-                                <div class="pill-row plan-recipe-pills">
-                                  <span class="pill">${escapeHtml(favorite.mealLabel || favorite.name)}</span>
-                                  <span class="pill">${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
-                                  ${
-                                    favorite.prepTimeMinutes
-                                      ? `<span class="pill note">${favorite.prepTimeMinutes} min pripreme</span>`
-                                      : `<span class="pill note">${favorite.items.length} sastojka</span>`
-                                  }
-                                  <span class="pill note">Po porciji ${roundValue(favorite.perServingTotals.kcal, 0)} kcal</span>
-                                  <span class="pill">P ${roundValue(favorite.perServingTotals.protein, 1)} g</span>
-                                  <span class="pill">UH ${roundValue(favorite.perServingTotals.carbs, 1)} g</span>
-                                  <span class="pill">M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
-                                </div>
-                                <div class="plan-recipe-ingredient-list">
-                                  ${favorite.items
-                                    .slice(0, 4)
-                                    .map(
-                                      (item) => `
-                                        <span class="plan-recipe-ingredient">
-                                          <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
-                                          <span>${roundValue(item.grams, 0)} g</span>
-                                        </span>
-                                      `
-                                    )
-                                    .join("")}
-                                  ${
-                                    favorite.items.length > 4
-                                      ? `<span class="plan-recipe-ingredient plan-recipe-ingredient--more">+${favorite.items.length - 4} još</span>`
-                                      : ""
-                                  }
-                                </div>
-                                ${
-                                  favorite.instructions
-                                    ? `<div class="plan-recipe-method">${escapeHtml(truncateText(favorite.instructions, 170))}</div>`
-                                    : ""
-                                }
-                                <div class="entry-actions entry-actions--start plan-recipe-actions">
-                                  <button
-                                    class="solid-button secondary-button button-with-icon"
-                                    data-action="apply-recipe-to-meal"
-                                    data-favorite-id="${favorite.id}"
-                                    data-meal-label="${escapeHtml(group.mealLabel)}"
-                                    data-mode="append"
-                                  >
-                                    ${renderButtonContent(favorite.servings > 1 ? "Dodaj 1 porciju" : "Dodaj u obrok", "add")}
-                                  </button>
-                                  ${
-                                    hasExistingMeal
-                                      ? `
-                                        <button
-                                          class="ghost-button button-with-icon"
-                                          data-action="apply-recipe-to-meal"
-                                          data-favorite-id="${favorite.id}"
-                                          data-meal-label="${escapeHtml(group.mealLabel)}"
-                                          data-mode="replace"
-                                        >
-                                          ${renderButtonContent("Zameni", "apply")}
-                                        </button>
-                                      `
-                                      : ""
-                                  }
-                                  <button class="ghost-button button-with-icon" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}">
-                                    ${renderButtonContent("Izmeni", "edit")}
-                                  </button>
-                                  <button class="danger-button button-with-icon" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}">
-                                    ${renderButtonContent("Obriši", "delete")}
-                                  </button>
-                                </div>
-                              </article>
-                            `;
-                          })
-                          .join("")}
-                      </div>
-                    </div>
-                  `;
-                })
-                .join("")}
-            </div>
-          `
-          : `
-            <div class="empty">
-              Još nema sačuvanih recepata po tipu obroka. Sačuvaj obrok iz plana ili otvori Recepti tab da napraviš prvi.
-            </div>
-          `
-      }
-    </section>
-  `;
 }
 
 function renderPlanSupplementsSection() {
