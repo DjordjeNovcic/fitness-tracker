@@ -226,6 +226,8 @@ const state = {
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
+  shoppingExpanded: false,
+  shoppingChecked: {},
   recipesBuilderExpanded: false,
   tabEnter: true,
   foodSearch: "",
@@ -6200,6 +6202,90 @@ function renderTodayRemindersBanner() {
     </section>`;
 }
 
+// Weekly shopping list: aggregate every food across the whole plan, summing
+// grams, grouped by category. Pure client-side (no backend).
+function getShoppingList() {
+  const totals = new Map();
+  (store.weeklyPlanEntries || []).forEach((entry) => {
+    const grams = toNumber(entry.grams);
+    if (!grams) {
+      return;
+    }
+    const food = getFoodById(entry.foodId) || store.foods.find((item) => item.name === entry.foodName);
+    const key = entry.foodId || entry.foodName || (food && food.id);
+    if (!key) {
+      return;
+    }
+    const existing = totals.get(key);
+    if (existing) {
+      existing.grams += grams;
+    } else {
+      totals.set(key, {
+        id: String(key),
+        name: (food && food.name) || entry.foodName || "Nepoznata namirnica",
+        grams,
+        category: (food && String(food.category || "").trim()) || "Ostalo",
+      });
+    }
+  });
+  return [...totals.values()].sort((a, b) =>
+    a.category === b.category ? a.name.localeCompare(b.name, "sr") : a.category.localeCompare(b.category, "sr")
+  );
+}
+
+function renderPlanShoppingSection() {
+  const items = getShoppingList();
+  state.shoppingChecked = state.shoppingChecked || {};
+  const groups = {};
+  items.forEach((item) => {
+    (groups[item.category] = groups[item.category] || []).push(item);
+  });
+  const listHtml = Object.keys(groups)
+    .map(
+      (category) => `
+        <div class="shopping-group">
+          <div class="footer-note" style="text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 2px;">${escapeHtml(category)}</div>
+          ${groups[category]
+            .map((item) => {
+              const checked = Boolean(state.shoppingChecked[item.id]);
+              return `
+                <label class="shopping-item" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);${checked ? "opacity:0.5;" : ""}">
+                  <input type="checkbox" data-action="toggle-shopping-item" data-food-id="${escapeHtml(item.id)}" ${checked ? "checked" : ""} aria-label="${escapeHtml(item.name)}" />
+                  <span style="flex:1;${checked ? "text-decoration:line-through;" : ""}">${escapeHtml(item.name)}</span>
+                  <strong>${roundValue(item.grams, 0)} g</strong>
+                </label>`;
+            })
+            .join("")}
+        </div>`
+    )
+    .join("");
+  return `
+    <section class="section plan-shopping-section ${state.shoppingExpanded ? "is-expanded" : "is-collapsed"}">
+      <button class="section-disclosure" type="button" data-action="toggle-plan-shopping" aria-expanded="${state.shoppingExpanded}">
+        <div class="section-disclosure-copy">
+          <h2>Lista za kupovinu</h2>
+          <p>${items.length ? `${items.length} namirnica iz celog nedeljnog plana.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
+        </div>
+        <div class="section-disclosure-meta">
+          <span class="pill note">cela nedelja</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.shoppingExpanded)}</span>
+        </div>
+      </button>
+      <div class="plan-section-body ${state.shoppingExpanded ? "is-expanded" : "is-collapsed"}">
+        ${
+          items.length
+            ? `
+              <div class="meta-row meta-row--compact" style="margin-bottom:8px;">
+                <button class="ghost-button button-with-icon" type="button" data-action="copy-shopping-list">${renderButtonContent("Kopiraj listu", "save")}</button>
+              </div>
+              <div class="stack">${listHtml}</div>
+            `
+            : `<div class="empty">Još nema namirnica u planu — dodaj obroke pa se lista sama sastavi.</div>`
+        }
+      </div>
+    </section>`;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
@@ -6577,6 +6663,8 @@ function renderPlanTab(entries) {
     ${renderPlanSupplementsSection()}
 
     ${renderPlanWaterSection()}
+
+    ${renderPlanShoppingSection()}
   `;
 }
 
@@ -10664,6 +10752,43 @@ async function handleDocumentClick(event) {
     store.ui.plan.remindersDismissedDate = getTodayDateValue();
     persist();
     render();
+    return;
+  }
+
+  if (action === "toggle-plan-shopping") {
+    state.shoppingExpanded = !state.shoppingExpanded;
+    render();
+    return;
+  }
+
+  if (action === "toggle-shopping-item") {
+    const id = String(actionTarget.dataset.foodId || "");
+    if (!id) {
+      return;
+    }
+    state.shoppingChecked = state.shoppingChecked || {};
+    if (state.shoppingChecked[id]) {
+      delete state.shoppingChecked[id];
+    } else {
+      state.shoppingChecked[id] = true;
+    }
+    render();
+    return;
+  }
+
+  if (action === "copy-shopping-list") {
+    const items = getShoppingList();
+    const text = items.length
+      ? `Lista za kupovinu:\n${items.map((item) => `- ${item.name}: ${roundValue(item.grams, 0)} g`).join("\n")}`
+      : "Lista za kupovinu je prazna.";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => showFeedbackToast({ title: "Lista je kopirana", detail: "Nalepi je gde želiš.", tone: "success" }))
+        .catch(() => showFeedbackToast({ title: "Kopiranje nije uspelo", detail: "Pokušaj ručno.", tone: "error" }));
+    } else {
+      showFeedbackToast({ title: "Kopiranje nije podržano", detail: "Browser ne dozvoljava automatsko kopiranje.", tone: "error" });
+    }
     return;
   }
 
