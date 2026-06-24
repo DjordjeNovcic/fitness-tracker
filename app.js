@@ -3,6 +3,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
@@ -5782,6 +5783,7 @@ function renderAuthShell() {
           </div>
           ${state.authError ? `<div class="auth-feedback auth-feedback--error" role="alert">${state.authError}</div>` : ""}
           <button class="solid-button auth-submit" type="submit" ${state.authPending ? "disabled" : ""}>${submitLabel}</button>
+          ${state.authMode === "login" ? `<button class="auth-switch-button auth-forgot" type="button" data-action="reset-password">Zaboravljena lozinka?</button>` : ""}
         </form>
         <div class="auth-toggle-row">
           <span class="footer-note">${state.authMode === "register" ? "Već imaš nalog?" : "Prvi put ovde?"}</span>
@@ -9180,7 +9182,7 @@ function renderProgressTab() {
         <div class="field photo-picker">
           <label for="photo-file">Slika</label>
           <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">Slika se automatski smanjuje i čuva lokalno.</div>
+          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> — ne ide u cloud i ne sinhronizuje se na druge uređaje. Redovno izvozi backup (Ciljevi → Izvezi backup) da je ne izgubiš.</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
@@ -11161,6 +11163,32 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "reset-password") {
+    const emailInput = document.querySelector("#auth-email");
+    const email = emailInput instanceof HTMLInputElement ? emailInput.value.trim() : "";
+    if (!email) {
+      state.authError = "Unesi email iznad, pa klikni Zaboravljena lozinka.";
+      render();
+      return;
+    }
+    state.authError = "";
+    sendPasswordResetEmail(firebaseAuth, email)
+      .then(() => {
+        showFeedbackToast({
+          title: "Proveri email",
+          detail: "Poslali smo link za resetovanje lozinke (pogledaj i spam folder).",
+          tone: "success",
+          duration: 4000,
+        });
+      })
+      .catch((error) => {
+        console.error("Password reset failed", error);
+        state.authError = getAuthErrorMessage(error);
+        render();
+      });
+    return;
+  }
+
   if (action === "set-auth-mode") {
     state.authMode = actionTarget.dataset.mode === "register" ? "register" : "login";
     state.authError = "";
@@ -12093,6 +12121,31 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && state.authUser && state.authReady && ensureCurrentWeek()) {
     persist();
     render();
+  }
+});
+
+// Escape closes the top-most open overlay, reusing its existing close handler
+// (so e.g. the scanner camera is properly stopped).
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") {
+    return;
+  }
+  const closeSelector = state.scannerOpen
+    ? '[data-action="close-scanner"]'
+    : state.foodEditorOpen
+      ? '[data-action="close-food-editor-dialog"]'
+      : state.recipeApplyDialog && state.recipeApplyDialog.favoriteId
+        ? '[data-action="close-recipe-apply-dialog"]'
+        : state.navMenuOpen
+          ? '[data-action="close-nav-menu"]'
+          : null;
+  if (!closeSelector) {
+    return;
+  }
+  const closeButton = document.querySelector(closeSelector);
+  if (closeButton) {
+    event.preventDefault();
+    closeButton.click();
   }
 });
 
