@@ -9452,16 +9452,20 @@ function render() {
   const totals = getDayTotals(entries);
   const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
   const workspaceHeaderMarkup = state.activeTab === "plan" ? "" : renderWorkspaceHeader();
-  const sections = {
-    plan: renderPlanTab(entries),
-    recipes: renderRecipesTab(),
-    nutrition: renderNutritionTab(),
-    foods: renderFoodsTab(),
-    training: renderTrainingTab(),
-    routine: renderRoutineTab(),
-    progress: renderProgressTab(),
-    goals: renderGoalsTab(),
+  // Only the active tab is ever inserted into the DOM, so build just that one
+  // instead of rebuilding all 8 sections (charts, food lists, etc.) on every
+  // tap/keystroke. The render*Tab fns are pure (no state side effects).
+  const sectionRenderers = {
+    plan: () => renderPlanTab(entries),
+    recipes: renderRecipesTab,
+    nutrition: renderNutritionTab,
+    foods: renderFoodsTab,
+    training: renderTrainingTab,
+    routine: renderRoutineTab,
+    progress: renderProgressTab,
+    goals: renderGoalsTab,
   };
+  const activeSection = (sectionRenderers[state.activeTab] || sectionRenderers.plan)();
 
   // Snapshot scroll + focused field before we blow away and rebuild the DOM,
   // so a toggle/keystroke doesn't bounce the user to the top or drop the field.
@@ -9542,7 +9546,7 @@ function render() {
       <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""} ${state.tabEnter ? "is-entering" : ""}">
         ${workspaceHeaderMarkup}
         ${heroMarkup}
-        ${sections[state.activeTab]}
+        ${activeSection}
       </main>
 
       ${
