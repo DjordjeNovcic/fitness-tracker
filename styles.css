@@ -86,7 +86,7 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Manrope", "Segoe UI", system-ui, "Avenir Next", sans-serif;
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   min-height: 100vh;
   line-height: 1.5;
   background:
@@ -232,7 +232,7 @@ textarea::placeholder {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -241,7 +241,7 @@ textarea::placeholder {
 .hero h1 {
   margin-top: 0;
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.38rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 0.96;
@@ -250,7 +250,7 @@ textarea::placeholder {
 .hero p {
   margin-top: 0;
   max-width: 32ch;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: rgba(254, 251, 243, 0.78);
 }
 
@@ -283,7 +283,7 @@ textarea::placeholder {
 }
 
 .hero-picker-label {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -343,7 +343,7 @@ textarea::placeholder {
 .auth-hero h1 {
   margin-top: 10px;
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.72rem;
+  font-size: 1.875rem;
   line-height: 1;
   letter-spacing: -0.035em;
 }
@@ -381,7 +381,7 @@ textarea::placeholder {
   padding: 7px 11px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -438,7 +438,7 @@ textarea::placeholder {
   background: linear-gradient(135deg, var(--status-info-bg), rgba(255, 250, 242, 0.88));
   color: color-mix(in srgb, var(--status-info-text) 72%, var(--muted));
   border: 1px solid var(--status-info-border);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
@@ -470,7 +470,7 @@ textarea::placeholder {
 }
 
 .auth-form .field label {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -520,7 +520,7 @@ textarea::placeholder {
   background: rgba(222, 231, 216, 0.75);
   border: 1px solid rgba(66, 98, 84, 0.08);
   color: color-mix(in srgb, var(--ink) 82%, var(--muted));
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -533,7 +533,7 @@ textarea::placeholder {
 
 .section-header h2 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.32rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.02;
@@ -541,7 +541,7 @@ textarea::placeholder {
 
 .section-header p {
   color: var(--muted);
-  font-size: 0.93rem;
+  font-size: 0.9375rem;
   line-height: 1.42;
   max-width: 46ch;
 }
@@ -571,7 +571,7 @@ textarea::placeholder {
 
 .section-disclosure-copy h2 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.32rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.02;
@@ -579,7 +579,7 @@ textarea::placeholder {
 
 .section-disclosure-copy p {
   color: var(--muted);
-  font-size: 0.93rem;
+  font-size: 0.9375rem;
   line-height: 1.42;
   max-width: 46ch;
 }
@@ -635,7 +635,7 @@ textarea::placeholder {
 }
 
 .plan-summary-headline-label {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -644,7 +644,7 @@ textarea::placeholder {
 
 .plan-summary-headline-value {
   font-family: "Fraunces", "Georgia", serif;
-  font-size: 2.6rem;
+  font-size: 2.875rem;
   font-weight: 700;
   line-height: 0.96;
   letter-spacing: -0.03em;
@@ -656,8 +656,8 @@ textarea::placeholder {
 }
 
 .plan-summary-headline-unit {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Manrope", system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: 0;
   color: var(--muted);
@@ -772,13 +772,13 @@ textarea::placeholder {
 .training-card h3,
 .list-header {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
 }
 
 .macro-value {
   margin-top: 12px;
-  font-size: 1.52rem;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
@@ -966,7 +966,7 @@ textarea::placeholder {
 }
 
 .meal-card-summary-kcal strong {
-  font-size: 1.52rem;
+  font-size: 1.5rem;
   line-height: 0.98;
   letter-spacing: -0.04em;
   color: var(--accent-strong);
@@ -979,7 +979,7 @@ textarea::placeholder {
 }
 
 .meal-summary-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1000,7 +1000,7 @@ textarea::placeholder {
   min-height: 38px;
   padding: 0;
   border-radius: 14px;
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(24, 33, 30, 0.08);
@@ -1030,7 +1030,7 @@ textarea::placeholder {
 
 .meal-title {
   margin: 0;
-  font-size: 1.24rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -1038,7 +1038,7 @@ textarea::placeholder {
 }
 
 .plan-meals-section .meal-title {
-  font-size: 1.32rem;
+  font-size: 1.25rem;
 }
 
 .meal-order {
@@ -1077,7 +1077,7 @@ textarea::placeholder {
 }
 
 .meal-items-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1086,7 +1086,7 @@ textarea::placeholder {
 
 .meal-items-count {
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -1169,7 +1169,7 @@ textarea::placeholder {
 .plan-summary-section .macro-value,
 .plan-secondary-stats .macro-value {
   margin-top: 14px;
-  font-size: 1.85rem;
+  font-size: 1.875rem;
   letter-spacing: -0.05em;
 }
 
@@ -1191,7 +1191,7 @@ textarea::placeholder {
 }
 
 .plan-preview-card .meal-title {
-  font-size: 1.16rem;
+  font-size: 1.125rem;
 }
 
 .plan-preview-card .pill-row {
@@ -1248,7 +1248,7 @@ textarea::placeholder {
 }
 
 .plan-quick-card-source strong {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   letter-spacing: -0.02em;
 }
 
@@ -1336,12 +1336,12 @@ textarea::placeholder {
   background: rgba(255, 253, 249, 0.86);
   border: 1px solid rgba(24, 33, 30, 0.08);
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .plan-recipe-ingredient strong {
   color: var(--ink);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .plan-recipe-ingredient--more {
@@ -1412,7 +1412,7 @@ textarea::placeholder {
   background: var(--button-ghost-bg);
   color: var(--muted);
   border: 1px solid var(--button-ghost-border);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   box-shadow: none;
@@ -1450,7 +1450,7 @@ textarea::placeholder {
 
 .plan-quick-toggle h2 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.24rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.04;
@@ -1458,7 +1458,7 @@ textarea::placeholder {
 
 .plan-quick-toggle p {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   line-height: 1.42;
   max-width: 36ch;
 }
@@ -1579,7 +1579,7 @@ textarea::placeholder {
   gap: 14px;
   padding: 0 12px 10px;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1736,7 +1736,7 @@ textarea::placeholder {
 }
 
 .foods-list-basis {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--muted);
 }
@@ -1793,7 +1793,7 @@ textarea::placeholder {
 }
 
 .foods-list-macro-label {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1801,13 +1801,13 @@ textarea::placeholder {
 }
 
 .foods-list-macro strong {
-  font-size: 0.94rem;
+  font-size: 0.9375rem;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .foods-list-value-cell strong {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -1819,7 +1819,7 @@ textarea::placeholder {
 
 .foods-list-mobile-label {
   display: none;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1889,7 +1889,7 @@ textarea::placeholder {
 }
 
 .foods-energy-basis {
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #3f4a45;
 }
@@ -1933,7 +1933,7 @@ textarea::placeholder {
 .foods-macro-value {
   min-width: 0;
   text-align: center;
-  font-size: 0.96rem;
+  font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #28312d;
@@ -1957,7 +1957,7 @@ textarea::placeholder {
 }
 
 .foods-card-kicker {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1969,7 +1969,7 @@ textarea::placeholder {
   min-height: 28px;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   border: 1px solid rgba(24, 33, 30, 0.08);
   box-shadow:
@@ -1981,7 +1981,7 @@ textarea::placeholder {
   min-height: 40px;
   padding: 8px 14px;
   border-radius: 16px;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .foods-favorite-toggle {
@@ -1995,7 +1995,7 @@ textarea::placeholder {
   border: 1px solid rgba(24, 33, 30, 0.08);
   background: rgba(255, 253, 248, 0.96);
   color: #baa06b;
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   line-height: 1;
   box-shadow:
     0 8px 16px rgba(25, 34, 31, 0.06),
@@ -2012,7 +2012,7 @@ textarea::placeholder {
   width: 40px;
   height: 40px;
   border-radius: 16px;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
 }
 
 .foods-favorite-toggle:hover,
@@ -2169,7 +2169,7 @@ textarea::placeholder {
   }
 
   .foods-list-row h3 {
-    font-size: 1.08rem;
+    font-size: 1.125rem;
   }
 
   .foods-group-badge,
@@ -2192,7 +2192,7 @@ textarea::placeholder {
   }
 
   .foods-macro-value {
-    font-size: 0.86rem;
+    font-size: 0.875rem;
   }
 
   .foods-card-actions > button {
@@ -2425,13 +2425,13 @@ textarea::placeholder {
 }
 
 .training-exercise-name {
-  font-size: 0.98rem;
+  font-size: 1rem;
 }
 
 .training-exercise-detail,
 .training-favorite-copy {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
@@ -2546,13 +2546,13 @@ textarea::placeholder {
 }
 
 .meal-entry-top strong {
-  font-size: 1.06rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
 }
 
 .meal-entry-grams {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -2599,7 +2599,7 @@ textarea::placeholder {
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
   color: rgba(24, 33, 30, 0.9);
-  font-size: 0.79rem;
+  font-size: 0.8125rem;
   font-weight: 720;
   line-height: 1.1;
   letter-spacing: 0.01em;
@@ -2852,7 +2852,7 @@ textarea::placeholder {
 }
 
 .field label {
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   color: var(--muted);
   font-weight: 760;
   letter-spacing: 0.01em;
@@ -3560,12 +3560,12 @@ label.is-invalid textarea:focus {
 
 .recipe-library-ingredient-head strong {
   color: var(--ink);
-  font-size: 0.97rem;
+  font-size: 1rem;
   line-height: 1.35;
 }
 
 .recipe-library-ingredient-head .footer-note {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .recipe-library-ingredient-macros {
@@ -3871,7 +3871,7 @@ label.is-invalid textarea:focus {
 }
 
 .routine-streak-spotlight-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3880,7 +3880,7 @@ label.is-invalid textarea:focus {
 
 .routine-streak-spotlight h3 {
   margin: 6px 0 2px;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   letter-spacing: -0.04em;
 }
 
@@ -3905,7 +3905,7 @@ label.is-invalid textarea:focus {
 }
 
 .routine-streak-spotlight-metric small {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3955,7 +3955,7 @@ label.is-invalid textarea:focus {
 
 .routine-streak-unit {
   margin-top: 6px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4000,7 +4000,7 @@ label.is-invalid textarea:focus {
 
 .routine-content strong {
   display: block;
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
 }
 
@@ -4136,7 +4136,7 @@ label.is-invalid textarea:focus {
   background: rgba(222, 231, 216, 0.78);
   border: 1px solid rgba(66, 98, 84, 0.08);
   color: color-mix(in srgb, var(--ink) 82%, var(--muted));
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4158,7 +4158,7 @@ label.is-invalid textarea:focus {
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(23, 59, 47, 0.12), rgba(44, 123, 116, 0.12));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
-  font-size: 1.12rem;
+  font-size: 1.125rem;
 }
 
 .workspace-header h1,
@@ -4168,7 +4168,7 @@ label.is-invalid textarea:focus {
 
 .workspace-header h1 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.46rem;
+  font-size: 1.5rem;
   line-height: 0.98;
   letter-spacing: -0.03em;
 }
@@ -4176,7 +4176,7 @@ label.is-invalid textarea:focus {
 .workspace-header p {
   margin-top: 6px;
   color: var(--muted);
-  font-size: 0.93rem;
+  font-size: 0.9375rem;
   line-height: 1.42;
   max-width: 34ch;
 }
@@ -4241,7 +4241,7 @@ label.is-invalid textarea:focus {
 }
 
 .menu-fab-label {
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: 0.01em;
 }
@@ -4386,7 +4386,7 @@ body.menu-open .menu-fab {
 
 .app-sidebar-email {
   margin-top: 0;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .menu-close {
@@ -4433,7 +4433,7 @@ body.menu-open .menu-fab {
 }
 
 .menu-tab-button .icon {
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4575,7 +4575,7 @@ body.menu-open .menu-fab {
 .feedback-toast-detail {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   line-height: 1.45;
 }
 
@@ -4622,7 +4622,7 @@ body.menu-open .menu-fab {
 .footer-note {
   margin-top: 8px;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   line-height: 1.4;
 }
 
@@ -4669,12 +4669,12 @@ body.menu-open .menu-fab {
   }
 
   .hero h1 {
-    font-size: 1.46rem;
+    font-size: 1.5rem;
   }
 
   .hero p {
     max-width: 22ch;
-    font-size: 0.86rem;
+    font-size: 0.875rem;
   }
 
   .hero-day-picker {
@@ -4696,11 +4696,11 @@ body.menu-open .menu-fab {
   }
 
   .section-header h2 {
-    font-size: 1.28rem;
+    font-size: 1.25rem;
   }
 
   .section-header p {
-    font-size: 0.94rem;
+    font-size: 0.9375rem;
     max-width: 36ch;
   }
 
@@ -4734,7 +4734,7 @@ body.menu-open .menu-fab {
   }
 
   .meal-title {
-    font-size: 1.16rem;
+    font-size: 1.125rem;
   }
 
   .meal-order {
@@ -4745,7 +4745,7 @@ body.menu-open .menu-fab {
   .pill {
     min-height: 31px;
     padding: 6px 10px;
-    font-size: 0.79rem;
+    font-size: 0.8125rem;
   }
 
   .solid-button,
@@ -4754,7 +4754,7 @@ body.menu-open .menu-fab {
     min-height: 46px;
     padding: 11px 14px;
     border-radius: 16px;
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
   }
 
   .chips {
@@ -4866,11 +4866,11 @@ body.menu-open .menu-fab {
   }
 
   .section-disclosure-copy h2 {
-    font-size: 1.04rem;
+    font-size: 1rem;
   }
 
   .section-disclosure-copy p {
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     line-height: 1.32;
     max-width: 26ch;
   }
@@ -4958,7 +4958,7 @@ body.menu-open .menu-fab {
   }
 
   .hero h1 {
-    font-size: 1.32rem;
+    font-size: 1.25rem;
   }
 
   .hero--plan .hero-copy-text p {
@@ -4972,7 +4972,7 @@ body.menu-open .menu-fab {
   }
 
   .hero-picker-label {
-    font-size: 0.64rem;
+    font-size: 0.6875rem;
   }
 
   .chips.hero-day-chips {
@@ -4983,7 +4983,7 @@ body.menu-open .menu-fab {
   .chips.hero-day-chips .chip {
     min-height: 36px;
     padding: 7px 11px;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
   }
 
   .status-summary-actions > .ghost-button,
@@ -5038,7 +5038,7 @@ body.menu-open .menu-fab {
   }
 
   .meal-card-summary-kcal strong {
-    font-size: 1.22rem;
+    font-size: 1.25rem;
   }
 
   .meal-card-summary-macros .meal-summary-label {
@@ -5046,13 +5046,13 @@ body.menu-open .menu-fab {
   }
 
   .meal-summary-macro strong {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
   }
 
   .meal-order {
     min-width: 34px;
     height: 34px;
-    font-size: 0.92rem;
+    font-size: 0.9375rem;
   }
 
   .plan-quick-toggle {
@@ -5060,7 +5060,7 @@ body.menu-open .menu-fab {
   }
 
   .plan-quick-toggle h2 {
-    font-size: 1.02rem;
+    font-size: 1rem;
   }
 
   .plan-quick-toggle p {
@@ -5107,7 +5107,7 @@ body.menu-open .menu-fab {
 
   .plan-quick-card--secondary .plan-quick-card-copy p,
   .plan-quick-card--secondary .footer-note {
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     line-height: 1.34;
   }
 
@@ -5137,7 +5137,7 @@ body.menu-open .menu-fab {
   .plan-favorite-chips .chip {
     min-height: 34px;
     padding: 7px 10px;
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
   }
 
   .plan-quick-form {
@@ -5145,12 +5145,12 @@ body.menu-open .menu-fab {
   }
 
   .plan-quick-form .field label {
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
   }
 
   .plan-skip-button {
     padding: 6px 9px;
-    font-size: 0.76rem;
+    font-size: 0.75rem;
   }
 
   .goal-grid,
@@ -5221,13 +5221,13 @@ body.menu-open .menu-fab {
   }
 
   .meal-title {
-    font-size: 1.12rem;
+    font-size: 1.125rem;
   }
 
   .macro-value,
   .plan-summary-section .macro-value,
   .plan-secondary-stats .macro-value {
-    font-size: 1.68rem;
+    font-size: 1.5rem;
   }
 
   .menu-tab-button {
@@ -5365,7 +5365,7 @@ body.menu-open .menu-fab {
   }
 
   .auth-hero h1 {
-    font-size: 2.18rem;
+    font-size: 2.25rem;
   }
 
   .auth-panel {
@@ -5460,11 +5460,11 @@ body.menu-open .menu-fab {
   }
 
   .hero h1 {
-    font-size: 1.62rem;
+    font-size: 1.5rem;
   }
 
   .hero p {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
   }
 
   .hero-day-picker {
@@ -5481,12 +5481,12 @@ body.menu-open .menu-fab {
   }
 
   .section-header h2 {
-    font-size: 1.28rem;
+    font-size: 1.25rem;
   }
 
   .section-header p {
     max-width: 50ch;
-    font-size: 0.94rem;
+    font-size: 0.9375rem;
   }
 
   .ghost-button,
@@ -5753,7 +5753,7 @@ body.menu-open .menu-fab {
   }
 
   .mobile-menu-top strong {
-    font-size: 1.02rem;
+    font-size: 1rem;
     letter-spacing: -0.02em;
   }
 
@@ -5766,7 +5766,7 @@ body.menu-open .menu-fab {
     min-height: 42px;
     padding: 10px 12px;
     border-radius: 14px;
-    font-size: 0.94rem;
+    font-size: 0.9375rem;
     background: rgba(255, 255, 255, 0.88);
     box-shadow: 0 8px 18px rgba(25, 34, 31, 0.04);
   }
@@ -5775,7 +5775,7 @@ body.menu-open .menu-fab {
     width: 28px;
     height: 28px;
     border-radius: 10px;
-    font-size: 0.92rem;
+    font-size: 0.9375rem;
   }
 
   .mobile-menu-footer {
@@ -5896,7 +5896,7 @@ body.menu-open .menu-fab {
   }
 
   .goals-sync-email {
-    font-size: 1.04rem;
+    font-size: 1rem;
     font-weight: 760;
     letter-spacing: -0.02em;
   }
@@ -6355,7 +6355,7 @@ body.menu-open .tab-bar {
 }
 
 .tab-bar-label {
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.005em;
   max-width: 100%;
@@ -6670,7 +6670,7 @@ body.menu-open .tab-bar {
 
 .section-header h2,
 .section-disclosure-copy h2 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   letter-spacing: -0.025em;
 }
 
@@ -6685,7 +6685,7 @@ body.menu-open .tab-bar {
 }
 
 .macro-card header h3 {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -6693,11 +6693,11 @@ body.menu-open .tab-bar {
 }
 
 .macro-card header .muted {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .macro-value {
-  font-size: 1.95rem;
+  font-size: 1.875rem;
   font-weight: 800;
   letter-spacing: -0.045em;
   margin-top: 8px;
@@ -6714,7 +6714,7 @@ body.menu-open .tab-bar {
 }
 
 .plan-summary-headline-value {
-  font-size: 3rem;
+  font-size: 2.875rem;
 }
 
 /* Un-nest the meal summary: a clean inline strip, not boxed tiles. */
@@ -6738,7 +6738,7 @@ body.menu-open .tab-bar {
 }
 
 .meal-card-summary-kcal strong {
-  font-size: 1.55rem;
+  font-size: 1.5rem;
 }
 
 .meal-card-summary-macros {
@@ -6920,7 +6920,7 @@ body.menu-open .tab-bar {
 }
 
 .plan-summary-layout .macro-value {
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-weight: 600;
 }
 
@@ -6963,7 +6963,7 @@ body.menu-open .tab-bar {
 
 /* Macro label fits a line; headers align across the row */
 .macro-card header h3 {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
 }
 
@@ -7031,7 +7031,7 @@ body.menu-open .tab-bar {
 }
 
 .plan-summary-headline-value--prompt {
-  font-size: 2.1rem;
+  font-size: 2.25rem;
   color: var(--ink);
 }
 
@@ -7180,7 +7180,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .cal-ring-label {
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -7189,7 +7189,7 @@ body.app-header-hidden .workspace-header {
 
 .cal-ring-value {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 2.85rem;
+  font-size: 2.875rem;
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -7202,14 +7202,14 @@ body.app-header-hidden .workspace-header {
 }
 
 .cal-ring-unit {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0.02em;
 }
 
 .cal-ring-meta {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -7248,14 +7248,14 @@ body.app-header-hidden .workspace-header {
   margin: 14px 0 4px;
 }
 .meal-items-label {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .meal-items-count {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -7268,11 +7268,11 @@ body.app-header-hidden .workspace-header {
   flex-wrap: wrap;
 }
 .meal-entry-title-group strong {
-  font-size: 1.02rem;
+  font-size: 1rem;
   letter-spacing: -0.01em;
 }
 .meal-entry-grams {
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -7284,7 +7284,7 @@ body.app-header-hidden .workspace-header {
   margin-top: 5px;
 }
 .meal-entry-macros {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -7307,7 +7307,7 @@ body.app-header-hidden .workspace-header {
 }
 .form-collapse-title {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.32rem;
+  font-size: 1.25rem;
   letter-spacing: -0.025em;
   color: var(--ink);
 }
@@ -7414,7 +7414,7 @@ body.app-header-hidden .workspace-header {
 
   .foods-list-mobile-label {
     display: inline;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--muted);
     text-transform: none;
@@ -7422,7 +7422,7 @@ body.app-header-hidden .workspace-header {
   }
 
   .foods-list-value-cell strong {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 700;
   }
 
@@ -7431,7 +7431,7 @@ body.app-header-hidden .workspace-header {
   .foods-list-value-cell--kcal strong {
     color: var(--teal);
     font-weight: 800;
-    font-size: 0.96rem;
+    font-size: 0.9375rem;
   }
 
   .foods-list-actions .button-with-icon {
@@ -7577,7 +7577,7 @@ body.app-header-hidden .workspace-header {
 .auth-brand h1 {
   margin: 0;
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.95rem;
+  font-size: 1.875rem;
   letter-spacing: -0.025em;
   color: var(--ink);
 }
@@ -7585,7 +7585,7 @@ body.app-header-hidden .workspace-header {
 .auth-brand p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.94rem;
+  font-size: 0.9375rem;
   line-height: 1.45;
   max-width: 30ch;
 }
@@ -7702,14 +7702,14 @@ body.app-header-hidden .workspace-header {
   gap: 6px;
 }
 .meal-card-summary-kcal .meal-summary-label {
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   opacity: 0.8;
 }
 
 /* 6. Per-food actions recede; delete isn't the loudest thing in a row */
 .meal-entry-actions .ghost-button,
 .meal-entry-actions .danger-button {
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 .meal-entry-actions .danger-button {
   border-color: transparent;
@@ -7730,7 +7730,7 @@ body.app-header-hidden .workspace-header {
 
 /* 10. One in-app section-title size */
 .form-collapse-title {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
 }
 
 /* 11. Filter count: a quiet number, no parentheses */
@@ -8200,7 +8200,7 @@ body.app-header-hidden .workspace-header {
 .loading-shell-note {
   text-align: center;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin-top: 6px;
 }
 
@@ -8222,7 +8222,7 @@ body.app-header-hidden .workspace-header {
   gap: 3px;
   padding: 3px 9px 3px 7px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   border: 1px solid transparent;
@@ -8374,7 +8374,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .onboarding-preview-label {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8383,7 +8383,7 @@ body.app-header-hidden .workspace-header {
 
 .onboarding-preview-kcal {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 2.1rem;
+  font-size: 2.25rem;
   line-height: 1;
   color: var(--accent-strong);
 }
@@ -8397,7 +8397,7 @@ body.app-header-hidden .workspace-header {
   justify-content: center;
   gap: 16px;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -8408,7 +8408,7 @@ body.app-header-hidden .workspace-header {
 
 .onboarding-preview-empty {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
@@ -8416,7 +8416,7 @@ body.app-header-hidden .workspace-header {
   width: 100%;
   justify-content: center;
   min-height: 50px;
-  font-size: 1.02rem;
+  font-size: 1rem;
   margin-top: 2px;
 }
 
@@ -8482,7 +8482,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .meal-composer-eyebrow {
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -8491,7 +8491,7 @@ body.app-header-hidden .workspace-header {
 
 .meal-composer-head h4 {
   margin: 0;
-  font-size: 1.16rem;
+  font-size: 1.125rem;
   letter-spacing: -0.01em;
 }
 
@@ -8510,12 +8510,12 @@ body.app-header-hidden .workspace-header {
 
 .meal-composer-preview-empty {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
 .meal-composer-preview-label {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: var(--muted);
 }
@@ -8540,7 +8540,7 @@ body.app-header-hidden .workspace-header {
 
 .meal-composer-preview-macros {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -8555,7 +8555,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .meal-composer-suggestions-label {
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8596,7 +8596,7 @@ body.app-header-hidden .workspace-header {
   align-items: center;
   margin-top: 5px;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -8622,20 +8622,20 @@ body.app-header-hidden .workspace-header {
 
 .recipe-library-stat-kcal strong {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin-right: 2px;
 }
 
 .recipe-library-stat-sub {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
 .recipe-library-stat-macros {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -8643,7 +8643,7 @@ body.app-header-hidden .workspace-header {
 .recipe-library-stat-total {
   flex-basis: 100%;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   opacity: 0.82;
 }
@@ -8675,7 +8675,7 @@ body.app-header-hidden .workspace-header {
   background: none;
   box-shadow: none;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   justify-content: flex-start;
   gap: 6px;
@@ -8709,7 +8709,7 @@ body.app-header-hidden .workspace-header {
   min-width: 0;
   min-height: 40px;
   padding: 8px 0;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   justify-content: center;
   text-align: center;
   box-shadow: none;
@@ -8733,7 +8733,7 @@ body.app-header-hidden .workspace-header {
 /* Daily-overview summary on one line (rounded macros keep it short). */
 .section-disclosure-copy p {
   max-width: none;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 /* ============================================================
@@ -8808,7 +8808,7 @@ body.app-header-hidden .workspace-header {
     border-radius: 14px;
     background: none;
     color: var(--ink);
-    font-size: 0.98rem;
+    font-size: 1rem;
     font-weight: 600;
     text-align: left;
     -webkit-tap-highlight-color: transparent;
