@@ -5546,6 +5546,29 @@ function dismissFeedbackToast() {
   }, 180);
 }
 
+// A single persistent visually-hidden live region so screen readers reliably
+// announce feedback (a freshly-inserted node carrying aria-live can be missed).
+let a11yLiveRegion = null;
+function announce(message) {
+  if (!message) {
+    return;
+  }
+  if (!a11yLiveRegion) {
+    a11yLiveRegion = document.createElement("div");
+    a11yLiveRegion.setAttribute("role", "status");
+    a11yLiveRegion.setAttribute("aria-live", "polite");
+    a11yLiveRegion.style.cssText =
+      "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;";
+    document.body.appendChild(a11yLiveRegion);
+  }
+  a11yLiveRegion.textContent = "";
+  window.requestAnimationFrame(() => {
+    if (a11yLiveRegion) {
+      a11yLiveRegion.textContent = message;
+    }
+  });
+}
+
 function showFeedbackToast({ title, detail = "", tone = "success", duration = 2400 }) {
   if (feedbackToastTimer) {
     window.clearTimeout(feedbackToastTimer);
@@ -5559,13 +5582,12 @@ function showFeedbackToast({ title, detail = "", tone = "success", duration = 24
   if (document.querySelector(".undo-banner, .update-banner")) {
     toast.classList.add("is-raised");
   }
-  toast.setAttribute("role", "status");
-  toast.setAttribute("aria-live", "polite");
   toast.innerHTML = `
     <div class="feedback-toast-title">${escapeHtml(title)}</div>
     ${detail ? `<div class="feedback-toast-detail">${escapeHtml(detail)}</div>` : ""}
   `;
   document.body.appendChild(toast);
+  announce([title, detail].filter(Boolean).join(". "));
 
   window.requestAnimationFrame(() => {
     toast.classList.add("is-visible");
@@ -6141,6 +6163,7 @@ function renderPlanSupplementsSection() {
                             class="routine-checkbox"
                             data-action="toggle-supplement-day"
                             data-supplement-id="${supplement.id}"
+                            aria-label="${escapeHtml(supplement.name)}"
                             ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "checked" : ""}
                           />
                           <span class="routine-check-ui" aria-hidden="true"></span>
@@ -7424,7 +7447,7 @@ function renderTrainingTab() {
                             (exercise) => `
                               <div class="training-exercise-row">
                                 <label class="routine-check training-exercise-check">
-                                  <input class="routine-checkbox" type="checkbox" data-action="toggle-training-exercise" data-template-id="${template.id}" data-exercise-id="${exercise.id}" ${isTrainingExerciseCompleted(state.selectedWeekday, template.id, exercise.id) ? "checked" : ""} />
+                                  <input class="routine-checkbox" type="checkbox" data-action="toggle-training-exercise" data-template-id="${template.id}" data-exercise-id="${exercise.id}" aria-label="${escapeHtml(exercise.name)}" ${isTrainingExerciseCompleted(state.selectedWeekday, template.id, exercise.id) ? "checked" : ""} />
                                   <span class="routine-check-ui" aria-hidden="true"></span>
                                 </label>
                                 <div class="training-exercise-copy">
@@ -7772,6 +7795,7 @@ function renderRoutineTab() {
                             class="routine-checkbox"
                             data-action="toggle-habit-day"
                             data-habit-id="${habit.id}"
+                            aria-label="${escapeHtml(habit.name)}"
                             ${isHabitDoneForDay(habit, state.selectedWeekday) ? "checked" : ""}
                           />
                           <span class="routine-check-ui" aria-hidden="true"></span>
@@ -7918,6 +7942,7 @@ function renderRoutineTab() {
                             class="routine-checkbox"
                             data-action="toggle-task-done"
                             data-task-id="${task.id}"
+                            aria-label="${escapeHtml(task.title)}"
                             ${task.done ? "checked" : ""}
                           />
                           <span class="routine-check-ui" aria-hidden="true"></span>
