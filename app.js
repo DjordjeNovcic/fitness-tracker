@@ -358,6 +358,11 @@ const state = {
   recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
+  // Meal prep ("kuvaj unapred"): which meal's prep panel is open + chosen days.
+  prepMealLabel: "",
+  prepMode: "next",
+  prepDays: 2,
+  prepPickDays: [],
   planDraft: {
     mealLabel: "",
     foodId: "",
@@ -4645,6 +4650,48 @@ function getMealEntriesForWeekday(weekday, mealLabel) {
   );
 }
 
+// Meal prep ("kuvaj unapred"): from the meal in the selected day, work out which
+// days the batch covers and how much to cook in total. "next" mode = the current
+// day plus the following (prepDays - 1) weekdays (wrapping the week); "pick" mode
+// = the explicitly chosen weekdays. Returns target days (to copy into) and the
+// per-food cook totals across every day the meal will exist (source included).
+function getMealPrepPlan(mealLabel) {
+  const sourceDay = state.selectedWeekday;
+  const sourceEntries = getMealEntriesForWeekday(sourceDay, mealLabel);
+  const sourceIdx = WEEKDAYS.indexOf(sourceDay);
+
+  let targetDays;
+  if (state.prepMode === "pick") {
+    targetDays = (state.prepPickDays || []).filter((day) => day !== sourceDay && WEEKDAYS.includes(day));
+  } else {
+    const extraDays = Math.max(1, roundValue(toNumber(state.prepDays) || 2, 0)) - 1;
+    targetDays = [];
+    for (let i = 1; i <= extraDays; i += 1) {
+      targetDays.push(WEEKDAYS[(sourceIdx + i) % WEEKDAYS.length]);
+    }
+  }
+
+  const totalDays = targetDays.length + 1;
+  const cookMap = new Map();
+  sourceEntries.forEach((entry) => {
+    const food = getFoodById(entry.foodId) || store.foods.find((item) => item.name === entry.foodName);
+    const key = entry.foodId || entry.foodName;
+    const existing = cookMap.get(key);
+    const addGrams = toNumber(entry.grams) * totalDays;
+    if (existing) {
+      existing.totalGrams += addGrams;
+    } else {
+      cookMap.set(key, {
+        name: entry.foodName,
+        unit: food ? getFoodServingUnit(food) : "grams",
+        totalGrams: addGrams,
+      });
+    }
+  });
+
+  return { sourceDay, sourceEntries, targetDays, totalDays, cookItems: [...cookMap.values()] };
+}
+
 function applyFavoriteMealToDay(favorite, options = {}) {
   if (!favorite?.items?.length) {
     return false;
@@ -6567,6 +6614,69 @@ function renderPlanShoppingSection() {
 // First-run orientation for a brand-new user: shown only while the whole weekly
 // plan is empty, so it disappears on its own as soon as they add anything. Steps
 // adapt to what's already done and reuse existing actions (no new JS handler).
+// Inline "kuvaj unapred" panel under a meal: pick how many days (or exact days)
+// and see the total to cook in one batch before confirming.
+function renderMealPrepPanel(mealLabel) {
+  const plan = getMealPrepPlan(mealLabel);
+  const mealTitle = getMealDisplayParts(mealLabel).title || mealLabel;
+  const currentDays = Math.max(1, roundValue(toNumber(state.prepDays) || 2, 0));
+
+  const countChips = [2, 3, 4, 5]
+    .map((n) => {
+      const active = state.prepMode === "next" && currentDays === n;
+      return `<button type="button" class="prep-chip ${active ? "is-active" : ""}" data-action="set-meal-prep-days" data-days="${n}" data-meal-label="${escapeHtml(mealLabel)}">${n} dana</button>`;
+    })
+    .join("");
+
+  const pickActive = state.prepMode === "pick";
+  const pickChips = pickActive
+    ? `<div class="prep-day-picker">${WEEKDAYS.map((day) => {
+        if (day === plan.sourceDay) {
+          return `<span class="prep-day-chip is-source">${escapeHtml(weekdayLabel(day))}</span>`;
+        }
+        const on = (state.prepPickDays || []).includes(day);
+        return `<button type="button" class="prep-day-chip ${on ? "is-on" : ""}" data-action="toggle-meal-prep-day" data-weekday="${escapeHtml(day)}" data-meal-label="${escapeHtml(mealLabel)}" aria-pressed="${on}">${escapeHtml(weekdayLabel(day))}</button>`;
+      }).join("")}</div>`
+    : "";
+
+  const daysList = [plan.sourceDay, ...plan.targetDays].map((day) => weekdayLabel(day)).join(", ");
+  const cookHtml = plan.cookItems.length
+    ? plan.cookItems
+        .map(
+          (item) =>
+            `<li><span>${escapeHtml(item.name)}</span><strong>${formatShoppingAmount(item.unit, item.totalGrams)}</strong></li>`
+        )
+        .join("")
+    : `<li class="prep-cook-empty">Ovaj obrok je prazan — dodaj namirnice.</li>`;
+
+  const canConfirm = plan.sourceEntries.length > 0 && plan.targetDays.length > 0;
+
+  return `
+    <div class="meal-prep-panel">
+      <div class="meal-prep-head">
+        <strong>Kuvaj „${escapeHtml(mealTitle)}" unapred</strong>
+        <button class="prep-close" type="button" data-action="close-meal-prep" aria-label="Zatvori">✕</button>
+      </div>
+      <div class="prep-chips">
+        ${countChips}
+        <button type="button" class="prep-chip ${pickActive ? "is-active" : ""}" data-action="set-meal-prep-mode" data-mode="pick" data-meal-label="${escapeHtml(mealLabel)}">Izaberi dane</button>
+      </div>
+      ${pickChips}
+      <div class="prep-summary">
+        <div class="footer-note">Skuvaj za <strong>${plan.totalDays} dana</strong>${
+          plan.targetDays.length ? ` (${escapeHtml(daysList)})` : " — izaberi bar jedan dan"
+        }:</div>
+        <ul class="prep-cook-list">${cookHtml}</ul>
+      </div>
+      <div class="entry-actions prep-actions">
+        <button class="solid-button secondary-button button-with-icon" data-action="confirm-meal-prep" data-meal-label="${escapeHtml(mealLabel)}" ${
+          canConfirm ? "" : "disabled"
+        }>${renderButtonContent("Pripremi", "apply")}</button>
+        <button class="ghost-button" type="button" data-action="close-meal-prep">Odustani</button>
+      </div>
+    </div>`;
+}
+
 function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
   const name = String(store.profile?.name || "").trim();
   const hasGoal = calorieGoal > 0;
@@ -6922,6 +7032,15 @@ function renderPlanTab(entries) {
                                     ${renderButtonContent(isEditingMeal ? "Završi uređivanje" : "Uredi", "edit")}
                                   </button>
                                   ${
+                                    mealEntries.length
+                                      ? `
+                                        <button class="ghost-button button-with-icon" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">
+                                          ${renderButtonContent("Pripremi za više dana", "copy")}
+                                        </button>
+                                      `
+                                      : ""
+                                  }
+                                  ${
                                     isEditingMeal && mealEntries.length
                                       ? `
                                         <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">
@@ -6935,6 +7054,7 @@ function renderPlanTab(entries) {
                               : ""
                           }
                         </div>
+                        ${state.prepMealLabel === mealLabel && !isMealDone ? renderMealPrepPanel(mealLabel) : ""}
                         ${
                           mealEntries.length
                             ? `
@@ -11189,6 +11309,7 @@ async function handleDocumentClick(event) {
     }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
+    state.prepMealLabel = "";
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
     render();
@@ -11206,6 +11327,7 @@ async function handleDocumentClick(event) {
     }
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
+    state.prepMealLabel = "";
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
     render();
@@ -11219,6 +11341,124 @@ async function handleDocumentClick(event) {
   if (action === "finish-edit-meal") {
     state.editingMealLabel = "";
     resetPlanDraft();
+    render();
+    return;
+  }
+
+  if (action === "open-meal-prep") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      showFeedbackToast({ title: "Obrok je zaključan", detail: "Skini čekiranje pa onda pripremaj unapred.", tone: "warning" });
+      return;
+    }
+    // Toggle the panel; each open starts in the quick "next N days" mode.
+    state.prepMealLabel = state.prepMealLabel === mealLabel ? "" : mealLabel;
+    state.prepMode = "next";
+    state.prepDays = 2;
+    state.prepPickDays = [];
+    state.editingMealLabel = "";
+    render();
+    return;
+  }
+
+  if (action === "close-meal-prep") {
+    state.prepMealLabel = "";
+    render();
+    return;
+  }
+
+  if (action === "set-meal-prep-days") {
+    state.prepMode = "next";
+    state.prepDays = Math.max(2, roundValue(toNumber(actionTarget.dataset.days) || 2, 0));
+    render();
+    return;
+  }
+
+  if (action === "set-meal-prep-mode") {
+    state.prepMode = String(actionTarget.dataset.mode || "next") === "pick" ? "pick" : "next";
+    if (state.prepMode === "pick") {
+      state.prepPickDays = [];
+    }
+    render();
+    return;
+  }
+
+  if (action === "toggle-meal-prep-day") {
+    const weekday = String(actionTarget.dataset.weekday || "").trim();
+    if (!weekday || weekday === state.selectedWeekday || !WEEKDAYS.includes(weekday)) {
+      return;
+    }
+    state.prepMode = "pick";
+    const picked = new Set(state.prepPickDays || []);
+    if (picked.has(weekday)) {
+      picked.delete(weekday);
+    } else {
+      picked.add(weekday);
+    }
+    state.prepPickDays = [...picked];
+    render();
+    return;
+  }
+
+  if (action === "confirm-meal-prep") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    const plan = getMealPrepPlan(mealLabel);
+    if (!plan.sourceEntries.length || !plan.targetDays.length) {
+      return;
+    }
+    const normalizedMealLabel = normalizeMealLabel(mealLabel);
+    const appliedDays = [];
+    const lockedDays = [];
+    plan.targetDays.forEach((day) => {
+      // Don't overwrite a meal the user already ticked off as eaten.
+      if (isMealCompletedForWeekday(day, normalizedMealLabel)) {
+        lockedDays.push(day);
+        return;
+      }
+      store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
+        (entry) => !(entry.weekday === day && normalizeMealLabel(entry.mealLabel) === normalizedMealLabel)
+      );
+      plan.sourceEntries.forEach((entry) => {
+        store.weeklyPlanEntries.push({
+          id: uid("plan"),
+          weekday: day,
+          mealLabel: normalizedMealLabel,
+          foodId: entry.foodId,
+          foodName: entry.foodName,
+          grams: entry.grams,
+          done: false,
+        });
+      });
+      appliedDays.push(day);
+    });
+
+    state.prepMealLabel = "";
+
+    if (!appliedDays.length) {
+      showFeedbackToast({
+        title: "Ništa nije prebačeno",
+        detail: "Izabrani dani su već zaključani (čekirani).",
+        tone: "warning",
+      });
+      render();
+      return;
+    }
+
+    persist();
+    const allApplied = appliedDays.length === plan.targetDays.length;
+    const cookList = allApplied
+      ? plan.cookItems.map((item) => `${item.name} ${formatShoppingAmount(item.unit, item.totalGrams)}`).join(", ")
+      : "";
+    const detail = `${cookList ? `Skuvaj: ${cookList}.` : `Prekopirano na: ${appliedDays.map((day) => weekdayLabel(day)).join(", ")}.`}${
+      lockedDays.length ? ` ${lockedDays.length} zaključanih dana preskočeno.` : ""
+    }`;
+    showFeedbackToast({ title: `Pripremljeno za ${appliedDays.length + 1} dana`, detail, tone: "success" });
     render();
     return;
   }

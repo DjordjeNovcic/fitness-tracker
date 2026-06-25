@@ -2864,6 +2864,105 @@ textarea::placeholder {
   color: var(--muted);
 }
 
+/* Meal prep ("kuvaj unapred") inline panel */
+.meal-prep-panel {
+  margin: 4px 0 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-strong));
+  display: grid;
+  gap: 12px;
+}
+
+.meal-prep-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.meal-prep-head strong {
+  color: var(--ink);
+}
+
+.prep-close {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.prep-chips,
+.prep-day-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prep-chip,
+.prep-day-chip {
+  border: 1px solid var(--line-strong);
+  background: var(--surface-strong);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.prep-chip.is-active,
+.prep-day-chip.is-on {
+  background: var(--accent);
+  color: #fffaf5;
+  border-color: var(--accent);
+}
+
+.prep-day-chip.is-source {
+  background: var(--secondary-soft);
+  color: var(--accent);
+  border-color: transparent;
+  cursor: default;
+}
+
+.prep-summary {
+  display: grid;
+  gap: 6px;
+}
+
+.prep-cook-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.prep-cook-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.prep-cook-list li strong {
+  color: var(--ink);
+}
+
+.prep-cook-empty {
+  color: var(--muted);
+}
+
+.prep-actions {
+  margin-top: 2px;
+}
+
 .progress-form-note {
   margin-top: 12px;
 }
