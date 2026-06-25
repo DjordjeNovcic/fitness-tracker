@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { doc, getDoc, getFirestore, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
 // Progress-photo blobs (base64 JPEGs) live in IndexedDB, not in the localStorage
@@ -409,6 +409,7 @@ const state = {
   authUser: null,
   authError: "",
   syncStatus: "Lokalno čuvanje",
+  syncConflict: null,
   navMenuOpen: false,
   sidebarCollapsed: false,
   updateReady: false,
@@ -417,6 +418,11 @@ const state = {
 let pendingUndoTimer = null;
 let cloudSaveTimer = null;
 let isHydratingCloudState = false;
+// The cloud doc carries a monotonically increasing `rev`. knownRev is the rev
+// this device last loaded or wrote; if the remote rev moves past it, another
+// device wrote in the meantime and we must not silently overwrite (conflict).
+// null = baseline not established yet (before first hydrate/save).
+let knownRev = null;
 let serviceWorkerRegistration = null;
 let appUpdateReloading = false;
 
@@ -697,6 +703,13 @@ function getCloudStoreSnapshot(source = store) {
   return snapshot;
 }
 
+// The cloud `state` must be a plain object before we let it replace the local
+// store. A null/array/primitive (corrupted or partially-written doc) would wipe
+// good local data once normalized, so we reject it and keep working locally.
+function isValidCloudState(data) {
+  return Boolean(data) && typeof data === "object" && !Array.isArray(data);
+}
+
 function getUserStateRef(uid) {
   return doc(firebaseDb, "users", uid, "app", "state");
 }
@@ -743,25 +756,55 @@ async function saveCloudStateNow(options = {}) {
     cloudSaveTimer = null;
   }
 
+  const ref = getUserStateRef(state.authUser.uid);
   try {
-    await setDoc(
-      getUserStateRef(state.authUser.uid),
-      {
-        schemaVersion: CLOUD_SCHEMA_VERSION,
-        updatedAt: serverTimestamp(),
-        state: getCloudStoreSnapshot(),
-      },
-      // Reset path passes overwrite:true to fully replace the doc (no merge), so
-      // stale nested map keys (training completions/burns, collapsed-meal UI) are
-      // actually wiped instead of deep-merged.
-      options.overwrite ? {} : { merge: true }
-    );
+    // Read-before-write in a transaction so two devices can't silently clobber
+    // each other: if the remote rev moved past what we last synced and we aren't
+    // explicitly overwriting, abort and surface a conflict instead of writing.
+    const nextRev = await runTransaction(firebaseDb, async (tx) => {
+      const snapshot = await tx.get(ref);
+      const data = snapshot.exists() ? snapshot.data() || {} : null;
+      const remoteRev = data && typeof data.rev === "number" ? data.rev : 0;
+
+      if (data && knownRev !== null && remoteRev !== knownRev && !options.overwrite) {
+        const conflict = new Error("sync-conflict");
+        conflict.code = "sync-conflict";
+        conflict.remoteRev = remoteRev;
+        throw conflict;
+      }
+
+      const rev = remoteRev + 1;
+      tx.set(
+        ref,
+        {
+          schemaVersion: CLOUD_SCHEMA_VERSION,
+          updatedAt: serverTimestamp(),
+          rev,
+          state: getCloudStoreSnapshot(),
+        },
+        // Reset/keep-local paths pass overwrite:true to fully replace the doc (no
+        // merge), so stale nested map keys (training completions/burns, collapsed
+        // meal UI) are actually wiped instead of deep-merged.
+        options.overwrite ? {} : { merge: true }
+      );
+      return rev;
+    });
+
+    knownRev = nextRev;
     state.syncStatus = "Sync je uključen";
+    state.syncConflict = null;
     if (options.renderAfterSave) {
       render();
     }
     return true;
   } catch (error) {
+    if (error && error.code === "sync-conflict") {
+      // Don't overwrite the other device. Pause auto-sync and let the user pick.
+      state.syncStatus = "Izmene sa drugog uređaja";
+      state.syncConflict = { remoteRev: error.remoteRev };
+      render();
+      return false;
+    }
     console.error("Cloud persist failed", error);
     state.syncStatus = "Cloud sync nije uspeo";
     if (options.renderAfterSave) {
@@ -797,10 +840,23 @@ async function hydrateStoreFromCloud(user) {
     const snapshot = await getDoc(getUserStateRef(user.uid));
 
     if (snapshot.exists()) {
-      const cloudData = snapshot.data()?.state || {};
-      replaceStore({ ...cloudData, progressPhotos: localPhotos });
+      const docData = snapshot.data() || {};
+      const cloudData = docData.state;
+      // Track the rev we loaded so conflict detection has a baseline.
+      knownRev = typeof docData.rev === "number" ? docData.rev : 0;
+
+      if (isValidCloudState(cloudData)) {
+        replaceStore({ ...cloudData, progressPhotos: localPhotos });
+        persistLocal();
+        state.syncStatus = "Sync je uključen";
+        return;
+      }
+
+      // Doc exists but its state is corrupt/unexpected — keep the (good) local
+      // data rather than wiping it; the next edit's save will repair the cloud.
+      replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
       persistLocal();
-      state.syncStatus = "Sync je uključen";
+      state.syncStatus = "Cloud podaci su neispravni — radiš lokalno";
       return;
     }
 
@@ -5974,7 +6030,16 @@ function getSyncStatusTone(status = state.syncStatus) {
   const value = `${status || ""}`.toLowerCase();
   if (!value) return "info";
   if (value.includes("uspeo")) return "error";
-  if (value.includes("nije dostupan") || value.includes("radiš lokalno") || value.includes("radis lokalno")) return "warning";
+  if (
+    value.includes("nije dostupan") ||
+    value.includes("radiš lokalno") ||
+    value.includes("radis lokalno") ||
+    value.includes("drugog uređaja") ||
+    value.includes("drugog uredjaja") ||
+    value.includes("neispravni")
+  ) {
+    return "warning";
+  }
   if (value.includes("prijavi se") || value.includes("čuvam") || value.includes("cuvam") || value.includes("učitavam") || value.includes("ucitavam")) return "info";
   if (value.includes("uključen") || value.includes("ukljucen") || value.includes("završen") || value.includes("zavrsen")) return "success";
   return "info";
@@ -10416,6 +10481,23 @@ function render() {
           : ""
       }
 
+      ${
+        state.syncConflict
+          ? `
+            <div class="sync-conflict-banner" role="alertdialog" aria-live="assertive" aria-label="Konflikt sinhronizacije">
+              <div class="sync-conflict-copy">
+                <strong>Podaci su izmenjeni na drugom uređaju.</strong>
+                <div class="footer-note" style="margin-top:4px;">Da ne pregazimo ništa slučajno — koju verziju da zadržim? Tvoje lokalne izmene su sačuvane dok ne izabereš.</div>
+              </div>
+              <div class="sync-conflict-actions">
+                <button class="solid-button secondary-button button-with-icon" data-action="resolve-sync-conflict" data-mode="keep-local">${renderButtonContent("Zadrži moje", "save")}</button>
+                <button class="ghost-button button-with-icon" data-action="resolve-sync-conflict" data-mode="use-cloud">${renderButtonContent("Učitaj sa drugog uređaja", "refresh")}</button>
+              </div>
+            </div>
+          `
+          : ""
+      }
+
       ${renderRecipeApplyDialog()}
       ${renderFoodEditorDialog()}
       ${renderBarcodeScanner()}
@@ -10678,6 +10760,29 @@ async function handleDocumentClick(event) {
   if (action === "close-nav-menu") {
     state.navMenuOpen = false;
     render();
+    return;
+  }
+
+  if (action === "resolve-sync-conflict") {
+    const mode = String(actionTarget.dataset.mode || "");
+    state.syncConflict = null;
+    if (mode === "use-cloud") {
+      // Discard local pending edits and reload the other device's version.
+      if (state.authUser) {
+        await hydrateStoreFromCloud(state.authUser);
+        await reconcilePhotos();
+      }
+      render();
+    } else if (mode === "keep-local") {
+      // Overwrite the cloud with this device's version (bypasses the rev check).
+      const saved = await saveCloudStateNow({ force: true, overwrite: true });
+      showFeedbackToast(
+        saved
+          ? { title: "Sačuvano", detail: "Tvoja verzija je upisana u cloud.", tone: "success" }
+          : { title: "Nije sačuvano", detail: "Pokušaj ponovo za koji trenutak.", tone: "error" }
+      );
+      render();
+    }
     return;
   }
 
