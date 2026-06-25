@@ -6485,6 +6485,67 @@ function renderPlanShoppingSection() {
     </section>`;
 }
 
+// First-run orientation for a brand-new user: shown only while the whole weekly
+// plan is empty, so it disappears on its own as soon as they add anything. Steps
+// adapt to what's already done and reuse existing actions (no new JS handler).
+function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
+  const name = String(store.profile?.name || "").trim();
+  const hasGoal = calorieGoal > 0;
+  const canApplySuggestion =
+    hasGoal && daySuggestion && Array.isArray(daySuggestion.meals) && daySuggestion.meals.length > 0;
+  return `
+    <section class="section plan-welcome-guide">
+      <div class="plan-welcome-head">
+        <h2>Dobrodošao${name ? `, ${escapeHtml(name)}` : ""} 👋</h2>
+        <p>Tvoj plan je još prazan. Evo kako da ga pokreneš za par tapova — ovaj vodič nestaje čim dodaš prvi obrok.</p>
+      </div>
+      <ol class="plan-welcome-steps">
+        <li class="plan-welcome-step ${hasGoal ? "is-done" : ""}">
+          <span class="plan-welcome-step-num" aria-hidden="true">${hasGoal ? "✓" : "1"}</span>
+          <div class="plan-welcome-step-body">
+            <strong>Postavi dnevni cilj</strong>
+            <span>${
+              hasGoal
+                ? `Cilj ti je ${calorieGoal} kcal — promeni ga u Ciljevima kad god hoćeš.`
+                : "Kalorije i makroe koje pratimo svaki dan."
+            }</span>
+            ${
+              hasGoal
+                ? ""
+                : `<div class="plan-welcome-actions"><button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "open")}</button></div>`
+            }
+          </div>
+        </li>
+        <li class="plan-welcome-step">
+          <span class="plan-welcome-step-num" aria-hidden="true">2</span>
+          <div class="plan-welcome-step-body">
+            <strong>Sastavi prvi dan</strong>
+            <span>Dodaj obroke za ${weekdayLabel(state.selectedWeekday)} ispod — makroi se računaju sami.${
+              canApplySuggestion ? " Ili odmah primeni gotov predlog celog dana." : ""
+            }</span>
+            ${
+              canApplySuggestion
+                ? `<div class="plan-welcome-actions"><button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">${renderButtonContent("Primeni predlog dana", "apply")}</button></div>`
+                : ""
+            }
+          </div>
+        </li>
+        <li class="plan-welcome-step">
+          <span class="plan-welcome-step-num" aria-hidden="true">3</span>
+          <div class="plan-welcome-step-body">
+            <strong>Istraži bazu i recepte</strong>
+            <span>Gotova baza namirnica i tvoji recepti — sve ubacuješ u plan jednim tapom.</span>
+            <div class="plan-welcome-actions">
+              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">${renderButtonContent("Namirnice", "open")}</button>
+              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Recepti", "open")}</button>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </section>
+  `;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
@@ -6514,6 +6575,8 @@ function renderPlanTab(entries) {
 
   return `
     ${renderTodayRemindersBanner()}
+
+    ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal, daySuggestion) : ""}
 
     <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
       <button
