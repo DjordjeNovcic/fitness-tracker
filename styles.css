@@ -3208,6 +3208,18 @@ label.is-invalid textarea:focus {
   background: var(--bg-strong);
 }
 
+/* Shown briefly while a photo's blob is read back from IndexedDB on cold start. */
+.photo-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: var(--bg-strong);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .photo-card-body {
   padding: 14px;
 }

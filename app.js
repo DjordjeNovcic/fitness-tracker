@@ -10,6 +10,115 @@ import {
 import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
+// Progress-photo blobs (base64 JPEGs) live in IndexedDB, not in the localStorage
+// state blob — base64 photos quickly blow the ~5MB localStorage quota, which used
+// to break ALL saves (plan, foods, measurements) once a user had ~15+ photos.
+// IndexedDB has no such practical limit. `photoIdsInIdb` tracks which photo ids
+// are confirmed safely stored in IDB; only those have their heavy previewUrl
+// stripped from the localStorage snapshot, so a photo's blob is always in
+// localStorage OR IndexedDB (or both mid-migration), never lost. If IndexedDB is
+// unavailable (e.g. Safari private mode) the set stays empty and we fall back to
+// the legacy behavior of keeping blobs in localStorage.
+const PHOTO_DB_NAME = "fit-tracker-photos";
+const PHOTO_DB_STORE = "photos";
+const photoIdsInIdb = new Set();
+let photoDbPromise = null;
+
+function openPhotoDb() {
+  if (photoDbPromise) {
+    return photoDbPromise;
+  }
+  photoDbPromise = new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+    const request = indexedDB.open(PHOTO_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(PHOTO_DB_STORE)) {
+        db.createObjectStore(PHOTO_DB_STORE, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("IndexedDB open failed"));
+  }).catch((error) => {
+    photoDbPromise = null;
+    throw error;
+  });
+  return photoDbPromise;
+}
+
+// Returns a Map<id, previewUrl> of every stored photo blob, or null if IndexedDB
+// is unavailable (so callers can fall back to legacy localStorage behavior).
+async function idbAllPhotos() {
+  try {
+    const db = await openPhotoDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_DB_STORE, "readonly");
+      const request = tx.objectStore(PHOTO_DB_STORE).getAll();
+      request.onsuccess = () => {
+        const map = new Map();
+        (request.result || []).forEach((row) => {
+          if (row && row.id && row.previewUrl) {
+            map.set(row.id, row.previewUrl);
+          }
+        });
+        resolve(map);
+      };
+      request.onerror = () => reject(request.error || new Error("IndexedDB read failed"));
+    });
+  } catch (error) {
+    console.error("Photo IndexedDB read failed", error);
+    return null;
+  }
+}
+
+// Persists one or more {id, previewUrl} blobs. Resolves true on success. On
+// success the ids are recorded in photoIdsInIdb so persistLocal can drop their
+// base64 from the localStorage snapshot.
+async function idbPutPhotos(records) {
+  const rows = (records || []).filter((row) => row && row.id && row.previewUrl);
+  if (!rows.length) {
+    return true;
+  }
+  try {
+    const db = await openPhotoDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_DB_STORE, "readwrite");
+      const objectStore = tx.objectStore(PHOTO_DB_STORE);
+      rows.forEach((row) => objectStore.put({ id: row.id, previewUrl: row.previewUrl }));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB write failed"));
+      tx.onabort = () => reject(tx.error || new Error("IndexedDB write aborted"));
+    });
+    rows.forEach((row) => photoIdsInIdb.add(row.id));
+    return true;
+  } catch (error) {
+    console.error("Photo IndexedDB write failed", error);
+    return false;
+  }
+}
+
+async function idbDeletePhoto(id) {
+  if (!id) {
+    return;
+  }
+  try {
+    const db = await openPhotoDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_DB_STORE, "readwrite");
+      tx.objectStore(PHOTO_DB_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB delete failed"));
+    });
+  } catch (error) {
+    console.error("Photo IndexedDB delete failed", error);
+  } finally {
+    photoIdsInIdb.delete(id);
+  }
+}
+
 const CLOUD_SCHEMA_VERSION = 1;
 const DEMO_RECIPE_SEED_VERSION = 1;
 // "Vrati na fabrička" dugme se prikazuje SAMO za ovaj nalog. Napravi Firebase
@@ -709,16 +818,35 @@ async function hydrateStoreFromCloud(user) {
   }
 }
 
+// The localStorage snapshot drops the heavy previewUrl from photos already saved
+// in IndexedDB (see photoIdsInIdb). Photos not yet confirmed in IDB keep their
+// blob here so they survive a reload even if the IDB write hasn't landed.
+function getLocalStoreSnapshot() {
+  if (!photoIdsInIdb.size || !Array.isArray(store.progressPhotos)) {
+    return store;
+  }
+  return {
+    ...store,
+    progressPhotos: store.progressPhotos.map((photo) => {
+      if (photo && photoIdsInIdb.has(photo.id)) {
+        const { previewUrl, ...meta } = photo;
+        return meta;
+      }
+      return photo;
+    }),
+  };
+}
+
 function persistLocal(rollback) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getLocalStoreSnapshot()));
     return true;
   } catch (error) {
     if (typeof rollback === "function") {
       rollback();
     }
     console.error("Persist failed", error);
-    window.alert("Ponestaje prostora za čuvanje podataka. Obriši neke slike ili napravi backup.");
+    window.alert("Ponestaje prostora za čuvanje podataka na ovom uređaju. Napravi backup (Ciljevi → Izvezi backup) za svaki slučaj.");
     return false;
   }
 }
@@ -734,6 +862,42 @@ function persist(rollback) {
     scheduleCloudPersist();
   }
   return savedLocal;
+}
+
+// Reconcile in-memory photos with IndexedDB: migrate any blob not yet in IDB
+// (legacy photos that lived in the localStorage blob, plus a safety net for adds)
+// and stitch IDB blobs back onto records that loaded from localStorage without
+// their previewUrl. Idempotent — safe to call at startup and after cloud hydrate.
+async function reconcilePhotos() {
+  const idbMap = await idbAllPhotos();
+  if (!idbMap) {
+    return; // IndexedDB unavailable — keep legacy localStorage-only behavior.
+  }
+  idbMap.forEach((_previewUrl, id) => photoIdsInIdb.add(id));
+
+  const toMigrate = [];
+  let stitched = 0;
+  (store.progressPhotos || []).forEach((photo) => {
+    if (!photo || !photo.id) {
+      return;
+    }
+    if (photo.previewUrl) {
+      if (!idbMap.has(photo.id)) {
+        toMigrate.push(photo);
+      }
+    } else if (idbMap.has(photo.id)) {
+      photo.previewUrl = idbMap.get(photo.id);
+      stitched += 1;
+    }
+  });
+
+  if (toMigrate.length && (await idbPutPhotos(toMigrate))) {
+    // Blobs are durable in IndexedDB now — shrink the localStorage snapshot.
+    persistLocal();
+  }
+  if (stitched || toMigrate.length) {
+    render();
+  }
 }
 
 function clearPendingUndo() {
@@ -9450,6 +9614,15 @@ function renderWeeklyReportSection() {
     </section>`;
 }
 
+// Photo blobs are read back from IndexedDB after first paint; until previewUrl is
+// stitched in, render a neutral placeholder instead of a broken-image icon.
+function renderProgressPhotoImg(photo, alt) {
+  if (!photo || !photo.previewUrl) {
+    return `<div class="photo-loading">Učitavanje…</div>`;
+  }
+  return `<img src="${photo.previewUrl}" alt="${alt}" loading="lazy" />`;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -9555,7 +9728,7 @@ function renderProgressTab() {
         <div class="field photo-picker">
           <label for="photo-file">Slika</label>
           <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> — ne ide u cloud i ne sinhronizuje se na druge uređaje. Redovno izvozi backup (Ciljevi → Izvezi backup) da je ne izgubiš.</div>
+          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> (sada u trajnijem skladištu, bez ograničenja kao ranije) — ne ide u cloud i ne sinhronizuje se na druge uređaje. Da je preneseš na drugi telefon ili sačuvaš za svaki slučaj, izvezi backup (Ciljevi → Izvezi backup) — slike su uključene u njega.</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
@@ -9617,7 +9790,7 @@ function renderProgressTab() {
                   ? `
                     <div class="compare-grid">
                       <article class="photo-card compare-card">
-                        <img src="${compare.leftPhoto.previewUrl}" alt="Leva progress slika ${compare.leftPhoto.date}" loading="lazy" />
+                        ${renderProgressPhotoImg(compare.leftPhoto, `Leva progress slika ${compare.leftPhoto.date}`)}
                         <div class="photo-card-body">
                           <strong>${new Date(compare.leftPhoto.date).toLocaleDateString("sr-RS")}</strong>
                           <div class="pill-row">
@@ -9627,7 +9800,7 @@ function renderProgressTab() {
                         </div>
                       </article>
                       <article class="photo-card compare-card">
-                        <img src="${compare.rightPhoto.previewUrl}" alt="Desna progress slika ${compare.rightPhoto.date}" loading="lazy" />
+                        ${renderProgressPhotoImg(compare.rightPhoto, `Desna progress slika ${compare.rightPhoto.date}`)}
                         <div class="photo-card-body">
                           <strong>${new Date(compare.rightPhoto.date).toLocaleDateString("sr-RS")}</strong>
                           <div class="pill-row">
@@ -9651,7 +9824,7 @@ function renderProgressTab() {
                 .map(
                   (photo) => `
                     <article class="photo-card">
-                      <img src="${photo.previewUrl}" alt="Progress slika ${photo.date}" loading="lazy" />
+                      ${renderProgressPhotoImg(photo, `Progress slika ${photo.date}`)}
                       <div class="photo-card-body">
                         <div class="food-card-top">
                           <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
@@ -10009,8 +10182,19 @@ function render() {
   state.lastAddedEntryId = "";
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+async function exportData() {
+  // Photo blobs live in IndexedDB. Pull any that aren't currently stitched into
+  // memory so the backup always carries full images, never just metadata.
+  const snapshot = getSerializableStoreSnapshot();
+  const idbMap = await idbAllPhotos();
+  if (idbMap && Array.isArray(snapshot.progressPhotos)) {
+    snapshot.progressPhotos = snapshot.progressPhotos.map((photo) =>
+      photo && !photo.previewUrl && idbMap.has(photo.id)
+        ? { ...photo, previewUrl: idbMap.get(photo.id) }
+        : photo
+    );
+  }
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -11526,13 +11710,21 @@ async function handleDocumentClick(event) {
   if (action === "delete-photo") {
     const photoId = actionTarget.dataset.photoId;
     const prevPhotos = store.progressPhotos;
-    if (!prevPhotos.some((photo) => photo.id === photoId)) {
+    const removed = prevPhotos.find((photo) => photo.id === photoId);
+    if (!removed) {
       return;
     }
     store.progressPhotos = store.progressPhotos.filter((photo) => photo.id !== photoId);
     persist();
+    // Drop the blob from IndexedDB. Restore re-writes it if the user undoes —
+    // removed.previewUrl is still in memory, and the put is queued after this
+    // delete so it wins.
+    idbDeletePhoto(photoId);
     queuePendingUndo("Slika obrisana.", () => {
       store.progressPhotos = prevPhotos;
+      if (removed.previewUrl) {
+        idbPutPhotos([removed]);
+      }
       persist();
     });
     render();
@@ -11610,7 +11802,7 @@ async function handleDocumentClick(event) {
     await runButtonAction(
       actionTarget,
       async () => {
-        exportData();
+        await exportData();
       },
       {
         busyLabel: "Spremam...",
@@ -12310,6 +12502,10 @@ async function handleSubmit(event) {
       height: optimized.height,
     };
 
+    // Persist the blob to IndexedDB first; on success persistLocal drops it from
+    // the localStorage snapshot. If IDB fails, the id stays out of photoIdsInIdb
+    // and the blob is kept in localStorage as a fallback so nothing is lost.
+    await idbPutPhotos([record]);
     store.progressPhotos.unshift(record);
     const saved = persist(() => {
       store.progressPhotos = store.progressPhotos.filter((photo) => photo.id !== record.id);
@@ -12318,6 +12514,9 @@ async function handleSubmit(event) {
     if (saved) {
       event.target.reset();
       render();
+    } else {
+      // Local save rolled the record back out of the store — drop the IDB blob too.
+      idbDeletePhoto(record.id);
     }
     return;
   }
@@ -12522,6 +12721,9 @@ async function handleImport(event) {
     try {
       const parsed = JSON.parse(await target.files[0].text());
       replaceStore(parsed);
+      // Move any imported photo blobs into IndexedDB before persist, so they
+      // don't bloat (or overflow) the localStorage snapshot.
+      await reconcilePhotos();
       persist();
       render();
       showFeedbackToast({ title: "Backup je uspešno uvezen", detail: "Podaci iz fajla su sada učitani u app." });
@@ -12666,6 +12868,9 @@ onAuthStateChanged(firebaseAuth, async (user) => {
   state.authReady = false;
   render();
   await hydrateStoreFromCloud(user);
+  // Cloud hydrate rebuilds progressPhotos from the (now blob-free) localStorage
+  // snapshot, so stitch the IDB blobs back on / migrate any that aren't there yet.
+  await reconcilePhotos();
   if (ensureCurrentWeek()) {
     persist();
   }
@@ -12674,6 +12879,10 @@ onAuthStateChanged(firebaseAuth, async (user) => {
 });
 
 render();
+// Migrate legacy photos out of the localStorage blob into IndexedDB and stitch
+// stored blobs back onto loaded records (covers the signed-out / local-only case;
+// the signed-in case is handled after cloud hydrate above).
+reconcilePhotos();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
