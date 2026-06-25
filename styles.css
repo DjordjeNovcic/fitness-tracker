@@ -2759,7 +2759,7 @@ textarea::placeholder {
   font-weight: 700;
   line-height: 1;
   background: var(--accent);
-  color: #fffaf5;
+  color: var(--button-primary-text);
 }
 
 .plan-welcome-step.is-done .plan-welcome-step-num {
@@ -2919,7 +2919,7 @@ textarea::placeholder {
 .prep-chip.is-active,
 .prep-day-chip.is-on {
   background: var(--accent);
-  color: #fffaf5;
+  color: var(--button-primary-text);
   border-color: var(--accent);
 }
 
