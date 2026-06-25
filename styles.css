@@ -2792,6 +2792,78 @@ textarea::placeholder {
   margin-top: 8px;
 }
 
+/* Weekly shopping list rows + "imam već" staples */
+.shopping-actions {
+  margin-bottom: 8px;
+}
+
+.shopping-group-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 12px 0 2px;
+}
+
+.shopping-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.shopping-row.is-checked {
+  opacity: 0.5;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.shopping-item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.shopping-row.is-checked .shopping-item-name {
+  text-decoration: line-through;
+}
+
+.shopping-tag-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shopping-tag-button:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.shopping-staples {
+  margin-top: 14px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.shopping-staples .shopping-item-name {
+  color: var(--muted);
+}
+
 .progress-form-note {
   margin-top: 12px;
 }
