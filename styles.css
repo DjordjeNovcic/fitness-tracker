@@ -2963,6 +2963,21 @@ textarea::placeholder {
   margin-top: 2px;
 }
 
+.meal-prep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-top: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: var(--secondary-soft);
+  color: var(--accent);
+}
+
 .progress-form-note {
   margin-top: 12px;
 }

@@ -4692,6 +4692,29 @@ function getMealPrepPlan(mealLabel) {
   return { sourceDay, sourceEntries, targetDays, totalDays, cookItems: [...cookMap.values()] };
 }
 
+// Two meal slots are "the same prepped meal" when they share a meal label and an
+// identical set of foods + grams. Powers the "Spremljeno za N dana" badge — fully
+// derived from the plan, so it self-corrects the moment one day is edited.
+function getMealEntrySignature(entries) {
+  return (entries || [])
+    .filter((entry) => toNumber(entry.grams) > 0)
+    .map((entry) => `${entry.foodId || entry.foodName}:${roundValue(toNumber(entry.grams), 1)}`)
+    .sort()
+    .join("|");
+}
+
+function getMealPrepBadgeCount(mealLabel, mealEntries) {
+  const signature = getMealEntrySignature(mealEntries);
+  if (!signature) {
+    return 0;
+  }
+  const normalizedLabel = normalizeMealLabel(mealLabel);
+  return WEEKDAYS.reduce((count, day) => {
+    const dayEntries = getMealEntriesForWeekday(day, normalizedLabel);
+    return dayEntries.length && getMealEntrySignature(dayEntries) === signature ? count + 1 : count;
+  }, 0);
+}
+
 function applyFavoriteMealToDay(favorite, options = {}) {
   if (!favorite?.items?.length) {
     return false;
@@ -6960,6 +6983,7 @@ function renderPlanTab(entries) {
                   const isMealDone = mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
                   const isMealCollapsed = isMealCollapsedForWeekday(state.selectedWeekday, mealLabel);
                   const mealTotals = getDayTotals(mealEntries);
+                  const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
                     <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-card-header">
@@ -6967,6 +6991,11 @@ function renderPlanTab(entries) {
                           ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                           <div class="meal-card-heading">
                             <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
+                            ${
+                              prepBadgeCount >= 2
+                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 Spremljeno za ${prepBadgeCount} dana</span>`
+                                : ""
+                            }
                             ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
                           </div>
                           ${
