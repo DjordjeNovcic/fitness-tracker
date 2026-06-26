@@ -6264,7 +6264,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
                         <div class="footer-note">${formatFoodAmount(suggestion.food, suggestion.grams)} · ${roundValue(suggestion.totals.kcal, 0)} kcal</div>
                       </div>
                       <button class="ghost-button button-with-icon" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
-                        ${renderButtonContent("Ubaci", "add")}
+                        ${renderButtonContent("Dodaj", "add")}
                       </button>
                     </div>
                   `
