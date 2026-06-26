@@ -214,12 +214,24 @@ window.SEED_DATA = {
     },
     {
       "id": "food-21",
-      "name": "Kuvano jaje",
-      "servingBaseGrams": 100.0,
-      "kcal": 147.0,
-      "protein": 13.0,
-      "carbs": 1.0,
-      "fat": 10.0,
+      "name": "Jaje, malo (48 g)",
+      "servingUnit": "piece",
+      "servingBaseGrams": 1,
+      "kcal": 54.0,
+      "protein": 5.2,
+      "carbs": 0.0,
+      "fat": 3.7,
+      "category": "Proteini"
+    },
+    {
+      "id": "food-jaje-veliko",
+      "name": "Jaje, veliko (78 g)",
+      "servingUnit": "piece",
+      "servingBaseGrams": 1,
+      "kcal": 90.0,
+      "protein": 8.7,
+      "carbs": 0.0,
+      "fat": 6.2,
       "category": "Proteini"
     },
     {
@@ -234,12 +246,12 @@ window.SEED_DATA = {
     },
     {
       "id": "food-23",
-      "name": "Przeno jaje",
+      "name": "Jaje (na 100 g)",
       "servingBaseGrams": 100.0,
-      "kcal": 195.0,
-      "protein": 14.0,
-      "carbs": 1.0,
-      "fat": 15.0,
+      "kcal": 131.0,
+      "protein": 12.6,
+      "carbs": 0.0,
+      "fat": 9.0,
       "category": "Proteini"
     },
     {
@@ -524,12 +536,13 @@ window.SEED_DATA = {
     },
     {
       "id": "food-52",
-      "name": "Jaje, celo kuvano komad",
-      "servingBaseGrams": 1.0,
-      "kcal": 78.0,
-      "protein": 6.3,
-      "carbs": 0.6,
-      "fat": 5.3,
+      "name": "Jaje, srednje (58 g)",
+      "servingUnit": "piece",
+      "servingBaseGrams": 1,
+      "kcal": 66.0,
+      "protein": 6.4,
+      "carbs": 0.0,
+      "fat": 4.6,
       "category": "Proteini"
     },
     {
@@ -887,7 +900,7 @@ window.SEED_DATA = {
       "weekday": "Ponedeljak",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 100.0
     },
     {
@@ -983,7 +996,7 @@ window.SEED_DATA = {
       "weekday": "Utorak",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 150.0
     },
     {
@@ -1055,7 +1068,7 @@ window.SEED_DATA = {
       "weekday": "Utorak",
       "mealLabel": "5. Vecera",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 200.0
     },
     {
@@ -1071,7 +1084,7 @@ window.SEED_DATA = {
       "weekday": "Sreda",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 200.0
     },
     {
@@ -1159,7 +1172,7 @@ window.SEED_DATA = {
       "weekday": "Cetvrtak",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 150.0
     },
     {
@@ -1263,7 +1276,7 @@ window.SEED_DATA = {
       "weekday": "Petak",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 150.0
     },
     {
@@ -1367,7 +1380,7 @@ window.SEED_DATA = {
       "weekday": "Subota",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 150.0
     },
     {
@@ -1455,7 +1468,7 @@ window.SEED_DATA = {
       "weekday": "Nedelja",
       "mealLabel": "1. Dorucak",
       "foodId": "food-23",
-      "foodName": "Przeno jaje",
+      "foodName": "Jaje (na 100 g)",
       "grams": 150.0
     },
     {
@@ -1566,7 +1579,7 @@ window.SEED_DATA = {
         {
           "id": "favorite-item-seed-2",
           "foodId": "food-23",
-          "foodName": "Przeno jaje",
+          "foodName": "Jaje (na 100 g)",
           "grams": 100.0
         },
         {
