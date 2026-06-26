@@ -7003,7 +7003,7 @@ function renderPlanTab(entries) {
                 <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
                   <div class="food-card-top">
                     <h3>Predlog celog dana</h3>
-                    <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Skip</button>
+                    <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Sakrij</button>
                   </div>
                   <div class="pill-row">
                     <span class="pill note">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
@@ -7705,7 +7705,7 @@ function renderRecipesTab() {
                           </div>
                           <div class="pill-row" style="margin-top:0;">
                             <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "u preview"}</span>
-                            ${!item.isMatched ? `<span class="pill pill--warning">traži match</span>` : ""}
+                            ${!item.isMatched ? `<span class="pill pill--warning">za povezivanje</span>` : ""}
                             <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
                             <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
                             <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
@@ -7962,7 +7962,7 @@ function renderTrainingTab() {
             <div>
               <h3>Fokus dana</h3>
               <div class="footer-note">
-                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening sablon" : "trening sablona"} za ${weekdayLabel(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayLabel(state.selectedWeekday)}.`}
+                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening šablon" : "trening šablona"} za ${weekdayLabel(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayLabel(state.selectedWeekday)}.`}
               </div>
             </div>
             <span class="pill strong">${todayExerciseCompleted}/${todayExerciseTotal || 0}</span>
@@ -8056,7 +8056,7 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema trening sablona za ${weekdayLabel(state.selectedWeekday)}. Dodaj ga ispod.</div>`
+            : `<div class="empty">Još nema trening šablona za ${weekdayLabel(state.selectedWeekday)}. Dodaj ga ispod.</div>`
         }
       </div>
     </section>
@@ -8124,7 +8124,7 @@ function renderTrainingTab() {
           <label for="training-exercises">Vežbe</label>
           <textarea id="training-exercises" name="exercises" placeholder="Cucanj 4x8-10&#10;Rumunsko mrtvo 4x10&#10;Iskorak 3x12"></textarea>
         </div>
-        <button class="solid-button" type="submit">Sačuvaj sablon</button>
+        <button class="solid-button" type="submit">Sačuvaj šablon</button>
       </form>
     </details>
 
@@ -8217,7 +8217,7 @@ function renderTrainingTab() {
       </summary>
       <form id="training-log-form" class="form-grid">
         <div class="field">
-          <label for="training-note">Beleska</label>
+          <label for="training-note">Beleška</label>
           <textarea id="training-note" name="note" placeholder="Npr. čučanj lagan, povećati težinu sledeći put"></textarea>
         </div>
         <button class="solid-button secondary-button" type="submit">Sačuvaj belešku</button>
@@ -9068,7 +9068,7 @@ function renderNutritionTab() {
                         <span class="pill">P ${roundValue(recipe.perServingTotals.protein, 1)} g</span>
                         <span class="pill">UH ${roundValue(recipe.perServingTotals.carbs, 1)} g</span>
                         <span class="pill">M ${roundValue(recipe.perServingTotals.fat, 1)} g</span>
-                        ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} stavki čeka match</span>` : ""}
+                        ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} stavki za povezivanje</span>` : ""}
                       </div>
                       ${renderNutritionSourcePills(recipe.importSourceDocNames)}
                       <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
@@ -9087,7 +9087,7 @@ function renderNutritionTab() {
                           pendingReviewCount
                             ? `
                               <button class="ghost-button button-with-icon" data-action="switch-tab" data-tab="nutrition">
-                                ${renderButtonContent("Sredi match", "edit")}
+                                ${renderButtonContent("Poveži stavke", "edit")}
                               </button>
                             `
                             : ""
@@ -9600,7 +9600,7 @@ function renderProgressSummary(summary) {
           <div class="footer-note">${summary.latestPhoto ? `Poslednja slika je dodata ${new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}.` : "Još nema slika za vizuelno praćenje forme."}</div>
         </article>
         <article class="stat-card progress-insight-card">
-          <strong>Side by side</strong>
+          <strong>Uporedo</strong>
           <div class="macro-value">${summary.compareReadyTags.length ? `${summary.compareReadyTags.length} taga` : "Nije spremno"}</div>
           <div class="footer-note">${summary.compareReadyTags.length ? `Možeš već da porediš: ${summary.compareReadyTags.join(", ")}.` : "Potrebne su bar dve slike sa istim tagom, npr. front i front."}</div>
         </article>
@@ -10092,7 +10092,7 @@ function renderProgressTab() {
       <div class="compare-block progress-compare-block">
         <div class="section-header">
           <div>
-            <h2>Side by side</h2>
+            <h2>Uporedo</h2>
             <p>Izaberi tag pa poredi samo isti ugao slikanja, recimo front sa front.</p>
           </div>
         </div>
@@ -11980,7 +11980,7 @@ async function handleDocumentClick(event) {
 
     const hasUnmatchedItems = nextItems.some((item) => !item.foodId || !toNumber(item.grams));
     if (hasUnmatchedItems) {
-      showFeedbackToast({ title: "Sredi match za sastojke", detail: "Poveži svaku stavku sa namirnicom iz baze i proveri gramažu pre čuvanja.", tone: "warning" });
+      showFeedbackToast({ title: "Poveži sastojke", detail: "Poveži svaku stavku sa namirnicom iz baze i proveri gramažu pre čuvanja.", tone: "warning" });
       return;
     }
 
