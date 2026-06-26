@@ -471,6 +471,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     targetMode: "lose",
     paceLevel: "umereno",
     waterMl: 2500,
+    stepsGoal: 10000,
     basisWeightKg: null,
   };
 
@@ -503,6 +504,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
         : {},
     measurements: Array.isArray(rawStore.measurements) ? rawStore.measurements : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
+    stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
     shoppingChecked:
       rawStore.shoppingChecked && typeof rawStore.shoppingChecked === "object" ? rawStore.shoppingChecked : {},
     shoppingStaples:
@@ -615,6 +617,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.shoppingStaples =
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
+  targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
@@ -6489,6 +6492,50 @@ function renderPlanWaterSection() {
   `;
 }
 
+function getTodaySteps() {
+  const today = getTodayDateValue();
+  return Math.max(0, Math.round(toNumber((store.stepsByDate || {})[today]) || 0));
+}
+
+// Rough distance from step count (avg stride ~0.76 m) — informational only.
+function estimateStepsKm(steps) {
+  return (Math.max(0, toNumber(steps)) * 0.762) / 1000;
+}
+
+// Manual steps for the day — read off your watch/phone and type it in (or use
+// the quick chips). Tracked on its own; NOT folded into calories, because the
+// "Apple Watch potrošnja" you enter already includes walking (would double-count).
+function renderPlanStepsSection() {
+  const current = getTodaySteps();
+  const goal = Math.max(0, Math.round(toNumber(store.goals?.stepsGoal) || 10000));
+  const pct = goal ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+  const reached = goal > 0 && current >= goal;
+  const fmt = (n) => Math.round(n).toLocaleString("sr-RS");
+  return `
+    <section class="section plan-steps-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Koraci danas</h2>
+          <p>${fmt(current)} / ${fmt(goal)} koraka${current > 0 ? ` · ≈ ${estimateStepsKm(current).toFixed(2)} km` : ""}${reached ? " · cilj ispunjen 👟" : ""}</p>
+        </div>
+        <span class="pill strong pill--${reached ? "success" : "info"}">${pct}%</span>
+      </div>
+      <div style="height:12px;border-radius:999px;background:var(--bar-track);overflow:hidden;margin:10px 0 14px;">
+        <div style="height:100%;width:${pct}%;border-radius:999px;background:var(--bar-ok);transition:width 0.3s ease;"></div>
+      </div>
+      <div class="meta-row meta-row--compact">
+        <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${current || ""}" aria-label="Koraci danas" />
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="set-steps">${renderButtonContent("Sačuvaj", "save")}</button>
+      </div>
+      <div class="meta-row meta-row--compact" style="margin-top:8px;">
+        <button class="ghost-button" type="button" data-action="add-steps" data-steps="1000">+1000</button>
+        <button class="ghost-button" type="button" data-action="add-steps" data-steps="2000">+2000</button>
+        ${current > 0 ? `<button class="ghost-button" type="button" data-action="add-steps" data-steps="-1000">−1000</button>` : ""}
+      </div>
+    </section>
+  `;
+}
+
 // In-app reminders (no backend / push needed — works on static hosting).
 // Surfaced as a dismissible banner at the top of the Plan tab on open.
 function getTodayReminders() {
@@ -7218,6 +7265,8 @@ function renderPlanTab(entries) {
     ${renderPlanSupplementsSection()}
 
     ${renderPlanWaterSection()}
+
+    ${renderPlanStepsSection()}
 
     ${renderPlanShoppingSection()}
   `;
@@ -11731,6 +11780,32 @@ async function handleDocumentClick(event) {
     const next = Math.max(0, Math.round((toNumber(store.waterByDate[today]) || 0) + delta));
     store.waterByDate[today] = next;
     persist();
+    render();
+    return;
+  }
+
+  if (action === "add-steps") {
+    const delta = toNumber(actionTarget.dataset.steps);
+    if (!delta) {
+      return;
+    }
+    const today = getTodayDateValue();
+    store.stepsByDate = store.stepsByDate && typeof store.stepsByDate === "object" ? store.stepsByDate : {};
+    const next = Math.max(0, Math.round((toNumber(store.stepsByDate[today]) || 0) + delta));
+    store.stepsByDate[today] = next;
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "set-steps") {
+    const input = document.querySelector("#steps-input");
+    const value = Math.max(0, Math.round(toNumber(input?.value)));
+    const today = getTodayDateValue();
+    store.stepsByDate = store.stepsByDate && typeof store.stepsByDate === "object" ? store.stepsByDate : {};
+    store.stepsByDate[today] = value;
+    persist();
+    showFeedbackToast({ title: "Koraci sačuvani", detail: `${value.toLocaleString("sr-RS")} koraka za danas.`, tone: "success" });
     render();
     return;
   }

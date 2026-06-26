@@ -2978,6 +2978,23 @@ textarea::placeholder {
   color: var(--accent);
 }
 
+/* Manual steps input (sits inline with its Save button in the Plan tab). */
+.steps-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 15px;
+  border: 1px solid rgba(24, 33, 30, 0.09);
+  border-radius: 16px;
+  background: rgba(255, 254, 251, 0.98);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .steps-input {
+  background: rgba(12, 22, 18, 0.66);
+  border-color: var(--line-strong);
+}
+
 .progress-form-note {
   margin-top: 12px;
 }
