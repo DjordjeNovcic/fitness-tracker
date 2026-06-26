@@ -11495,6 +11495,13 @@ async function handleDocumentClick(event) {
     state.prepPickDays = [];
     state.editingMealLabel = "";
     render();
+    // If we just opened it, scroll the panel into view (matches add/edit-meal),
+    // so it never opens off-screen below the fold on a phone.
+    if (state.prepMealLabel === mealLabel) {
+      window.requestAnimationFrame(() => {
+        document.querySelector(".meal-prep-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
     return;
   }
 
