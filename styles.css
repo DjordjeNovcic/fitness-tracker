@@ -6963,8 +6963,6 @@ body.menu-open .tab-bar {
    (meal macro tiles, disclosure/quick toggles, quick & preview
    cards, composer) that read as bright patches in dark mode.
    ============================================================ */
-:root[data-theme="dark"] .section-disclosure,
-:root[data-theme="dark"] .plan-quick-toggle,
 :root[data-theme="dark"] .plan-quick-card,
 :root[data-theme="dark"] .plan-quick-card--primary,
 :root[data-theme="dark"] .plan-quick-card--secondary,
@@ -6978,6 +6976,15 @@ body.menu-open .tab-bar {
     var(--surface-strong);
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
+}
+
+/* Collapsible section headers are title rows, not raised sub-cards — keep them
+   flat so they blend into the card instead of reading as a grey box in dark. */
+:root[data-theme="dark"] .section-disclosure,
+:root[data-theme="dark"] .plan-quick-toggle {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .meal-card-summary-kcal {
@@ -7020,6 +7027,14 @@ body.menu-open .tab-bar {
   background: linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.02));
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
+}
+
+/* Inner meal tiles/bands shouldn't cast a card drop-shadow — on the dark card
+   it reads as a grey halo around them. Keep the subtle fill, drop the shadow. */
+:root[data-theme="dark"] .meal-card-header,
+:root[data-theme="dark"] .meal-card-summary-kcal,
+:root[data-theme="dark"] .meal-summary-macro {
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .meal-card.is-done {
