@@ -7286,7 +7286,6 @@ function renderPlanTab(entries) {
 
 function renderFoodsTab() {
   const selectableFoods = getSelectableFoods();
-  const pendingNutritionFoods = getFoods().filter((food) => shouldHidePendingImportedFood(food));
   const foods = selectableFoods
     .map((food) => ({
       ...food,
@@ -7423,7 +7422,6 @@ function renderFoodsTab() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
           Skeniraj
         </button>
-        <button class="foods-import-link" type="button" data-action="switch-tab" data-tab="nutrition">${pendingNutritionFoods.length ? `Nutricionista · ${pendingNutritionFoods.length}` : "Nutricionista"}</button>
       </div>
       <div class="food-list foods-list">
         ${
@@ -7477,7 +7475,7 @@ function renderFoodsTab() {
             `;
                 })
                 .join("")
-            : `<div class="empty">Nema namirnica za ovaj filter. Nedovršeni nutrition import ostaje u tabu Nutricionista dok mu ne dodaš vrednosti.</div>`
+            : `<div class="empty">Nema namirnica za ovaj filter.</div>`
         }
         <div class="empty foods-list-empty" hidden>Nema rezultata za pretragu.</div>
       </div>
