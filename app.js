@@ -319,6 +319,30 @@ const measurementFields = [
 ];
 
 const PHOTO_TAGS = ["front", "side", "back"];
+
+// Common blood-work markers with orientational reference ranges + units. Ranges
+// vary by lab, sex and age, so these are guidance only (not medical advice) and
+// the user can track any custom marker too (no range -> no status, just trend).
+const LAB_MARKERS = [
+  { name: "Holesterol ukupni", unit: "mmol/L", low: null, high: 5.2 },
+  { name: "LDL holesterol", unit: "mmol/L", low: null, high: 3.0 },
+  { name: "HDL holesterol", unit: "mmol/L", low: 1.0, high: null },
+  { name: "Trigliceridi", unit: "mmol/L", low: null, high: 1.7 },
+  { name: "Glukoza", unit: "mmol/L", low: 3.9, high: 6.1 },
+  { name: "HbA1c", unit: "%", low: null, high: 5.7 },
+  { name: "Gvožđe", unit: "µmol/L", low: 11, high: 28 },
+  { name: "Feritin", unit: "µg/L", low: 30, high: 300 },
+  { name: "Vitamin D", unit: "ng/mL", low: 30, high: 100 },
+  { name: "Vitamin B12", unit: "pg/mL", low: 200, high: 900 },
+  { name: "TSH", unit: "mIU/L", low: 0.4, high: 4.0 },
+  { name: "Hemoglobin", unit: "g/L", low: 120, high: 170 },
+  { name: "Leukociti", unit: "10⁹/L", low: 4, high: 10 },
+  { name: "CRP", unit: "mg/L", low: null, high: 5 },
+  { name: "Kreatinin", unit: "µmol/L", low: 60, high: 110 },
+  { name: "ALT", unit: "U/L", low: null, high: 40 },
+  { name: "AST", unit: "U/L", low: null, high: 40 },
+  { name: "Mokraćna kiselina", unit: "µmol/L", low: 200, high: 420 },
+];
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
 const NUTRITION_PROFILE_FILTERS = [
   { id: "Sve", label: "Sve" },
@@ -521,6 +545,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
         ? rawStore.trainingCompletionsByWeekday
         : {},
     measurements: Array.isArray(rawStore.measurements) ? rawStore.measurements : [],
+    labResults: Array.isArray(rawStore.labResults) ? rawStore.labResults : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
     shoppingChecked:
@@ -629,6 +654,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
   targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
+  targetStore.labResults = targetStore.labResults || [];
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.shoppingChecked =
     targetStore.shoppingChecked && typeof targetStore.shoppingChecked === "object" ? targetStore.shoppingChecked : {};
@@ -9976,6 +10002,148 @@ function renderProgressPhotoImg(photo, alt) {
   return `<img src="${photo.previewUrl}" alt="${alt}" loading="lazy" />`;
 }
 
+function getLabStatus(value, low, high) {
+  if (low != null && value < low) return "under";
+  if (high != null && value > high) return "over";
+  if (low != null || high != null) return "ok";
+  return "none";
+}
+
+function formatLabRange(low, high) {
+  if (low != null && high != null) return `opseg ${low}–${high}`;
+  if (high != null) return `do ${high}`;
+  if (low != null) return `od ${low}`;
+  return "";
+}
+
+// Group lab entries by marker, each sorted oldest -> newest; most recently
+// updated marker first.
+function getLabResultsGrouped() {
+  const groups = new Map();
+  (store.labResults || []).forEach((entry) => {
+    const key = String(entry.marker || "").trim();
+    if (!key) {
+      return;
+    }
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(entry);
+  });
+  const out = [];
+  groups.forEach((entries, marker) => {
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+    out.push({ marker, entries });
+  });
+  out.sort((a, b) => new Date(b.entries[b.entries.length - 1].date) - new Date(a.entries[a.entries.length - 1].date));
+  return out;
+}
+
+// Tiny inline sparkline of a marker's value history (neutral — up/down isn't
+// inherently good or bad for labs).
+function renderLabSparkline(entries) {
+  if (entries.length < 2) {
+    return "";
+  }
+  const vals = entries.map((entry) => toNumber(entry.value));
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const w = 110;
+  const h = 30;
+  const pad = 3;
+  const stepX = (w - pad * 2) / (entries.length - 1);
+  const pts = vals.map((v, i) => `${roundValue(pad + i * stepX, 1)},${roundValue(h - pad - ((v - min) / range) * (h - pad * 2), 1)}`);
+  const last = pts[pts.length - 1].split(",");
+  return `<svg class="lab-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.join(" ")}" fill="none"></polyline><circle cx="${last[0]}" cy="${last[1]}" r="2.6"></circle></svg>`;
+}
+
+function renderLabSection() {
+  const groups = getLabResultsGrouped();
+  return `
+    <section class="section lab-section">
+      <div class="section-header">
+        <div>
+          <h2>Krvna slika</h2>
+          <p>Upiši nalaze i prati koliko je bilo pre, koliko je sad.</p>
+        </div>
+      </div>
+
+      <details class="form-collapse">
+        <summary>
+          <span class="form-collapse-title">Dodaj nalaz</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
+        <form id="lab-form" class="form-grid split">
+          <div class="field">
+            <label for="lab-marker">Marker</label>
+            <input id="lab-marker" name="marker" list="lab-marker-options" placeholder="npr. Vitamin D" autocomplete="off" required />
+            <datalist id="lab-marker-options">
+              ${LAB_MARKERS.map((m) => `<option value="${escapeHtml(m.name)}"></option>`).join("")}
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="lab-value">Vrednost</label>
+            <input id="lab-value" name="value" type="number" step="0.01" min="0" placeholder="npr. 34" required />
+          </div>
+          <div class="field">
+            <label for="lab-date">Datum</label>
+            <input id="lab-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
+          </div>
+          <button class="solid-button secondary-button" type="submit">Sačuvaj nalaz</button>
+        </form>
+        <div class="footer-note lab-disclaimer">Referentni opsezi su orijentacioni (zavise od laboratorije, pola i godina) — nije medicinski savet.</div>
+      </details>
+
+      ${
+        groups.length
+          ? `<div class="lab-list">
+              ${groups
+                .map((group) => {
+                  const latest = group.entries[group.entries.length - 1];
+                  const prev = group.entries.length > 1 ? group.entries[group.entries.length - 2] : null;
+                  const value = toNumber(latest.value);
+                  const status = getLabStatus(value, latest.refLow, latest.refHigh);
+                  const statusLabel = status === "ok" ? "u opsegu" : status === "over" ? "iznad" : status === "under" ? "ispod" : "";
+                  const rangeText = formatLabRange(latest.refLow, latest.refHigh);
+                  let deltaHtml = "";
+                  if (prev) {
+                    const d = roundValue(value - toNumber(prev.value), 2);
+                    deltaHtml =
+                      d === 0
+                        ? `<span class="lab-delta">bez promene</span>`
+                        : `<span class="lab-delta lab-delta--${d > 0 ? "up" : "down"}">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</span>`;
+                  }
+                  const metaText = [rangeText, new Date(latest.date).toLocaleDateString("sr-RS"), group.entries.length > 1 ? `${group.entries.length} nalaza` : ""]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return `
+                    <article class="lab-row">
+                      <div class="lab-row-main">
+                        <div class="lab-row-top">
+                          <span class="lab-name">${escapeHtml(group.marker)}</span>
+                          ${statusLabel ? `<span class="lab-status lab-status--${status}">${statusLabel}</span>` : ""}
+                        </div>
+                        <div class="lab-row-value">
+                          <strong>${roundValue(value, 2)}</strong>
+                          ${latest.unit ? `<span class="lab-unit">${escapeHtml(latest.unit)}</span>` : ""}
+                          ${deltaHtml}
+                        </div>
+                        <div class="lab-row-meta">${metaText}</div>
+                      </div>
+                      ${renderLabSparkline(group.entries)}
+                      <button class="lab-row-del" type="button" data-action="delete-lab-result" data-id="${latest.id}" aria-label="Obriši poslednji nalaz za ${escapeHtml(group.marker)}">✕</button>
+                    </article>
+                  `;
+                })
+                .join("")}
+            </div>`
+          : `<div class="empty">Još nema nalaza. Dodaj prvi (npr. Vitamin D, Glukoza, Gvožđe) pa prati trend kroz vreme.</div>`
+      }
+    </section>
+  `;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -10050,6 +10218,8 @@ function renderProgressTab() {
         ${chartFields.map((field) => renderTrendCard(field)).join("")}
       </div>
     </section>
+
+    ${renderLabSection()}
 
     <section class="section">
       <div class="section-header">
@@ -12316,6 +12486,14 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "delete-lab-result") {
+    const id = actionTarget.dataset.id;
+    store.labResults = store.labResults.filter((entry) => entry.id !== id);
+    persist();
+    render();
+    return;
+  }
+
   if (action === "delete-photo") {
     const photoId = actionTarget.dataset.photoId;
     const prevPhotos = store.progressPhotos;
@@ -13084,6 +13262,31 @@ async function handleSubmit(event) {
     if (measurement.weightKg) {
       store.profile.weightKg = measurement.weightKg;
     }
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
+  if (event.target.id === "lab-form") {
+    const marker = String(formData.get("marker") || "").trim();
+    const valueRaw = formData.get("value");
+    const date = String(formData.get("date") || "").trim();
+    if (!marker || valueRaw === "" || valueRaw == null || !date) {
+      return;
+    }
+    // Curated markers bring a unit + orientational reference range; a custom
+    // marker is tracked without a range (no status, just the trend).
+    const curated = LAB_MARKERS.find((m) => m.name.toLowerCase() === marker.toLowerCase());
+    store.labResults.unshift({
+      id: uid("lab"),
+      marker: curated ? curated.name : marker,
+      value: toNumber(valueRaw),
+      unit: curated ? curated.unit : "",
+      refLow: curated && curated.low != null ? curated.low : null,
+      refHigh: curated && curated.high != null ? curated.high : null,
+      date,
+    });
     persist();
     event.target.reset();
     render();

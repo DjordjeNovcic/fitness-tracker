@@ -3124,6 +3124,60 @@ textarea::placeholder {
   margin-top: 12px;
 }
 
+/* ===== Krvna slika / lab results ===== */
+.lab-disclaimer { margin-top: 8px; }
+.lab-list { margin-top: 8px; }
+.lab-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.lab-row:last-child { border-bottom: 0; }
+.lab-row-main { min-width: 0; }
+.lab-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lab-name { font-weight: 700; color: var(--ink); }
+.lab-status {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.lab-status--ok { background: var(--secondary-soft); color: var(--accent); }
+.lab-status--over,
+.lab-status--under { background: rgba(194, 90, 28, 0.14); color: #b4530e; }
+.lab-row-value { display: flex; align-items: baseline; gap: 9px; margin-top: 4px; }
+.lab-row-value strong { font-size: 1.3rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lab-unit { color: var(--muted); font-size: 0.85rem; }
+.lab-delta { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.lab-row-meta { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+.lab-spark { width: 96px; height: 30px; flex: 0 0 auto; }
+.lab-spark polyline { stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.lab-spark circle { fill: var(--accent); }
+.lab-row-del {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.lab-row-del:hover { color: #b4530e; background: rgba(194, 90, 28, 0.1); }
+
+:root[data-theme="dark"] .lab-status--over,
+:root[data-theme="dark"] .lab-status--under {
+  background: rgba(240, 179, 90, 0.16);
+  color: #f0b35a;
+}
+
 .entry-actions {
   display: flex;
   justify-content: flex-end;
