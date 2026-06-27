@@ -7552,6 +7552,8 @@ function renderFoodsTab() {
         <p class="foods-head-sub">Pretraži, filtriraj i dodaj nove unose.</p>
       </header>
 
+      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Sve odavde ubacuješ u obroke u Planu.")}
+
       <div class="foods-search">
         <span class="foods-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg></span>
         <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" />
@@ -7696,6 +7698,8 @@ function renderRecipesTab() {
   });
 
   return `
+    ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom — bez ponovnog kucanja svake namirnice.")}
+
     <section class="section recipes-builder-section ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
       <button class="section-disclosure" type="button" data-action="toggle-recipes-builder" aria-expanded="${state.recipesBuilderExpanded}">
         <div class="section-disclosure-copy">
