@@ -3178,6 +3178,42 @@ textarea::placeholder {
   color: #f0b35a;
 }
 
+/* Contextual help — collapsed "Kako ovo radi?" notes */
+.help-note { margin: -2px 0 10px; }
+.help-note > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 3px 0;
+}
+.help-note > summary::-webkit-details-marker { display: none; }
+.help-note > summary:hover { color: var(--accent); }
+.help-note-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.help-note-body {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--secondary-soft);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+:root[data-theme="dark"] .help-note-body {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: var(--line);
+}
+
 /* Uvidi (insights digest) */
 .insights-headline { font-size: 0.98rem; }
 .insights-headline strong { color: var(--ink); }

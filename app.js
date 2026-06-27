@@ -10241,6 +10241,7 @@ function renderLabSection() {
           <p>Upiši nalaze i prati koliko je bilo pre, koliko je sad.</p>
         </div>
       </div>
+      ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera — deltu i mini-grafik trenda. Referentni opsezi su orijentacioni i nisu medicinski savet.")}
 
       <details class="form-collapse">
         <summary>
@@ -10451,6 +10452,7 @@ function renderBodyCompositionSection() {
           <p>Unesi rezultat analize (InBody, Sonka…) i prati kako se menja kroz vreme.</p>
         </div>
       </div>
+      ${renderHelpNote("Jedan unos = jedna analiza. Prepiši brojeve sa izveštaja (popuni samo polja koja imaš). Za svaku metriku se pamti trend: poslednja vrednost, promena u odnosu na prošli put i mini-grafik. Boja promene prati zdrav smer — mast/visceralna dole = zeleno, mišić/voda gore = zeleno. Nije medicinski savet.")}
 
       <details class="form-collapse">
         <summary>
@@ -10475,6 +10477,16 @@ function renderBodyCompositionSection() {
       }
     </section>
   `;
+}
+
+// Collapsed-by-default "how this works" note. Native <details> so it needs no
+// state/JS; experienced users never see it, new users get one tap of context.
+function renderHelpNote(body, label = "Kako ovo radi?") {
+  return `
+    <details class="help-note">
+      <summary><span class="help-note-icon" aria-hidden="true">ⓘ</span> ${label}</summary>
+      <div class="help-note-body">${body}</div>
+    </details>`;
 }
 
 // ---- Uvidi (insights digest) ----------------------------------------------
@@ -10639,6 +10651,7 @@ function renderInsightsSection() {
           <p class="insights-headline">${headline}</p>
         </div>
       </div>
+      ${renderHelpNote("Sažetak tvojih podataka za izabrani period (30/60/90 dana). Kartice pokazuju promenu težine, masti i mišića, prosečne kalorije i koliko dana si pogodio cilj. „Energija“ uparuje tvoj prosečan unos sa procenom održavanja i pokazuje da li težina stvarno prati ono što kalorije predviđaju.")}
       <div class="insights-period">${periodChips}</div>
       <div class="stats-grid insights-grid">${cards.join("")}</div>
       ${energyHtml}
@@ -10717,6 +10730,7 @@ function renderProgressTab() {
           <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
         </div>
       </div>
+      ${renderHelpNote("Puna linija je tvoja stvarna težina. Isprekidana linija je cilj — gde bi trebalo da budeš ako držiš zadati tempo (npr. −0,5 kg/ned), računato od prvog merenja. Ako si ispod nje, oznaka kaže koliko si „ispred plana“; ako si iznad, koliko si „iza“. Pojavljuje se kad popuniš profil i imaš bar dva merenja težine.")}
       <div class="chart-grid">
         ${chartFields.map((field) => renderTrendCard(field)).join("")}
       </div>
