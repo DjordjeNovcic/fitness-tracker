@@ -1493,6 +1493,136 @@ textarea::placeholder {
 .plan-quick-section.is-collapsed {
   padding-bottom: 16px;
 }
+
+/* ===== Namirnice — redesigned compact nutrition database ===== */
+.foods-section { padding-bottom: 92px; }
+
+.foods-head { display: grid; gap: 2px; margin-bottom: 14px; }
+.foods-head h2 { margin: 0; }
+.foods-head-count { margin: 0; color: var(--ink); font-weight: 700; font-size: 0.95rem; }
+.foods-head-sub { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
+
+.foods-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 3px 5px 3px 12px;
+  margin-bottom: 12px;
+}
+.foods-search-icon { display: inline-flex; color: var(--muted); flex: 0 0 auto; }
+.foods-search-icon svg { width: 18px; height: 18px; }
+.foods-search input#food-search {
+  flex: 1 1 auto; min-width: 0;
+  border: 0; background: transparent; outline: none;
+  font: inherit; color: var(--ink); padding: 10px 0; min-height: 0;
+}
+.foods-filter-toggle {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--muted); border: 0; cursor: pointer;
+}
+.foods-filter-toggle svg { width: 18px; height: 18px; }
+.foods-filter-toggle.is-active { background: var(--accent-soft); color: var(--accent); }
+
+.foods-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.foods-chips--sub { margin-top: -4px; }
+.foods-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 999px;
+  font-size: 0.85rem; font-weight: 700;
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--line-strong); cursor: pointer;
+}
+.foods-chip-count {
+  font-size: 0.74rem; font-weight: 700; color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 1px 7px; border-radius: 999px;
+}
+.foods-chip.is-active { background: var(--accent); color: var(--button-primary-text); border-color: var(--accent); }
+.foods-chip.is-active .foods-chip-count { background: rgba(255, 255, 255, 0.24); color: inherit; }
+.foods-chip--sub { font-weight: 600; font-size: 0.8rem; padding: 6px 12px; }
+
+.foods-secondary { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.foods-scan-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 12px;
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--line-strong);
+  font-weight: 700; font-size: 0.86rem; cursor: pointer;
+}
+.foods-scan-btn svg { width: 16px; height: 16px; }
+.foods-import-link {
+  margin-left: auto;
+  background: transparent; border: 0; color: var(--muted);
+  font-weight: 600; font-size: 0.84rem; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+
+.food-list.foods-list { display: block; margin-top: 4px; }
+.food-row {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; column-gap: 12px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.food-row:last-of-type { border-bottom: 0; }
+.food-row-star {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; cursor: pointer; color: var(--line-strong);
+}
+.food-row-star .star-icon { width: 18px; height: 18px; }
+.food-row-star.is-active { color: #e0a92e; }
+.food-row-info { min-width: 0; }
+.food-row-name { font-weight: 700; color: var(--ink); font-size: 0.96rem; line-height: 1.25; }
+.food-row-qty { color: var(--muted); font-size: 0.78rem; margin-top: 1px; }
+.food-row-nutri { color: var(--muted); font-size: 0.82rem; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.food-row-kcal { color: var(--accent); font-weight: 700; }
+.food-row-menu {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; color: var(--muted); cursor: pointer;
+}
+.food-row-menu svg { width: 18px; height: 18px; }
+.food-row-menu.is-active { background: var(--accent-soft); color: var(--accent); }
+.food-row-actions {
+  grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-strong);
+}
+
+.foods-add-fab {
+  position: fixed; left: 16px; right: 16px;
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  z-index: 45; max-width: 460px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 52px; border-radius: 16px;
+  background: var(--button-primary-bg); color: var(--button-primary-text);
+  font-weight: 800; font-size: 1rem; border: 0; cursor: pointer;
+  box-shadow: 0 16px 32px rgba(23, 59, 47, 0.28);
+}
+.foods-add-fab svg { width: 20px; height: 20px; }
+
+/* Food editor — two clean sections with step markers */
+.food-form-v2 { display: grid; gap: 18px; }
+.food-form-scan-note { margin: 0; color: var(--muted); font-size: 0.88rem; background: var(--accent-soft); padding: 10px 12px; border-radius: 12px; }
+.food-form-section { display: grid; gap: 12px; }
+.food-form-step { display: flex; align-items: center; gap: 9px; }
+.food-form-step-num {
+  width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: var(--button-primary-text);
+  font-size: 0.8rem; font-weight: 800;
+}
+.food-form-step-title { font-weight: 700; color: var(--ink); }
+.food-form-step-count { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.food-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.food-form-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+
+:root[data-theme="dark"] .foods-search { background: rgba(12, 22, 18, 0.5); }
+:root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
+:root[data-theme="dark"] .foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.22); }
+
 .foods-filter-bar {
   gap: 10px;
 }
@@ -5585,7 +5715,8 @@ body.menu-open .menu-fab {
     display: none;
   }
 
-  .app-frame--plan .menu-fab {
+  .app-frame--plan .menu-fab,
+  .app-frame--foods .menu-fab {
     display: inline-flex;
   }
 
