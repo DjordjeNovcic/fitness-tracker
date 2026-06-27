@@ -3178,6 +3178,60 @@ textarea::placeholder {
   color: #f0b35a;
 }
 
+/* Body composition (Sastav tela) */
+.bc-form { display: grid; gap: 16px; margin-top: 4px; }
+.bc-date-field { max-width: 220px; }
+.bc-form-group { display: grid; gap: 8px; }
+.bc-form-group-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bc-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+.bc-field-unit { color: var(--muted); font-weight: 600; }
+.bc-submit { justify-self: start; }
+
+.bc-trends { margin-top: 10px; display: grid; gap: 18px; }
+.bc-group { display: grid; gap: 2px; }
+.bc-group-title {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bc-row { grid-template-columns: 1fr auto; }
+.bc-delta { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.bc-delta--good { color: var(--accent); }
+.bc-delta--bad { color: #b4530e; }
+
+.bc-sessions { margin-top: 14px; }
+.bc-session-list { display: grid; gap: 2px; margin-top: 6px; }
+.bc-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.bc-session-row:last-child { border-bottom: 0; }
+
+/* Dark accent is gold, not green — use an explicit green so a "good" change
+   stays clearly distinct from the amber "bad". */
+:root[data-theme="dark"] .bc-delta--good { color: #5cc98c; }
+:root[data-theme="dark"] .bc-delta--bad { color: #f0b35a; }
+
 .entry-actions {
   display: flex;
   justify-content: flex-end;

@@ -343,6 +343,75 @@ const LAB_MARKERS = [
   { name: "AST", unit: "U/L", low: null, high: 40 },
   { name: "Mokraćna kiselina", unit: "µmol/L", low: 200, high: 420 },
 ];
+// Body-composition analysis (InBody / Sonka style). `dir` marks the healthy
+// direction of change so a delta can be colored: "down" = lower is better,
+// "up" = higher is better, "neutral" = depends on the goal (no judgment).
+// `dec` = decimals used for display + input step.
+const BODY_METRIC_GROUPS = [
+  {
+    group: "Osnovno",
+    metrics: [
+      { key: "weight", label: "Težina", unit: "kg", dir: "neutral", dec: 1 },
+      { key: "bmi", label: "BMI", unit: "", dir: "neutral", dec: 1 },
+      { key: "fatPct", label: "Procenat masti", unit: "%", dir: "down", dec: 1 },
+      { key: "score", label: "Ukupna ocena", unit: "/100", dir: "up", dec: 1 },
+    ],
+  },
+  {
+    group: "Mišić i mast",
+    metrics: [
+      { key: "skeletalMuscle", label: "Skeletna mišićna masa", unit: "kg", dir: "up", dec: 1 },
+      { key: "muscleMass", label: "Mišićna masa (ukupno)", unit: "kg", dir: "up", dec: 1 },
+      { key: "fatMass", label: "Masna masa", unit: "kg", dir: "down", dec: 1 },
+    ],
+  },
+  {
+    group: "Telesne tečnosti",
+    metrics: [
+      { key: "bodyWater", label: "Telesna voda", unit: "kg", dir: "up", dec: 1 },
+      { key: "icf", label: "Intraćelijska tečnost", unit: "L", dir: "neutral", dec: 1 },
+      { key: "ecf", label: "Vanćelijska tečnost", unit: "L", dir: "neutral", dec: 1 },
+      { key: "protein", label: "Proteini", unit: "kg", dir: "up", dec: 1 },
+      { key: "minerals", label: "Minerali", unit: "kg", dir: "neutral", dec: 1 },
+    ],
+  },
+  {
+    group: "Mast — detaljno",
+    metrics: [
+      { key: "visceralGrade", label: "Visceralna mast (nivo)", unit: "", dir: "down", dec: 0 },
+      { key: "visceralArea", label: "Površina visceralne masti", unit: "cm²", dir: "down", dec: 1 },
+      { key: "subcutaneousArea", label: "Površina potkožne masti", unit: "cm²", dir: "down", dec: 1 },
+      { key: "whr", label: "Odnos struk–kuk (WHR)", unit: "", dir: "down", dec: 2 },
+    ],
+  },
+  {
+    group: "Metabolizam",
+    metrics: [
+      { key: "bmr", label: "Bazalni metabolizam (BMR)", unit: "kcal", dir: "neutral", dec: 0 },
+    ],
+  },
+  {
+    group: "Segmenti — mišić",
+    metrics: [
+      { key: "armRMuscle", label: "Desna ruka — mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "armLMuscle", label: "Leva ruka — mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "torsoMuscle", label: "Trup — mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "legRMuscle", label: "Desna noga — mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "legLMuscle", label: "Leva noga — mišić", unit: "kg", dir: "up", dec: 1 },
+    ],
+  },
+  {
+    group: "Segmenti — mast",
+    metrics: [
+      { key: "armRFat", label: "Desna ruka — mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "armLFat", label: "Leva ruka — mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "torsoFat", label: "Trup — mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "legRFat", label: "Desna noga — mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "legLFat", label: "Leva noga — mast", unit: "kg", dir: "down", dec: 1 },
+    ],
+  },
+];
+const BODY_METRICS = BODY_METRIC_GROUPS.flatMap((g) => g.metrics);
 const FOOD_MACRO_FILTERS = ["Sve", "Proteini", "UH", "Masti", "Ostalo"];
 const NUTRITION_PROFILE_FILTERS = [
   { id: "Sve", label: "Sve" },
@@ -546,6 +615,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
         : {},
     measurements: Array.isArray(rawStore.measurements) ? rawStore.measurements : [],
     labResults: Array.isArray(rawStore.labResults) ? rawStore.labResults : [],
+    bodyComposition: Array.isArray(rawStore.bodyComposition) ? rawStore.bodyComposition : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
     shoppingChecked:
@@ -655,6 +725,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
   targetStore.labResults = targetStore.labResults || [];
+  targetStore.bodyComposition = targetStore.bodyComposition || [];
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.shoppingChecked =
     targetStore.shoppingChecked && typeof targetStore.shoppingChecked === "object" ? targetStore.shoppingChecked : {};
@@ -10144,6 +10215,166 @@ function renderLabSection() {
   `;
 }
 
+// One metric's value history across all analyses, oldest -> newest, skipping
+// analyses where that field was left blank.
+function getBodyMetricSeries(key) {
+  const series = [];
+  (store.bodyComposition || []).forEach((entry) => {
+    const raw = entry.values ? entry.values[key] : undefined;
+    if (raw == null || raw === "") {
+      return;
+    }
+    const value = Number(raw);
+    if (!Number.isNaN(value)) {
+      series.push({ date: entry.date, value });
+    }
+  });
+  series.sort((a, b) => new Date(a.date) - new Date(b.date));
+  return series;
+}
+
+// Delta vs the previous analysis, colored by whether the change goes in the
+// healthy direction for that metric.
+function renderBodyDelta(curr, prev, dir, dec) {
+  if (prev == null) {
+    return "";
+  }
+  const d = roundValue(curr - prev, dec === 0 ? 1 : dec);
+  if (d === 0) {
+    return `<span class="bc-delta">bez promene</span>`;
+  }
+  let tone = "neutral";
+  if (dir !== "neutral") {
+    const good = (dir === "down" && d < 0) || (dir === "up" && d > 0);
+    tone = good ? "good" : "bad";
+  }
+  return `<span class="bc-delta bc-delta--${tone}">${d > 0 ? "↑ +" : "↓ "}${d}</span>`;
+}
+
+function renderBodySparkline(values) {
+  if (values.length < 2) {
+    return "";
+  }
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 110;
+  const h = 30;
+  const pad = 3;
+  const stepX = (w - pad * 2) / (values.length - 1);
+  const pts = values.map((v, i) => `${roundValue(pad + i * stepX, 1)},${roundValue(h - pad - ((v - min) / range) * (h - pad * 2), 1)}`);
+  const last = pts[pts.length - 1].split(",");
+  return `<svg class="lab-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.join(" ")}" fill="none"></polyline><circle cx="${last[0]}" cy="${last[1]}" r="2.6"></circle></svg>`;
+}
+
+function renderBodyCompositionSection() {
+  const entries = store.bodyComposition || [];
+  const hasData = entries.length > 0;
+
+  const formFields = BODY_METRIC_GROUPS.map(
+    (group) => `
+      <div class="bc-form-group">
+        <h4 class="bc-form-group-title">${group.group}</h4>
+        <div class="bc-form-fields">
+          ${group.metrics
+            .map(
+              (m) => `
+            <div class="field">
+              <label for="bc-${m.key}">${m.label}${m.unit ? ` <span class="bc-field-unit">(${m.unit})</span>` : ""}</label>
+              <input id="bc-${m.key}" name="${m.key}" type="number" step="${m.dec === 0 ? "1" : m.dec === 2 ? "0.01" : "0.1"}" min="0" inputmode="decimal" placeholder="—" />
+            </div>`
+            )
+            .join("")}
+        </div>
+      </div>`
+  ).join("");
+
+  const trends = BODY_METRIC_GROUPS.map((group) => {
+    const withData = group.metrics.filter((m) => getBodyMetricSeries(m.key).length > 0);
+    if (!withData.length) {
+      return "";
+    }
+    const rows = withData
+      .map((m) => {
+        const series = getBodyMetricSeries(m.key);
+        const latest = series[series.length - 1];
+        const prev = series.length > 1 ? series[series.length - 2] : null;
+        const deltaHtml = renderBodyDelta(latest.value, prev ? prev.value : null, m.dir, m.dec);
+        const metaText = [new Date(latest.date).toLocaleDateString("sr-RS"), series.length > 1 ? `${series.length} merenja` : ""]
+          .filter(Boolean)
+          .join(" · ");
+        return `
+          <article class="lab-row bc-row">
+            <div class="lab-row-main">
+              <div class="lab-row-top"><span class="lab-name">${m.label}</span></div>
+              <div class="lab-row-value">
+                <strong>${roundValue(latest.value, m.dec)}</strong>
+                ${m.unit ? `<span class="lab-unit">${m.unit}</span>` : ""}
+                ${deltaHtml}
+              </div>
+              <div class="lab-row-meta">${metaText}</div>
+            </div>
+            ${renderBodySparkline(series.map((s) => s.value))}
+          </article>`;
+      })
+      .join("");
+    return `<div class="bc-group"><h3 class="bc-group-title">${group.group}</h3><div class="lab-list">${rows}</div></div>`;
+  }).join("");
+
+  const sessions = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sessionsDetails = `
+    <details class="form-collapse bc-sessions">
+      <summary>
+        <span class="form-collapse-title">Sve analize (${entries.length})</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
+      <div class="bc-session-list">
+        ${sessions
+          .map((e) => {
+            const count = Object.values(e.values || {}).filter((v) => v != null && v !== "").length;
+            return `<div class="bc-session-row">
+              <span>${new Date(e.date).toLocaleDateString("sr-RS")} · ${count} ${count === 1 ? "vrednost" : "vrednosti"}</span>
+              <button class="lab-row-del" type="button" data-action="delete-body-comp" data-id="${e.id}" aria-label="Obriši analizu">✕</button>
+            </div>`;
+          })
+          .join("")}
+      </div>
+    </details>`;
+
+  return `
+    <section class="section bc-section">
+      <div class="section-header">
+        <div>
+          <h2>Sastav tela</h2>
+          <p>Unesi rezultat analize (InBody, Sonka…) i prati kako se menja kroz vreme.</p>
+        </div>
+      </div>
+
+      <details class="form-collapse">
+        <summary>
+          <span class="form-collapse-title">Dodaj analizu</span>
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
+        <form id="body-comp-form" class="bc-form">
+          <div class="field bc-date-field">
+            <label for="bc-date">Datum analize</label>
+            <input id="bc-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
+          </div>
+          ${formFields}
+          <button class="solid-button secondary-button bc-submit" type="submit">Sačuvaj analizu</button>
+          <div class="footer-note">Popuni samo polja koja imaš sa izveštaja — ostalo ostavi prazno.</div>
+        </form>
+      </details>
+
+      ${
+        hasData
+          ? `<div class="bc-trends">${trends}</div>${sessionsDetails}`
+          : `<div class="empty">Još nema analiza. Dodaj prvu pa prati kako se menjaju procenat masti, mišićna masa, visceralna mast i ostalo.</div>`
+      }
+    </section>
+  `;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -10220,6 +10451,8 @@ function renderProgressTab() {
     </section>
 
     ${renderLabSection()}
+
+    ${renderBodyCompositionSection()}
 
     <section class="section">
       <div class="section-header">
@@ -12494,6 +12727,14 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "delete-body-comp") {
+    const id = actionTarget.dataset.id;
+    store.bodyComposition = store.bodyComposition.filter((entry) => entry.id !== id);
+    persist();
+    render();
+    return;
+  }
+
   if (action === "delete-photo") {
     const photoId = actionTarget.dataset.photoId;
     const prevPhotos = store.progressPhotos;
@@ -13287,6 +13528,37 @@ async function handleSubmit(event) {
       refHigh: curated && curated.high != null ? curated.high : null,
       date,
     });
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
+  if (event.target.id === "body-comp-form") {
+    const date = String(formData.get("date") || "").trim();
+    if (!date) {
+      return;
+    }
+    const values = {};
+    BODY_METRICS.forEach((m) => {
+      const raw = formData.get(m.key);
+      if (raw == null) {
+        return;
+      }
+      const str = String(raw).trim().replace(",", ".");
+      if (str === "") {
+        return;
+      }
+      const num = Number(str);
+      if (!Number.isNaN(num)) {
+        values[m.key] = num;
+      }
+    });
+    if (!Object.keys(values).length) {
+      window.alert("Popuni bar jednu vrednost sa analize.");
+      return;
+    }
+    store.bodyComposition.unshift({ id: uid("bc"), date, values });
     persist();
     event.target.reset();
     render();
