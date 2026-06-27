@@ -851,19 +851,19 @@ async function resetDemoToFactory() {
 function getAuthErrorMessage(error) {
   switch (error?.code) {
     case "auth/email-already-in-use":
-      return "Taj email je vec zauzet. Probaj prijavu.";
+      return "Taj email je već zauzet. Probaj prijavu.";
     case "auth/invalid-email":
       return "Email nije ispravan.";
     case "auth/invalid-credential":
     case "auth/user-not-found":
     case "auth/wrong-password":
-      return "Pogresan email ili lozinka.";
+      return "Pogrešan email ili lozinka.";
     case "auth/weak-password":
       return "Lozinka treba da ima bar 6 karaktera.";
     case "auth/network-request-failed":
-      return "Nema veze sa internetom. Pokusaj ponovo.";
+      return "Nema veze sa internetom. Pokušaj ponovo.";
     default:
-      return "Prijava nije uspela. Pokusaj ponovo.";
+      return "Prijava nije uspela. Pokušaj ponovo.";
   }
 }
 
