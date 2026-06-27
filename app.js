@@ -7262,6 +7262,7 @@ function renderPlanTab(entries) {
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
+      ${renderHelpNote("Otvori obrok pa <strong>„Dodaj namirnicu“</strong> (ili tapni nedavnu iz brzog unosa). Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -8077,6 +8078,7 @@ function renderTrainingTab() {
           <p>Brz pregled cele nedelje, da odmah vidiš gde si ubacio trening a gde je odmor.</p>
         </div>
       </div>
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + procenjena potrošnja kalorija koja ulazi u dnevni bilans). <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat.")}
       <div class="stats-grid">
         ${weeklyTrainingPlan
           .map(
@@ -8424,6 +8426,7 @@ function renderRoutineTab() {
           <p>Velike navike, sitni taskovi i dugoročni streakovi, sve na jednom mestu.</p>
         </div>
       </div>
+      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Taskovi</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni streakovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule.")}
       <div class="hero-day-picker routine-day-picker">
         <div class="hero-picker-label">Dan u nedelji</div>
         <div class="chips" style="margin-top:12px;">
@@ -8802,6 +8805,7 @@ function renderGoalsTab() {
 
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
+      ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
       <div class="stats-grid goals-insight-grid">
         <article class="stat-card">
           <strong>Bazalni metabolizam</strong>
