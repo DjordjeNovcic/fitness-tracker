@@ -505,6 +505,7 @@ const state = {
   progressCompareTag: PHOTO_TAGS[0],
   progressCompareLeftId: "",
   progressCompareRightId: "",
+  insightsPeriod: 30,
   pendingUndo: null,
   editingFoodId: "",
   nutritionEditingFoodId: "",
@@ -10421,6 +10422,174 @@ function renderBodyCompositionSection() {
   `;
 }
 
+// ---- Uvidi (insights digest) ----------------------------------------------
+// Synthesizes the data the app already collects (daily nutrition history,
+// weight, body composition, training logs) into a period-based narrative:
+// what changed, how consistent you were, and whether intake explains the
+// result. Everything is null-guarded so sparse data degrades gracefully.
+function getInsights(periodDays) {
+  const days = getHistoryDays(periodDays);
+  const startDate = getDateValueAsLocalDate(days[0].date);
+  const inPeriod = (dateValue) => {
+    const d = getDateValueAsLocalDate(dateValue);
+    return Boolean(d && startDate && d.getTime() >= startDate.getTime());
+  };
+
+  const loggedDays = days.filter((d) => d.snap && d.snap.kcal > 0);
+  const loggedCount = loggedDays.length;
+  const avgOf = (key) => {
+    const xs = loggedDays.map((d) => toNumber(d.snap[key])).filter((v) => v > 0);
+    return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
+  };
+  const avgKcal = avgOf("kcal");
+  const avgProtein = avgOf("protein");
+  const avgWater = avgOf("waterMl");
+  const kcalOnTarget = loggedDays.filter((d) => isHistoryDayOnTarget(d.snap)).length;
+  const kcalOnTargetPct = loggedCount ? Math.round((kcalOnTarget / loggedCount) * 100) : 0;
+  const proteinGoal = toNumber(store.goals?.protein);
+  const proteinHitPct =
+    proteinGoal > 0 && loggedCount
+      ? Math.round((loggedDays.filter((d) => toNumber(d.snap.protein) >= proteinGoal * 0.9).length / loggedCount) * 100)
+      : null;
+
+  const weights = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0 && inPeriod(m.date))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  let weightChange = null;
+  let weightRate = null;
+  if (weights.length >= 2) {
+    const first = weights[0];
+    const last = weights[weights.length - 1];
+    weightChange = roundValue(toNumber(last.weightKg) - toNumber(first.weightKg), 1);
+    const weeks = (getDateValueAsLocalDate(last.date).getTime() - getDateValueAsLocalDate(first.date).getTime()) / (7 * DAY_IN_MS);
+    weightRate = weeks > 0 ? roundValue(weightChange / weeks, 2) : null;
+  }
+
+  const bodyDelta = (key) => {
+    const series = getBodyMetricSeries(key).filter((p) => inPeriod(p.date));
+    return series.length >= 2 ? roundValue(series[series.length - 1].value - series[0].value, 1) : null;
+  };
+  const fatChange = bodyDelta("fatPct");
+  const muscleChange = bodyDelta("muscleMass");
+
+  const trainingSessions = new Set(
+    (store.trainingProgressLogs || []).map((log) => log.date).filter((date) => inPeriod(date))
+  ).size;
+
+  // Energy link: average intake vs estimated maintenance → expected weekly
+  // rate, then compared to what actually happened on the scale.
+  const rec = getGoalRecommendation();
+  let energy = null;
+  if (rec && avgKcal > 0) {
+    const dailyDelta = avgKcal - rec.maintenance; // negative = deficit
+    energy = {
+      maintenance: rec.maintenance,
+      avgKcal,
+      dailyDelta: roundValue(dailyDelta, 0),
+      expectedRate: roundValue((dailyDelta * 7) / KCAL_PER_KG, 2),
+      actualRate: weightRate,
+    };
+  }
+
+  return {
+    periodDays,
+    loggedCount,
+    avgKcal,
+    avgProtein,
+    avgWater,
+    kcalOnTargetPct,
+    proteinHitPct,
+    weightChange,
+    weightRate,
+    fatChange,
+    muscleChange,
+    trainingSessions,
+    energy,
+    hasAnything: loggedCount > 0 || weightChange != null || fatChange != null || trainingSessions > 0,
+  };
+}
+
+function renderInsightsSection() {
+  const period = [30, 60, 90].includes(state.insightsPeriod) ? state.insightsPeriod : 30;
+  const ins = getInsights(period);
+  const periodChips = [30, 60, 90]
+    .map(
+      (p) =>
+        `<button type="button" class="chip ${p === period ? "is-active" : ""}" data-action="set-insights-period" data-period="${p}">${p} dana</button>`
+    )
+    .join("");
+
+  if (!ins.hasAnything) {
+    return `
+      <section class="section insights-section">
+        <div class="section-header">
+          <div class="section-copy">
+            <h2>Uvidi</h2>
+            <p>Čim počneš da čekiraš obroke i unosiš težinu, ovde dobijaš sažetak: napredak, proseci i šta je uticalo na rezultat.</p>
+          </div>
+        </div>
+        <div class="insights-period">${periodChips}</div>
+      </section>`;
+  }
+
+  let headline = `Pregled za poslednjih ${period} dana.`;
+  if (ins.weightChange != null && ins.weightChange !== 0) {
+    headline = `${ins.weightChange < 0 ? "Skinuo si" : "Dodao si"} <strong>${Math.abs(ins.weightChange)} kg</strong> za ${period} dana${ins.weightRate ? ` (${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
+  } else if (ins.loggedCount) {
+    headline = `Logovao si <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
+  }
+
+  const card = (label, value, note) =>
+    `<article class="stat-card"><strong>${label}</strong><div class="macro-value">${value}</div><div class="footer-note">${note}</div></article>`;
+  const signed = (value) => `${value > 0 ? "+" : ""}${value}`;
+  const cards = [];
+  if (ins.weightChange != null) cards.push(card("Težina", `${signed(ins.weightChange)} kg`, ins.weightRate ? `${signed(ins.weightRate)} kg/ned` : "u periodu"));
+  if (ins.fatChange != null) cards.push(card("Mast", `${signed(ins.fatChange)} %`, "telesna mast"));
+  if (ins.muscleChange != null) cards.push(card("Mišić", `${signed(ins.muscleChange)} kg`, "mišićna masa"));
+  if (ins.avgKcal) cards.push(card("Kalorije", `${ins.avgKcal}`, `prosek/dan · cilj ${ins.kcalOnTargetPct}% dana`));
+  if (ins.avgProtein) cards.push(card("Protein", `${ins.avgProtein} g`, ins.proteinHitPct != null ? `cilj ${ins.proteinHitPct}% dana` : "prosek/dan"));
+  if (ins.trainingSessions) cards.push(card("Trening", `${ins.trainingSessions}`, "zabeleženih"));
+  if (ins.avgWater) cards.push(card("Voda", `${(ins.avgWater / 1000).toFixed(1)} L`, "prosek/dan"));
+
+  let energyHtml = "";
+  if (ins.energy) {
+    const e = ins.energy;
+    const deficitWord =
+      e.dailyDelta < 0 ? `deficit ~${Math.abs(e.dailyDelta)} kcal/dan` : e.dailyDelta > 0 ? `višak ~${e.dailyDelta} kcal/dan` : "na održavanju";
+    let verdict = "";
+    if (e.actualRate != null && e.expectedRate) {
+      const sameDirection = e.actualRate <= 0 === e.expectedRate <= 0;
+      if (!sameDirection) {
+        verdict = " Težina ide suprotno od onoga što unos predviđa — proveri unos ili merenja.";
+      } else if (Math.abs(e.actualRate - e.expectedRate) < 0.15) {
+        verdict = " Rezultat se poklapa sa unosom 👍";
+      } else if (Math.abs(e.actualRate) > Math.abs(e.expectedRate)) {
+        verdict = " Menjaš se brže nego što kalorije predviđaju (voda/glikogen ili je održavanje precenjeno).";
+      } else {
+        verdict = " Sporije nego što unos predviđa (možda je unos potcenjen ili održavanje niže).";
+      }
+    }
+    energyHtml = `
+      <div class="insights-callout">
+        <strong>Energija</strong>
+        <p>Prosečno unosiš <strong>${e.avgKcal} kcal/dan</strong>, procena održavanja je <strong>${e.maintenance} kcal</strong> → ${deficitWord}, što predviđa <strong>${e.expectedRate} kg/ned</strong>.${e.actualRate != null ? ` Stvarno: <strong>${e.actualRate} kg/ned</strong>.` : ""}${verdict}</p>
+      </div>`;
+  }
+
+  return `
+    <section class="section insights-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Uvidi</h2>
+          <p class="insights-headline">${headline}</p>
+        </div>
+      </div>
+      <div class="insights-period">${periodChips}</div>
+      <div class="stats-grid insights-grid">${cards.join("")}</div>
+      ${energyHtml}
+    </section>`;
+}
+
 function renderProgressTab() {
   const history = [...store.measurements].sort((a, b) => new Date(b.date) - new Date(a.date));
   const chartFields = measurementFields.filter((field) =>
@@ -10433,6 +10602,8 @@ function renderProgressTab() {
   const compare = getPhotoComparePair(taggedPhotos);
 
   return `
+    ${renderInsightsSection()}
+
     ${renderProgressSummary(summary)}
 
     ${renderWeeklyReportSection()}
@@ -11314,6 +11485,15 @@ async function handleDocumentClick(event) {
   if (action === "set-onboarding-pace") {
     if (state.onboarding) {
       state.onboarding.paceLevel = actionTarget.dataset.pace || "umereno";
+      render();
+    }
+    return;
+  }
+
+  if (action === "set-insights-period") {
+    const period = parseInt(actionTarget.dataset.period, 10);
+    if ([30, 60, 90].includes(period)) {
+      state.insightsPeriod = period;
       render();
     }
     return;

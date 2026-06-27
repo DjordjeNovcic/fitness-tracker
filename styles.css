@@ -3178,6 +3178,49 @@ textarea::placeholder {
   color: #f0b35a;
 }
 
+/* Uvidi (insights digest) */
+.insights-headline { font-size: 0.98rem; }
+.insights-headline strong { color: var(--ink); }
+.insights-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.insights-section .insights-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+.insights-callout {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--secondary-soft);
+  display: grid;
+  gap: 4px;
+}
+.insights-callout strong {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.insights-callout p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+.insights-callout p strong {
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+}
+:root[data-theme="dark"] .insights-callout {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .insights-callout strong { color: #f0d28a; }
+:root[data-theme="dark"] .insights-callout p strong { color: var(--ink); }
+
 /* Body composition (Sastav tela) */
 .bc-form { display: grid; gap: 16px; margin-top: 4px; }
 .bc-date-field { max-width: 220px; }
