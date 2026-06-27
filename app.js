@@ -5865,7 +5865,7 @@ function renderOnboarding() {
       <div class="onboarding-card">
         <div class="onboarding-head">
           <span class="onboarding-logo" aria-hidden="true">${renderTabIcon("plan")}</span>
-          <h1>Dobrodošao u Fit Tracker</h1>
+          <h1>Dobrodošli u Fit Tracker</h1>
           <p>Par brzih podataka i odmah dobijaš dnevni kalorijski cilj i makroe. Sve kasnije možeš da promeniš u Ciljevima.</p>
         </div>
         <form id="onboarding-form" class="onboarding-form" autocomplete="off">
@@ -6997,7 +6997,7 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
   return `
     <section class="section plan-welcome-guide">
       <div class="plan-welcome-head">
-        <h2>Dobrodošao${name ? `, ${escapeHtml(name)}` : ""} 👋</h2>
+        <h2>Dobrodošli${name ? `, ${escapeHtml(name)}` : ""} 👋</h2>
         <p>Tvoj plan je još prazan. Evo kako da ga pokreneš za par tapova — ovaj vodič nestaje čim dodaš prvi obrok.</p>
       </div>
       <ol class="plan-welcome-steps">
@@ -10120,11 +10120,11 @@ function renderWeeklyReportSection() {
   }
   const verdict =
     r.onTarget >= 5
-      ? "Sjajna nedelja 💪 — većinu dana si bio na cilju."
+      ? "Sjajna nedelja 💪 — većinu dana na cilju."
       : r.onTarget >= 3
         ? "Solidna nedelja, samo nastavi."
         : r.loggedDays >= 4
-          ? "Logovao si redovno — sledeće nedelje fokus na pogađanje cilja."
+          ? "Unosi su bili redovni — sledeće nedelje fokus na pogađanje cilja."
           : "Čekiraj obroke svaki dan pa ćemo imati precizniji uvid.";
   const onTargetDelta = r.onTarget - r.onTargetLast;
   const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
@@ -10589,9 +10589,9 @@ function renderInsightsSection() {
 
   let headline = `Pregled za poslednjih ${period} dana.`;
   if (ins.weightChange != null && ins.weightChange !== 0) {
-    headline = `${ins.weightChange < 0 ? "Skinuo si" : "Dodao si"} <strong>${Math.abs(ins.weightChange)} kg</strong> za ${period} dana${ins.weightRate ? ` (${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
+    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${Math.abs(ins.weightChange)} kg</strong>${ins.weightRate ? ` (${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
   } else if (ins.loggedCount) {
-    headline = `Logovao si <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
+    headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
   }
 
   const card = (label, value, note) =>
