@@ -9535,19 +9535,40 @@ function renderTrendCard(field) {
     `;
   }
 
-  const min = Math.min(...series.map((point) => point.value));
-  const max = Math.max(...series.map((point) => point.value));
+  // Goal projection (weight only): where you'd be at each weigh-in date if the
+  // configured pace holds, anchored at the first measurement. Lets you see at a
+  // glance whether the actual line is running ahead of or behind plan.
+  let projection = null;
+  let goalRate = 0;
+  if (field.id === "weightKg" && series.length >= 2) {
+    const rec = getGoalRecommendation();
+    goalRate = rec ? rec.rateKgPerWeek : 0;
+    const anchorDate = getDateValueAsLocalDate(series[0].date);
+    if (goalRate && anchorDate) {
+      const anchorValue = series[0].value;
+      projection = series.map((point) => {
+        const pointDate = getDateValueAsLocalDate(point.date);
+        const weeks = pointDate ? (pointDate.getTime() - anchorDate.getTime()) / (7 * DAY_IN_MS) : 0;
+        return anchorValue + goalRate * weeks;
+      });
+    }
+  }
+
+  const valuesForScale = series.map((point) => point.value).concat(projection || []);
+  const min = Math.min(...valuesForScale);
+  const max = Math.max(...valuesForScale);
   const width = 320;
   const height = 160;
   const paddingX = 18;
   const paddingY = 18;
   const range = max - min || 1;
   const stepX = series.length > 1 ? (width - paddingX * 2) / (series.length - 1) : 0;
-  const points = series.map((point, index) => {
-    const x = paddingX + index * stepX;
-    const y = height - paddingY - ((point.value - min) / range) * (height - paddingY * 2);
-    return { ...point, x: roundValue(x, 1), y: roundValue(y, 1) };
-  });
+  const toY = (value) => roundValue(height - paddingY - ((value - min) / range) * (height - paddingY * 2), 1);
+  const points = series.map((point, index) => ({
+    ...point,
+    x: roundValue(paddingX + index * stepX, 1),
+    y: toY(point.value),
+  }));
   const latest = series[series.length - 1];
   const first = series[0];
   const delta = roundValue(latest.value - first.value, 1);
@@ -9562,6 +9583,28 @@ function renderTrendCard(field) {
       return `<line x1="${paddingX}" y1="${gy}" x2="${width - paddingX}" y2="${gy}" class="chart-grid"></line>`;
     })
     .join("");
+
+  let goalLineSvg = "";
+  let trackPill = "";
+  let legendHtml = "";
+  if (projection) {
+    const projPoints = projection.map((value, index) => `${roundValue(paddingX + index * stepX, 1)},${toY(value)}`);
+    goalLineSvg = `<polyline points="${projPoints.join(" ")}" class="chart-goal-line" fill="none"></polyline>`;
+    const expectedNow = projection[projection.length - 1];
+    const diff = roundValue(latest.value - expectedNow, 1);
+    // Loss (rate < 0): being below the line is ahead; gain (rate > 0): above.
+    const aheadGood = goalRate < 0 ? diff <= 0 : diff >= 0;
+    if (Math.abs(diff) < 0.3) {
+      trackPill = `<span class="pill strong pill--success">na cilju</span>`;
+    } else {
+      trackPill = `<span class="pill strong pill--${aheadGood ? "success" : "warning"}">${Math.abs(diff)} kg ${aheadGood ? "ispred plana" : "iza plana"}</span>`;
+    }
+    legendHtml = `
+      <div class="chart-legend">
+        <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>cilj (${goalRate > 0 ? "+" : ""}${goalRate} kg/ned)</span>
+      </div>`;
+  }
 
   return `
     <article class="chart-card">
@@ -9578,6 +9621,7 @@ function renderTrendCard(field) {
         </defs>
         ${gridLines}
         <path d="${areaPath}" class="chart-area" fill="url(#${gradId})"></path>
+        ${goalLineSvg}
         <path d="${linePath}" class="chart-line" fill="none"></path>
         <circle cx="${last.x}" cy="${last.y}" r="3.6" class="chart-dot is-current"></circle>
       </svg>
@@ -9585,7 +9629,9 @@ function renderTrendCard(field) {
         <span class="pill">${first.label}</span>
         <span class="pill">${latest.label}</span>
         ${renderMeasurementDelta(delta, field.unit)}
+        ${trackPill}
       </div>
+      ${legendHtml}
     </article>
   `;
 }

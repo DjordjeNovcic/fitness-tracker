@@ -3709,6 +3709,29 @@ label.is-invalid textarea:focus {
   stroke-width: 2;
 }
 
+/* Projected goal trajectory drawn behind the actual weight line. */
+.chart-goal-line {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.chart-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend-swatch { width: 16px; flex: 0 0 16px; }
+.chart-legend-swatch--actual { border-top: 3px solid var(--secondary); }
+.chart-legend-swatch--goal { border-top: 2px dashed var(--muted); }
+
 .photo-picker {
   padding: 14px;
   border: 1px dashed rgba(25, 34, 31, 0.18);
