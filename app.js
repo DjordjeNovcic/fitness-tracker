@@ -11291,7 +11291,10 @@ function updateValidationState(control, { reveal = false } = {}) {
   const field = control.closest(".field");
   const wrapperLabel = control.closest("label");
   const shouldReveal = reveal || control.dataset.touched === "true" || control.form?.dataset.validationShown === "true";
-  const isInvalid = shouldReveal && !control.checkValidity();
+  // Use the validity property (pure read) — NOT checkValidity(), which fires an
+  // `invalid` event. Our `invalid` listener calls back into this function, so
+  // checkValidity() here would recurse infinitely on an empty required field.
+  const isInvalid = shouldReveal && !control.validity.valid;
 
   control.classList.toggle("is-invalid", isInvalid);
   field?.classList.toggle("is-invalid", isInvalid);
