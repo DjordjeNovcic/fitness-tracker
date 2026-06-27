@@ -3810,6 +3810,39 @@ label.is-invalid textarea:focus {
 .chart-legend-swatch { width: 16px; flex: 0 0 16px; }
 .chart-legend-swatch--actual { border-top: 3px solid var(--secondary); }
 .chart-legend-swatch--goal { border-top: 2px dashed var(--muted); }
+.chart-legend-swatch--target { border-top: 2px dotted var(--accent); }
+
+/* Target weight reference line + ETA caption on the weight chart */
+.chart-target-line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+  opacity: 0.55;
+}
+.chart-eta {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.chart-eta strong { color: var(--ink); }
+
+/* Goal ETA readout (Ciljevi) */
+.goal-eta {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--secondary-soft);
+}
+.goal-eta-icon { font-size: 1.1rem; line-height: 1.3; flex: 0 0 auto; }
+.goal-eta p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--ink); }
+.goal-eta--good { border-color: var(--accent); }
+.goal-eta--warn { background: rgba(194, 90, 28, 0.12); }
+:root[data-theme="dark"] .goal-eta { background: rgba(255, 255, 255, 0.045); }
+:root[data-theme="dark"] .goal-eta--warn { background: rgba(240, 179, 90, 0.14); }
 
 .photo-picker {
   padding: 14px;

@@ -585,6 +585,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     waterMl: 2500,
     stepsGoal: 10000,
     basisWeightKg: null,
+    targetWeightKg: null,
   };
 
   return {
@@ -8773,6 +8774,67 @@ function renderAdaptiveGoalNudge() {
     </section>`;
 }
 
+// Estimate when the target weight will be reached at the configured pace,
+// anchored to the latest measured weight (falls back to the profile weight).
+function getGoalEta() {
+  const target = toNumber(store.goals?.targetWeightKg);
+  if (!target) {
+    return { status: "none" };
+  }
+  const weights = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const current = weights.length ? toNumber(weights[weights.length - 1].weightKg) : toNumber(store.profile?.weightKg);
+  if (!current) {
+    return { status: "none" };
+  }
+  const remaining = roundValue(target - current, 1);
+  if (Math.abs(remaining) < 0.2) {
+    return { status: "reached", target, current };
+  }
+  const rec = getGoalRecommendation();
+  const rate = rec ? rec.rateKgPerWeek : 0; // kg/week, negative = loss
+  if (!rate) {
+    return { status: "no-rate", target, current, remaining };
+  }
+  if (remaining < 0 !== rate < 0) {
+    return { status: "wrong-direction", target, current, remaining };
+  }
+  const weeks = remaining / rate; // same sign → positive
+  return { status: "ok", target, current, remaining, weeks, days: Math.round(weeks * 7) };
+}
+
+// Manual Latin month names — toLocaleDateString("sr-RS", {month:"long"}) returns
+// Cyrillic in some engines, which clashes with the app's Latin script.
+const SR_MONTHS_LATIN = ["januar", "februar", "mart", "april", "maj", "jun", "jul", "avgust", "septembar", "oktobar", "novembar", "decembar"];
+function formatEtaDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getDate()}. ${SR_MONTHS_LATIN[d.getMonth()]} ${d.getFullYear()}.`;
+}
+
+function renderGoalEtaCard() {
+  const eta = getGoalEta();
+  if (eta.status === "none") {
+    return "";
+  }
+  let tone = "info";
+  let body;
+  if (eta.status === "reached") {
+    tone = "good";
+    body = `Stigao si do cilja od <strong>${eta.target} kg</strong> 🎉`;
+  } else if (eta.status === "no-rate") {
+    body = `Cilj: <strong>${eta.target} kg</strong> (još ${Math.abs(eta.remaining)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
+  } else if (eta.status === "wrong-direction") {
+    tone = "warn";
+    body = `Cilj <strong>${eta.target} kg</strong> je u suprotnom smeru od izabranog cilja/tempa — proveri podešavanja.`;
+  } else {
+    const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
+    body = `Do cilja <strong>${eta.target} kg</strong> još <strong>${Math.abs(eta.remaining)} kg</strong> — pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
+  }
+  return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">🎯</span><p>${body}</p></div>`;
+}
+
 function renderGoalsTab() {
   const weeklyOverview = getWeeklyOverview();
   const goalRecommendation = getGoalRecommendation();
@@ -8838,6 +8900,7 @@ function renderGoalsTab() {
           <div class="footer-note">P / UH / Masti</div>
         </article>
       </div>
+      ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">
         <div class="field">
           <label for="profile-name">Ime</label>
@@ -8880,6 +8943,10 @@ function renderGoalsTab() {
           <select id="goal-pace" name="paceLevel">
             ${PACE_LEVELS.map((level) => `<option value="${level.id}" ${(store.goals.paceLevel || "umereno") === level.id ? "selected" : ""}>${level.label}</option>`).join("")}
           </select>
+        </div>
+        <div class="field">
+          <label for="goal-target-weight">Ciljna težina (kg)</label>
+          <input id="goal-target-weight" name="targetWeightKg" type="number" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />
         </div>
         <div class="field">
           <label for="goal-calories">Dnevni cilj kcal</label>
@@ -9618,7 +9685,11 @@ function renderTrendCard(field) {
     }
   }
 
-  const valuesForScale = series.map((point) => point.value).concat(projection || []);
+  const targetWeight = field.id === "weightKg" ? toNumber(store.goals?.targetWeightKg) : 0;
+  const valuesForScale = series
+    .map((point) => point.value)
+    .concat(projection || [])
+    .concat(targetWeight ? [targetWeight] : []);
   const min = Math.min(...valuesForScale);
   const max = Math.max(...valuesForScale);
   const width = 320;
@@ -9649,8 +9720,10 @@ function renderTrendCard(field) {
     .join("");
 
   let goalLineSvg = "";
+  let targetLineSvg = "";
   let trackPill = "";
-  let legendHtml = "";
+  let etaCaption = "";
+  const legendItems = [];
   if (projection) {
     const projPoints = projection.map((value, index) => `${roundValue(paddingX + index * stepX, 1)},${toY(value)}`);
     goalLineSvg = `<polyline points="${projPoints.join(" ")}" class="chart-goal-line" fill="none"></polyline>`;
@@ -9663,12 +9736,24 @@ function renderTrendCard(field) {
     } else {
       trackPill = `<span class="pill strong pill--${aheadGood ? "success" : "warning"}">${Math.abs(diff)} kg ${aheadGood ? "ispred plana" : "iza plana"}</span>`;
     }
-    legendHtml = `
-      <div class="chart-legend">
-        <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>
-        <span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>cilj (${goalRate > 0 ? "+" : ""}${goalRate} kg/ned)</span>
-      </div>`;
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>`);
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>tempo (${goalRate > 0 ? "+" : ""}${goalRate} kg/ned)</span>`);
   }
+  if (targetWeight) {
+    const ty = toY(targetWeight);
+    targetLineSvg = `<line x1="${paddingX}" y1="${ty}" x2="${width - paddingX}" y2="${ty}" class="chart-target-line"></line>`;
+    if (!legendItems.length) {
+      legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>`);
+    }
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--target"></span>ciljna težina (${roundValue(targetWeight, 1)} kg)</span>`);
+    const eta = getGoalEta();
+    if (eta.status === "ok") {
+      etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
+    } else if (eta.status === "reached") {
+      etaCaption = `<div class="chart-eta">🎯 cilj dostignut!</div>`;
+    }
+  }
+  const legendHtml = legendItems.length ? `<div class="chart-legend">${legendItems.join("")}</div>` : "";
 
   return `
     <article class="chart-card">
@@ -9685,6 +9770,7 @@ function renderTrendCard(field) {
         </defs>
         ${gridLines}
         <path d="${areaPath}" class="chart-area" fill="url(#${gradId})"></path>
+        ${targetLineSvg}
         ${goalLineSvg}
         <path d="${linePath}" class="chart-line" fill="none"></path>
         <circle cx="${last.x}" cy="${last.y}" r="3.6" class="chart-dot is-current"></circle>
@@ -9696,6 +9782,7 @@ function renderTrendCard(field) {
         ${trackPill}
       </div>
       ${legendHtml}
+      ${etaCaption}
     </article>
   `;
 }
@@ -10738,7 +10825,7 @@ function renderProgressTab() {
           <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
         </div>
       </div>
-      ${renderHelpNote("Puna linija je tvoja stvarna težina. Isprekidana linija je cilj — gde bi trebalo da budeš ako držiš zadati tempo (npr. −0,5 kg/ned), računato od prvog merenja. Ako si ispod nje, oznaka kaže koliko si „ispred plana“; ako si iznad, koliko si „iza“. Pojavljuje se kad popuniš profil i imaš bar dva merenja težine.")}
+      ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je tempo — gde bi trebalo da budeš pri zadatom tempu (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
       <div class="chart-grid">
         ${chartFields.map((field) => renderTrendCard(field)).join("")}
       </div>
@@ -13953,6 +14040,7 @@ async function handleSubmit(event) {
         store.goals.targetMode = String(formData.get("targetMode") || "lose").trim();
         store.goals.paceLevel = String(formData.get("paceLevel") || "umereno").trim();
         store.goals.calories = toNumber(formData.get("calories"));
+        store.goals.targetWeightKg = toNumber(formData.get("targetWeightKg")) || null;
         store.goals.basisWeightKg = toNumber(formData.get("weightKg")) || store.goals.basisWeightKg || null;
         store.goals.protein = toNumber(formData.get("protein"));
         store.goals.carbs = toNumber(formData.get("carbs"));
