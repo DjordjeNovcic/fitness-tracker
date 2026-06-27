@@ -7479,12 +7479,20 @@ function renderFoodsTab() {
         }
         <div class="empty foods-list-empty" hidden>Nema rezultata za pretragu.</div>
       </div>
-
-      <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Dodaj namirnicu
-      </button>
     </section>
+  `;
+}
+
+// Sticky "+ Dodaj namirnicu" for the Foods tab. Rendered at the app-frame level
+// (not inside the foods .section) because the section's backdrop-filter would
+// otherwise become the containing block for position:fixed and pin the button
+// to the (short) section instead of the viewport.
+function renderFoodsAddFab() {
+  return `
+    <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Dodaj namirnicu
+    </button>
   `;
 }
 
@@ -10372,6 +10380,8 @@ function render() {
         <span class="menu-fab-icon" aria-hidden="true">${renderMenuToggleIcon(state.navMenuOpen)}</span>
         <span class="menu-fab-label">Meni</span>
       </button>
+
+      ${state.activeTab === "foods" ? renderFoodsAddFab() : ""}
 
       ${renderTabBar()}
       ${renderMoreSheet()}
