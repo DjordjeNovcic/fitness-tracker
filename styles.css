@@ -6625,10 +6625,13 @@ body.menu-open .menu-fab {
   --status-error-border: oklch(0.65 0.16 28 / 0.34);
   --status-error-text: oklch(0.78 0.15 30);
   --rail-bg: linear-gradient(180deg, oklch(0.2 0.011 64), oklch(0.165 0.009 64));
-  --shadow: 0 28px 70px rgba(0, 0, 0, 0.6);
-  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.48);
-  --shadow-tight: 0 10px 22px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 18px 34px rgba(0, 0, 0, 0.45);
+  /* Dark mode: keep shadows subtle. Heavy black shadows on dark surfaces read
+     as muddy grey "boxes/halos" around every card and tile, not as elevation —
+     so these are dialed way down (inner tiles rely on a lighter fill instead). */
+  --shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+  --shadow-soft: 0 14px 30px rgba(0, 0, 0, 0.22);
+  --shadow-tight: 0 2px 8px rgba(0, 0, 0, 0.16);
+  --shadow-card: 0 14px 28px rgba(0, 0, 0, 0.24);
   --bar-track: oklch(0.92 0.03 80 / 0.09);
   --bar-ok: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.83 0.132 84));
   --bar-low: linear-gradient(90deg, oklch(0.5 0.07 78), oklch(0.64 0.1 80));
