@@ -5648,18 +5648,14 @@ function renderHero(entries, totals) {
   return `
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
-        <div class="hero-copy">
-          <span class="hero-tag">Plan</span>
-          <div class="hero-copy-text">
-            <h1>Nedeljni jelovnik</h1>
-            <p>Izaberi dan i odmah sredi obroke.</p>
-          </div>
-        </div>
-        <button class="ghost-button hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
+        <span class="hero-tag">Plan</span>
+        <h1 class="hero-title">Nedeljni jelovnik</h1>
+        <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
           ${renderActionIcon("refresh")}
         </button>
       </div>
       <div class="hero-day-picker">
+        <span class="hero-day-label">Izaberi dan</span>
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
