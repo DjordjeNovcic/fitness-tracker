@@ -7033,11 +7033,19 @@ body.menu-open .tab-bar {
 }
 
 /* Inner meal tiles/bands shouldn't cast a card drop-shadow — on the dark card
-   it reads as a grey halo around them. Keep the subtle fill, drop the shadow. */
+   it reads as a grey halo around them. */
 :root[data-theme="dark"] .meal-card-header,
 :root[data-theme="dark"] .meal-card-summary-kcal,
 :root[data-theme="dark"] .meal-summary-macro {
   box-shadow: none;
+}
+
+/* The meal kcal/macro summary tiles use a lighter fill + border that reads as a
+   grey box inside the (same-tone) card. Blend them flat into the card instead. */
+:root[data-theme="dark"] .meal-card-summary-kcal,
+:root[data-theme="dark"] .meal-summary-macro {
+  background: none;
+  border-color: transparent;
 }
 
 :root[data-theme="dark"] .meal-card.is-done {
