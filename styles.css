@@ -9236,6 +9236,51 @@ body.app-header-hidden .workspace-header {
   display: block;
 }
 
+/* Quick add — one-tap re-add of recently used foods */
+.quick-add { display: grid; gap: 6px; }
+.quick-add-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.quick-add-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.quick-add-row::-webkit-scrollbar { display: none; }
+.quick-add-chip {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--secondary-soft);
+  color: var(--ink);
+  cursor: pointer;
+  max-width: 180px;
+}
+.quick-add-chip:hover { border-color: var(--accent); }
+.quick-add-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-add-meta { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+:root[data-theme="dark"] .quick-add-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
+}
+
 .meal-composer-actions {
   display: grid;
   gap: 8px;

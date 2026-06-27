@@ -618,6 +618,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     labResults: Array.isArray(rawStore.labResults) ? rawStore.labResults : [],
     bodyComposition: Array.isArray(rawStore.bodyComposition) ? rawStore.bodyComposition : [],
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
+    foodUsage: rawStore.foodUsage && typeof rawStore.foodUsage === "object" ? rawStore.foodUsage : {},
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
     shoppingChecked:
       rawStore.shoppingChecked && typeof rawStore.shoppingChecked === "object" ? rawStore.shoppingChecked : {},
@@ -727,6 +728,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.measurements = targetStore.measurements || [];
   targetStore.labResults = targetStore.labResults || [];
   targetStore.bodyComposition = targetStore.bodyComposition || [];
+  targetStore.foodUsage = targetStore.foodUsage && typeof targetStore.foodUsage === "object" ? targetStore.foodUsage : {};
   targetStore.progressPhotos = targetStore.progressPhotos || [];
   targetStore.shoppingChecked =
     targetStore.shoppingChecked && typeof targetStore.shoppingChecked === "object" ? targetStore.shoppingChecked : {};
@@ -6344,6 +6346,58 @@ function renderMacroCards(totals, options = {}) {
   return renderMetricsGrid(visible);
 }
 
+// Track which foods get logged so the composer can offer one-tap re-adds of the
+// ones you actually use. Keyed by foodId; remembers count, last amount and when.
+function recordFoodUsage(foodId, grams) {
+  if (!foodId) {
+    return;
+  }
+  store.foodUsage = store.foodUsage && typeof store.foodUsage === "object" ? store.foodUsage : {};
+  const prev = store.foodUsage[foodId] || {};
+  store.foodUsage[foodId] = {
+    count: (toNumber(prev.count) || 0) + 1,
+    lastGrams: toNumber(grams) || toNumber(prev.lastGrams) || null,
+    lastAt: Date.now(),
+  };
+}
+
+// Most recently used foods that still exist, newest first.
+function getQuickAddFoods(limit = 8) {
+  const usage = store.foodUsage || {};
+  return Object.keys(usage)
+    .map((foodId) => ({ food: getFoodById(foodId), usage: usage[foodId] || {} }))
+    .filter((entry) => entry.food)
+    .sort((a, b) => (toNumber(b.usage.lastAt) || 0) - (toNumber(a.usage.lastAt) || 0))
+    .slice(0, limit);
+}
+
+function quickAddGramsFor(food, usage) {
+  return toNumber(usage && usage.lastGrams) || roundValue(food.servingBaseGrams || 100, 0);
+}
+
+function renderQuickAddRow(activeMealLabel) {
+  const items = getQuickAddFoods(8);
+  if (!items.length) {
+    return "";
+  }
+  return `
+    <div class="quick-add">
+      <div class="quick-add-label">Brzi unos — dodaj u jedan tap</div>
+      <div class="quick-add-row">
+        ${items
+          .map(({ food, usage }) => {
+            const grams = quickAddGramsFor(food, usage);
+            const totals = calculateEntry(food, grams);
+            return `<button type="button" class="quick-add-chip" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(activeMealLabel)}" title="${escapeHtml(food.name)} · ${formatFoodAmount(food, grams)}">
+              <span class="quick-add-name">${escapeHtml(food.name)}</span>
+              <span class="quick-add-meta">${formatFoodAmount(food, grams)} · ${roundValue(totals.kcal, 0)} kcal</span>
+            </button>`;
+          })
+          .join("")}
+      </div>
+    </div>`;
+}
+
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const mealParts = getMealDisplayParts(activeMealLabel);
@@ -6361,6 +6415,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         <span class="meal-composer-eyebrow">${isEditing ? "Izmena stavke" : "Nova stavka"}</span>
         <h4>${isEditing ? "Izmeni stavku" : `Dodaj u ${escapeHtml(mealParts.title || activeMealLabel)}`}</h4>
       </div>
+      ${isEditing ? "" : renderQuickAddRow(activeMealLabel)}
       <div class="field meal-composer-field">
         <label for="foodId">1. Koju namirnicu?</label>
         <select id="foodId" name="foodId" required>
@@ -12446,6 +12501,33 @@ async function handleDocumentClick(event) {
       grams,
       done: false,
     });
+    recordFoodUsage(food.id, grams);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "quick-add-food") {
+    const foodId = actionTarget.dataset.foodId;
+    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
+    const food = getFoodById(foodId);
+    if (!food || !mealLabel || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      return;
+    }
+    const grams = quickAddGramsFor(food, store.foodUsage && store.foodUsage[foodId]);
+    const newEntryId = uid("plan");
+    store.weeklyPlanEntries.push({
+      id: newEntryId,
+      weekday: state.selectedWeekday,
+      mealLabel,
+      foodId: food.id,
+      foodName: food.name,
+      grams,
+      done: false,
+    });
+    state.lastAddedEntryId = newEntryId;
+    recordFoodUsage(food.id, grams);
+    expandMealForWeekday(state.selectedWeekday, mealLabel);
     persist();
     render();
     return;
@@ -13216,6 +13298,7 @@ async function handleSubmit(event) {
         done: false,
       });
       state.lastAddedEntryId = newEntryId;
+      recordFoodUsage(food.id, grams);
     }
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     persist();
