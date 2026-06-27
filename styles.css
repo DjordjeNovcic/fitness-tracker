@@ -6723,6 +6723,14 @@ body.menu-open .menu-fab {
   border-color: var(--line);
 }
 
+:root[data-theme="dark"] .status-summary-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
+    var(--surface-strong);
+  border-color: var(--line);
+  box-shadow: var(--shadow-tight);
+}
+
 :root[data-theme="dark"] .workspace-header {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
