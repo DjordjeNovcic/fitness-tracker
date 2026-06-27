@@ -1603,6 +1603,15 @@ textarea::placeholder {
 }
 .foods-add-fab svg { width: 20px; height: 20px; }
 
+/* Mobile uses the sticky FAB; desktop (sidebar layout, no bottom bar) shows an
+   inline add button in the toolbar instead so nothing floats disconnected.
+   Scoped to .foods-secondary to win over the base .solid-button display. */
+.foods-secondary .foods-add-inline { display: none; }
+@media (min-width: 900px) {
+  .foods-add-fab { display: none; }
+  .foods-secondary .foods-add-inline { display: inline-flex; margin-left: auto; }
+}
+
 /* Food editor — two clean sections with step markers */
 .food-form-v2 { display: grid; gap: 18px; }
 .food-form-scan-note { margin: 0; color: var(--muted); font-size: 0.88rem; background: var(--accent-soft); padding: 10px 12px; border-radius: 12px; }
@@ -9258,6 +9267,64 @@ body.app-header-hidden .workspace-header {
     opacity: 1;
     transform: none;
     pointer-events: auto;
+  }
+
+  .more-sheet-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 6px 12px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .more-sheet-user-avatar {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: var(--button-primary-text);
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .more-sheet-user-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .more-sheet-user-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+
+  .more-sheet-user-email {
+    color: var(--muted);
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .more-sheet-user-badge {
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    background: var(--secondary-soft);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 999px;
   }
 
   .more-sheet-tabs {

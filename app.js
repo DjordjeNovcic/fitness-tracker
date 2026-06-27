@@ -221,8 +221,24 @@ function renderTabBar() {
 // toggles, popping up above the tab bar instead of a full-screen slide-out.
 function renderMoreSheet() {
   const moreTabs = TABS.filter((tab) => !PRIMARY_TABS.includes(tab.id));
+  const userEmail = String(state.authUser?.email || "").trim();
+  const isDemo = isDemoAccount();
+  const profileName = String(store.profile?.name || "").trim();
+  const displayName = isDemo ? "Demo nalog" : profileName || (userEmail ? userEmail.split("@")[0] : "Nalog");
+  const userInitial = (displayName || userEmail || "?").charAt(0).toUpperCase() || "?";
   return `
     <div class="more-sheet ${state.navMenuOpen ? "is-open" : ""}" role="menu" aria-label="Više">
+      ${
+        userEmail || profileName
+          ? `<div class="more-sheet-user">
+              <span class="more-sheet-user-avatar" aria-hidden="true">${escapeHtml(userInitial)}</span>
+              <div class="more-sheet-user-info">
+                <span class="more-sheet-user-name">${escapeHtml(displayName)}${isDemo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
+                ${userEmail ? `<span class="more-sheet-user-email">${escapeHtml(userEmail)}</span>` : ""}
+              </div>
+            </div>`
+          : ""
+      }
       <div class="more-sheet-tabs">
         ${moreTabs
           .map(
@@ -7422,6 +7438,9 @@ function renderFoodsTab() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
           Skeniraj
         </button>
+        <button class="foods-add-inline solid-button button-with-icon" type="button" data-action="open-food-editor-dialog">
+          ${renderButtonContent("Dodaj namirnicu", "add")}
+        </button>
       </div>
       <div class="food-list foods-list">
         ${
@@ -10667,6 +10686,11 @@ async function handleDocumentClick(event) {
     state.activeTab = nextTab;
     state.editingMealLabel = "";
     state.navMenuOpen = false;
+    // Reset transient Namirnice UI so returning to it always starts clean —
+    // otherwise a stale search re-applies on render and shows the empty state.
+    state.foodSearch = "";
+    state.foodMenuOpenId = "";
+    state.foodFiltersOpen = false;
     resetFoodEditing();
     resetRoutineEditing();
     if (state.activeTab === "foods") {
