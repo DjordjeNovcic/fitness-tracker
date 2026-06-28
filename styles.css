@@ -3178,6 +3178,13 @@ textarea::placeholder {
   color: #f0b35a;
 }
 
+.progress-share-button {
+  margin-top: 14px;
+  width: 100%;
+  justify-content: center;
+  min-height: 46px;
+}
+
 /* Contextual help — collapsed "Kako ovo radi?" notes */
 .help-note { margin: -2px 0 10px; }
 .help-note > summary {

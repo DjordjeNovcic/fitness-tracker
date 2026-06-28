@@ -6149,6 +6149,7 @@ function renderActionIcon(kind) {
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
     apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
+    share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -9897,6 +9898,11 @@ function renderProgressSummary(summary) {
         </article>
       </div>
       ${
+        getShareProgressData().hasData
+          ? `<button class="solid-button secondary-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli napredak", "share")}</button>`
+          : ""
+      }
+      ${
         !summary.measurementCount && !summary.photoCount
           ? `
             <div class="empty progress-empty-guide">
@@ -10751,6 +10757,229 @@ function renderInsightsSection() {
       <div class="stats-grid insights-grid">${cards.join("")}</div>
       ${energyHtml}
     </section>`;
+}
+
+// ---- Share progress card --------------------------------------------------
+// Composites a clean before/after image (photos when available + key numbers)
+// onto a canvas, then shares it via the Web Share API or downloads a PNG.
+function getShareProgressData() {
+  const weights = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  let weight = null;
+  if (weights.length >= 2) {
+    const f = weights[0];
+    const l = weights[weights.length - 1];
+    weight = { from: toNumber(f.weightKg), to: toNumber(l.weightKg), delta: roundValue(toNumber(l.weightKg) - toNumber(f.weightKg), 1), fromDate: f.date, toDate: l.date };
+  }
+  const fatSeries = getBodyMetricSeries("fatPct");
+  const fat = fatSeries.length >= 2 ? { delta: roundValue(fatSeries[fatSeries.length - 1].value - fatSeries[0].value, 1) } : null;
+
+  const photos = [...store.progressPhotos].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let pair = null;
+  for (const tag of PHOTO_TAGS) {
+    const tagged = photos.filter((p) => p.tag === tag && p.previewUrl);
+    if (tagged.length >= 2) {
+      pair = { before: tagged[0], after: tagged[tagged.length - 1] };
+      break;
+    }
+  }
+
+  let period = null;
+  const start = (weight && weight.fromDate) || (pair && pair.before.date);
+  const end = (weight && weight.toDate) || (pair && pair.after.date);
+  if (start && end) {
+    const days = Math.round((getDateValueAsLocalDate(end).getTime() - getDateValueAsLocalDate(start).getTime()) / DAY_IN_MS);
+    period = { days, weeks: Math.max(1, Math.round(days / 7)) };
+  }
+  return { weight, fat, pair, period, hasData: Boolean(weight || fat || pair) };
+}
+
+function loadShareImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  const rad = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+}
+
+function drawCoverImage(ctx, img, x, y, w, h, r) {
+  ctx.save();
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.clip();
+  const scale = Math.max(w / img.width, h / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  ctx.restore();
+}
+
+async function buildShareCardCanvas(data) {
+  const W = 1080;
+  const H = 1350;
+  const pad = 72;
+  const cream = "#f4efe3";
+  const ink = "#1b2a20";
+  const green = "#2f6e4e";
+  const goodGreen = "#2f8f5b";
+  const muted = "#7a847b";
+  const panel = "#eaf1e8";
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = cream;
+  ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = green;
+  ctx.font = "700 26px -apple-system, 'Segoe UI', Roboto, sans-serif";
+  ctx.fillText("FIT TRACKER", pad, 104);
+  ctx.fillStyle = ink;
+  ctx.font = "700 66px Georgia, 'Times New Roman', serif";
+  ctx.fillText("Moj napredak", pad, 176);
+  if (data.period) {
+    const w = data.period.weeks;
+    const mod10 = w % 10;
+    const mod100 = w % 100;
+    const weeksWord = mod10 === 1 && mod100 !== 11 ? "nedelju" : mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14) ? "nedelje" : "nedelja";
+    ctx.fillStyle = muted;
+    ctx.font = "400 30px -apple-system, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillText(`za ${w} ${weeksWord}`, pad, 224);
+  }
+
+  let cursorY = 270;
+
+  // Before/after photos
+  if (data.pair) {
+    const [beforeImg, afterImg] = await Promise.all([loadShareImage(data.pair.before.previewUrl), loadShareImage(data.pair.after.previewUrl)]);
+    const gap = 32;
+    const boxW = (W - pad * 2 - gap) / 2;
+    const boxH = 620;
+    const cols = [
+      { img: beforeImg, label: "PRE", date: data.pair.before.date, x: pad },
+      { img: afterImg, label: "SAD", date: data.pair.after.date, x: pad + boxW + gap },
+    ];
+    cols.forEach((col) => {
+      if (col.img) {
+        drawCoverImage(ctx, col.img, col.x, cursorY, boxW, boxH, 28);
+      } else {
+        ctx.fillStyle = panel;
+        roundRectPath(ctx, col.x, cursorY, boxW, boxH, 28);
+        ctx.fill();
+      }
+      // label chip
+      ctx.fillStyle = green;
+      roundRectPath(ctx, col.x + 20, cursorY + 20, col.label === "PRE" ? 96 : 104, 48, 24);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 26px -apple-system, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText(col.label, col.x + 40, cursorY + 53);
+      // date under
+      ctx.fillStyle = muted;
+      ctx.font = "400 26px -apple-system, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText(new Date(col.date).toLocaleDateString("sr-RS"), col.x + 4, cursorY + boxH + 40);
+    });
+    cursorY += boxH + 80;
+  } else {
+    cursorY += 30;
+  }
+
+  // Stat tiles
+  const tiles = [];
+  if (data.weight) tiles.push({ value: `${data.weight.delta > 0 ? "+" : "−"}${Math.abs(data.weight.delta)} kg`, label: "težina", good: data.weight.delta < 0 });
+  if (data.fat) tiles.push({ value: `${data.fat.delta > 0 ? "+" : "−"}${Math.abs(data.fat.delta)} %`, label: "telesna mast", good: data.fat.delta < 0 });
+  if (data.weight) tiles.push({ value: `${data.weight.to}`, label: "kg sada", good: null });
+  const shown = tiles.slice(0, 3);
+  if (shown.length) {
+    const gap = 28;
+    const tileW = (W - pad * 2 - gap * (shown.length - 1)) / shown.length;
+    const tileH = 200;
+    shown.forEach((tile, i) => {
+      const x = pad + i * (tileW + gap);
+      ctx.fillStyle = panel;
+      roundRectPath(ctx, x, cursorY, tileW, tileH, 26);
+      ctx.fill();
+      ctx.fillStyle = tile.good === true ? goodGreen : ink;
+      ctx.font = "700 58px -apple-system, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(tile.value, x + tileW / 2, cursorY + 110);
+      ctx.fillStyle = muted;
+      ctx.font = "400 30px -apple-system, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText(tile.label, x + tileW / 2, cursorY + 158);
+      ctx.textAlign = "left";
+    });
+  }
+
+  // Footer wordmark
+  ctx.fillStyle = green;
+  ctx.font = "700 34px Georgia, serif";
+  ctx.fillText("Fit Tracker", pad, H - 64);
+  ctx.fillStyle = muted;
+  ctx.font = "400 26px -apple-system, 'Segoe UI', Roboto, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("tvoj plan ishrane i treninga", W - pad, H - 64);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+}
+
+async function shareProgressCard() {
+  const data = getShareProgressData();
+  if (!data.hasData) {
+    showFeedbackToast({ title: "Nema šta da se podeli još", detail: "Unesi bar dva merenja težine ili dve slike pa probaj.", tone: "warning" });
+    return;
+  }
+  try {
+    const canvas = await buildShareCardCanvas(data);
+    const blob = await canvasToBlob(canvas);
+    if (!blob) {
+      throw new Error("blob");
+    }
+    const file = new File([blob], "fit-tracker-napredak.png", { type: "image/png" });
+    if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: [file] }) && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ files: [file], title: "Moj napredak", text: "Moj napredak — Fit Tracker" });
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
+    // Fallback: download the PNG.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "fit-tracker-napredak.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showFeedbackToast({ title: "Slika je sačuvana", detail: "Deljenje nije podržano na ovom uređaju, pa je slika preuzeta.", tone: "success" });
+  } catch (error) {
+    console.error("Share progress failed", error);
+    showFeedbackToast({ title: "Pravljenje slike nije uspelo", detail: "Pokušaj ponovo.", tone: "error" });
+  }
 }
 
 function renderProgressTab() {
@@ -12533,6 +12762,11 @@ async function handleDocumentClick(event) {
         .then(() => showFeedbackToast({ title: "Lista je kopirana", detail: "Deljenje nije podržano, pa je lista kopirana.", tone: "success" }))
         .catch(() => showFeedbackToast({ title: "Slanje nije uspelo", detail: "Probaj „Kopiraj listu”.", tone: "error" }));
     }
+    return;
+  }
+
+  if (action === "share-progress") {
+    shareProgressCard();
     return;
   }
 
