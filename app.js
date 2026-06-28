@@ -525,6 +525,7 @@ const state = {
   navMenuOpen: false,
   sidebarCollapsed: false,
   updateReady: false,
+  isOnline: typeof navigator === "undefined" || navigator.onLine !== false,
 };
 
 let pendingUndoTimer = null;
@@ -11496,6 +11497,20 @@ function render() {
       }
 
       ${
+        !state.isOnline
+          ? `
+            <div class="offline-banner" role="status" aria-live="polite">
+              <span class="offline-banner-dot" aria-hidden="true"></span>
+              <div>
+                <strong>Nema interneta</strong>
+                <div class="footer-note" style="margin-top:2px;">Radiš normalno — sve se čuva na uređaju i sinhronizuje čim se vratiš online.</div>
+              </div>
+            </div>
+          `
+          : ""
+      }
+
+      ${
         state.syncConflict
           ? `
             <div class="sync-conflict-banner" role="alertdialog" aria-live="assertive" aria-label="Konflikt sinhronizacije">
@@ -14586,6 +14601,18 @@ window.addEventListener("hashchange", () => {
     render();
   }
 });
+
+// Live connection status → offline banner. Transitions are rare, so a full
+// re-render here is fine.
+function handleConnectionChange() {
+  const online = navigator.onLine !== false;
+  if (online !== state.isOnline) {
+    state.isOnline = online;
+    render();
+  }
+}
+window.addEventListener("online", handleConnectionChange);
+window.addEventListener("offline", handleConnectionChange);
 
 window.addEventListener("scroll", updateHeroScrollState, { passive: true });
 
