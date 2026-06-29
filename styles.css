@@ -3178,6 +3178,39 @@ textarea::placeholder {
   color: #f0b35a;
 }
 
+/* Segmented sub-navigation within a tab (Napredak, Ciljevi) */
+.seg-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--secondary-soft);
+  border: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.seg-nav::-webkit-scrollbar { display: none; }
+.seg-nav-btn {
+  flex: 1 1 0;
+  min-width: max-content;
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg-nav-btn.is-active {
+  background: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: var(--shadow-tight);
+}
+:root[data-theme="dark"] .seg-nav { background: rgba(255, 255, 255, 0.04); }
+
 .progress-share-button {
   margin-top: 14px;
   width: 100%;

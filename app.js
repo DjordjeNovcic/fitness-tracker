@@ -506,6 +506,8 @@ const state = {
   progressCompareLeftId: "",
   progressCompareRightId: "",
   insightsPeriod: 30,
+  progressView: "pregled",
+  goalsView: "cilj",
   pendingUndo: null,
   editingFoodId: "",
   nutritionEditingFoodId: "",
@@ -8868,7 +8870,15 @@ function renderGoalsTab() {
     },
   ];
 
+  const gView = ["cilj", "nedeljno", "nalog"].includes(state.goalsView) ? state.goalsView : "cilj";
+  const gSegNav = `<div class="seg-nav">${[["cilj", "Cilj"], ["nedeljno", "Nedeljno"], ["nalog", "Nalog"]]
+    .map(([id, label]) => `<button type="button" class="seg-nav-btn ${id === gView ? "is-active" : ""}" data-action="set-goals-view" data-view="${id}">${label}</button>`)
+    .join("")}</div>`;
+
   return `
+    ${gSegNav}
+
+    ${gView === "cilj" ? `
     ${renderAdaptiveGoalNudge()}
 
     <section class="section goals-profile-section">
@@ -8972,7 +8982,9 @@ function renderGoalsTab() {
         </div>
       </form>
     </section>
+    ` : ""}
 
+    ${gView === "nedeljno" ? `
     <section class="section goals-weekly-section">
       ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.", { eyebrow: "Pregled" })}
       <div class="stats-grid">
@@ -9021,7 +9033,11 @@ function renderGoalsTab() {
           .join("")}
       </div>
     </details>
+    ` : ""}
+
+    ${gView === "nalog" ? `
     ${renderAccountSection()}
+    ` : ""}
   `;
 }
 
@@ -10994,7 +11010,15 @@ function renderProgressTab() {
   const taggedPhotos = photos.filter((photo) => photo.tag === activeCompareTag);
   const compare = getPhotoComparePair(taggedPhotos);
 
+  const view = ["pregled", "merenja", "zdravlje", "slike"].includes(state.progressView) ? state.progressView : "pregled";
+  const segNav = `<div class="seg-nav">${[["pregled", "Pregled"], ["merenja", "Merenja"], ["zdravlje", "Zdravlje"], ["slike", "Slike"]]
+    .map(([id, label]) => `<button type="button" class="seg-nav-btn ${id === view ? "is-active" : ""}" data-action="set-progress-view" data-view="${id}">${label}</button>`)
+    .join("")}</div>`;
+
   return `
+    ${segNav}
+
+    ${view === "pregled" ? `
     ${renderInsightsSection()}
 
     ${renderProgressSummary(summary)}
@@ -11002,7 +11026,9 @@ function renderProgressTab() {
     ${renderWeeklyReportSection()}
 
     ${renderProgressHistorySection()}
+    ` : ""}
 
+    ${view === "merenja" ? `
     <details class="section form-collapse">
       <summary>
         <span class="form-collapse-title">Dodaj merenje</span>
@@ -11060,11 +11086,15 @@ function renderProgressTab() {
         ${chartFields.map((field) => renderTrendCard(field)).join("")}
       </div>
     </section>
+    ` : ""}
 
+    ${view === "zdravlje" ? `
     ${renderLabSection()}
 
     ${renderBodyCompositionSection()}
+    ` : ""}
 
+    ${view === "slike" ? `
     <section class="section">
       <div class="section-header">
         <div>
@@ -11210,7 +11240,9 @@ function renderProgressTab() {
         }
       </div>
     </section>
+    ` : ""}
 
+    ${view === "merenja" ? `
     <details class="section form-collapse">
       <summary>
         <span class="form-collapse-title">Istorija unosa</span>
@@ -11250,6 +11282,7 @@ function renderProgressTab() {
         }
       </div>
     </details>
+    ` : ""}
   `;
 }
 
@@ -11905,6 +11938,24 @@ async function handleDocumentClick(event) {
     const period = parseInt(actionTarget.dataset.period, 10);
     if ([30, 60, 90].includes(period)) {
       state.insightsPeriod = period;
+      render();
+    }
+    return;
+  }
+
+  if (action === "set-progress-view") {
+    const view = actionTarget.dataset.view;
+    if (["pregled", "merenja", "zdravlje", "slike"].includes(view)) {
+      state.progressView = view;
+      render();
+    }
+    return;
+  }
+
+  if (action === "set-goals-view") {
+    const view = actionTarget.dataset.view;
+    if (["cilj", "nedeljno", "nalog"].includes(view)) {
+      state.goalsView = view;
       render();
     }
     return;
