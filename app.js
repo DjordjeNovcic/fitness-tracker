@@ -144,6 +144,7 @@ const TABS = [
   { id: "recipes", label: "Recepti", icon: "🥣" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
+  { id: "running", label: "Trčanje", icon: "🏃" },
   { id: "routine", label: "Rutina", icon: "✅" },
   { id: "progress", label: "Napredak", icon: "📏" },
   { id: "goals", label: "Ciljevi", icon: "🎯" },
@@ -160,6 +161,7 @@ const TAB_META = {
   nutrition: { eyebrow: "Dokumenti", description: "Pregled uvezenih planova, preporuka i recepata sa mestom za sređivanje svega što parser pronađe." },
   foods: { eyebrow: "Baza", description: "Pretraži namirnice, proveri makroe i dopuni bazu novim unosima." },
   training: { eyebrow: "Performans", description: "Plan treninga, potrošnja i progres po vežbama na jednom mestu." },
+  running: { eyebrow: "Kardio", description: "Beleži trčanja — distancu, vreme, tempo i puls, sa pregledom forme kroz vreme." },
   routine: { eyebrow: "Svakodnevica", description: "Navike, taskovi i nedeljni pregled koji pomažu da plan ostane realan." },
   progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i progress slike za jasan pregled napretka kroz vreme." },
   goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
@@ -174,6 +176,7 @@ const TAB_ICON_PATHS = {
   nutrition: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
   foods: '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>',
   training: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/>',
+  running: '<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/>',
   routine: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
   progress: '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
   goals: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
@@ -297,6 +300,15 @@ const SUPPLEMENT_TIMINGS = [
   { id: "lunch", label: "Uz ručak" },
   { id: "postworkout", label: "Posle treninga" },
   { id: "evening", label: "Uveče" },
+];
+
+// Vrste trčanja — koriste se u formi za unos i kao oznaka (pill) na kartici.
+const RUN_TYPES = [
+  { id: "lagano", label: "Lagano" },
+  { id: "tempo", label: "Tempo" },
+  { id: "intervali", label: "Intervali" },
+  { id: "dugo", label: "Dugačko" },
+  { id: "trka", label: "Trka" },
 ];
 
 const defaultMeals = [
@@ -515,6 +527,9 @@ const state = {
   editingHabitId: "",
   editingTaskId: "",
   editingSupplementId: "",
+  // Podaci poslednjeg trčanja učitani iz clipboard-a (Apple Prečica) — pune formu
+  // dok se ne sačuva. null = nema učitanog drafta.
+  runImportDraft: null,
   nutritionImportPending: false,
   nutritionImportStatus: "",
   authReady: false,
@@ -610,6 +625,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     favoriteTrainings: Array.isArray(rawStore.favoriteTrainings) ? rawStore.favoriteTrainings : [],
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
+    runs: Array.isArray(rawStore.runs) ? rawStore.runs : [],
     trainingBurnByWeekday:
       rawStore.trainingBurnByWeekday && typeof rawStore.trainingBurnByWeekday === "object"
         ? rawStore.trainingBurnByWeekday
@@ -727,6 +743,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.habits = (targetStore.habits || []).map((habit) => normalizeHabitRecord(habit));
   targetStore.dayTasks = targetStore.dayTasks || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
+  targetStore.runs = targetStore.runs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
   targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
@@ -8406,6 +8423,481 @@ function renderTrainingTab() {
   `;
 }
 
+// ---- Trčanje (running log) ------------------------------------------------
+// Trenutna težina za grubu procenu potrošnje (≈1.036 kcal/kg/km). Profil ima
+// prednost, pa najnovije merenje, inače nema procene (vrednost se sakrije).
+function getCurrentWeightKg() {
+  const profileWeight = toNumber(store.profile?.weightKg);
+  if (profileWeight > 0) {
+    return profileWeight;
+  }
+  const latest = getLatestMeasurement();
+  const measured = latest ? toNumber(latest.weightKg) : 0;
+  return measured > 0 ? measured : 0;
+}
+
+// Sekunde -> "M:SS" (ili "H:MM:SS" za trčanja preko sat vremena).
+function formatRunDuration(totalSec) {
+  const sec = Math.max(0, Math.round(Number(totalSec) || 0));
+  const hours = Math.floor(sec / 3600);
+  const minutes = Math.floor((sec % 3600) / 60);
+  const seconds = sec % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+// Sekundi-po-kilometru -> tempo "M:SS" (zaokruživanje 60s se prebacuje u minut).
+function formatRunPace(secPerKm) {
+  if (!Number.isFinite(secPerKm) || secPerKm <= 0) {
+    return "—";
+  }
+  let minutes = Math.floor(secPerKm / 60);
+  let seconds = Math.round(secPerKm % 60);
+  if (seconds === 60) {
+    minutes += 1;
+    seconds = 0;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getRunTypeLabel(typeId) {
+  const match = RUN_TYPES.find((type) => type.id === typeId);
+  return match ? match.label : "Trčanje";
+}
+
+// Izvedene veličine za jedno trčanje: tempo, brzina i procena potrošnje.
+function getRunDerived(run) {
+  const distanceKm = toNumber(run.distanceKm);
+  const durationSec = Math.max(0, Number(run.durationSec) || 0);
+  const paceSec = distanceKm > 0 && durationSec > 0 ? durationSec / distanceKm : null;
+  const speedKmh = distanceKm > 0 && durationSec > 0 ? distanceKm / (durationSec / 3600) : null;
+  const weightKg = getCurrentWeightKg();
+  const calories = weightKg > 0 && distanceKm > 0 ? Math.round(1.036 * weightKg * distanceKm) : null;
+  return { distanceKm, durationSec, paceSec, speedKmh, calories };
+}
+
+function getSortedRuns() {
+  return [...(store.runs || [])].sort((a, b) => {
+    const dateDiff = new Date(b.date) - new Date(a.date);
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+}
+
+// Zbirne statistike: poslednjih 7 dana, tekući mesec, ukupno + rekordi.
+function getRunStats() {
+  const runs = store.runs || [];
+  const now = new Date();
+  const todayMidday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0).getTime();
+  const weekStart = todayMidday - 6 * 86400000; // poslednjih 7 dana, uključujući danas
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0).getTime();
+
+  const stats = {
+    totalCount: 0,
+    totalKm: 0,
+    totalSec: 0,
+    weekCount: 0,
+    weekKm: 0,
+    weekSec: 0,
+    monthCount: 0,
+    monthKm: 0,
+    monthSec: 0,
+    bestPaceSec: null,
+    longestKm: 0,
+  };
+
+  runs.forEach((run) => {
+    const km = toNumber(run.distanceKm);
+    const sec = Math.max(0, Number(run.durationSec) || 0);
+    stats.totalCount += 1;
+    stats.totalKm += km;
+    stats.totalSec += sec;
+
+    const runDate = getDateValueAsLocalDate(run.date);
+    if (runDate) {
+      const time = runDate.getTime();
+      if (time >= weekStart) {
+        stats.weekCount += 1;
+        stats.weekKm += km;
+        stats.weekSec += sec;
+      }
+      if (time >= monthStart) {
+        stats.monthCount += 1;
+        stats.monthKm += km;
+        stats.monthSec += sec;
+      }
+    }
+
+    // Najbrži tempo se računa samo za trčanja od bar 1 km da kratke deonice ne
+    // izbace nerealan rekord.
+    if (km >= 1 && sec > 0) {
+      const pace = sec / km;
+      if (stats.bestPaceSec === null || pace < stats.bestPaceSec) {
+        stats.bestPaceSec = pace;
+      }
+    }
+    if (km > stats.longestKm) {
+      stats.longestKm = km;
+    }
+  });
+
+  return stats;
+}
+
+// Format koji Apple Prečica izbaci u clipboard: jedna linija sa markerom
+// "FITRUN" pa key=value parovi razdvojeni tačka-zarezom ili novim redom, npr:
+//   FITRUN;km=5.2;t=30:00;hr=145;hrmax=168;tip=lagano;datum=2026-06-30
+// Vreme može doći kao t=MM:SS / t=H:MM:SS, sec=<sekunde> ili min=<decimalno>.
+function parseRunTimeToSeconds(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return 0;
+  }
+  const parts = raw.split(":").map((part) => Number(part.trim().replace(",", ".")));
+  if (parts.some((n) => Number.isNaN(n))) {
+    return 0;
+  }
+  if (parts.length === 3) {
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+  if (parts.length === 2) {
+    return Math.max(0, parts[0] * 60 + parts[1]);
+  }
+  if (parts.length === 1) {
+    return Math.max(0, Math.round(parts[0]));
+  }
+  return 0;
+}
+
+function parseRunClipboard(rawText) {
+  const text = String(rawText || "").trim();
+  const markerIndex = text.search(/FITRUN/i);
+  if (markerIndex === -1) {
+    return null;
+  }
+
+  const fields = {};
+  text
+    .slice(markerIndex + "FITRUN".length)
+    .split(/[;\n\r]+/)
+    .forEach((chunk) => {
+      const eq = chunk.indexOf("=");
+      if (eq === -1) {
+        return;
+      }
+      const key = chunk.slice(0, eq).trim().toLowerCase();
+      const value = chunk.slice(eq + 1).trim();
+      if (key) {
+        fields[key] = value;
+      }
+    });
+
+  // Apple Prečica formatira brojeve po lokalitetu, pa distanca/min mogu doći sa
+  // zarezom (npr. "5,2") — toNumber gleda samo tačku, zato ovde normalizujemo.
+  const num = (value) => toNumber(String(value ?? "").replace(",", "."));
+
+  const km = num(fields.km ?? fields.distanca ?? fields.distance);
+
+  let durationSec = 0;
+  if (fields.sec) {
+    durationSec = Math.max(0, Math.round(num(fields.sec)));
+  } else if (fields.min) {
+    durationSec = Math.max(0, Math.round(num(fields.min) * 60));
+  } else if (fields.t || fields.vreme || fields.time) {
+    durationSec = parseRunTimeToSeconds(fields.t ?? fields.vreme ?? fields.time);
+  }
+
+  // Bez bar distance ili vremena nema šta da se popuni — tretiramo kao promašaj.
+  if (!(km > 0) && !(durationSec > 0)) {
+    return null;
+  }
+
+  const avgHr = Math.round(num(fields.hr ?? fields.puls ?? fields.avghr));
+  const maxHr = Math.round(num(fields.hrmax ?? fields.maxpuls ?? fields.maxhr));
+  const typeRaw = String(fields.tip ?? fields.type ?? "").trim().toLowerCase();
+  const type = RUN_TYPES.some((entry) => entry.id === typeRaw) ? typeRaw : null;
+  const date = normalizeDateValue(fields.datum ?? fields.date ?? "");
+
+  return {
+    km: km > 0 ? roundValue(km, 2) : null,
+    durationSec: durationSec > 0 ? durationSec : null,
+    avgHr: avgHr > 0 ? avgHr : null,
+    maxHr: maxHr > 0 ? maxHr : null,
+    type,
+    date: date || null,
+  };
+}
+
+function applyRunClipboardText(text, options = {}) {
+  const { silentOnMiss = false } = options;
+  const parsed = parseRunClipboard(text);
+  if (!parsed) {
+    if (!silentOnMiss) {
+      showFeedbackToast({
+        title: "Ništa za uvoz",
+        detail: "Nisam našao podatke iz Prečice u clipboard-u. Pokreni prečicu pa probaj ponovo.",
+        tone: "warning",
+        duration: 3400,
+      });
+    }
+    return false;
+  }
+  state.runImportDraft = parsed;
+  render();
+  showFeedbackToast({
+    title: "Učitano sa sata",
+    detail: "Proveri vrednosti i pritisni „Sačuvaj trčanje”.",
+    tone: "success",
+    duration: 3400,
+  });
+  return true;
+}
+
+// Auto-pokušaj pri otvaranju Trčanja: čitamo clipboard samo ako je dozvola već
+// data, da ne iskačemo sa sistemskim promptom na svaki ulazak u tab. Ako nije
+// (npr. iOS Safari), korisnik koristi dugme „Popuni sa sata” koje radi uz tap.
+async function maybeAutoImportRunFromClipboard() {
+  if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
+    return;
+  }
+  let granted = false;
+  try {
+    if (navigator.permissions && typeof navigator.permissions.query === "function") {
+      const status = await navigator.permissions.query({ name: "clipboard-read" });
+      granted = status.state === "granted";
+    }
+  } catch (error) {
+    granted = false;
+  }
+  if (!granted) {
+    return;
+  }
+  try {
+    const text = await navigator.clipboard.readText();
+    applyRunClipboardText(text, { silentOnMiss: true });
+  } catch (error) {
+    /* tihi promašaj — dugme „Popuni sa sata” ostaje kao pouzdan put */
+  }
+}
+
+function renderRunCard(run) {
+  const derived = getRunDerived(run);
+  const dateLabel = new Date(run.date).toLocaleDateString("sr-RS", { day: "numeric", month: "long", year: "numeric" });
+  const metrics = [
+    { label: "Distanca", value: `${roundValue(derived.distanceKm, 2)}`, unit: "km" },
+    { label: "Vreme", value: formatRunDuration(derived.durationSec), unit: "" },
+    { label: "Tempo", value: formatRunPace(derived.paceSec), unit: "/km" },
+    { label: "Brzina", value: derived.speedKmh ? `${roundValue(derived.speedKmh, 1)}` : "—", unit: "km/h" },
+  ];
+  if (run.avgHr) {
+    metrics.push({ label: "Puls (pros.)", value: `${run.avgHr}`, unit: "bpm" });
+  }
+  if (run.maxHr) {
+    metrics.push({ label: "Puls (maks.)", value: `${run.maxHr}`, unit: "bpm" });
+  }
+  if (derived.calories) {
+    metrics.push({ label: "Kalorije", value: `${derived.calories}`, unit: "kcal" });
+  }
+
+  return `
+    <article class="food-card run-card">
+      <div class="food-card-top run-card-top">
+        <div class="run-card-head">
+          <strong>${escapeHtml(dateLabel)}</strong>
+          <span class="run-type-pill run-type-${escapeHtml(run.type || "lagano")}">${escapeHtml(getRunTypeLabel(run.type))}</span>
+        </div>
+        <button class="danger-button" data-action="delete-run" data-run-id="${run.id}">Obriši</button>
+      </div>
+      <div class="run-metrics">
+        ${metrics
+          .map(
+            (metric) => `
+              <div class="run-metric">
+                <span class="run-metric-label">${metric.label}</span>
+                <span class="run-metric-value">${metric.value}${metric.unit ? ` <small>${metric.unit}</small>` : ""}</span>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      ${run.note ? `<div class="footer-note run-card-note">${escapeHtml(run.note)}</div>` : ""}
+    </article>
+  `;
+}
+
+function renderRunningTab() {
+  const stats = getRunStats();
+  const runs = getSortedRuns();
+  const hasRuns = runs.length > 0;
+  const weekPaceSec = stats.weekKm > 0 ? stats.weekSec / stats.weekKm : null;
+
+  // Pre-fill iz clipboard-a (Apple Prečica) — popunjava polja dok se ne sačuva.
+  const draft = state.runImportDraft || {};
+  const draftDate = draft.date || getTodayDateValue();
+  const draftKm = draft.km != null ? String(draft.km) : "";
+  const draftMinutes = draft.durationSec != null ? String(Math.floor(draft.durationSec / 60)) : "";
+  const draftSeconds = draft.durationSec != null ? String(draft.durationSec % 60) : "";
+  const draftAvgHr = draft.avgHr != null ? String(draft.avgHr) : "";
+  const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
+  const draftType = draft.type || "";
+  const hasImportDraft = Boolean(state.runImportDraft);
+
+  return `
+    <section class="section running-summary-section">
+      <div class="section-header">
+        <div>
+          <h2>Trčanje ove nedelje</h2>
+          <p>Zbir poslednjih 7 dana — koliko si istrčao, za koje vreme i kojim tempom.</p>
+        </div>
+      </div>
+      ${renderHelpNote(
+        "Upiši svako trčanje sa <strong>distancom</strong> i <strong>vremenom</strong> — aplikacija sama računa <strong>tempo</strong> (min/km), brzinu i grubu procenu potrošnje kalorija (na osnovu tvoje težine iz profila). Puls je opcioni, ali pomaže da pratiš da li trčiš lagano ili napadaš. Tip trčanja (lagano, tempo, intervali, dugačko, trka) ti kasnije olakšava da prepoznaš kakva je sesija bila."
+      )}
+      <div class="stats-grid running-summary-grid">
+        <article class="stat-card">
+          <strong>Trčanja</strong>
+          <div class="macro-value">${stats.weekCount}</div>
+          <div class="footer-note">Poslednjih 7 dana</div>
+        </article>
+        <article class="stat-card">
+          <strong>Kilometri</strong>
+          <div class="macro-value">${roundValue(stats.weekKm, 1)} <small>km</small></div>
+          <div class="footer-note">Ukupno ove nedelje</div>
+        </article>
+        <article class="stat-card">
+          <strong>Vreme</strong>
+          <div class="macro-value">${stats.weekSec ? formatRunDuration(stats.weekSec) : "0:00"}</div>
+          <div class="footer-note">Provedeno u trčanju</div>
+        </article>
+        <article class="stat-card">
+          <strong>Prosečan tempo</strong>
+          <div class="macro-value">${formatRunPace(weekPaceSec)} <small>/km</small></div>
+          <div class="footer-note">Nedeljni prosek</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section running-add-section">
+      <div class="section-header">
+        <div>
+          <h2>Dodaj trčanje</h2>
+          <p>Unesi distancu i vreme; puls i napomenu po želji — ili učitaj zadnje trčanje sa Apple Watch-a.</p>
+        </div>
+      </div>
+      <article class="food-card suggestion-surface running-add-card">
+        <div class="run-import-bar ${hasImportDraft ? "is-loaded" : ""}">
+          <button class="solid-button secondary-button button-with-icon run-import-button" type="button" data-action="import-run-clipboard">
+            ${renderButtonContent(hasImportDraft ? "Učitaj ponovo sa sata" : "Popuni sa sata", "copy")}
+          </button>
+          <p class="run-import-hint">${
+            hasImportDraft
+              ? "Učitano iz Prečice — proveri brojke i sačuvaj."
+              : "Pokreni Apple prečicu, pa ovde učitaj zadnje trčanje iz clipboard-a."
+          }</p>
+        </div>
+        ${renderHelpNote(
+          "Web app ne može direktno da čita Apple Watch, pa ide preko <strong>Prečice (Shortcuts app)</strong>:<br>1) Shortcuts → nova prečica → akcija <strong>„Find Workouts”</strong> (Health), filter <em>Type is Running</em>, sortiraj po <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Get details of Workouts”</strong> → uzmi Distance, Duration, Average Heart Rate.<br>3) <strong>„Text”</strong> akcija složi liniju:<br><code>FITRUN;km=[Distance];sec=[Duration];hr=[Avg HR];hrmax=[Max HR];tip=lagano;datum=[Date]</code><br>4) <strong>„Copy to Clipboard”</strong>.<br>Pokreneš prečicu → vratiš se ovde → „Popuni sa sata”. Polja koja pošalješ se popune, ostalo dopuniš ručno.",
+          "Kako da povučem sa Apple Watch-a?"
+        )}
+        <form id="run-form" class="form-grid split run-form">
+          <div class="field date-field">
+            <label for="run-date">Datum</label>
+            <input id="run-date" name="date" type="date" value="${draftDate}" required />
+          </div>
+          <div class="field">
+            <label for="run-type">Tip trčanja</label>
+            <select id="run-type" name="type">
+              ${RUN_TYPES.map((type) => `<option value="${type.id}" ${type.id === draftType ? "selected" : ""}>${type.label}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label for="run-distance">Distanca (km)</label>
+            <input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />
+          </div>
+          <div class="field">
+            <label for="run-minutes">Vreme (min : sek)</label>
+            <div class="run-time-inputs">
+              <input id="run-minutes" name="minutes" type="number" min="0" step="1" inputmode="numeric" placeholder="min" aria-label="Minuti" value="${draftMinutes}" />
+              <span class="run-time-sep" aria-hidden="true">:</span>
+              <input id="run-seconds" name="seconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="sek" aria-label="Sekunde" value="${draftSeconds}" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="run-avg-hr">Prosečan puls</label>
+            <input id="run-avg-hr" name="avgHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 145" value="${draftAvgHr}" />
+          </div>
+          <div class="field">
+            <label for="run-max-hr">Maksimalan puls</label>
+            <input id="run-max-hr" name="maxHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 168" value="${draftMaxHr}" />
+          </div>
+          <div class="field run-note-field">
+            <label for="run-note">Napomena</label>
+            <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" />
+          </div>
+          <button class="solid-button secondary-button run-form-submit" type="submit">Sačuvaj trčanje</button>
+        </form>
+      </article>
+    </section>
+
+    ${
+      hasRuns
+        ? `
+          <section class="section running-records-section">
+            <div class="section-header">
+              <div>
+                <h2>Rekordi i ukupno</h2>
+                <p>Tvoji najbolji rezultati i ukupna kilometraža do sad.</p>
+              </div>
+            </div>
+            <div class="stats-grid running-records-grid">
+              <article class="stat-card">
+                <strong>Najduže trčanje</strong>
+                <div class="macro-value">${roundValue(stats.longestKm, 2)} <small>km</small></div>
+                <div class="footer-note">Najveća distanca</div>
+              </article>
+              <article class="stat-card">
+                <strong>Najbrži tempo</strong>
+                <div class="macro-value">${formatRunPace(stats.bestPaceSec)} <small>/km</small></div>
+                <div class="footer-note">Na ≥ 1 km</div>
+              </article>
+              <article class="stat-card">
+                <strong>Ukupno km</strong>
+                <div class="macro-value">${roundValue(stats.totalKm, 1)} <small>km</small></div>
+                <div class="footer-note">${stats.totalCount} ${stats.totalCount === 1 ? "trčanje" : "trčanja"}</div>
+              </article>
+              <article class="stat-card">
+                <strong>Ukupno vreme</strong>
+                <div class="macro-value">${stats.totalSec ? formatRunDuration(stats.totalSec) : "0:00"}</div>
+                <div class="footer-note">Provedeno u trčanju</div>
+              </article>
+            </div>
+          </section>
+        `
+        : ""
+    }
+
+    <section class="section running-history-section">
+      <div class="section-header">
+        <div>
+          <h2>Istorija trčanja</h2>
+          <p>Sva tvoja trčanja, od najnovijeg ka starijem.</p>
+        </div>
+      </div>
+      <div class="stack running-history-stack">
+        ${
+          hasRuns
+            ? runs.map((run) => renderRunCard(run)).join("")
+            : `<div class="empty">Još nema unetih trčanja. Dodaj prvo gore i pojaviće se ovde sa tempom i statistikom.</div>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 function renderRoutineTab() {
   const summary = getRoutineSummaryForDay(state.selectedWeekday);
   const editingHabit = state.editingHabitId ? store.habits.find((habit) => habit.id === state.editingHabitId) : null;
@@ -11411,6 +11903,7 @@ function render() {
     nutrition: renderNutritionTab,
     foods: renderFoodsTab,
     training: renderTrainingTab,
+    running: renderRunningTab,
     routine: renderRoutineTab,
     progress: renderProgressTab,
     goals: renderGoalsTab,
@@ -11755,6 +12248,11 @@ async function handleDocumentClick(event) {
     resetRoutineEditing();
     if (state.activeTab === "foods") {
       preloadBarcodeReader();
+    }
+    // Otvaranje Trčanja je tap (user gesture) — pokušaj tihog uvoza iz clipboard-a
+    // ako je dozvola već data; inače korisnik koristi dugme „Popuni sa sata”.
+    if (state.activeTab === "running") {
+      maybeAutoImportRunFromClipboard();
     }
     window.location.hash = state.activeTab;
     render();
@@ -13340,6 +13838,47 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "delete-run") {
+    const runId = String(actionTarget.dataset.runId || "");
+    const run = (store.runs || []).find((entry) => entry.id === runId);
+    if (!run) {
+      return;
+    }
+    const snapshot = JSON.parse(JSON.stringify(store.runs));
+    store.runs = store.runs.filter((entry) => entry.id !== runId);
+    persist();
+    queuePendingUndo("Trčanje obrisano.", () => {
+      store.runs = snapshot;
+      persist();
+    });
+    render();
+    return;
+  }
+
+  if (action === "import-run-clipboard") {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
+      showFeedbackToast({
+        title: "Nije podržano",
+        detail: "Ovaj browser ne dozvoljava čitanje clipboard-a. Prekucaj brojke ručno.",
+        tone: "error",
+        duration: 3400,
+      });
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      applyRunClipboardText(text, { silentOnMiss: false });
+    } catch (error) {
+      showFeedbackToast({
+        title: "Nema pristupa clipboard-u",
+        detail: "Kad iskoči dozvola za lepljenje, prihvati je pa probaj opet.",
+        tone: "error",
+        duration: 3400,
+      });
+    }
+    return;
+  }
+
   if (action === "save-training-favorite") {
     const template = store.trainingTemplates.find((entry) => entry.id === actionTarget.dataset.templateId);
     if (!template) {
@@ -14182,6 +14721,40 @@ async function handleSubmit(event) {
       note,
       createdAt: new Date().toLocaleString("sr-RS"),
     });
+    persist();
+    event.target.reset();
+    render();
+    return;
+  }
+
+  if (event.target.id === "run-form") {
+    const date = String(formData.get("date") || "").trim();
+    const distanceKm = toNumber(formData.get("distanceKm"));
+    const minutes = Math.max(0, Math.floor(toNumber(formData.get("minutes"))));
+    const seconds = Math.max(0, Math.floor(toNumber(formData.get("seconds"))));
+    const durationSec = minutes * 60 + seconds;
+    const typeRaw = String(formData.get("type") || "lagano").trim();
+    const avgHr = toNumber(formData.get("avgHr"));
+    const maxHr = toNumber(formData.get("maxHr"));
+    const note = String(formData.get("note") || "").trim();
+
+    if (!date || !(distanceKm > 0) || !(durationSec > 0)) {
+      window.alert("Unesi bar datum, distancu (km) i vreme trčanja.");
+      return;
+    }
+
+    store.runs.unshift({
+      id: uid("run"),
+      date,
+      distanceKm,
+      durationSec,
+      type: RUN_TYPES.some((type) => type.id === typeRaw) ? typeRaw : "lagano",
+      avgHr: avgHr > 0 ? Math.round(avgHr) : null,
+      maxHr: maxHr > 0 ? Math.round(maxHr) : null,
+      note,
+      createdAt: new Date().toISOString(),
+    });
+    state.runImportDraft = null;
     persist();
     event.target.reset();
     render();

@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-tracker-v59";
+const CACHE_NAME = "fit-tracker-v61";
 const ASSETS = [
   "./",
   "./index.html",

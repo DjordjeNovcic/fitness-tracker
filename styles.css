@@ -3728,6 +3728,204 @@ label.is-invalid textarea:focus {
   justify-self: start;
 }
 
+/* ---- Trčanje (running log) --------------------------------------------- */
+.running-add-card {
+  height: auto;
+}
+
+.run-form {
+  margin-top: 2px;
+}
+
+/* Uvoz zadnjeg trčanja iz clipboard-a (Apple Prečica). */
+.run-import-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.run-import-button {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.run-import-hint {
+  margin: 0;
+  flex: 1 1 200px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.run-import-bar.is-loaded .run-import-hint {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.help-note-body code {
+  display: inline-block;
+  margin: 3px 0;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78em;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* Vreme se unosi kao minuti : sekunde, dva uska polja sa separatorom. */
+.run-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.run-time-inputs input {
+  width: 100%;
+  text-align: center;
+}
+
+.run-time-sep {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.run-note-field,
+.run-form-submit {
+  grid-column: 1 / -1;
+}
+
+.run-card-top {
+  align-items: flex-start;
+}
+
+.run-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.run-type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--pill-strong-bg);
+  border: 1px solid var(--pill-strong-border);
+  color: var(--accent);
+}
+
+.run-type-tempo {
+  background: rgba(233, 238, 219, 0.9);
+  border-color: rgba(125, 139, 90, 0.18);
+  color: #5d6a32;
+}
+
+.run-type-intervali {
+  background: rgba(247, 226, 214, 0.85);
+  border-color: rgba(180, 97, 77, 0.22);
+  color: #9d4f3a;
+}
+
+.run-type-dugo {
+  background: rgba(218, 229, 245, 0.85);
+  border-color: rgba(70, 105, 160, 0.22);
+  color: #3f5d86;
+}
+
+.run-type-trka {
+  background: rgba(241, 222, 234, 0.85);
+  border-color: rgba(160, 70, 120, 0.22);
+  color: #8a3d68;
+}
+
+.run-metrics {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.run-metric {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+}
+
+.run-metric-label {
+  font-size: 0.7rem;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.run-metric-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.run-metric-value small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.run-card-note {
+  margin-top: 12px;
+}
+
+/* Dark mode: zameni svetle pastele translucentnim tintovima sa svetlim tekstom,
+   da oznake ostanu čitljive a da se uklope u tamnu paletu. */
+:root[data-theme="dark"] .run-type-tempo {
+  background: oklch(0.6 0.09 130 / 0.2);
+  border-color: oklch(0.72 0.09 130 / 0.32);
+  color: oklch(0.82 0.1 130);
+}
+
+:root[data-theme="dark"] .run-type-intervali {
+  background: oklch(0.55 0.14 40 / 0.22);
+  border-color: oklch(0.65 0.16 40 / 0.34);
+  color: oklch(0.8 0.13 42);
+}
+
+:root[data-theme="dark"] .run-type-dugo {
+  background: oklch(0.55 0.1 250 / 0.22);
+  border-color: oklch(0.65 0.12 250 / 0.34);
+  color: oklch(0.8 0.1 255);
+}
+
+:root[data-theme="dark"] .run-type-trka {
+  background: oklch(0.55 0.13 340 / 0.22);
+  border-color: oklch(0.65 0.15 340 / 0.34);
+  color: oklch(0.81 0.13 340);
+}
+
+@media (min-width: 540px) {
+  .run-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .suggestion-row {
   display: flex;
   align-items: flex-start;
