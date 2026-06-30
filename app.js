@@ -8794,8 +8794,10 @@ function parseActivityWorkouts(value) {
   if (!raw) {
     return [];
   }
+  // "~" razdvaja treninge (u clipboard FITACT formatu ";" već deli polja);
+  // deep-link sme i ";" jer je workouts tamo jedan URL parametar.
   return raw
-    .split(/[;\n]+/)
+    .split(/[;\n~]+/)
     .map((chunk) => chunk.trim())
     .filter(Boolean)
     .map((chunk) => {
