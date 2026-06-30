@@ -7240,6 +7240,29 @@ function renderPlanTab(entries) {
       </div>
       `
       }
+      ${
+        trainingBurn > 0
+          ? `
+      <div class="plan-net-row">
+        <div class="plan-net-item">
+          <span class="plan-net-label">Uneto</span>
+          <strong>${roundValue(totals.kcal, 0)}</strong>
+        </div>
+        <span class="plan-net-op" aria-hidden="true">−</span>
+        <div class="plan-net-item">
+          <span class="plan-net-label">Sagorelo</span>
+          <strong>${roundValue(trainingBurn, 0)}</strong>
+        </div>
+        <span class="plan-net-op" aria-hidden="true">=</span>
+        <div class="plan-net-item plan-net-item--total">
+          <span class="plan-net-label">Neto</span>
+          <strong>${netCalories}</strong>
+        </div>
+      </div>
+      <div class="footer-note plan-net-note">kcal · sagorelo (sa sata) se oduzima od unetog</div>
+      `
+          : ""
+      }
       <div class="plan-summary-layout">
         ${renderMacroCards(totals, { excludeCalories: true })}
       </div>
