@@ -8557,7 +8557,9 @@ function parseRunTimeToSeconds(value) {
   if (!raw) {
     return 0;
   }
-  const parts = raw.split(":").map((part) => Number(part.trim().replace(",", ".")));
+  const parts = raw
+    .split(":")
+    .map((part) => Number(part.trim().replace(",", ".").replace(/[^0-9.\-]/g, "")));
   if (parts.some((n) => Number.isNaN(n))) {
     return 0;
   }
@@ -8596,9 +8598,15 @@ function parseRunClipboard(rawText) {
       }
     });
 
-  // Apple Prečica formatira brojeve po lokalitetu, pa distanca/min mogu doći sa
-  // zarezom (npr. "5,2") — toNumber gleda samo tačku, zato ovde normalizujemo.
-  const num = (value) => toNumber(String(value ?? "").replace(",", "."));
+  // Apple Prečica formatira brojeve po lokalitetu i često zalepi jedinicu
+  // (npr. "5,2 km", "152 bpm"). toNumber gleda samo čist broj, pa ovde:
+  // zarez -> tačka, pa skinemo sve sem cifara/tačke/minusa.
+  const num = (value) =>
+    toNumber(
+      String(value ?? "")
+        .replace(",", ".")
+        .replace(/[^0-9.\-]/g, "")
+    );
 
   const km = num(fields.km ?? fields.distanca ?? fields.distance);
 
