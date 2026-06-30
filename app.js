@@ -640,6 +640,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     foodUsage: rawStore.foodUsage && typeof rawStore.foodUsage === "object" ? rawStore.foodUsage : {},
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
+    activityByDate: rawStore.activityByDate && typeof rawStore.activityByDate === "object" ? rawStore.activityByDate : {},
     shoppingChecked:
       rawStore.shoppingChecked && typeof rawStore.shoppingChecked === "object" ? rawStore.shoppingChecked : {},
     shoppingStaples:
@@ -757,6 +758,8 @@ function ensureStoreCollections(targetStore) {
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
+  targetStore.activityByDate =
+    targetStore.activityByDate && typeof targetStore.activityByDate === "object" ? targetStore.activityByDate : {};
   targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
@@ -6735,6 +6738,80 @@ function renderPlanStepsSection() {
   `;
 }
 
+// Dnevna aktivnost sa Apple Watch-a (za danas). Move kcal je već upisan u
+// po-dan potrošnju pri uvozu, pa ovde samo prikazujemo pregled. Uvoz ide preko
+// prečice (deep link #import-activity) ili clipboard-a (FITACT) — kao i trčanje.
+function renderPlanActivitySection() {
+  const date = getTodayDateValue();
+  const activity = getActivityForDate(date);
+  const hasActivity = Boolean(activity);
+  const importBase = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, "")}`;
+
+  const tiles = [];
+  if (activity) {
+    if (activity.moveKcal != null) tiles.push({ label: "Potrošeno (Move)", value: `${activity.moveKcal}`, unit: "kcal" });
+    if (activity.exerciseMin != null) tiles.push({ label: "Vežbanje", value: `${activity.exerciseMin}`, unit: "min" });
+    if (activity.standHours != null) tiles.push({ label: "Stajanje", value: `${activity.standHours}`, unit: "h" });
+    if (activity.steps != null) tiles.push({ label: "Koraci", value: activity.steps.toLocaleString("sr-RS"), unit: "" });
+    if (activity.distanceKm != null) tiles.push({ label: "Distanca", value: `${roundValue(activity.distanceKm, 2)}`, unit: "km" });
+  }
+
+  return `
+    <section class="section plan-activity-section">
+      <div class="section-header">
+        <div class="section-copy">
+          <h2>Aktivnost danas (sa sata)</h2>
+          <p>${
+            hasActivity
+              ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans."
+              : "Povuci dnevni pregled sa Apple Watch-a: kalorije, vežbanje, stajanje, koraci, distanca."
+          }</p>
+        </div>
+      </div>
+      <div class="run-import-bar ${hasActivity ? "is-loaded" : ""}">
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="import-activity-clipboard">
+          ${renderButtonContent(hasActivity ? "Osveži sa sata" : "Učitaj sa sata", "copy")}
+        </button>
+        <p class="run-import-hint">${
+          hasActivity
+            ? "Učitano — možeš ponovo da povučeš da osvežiš."
+            : "Najlakše preko prečice (vidi uputstvo); dugme čita iz clipboard-a."
+        }</p>
+      </div>
+      ${renderHelpNote(
+        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Učitaj sa sata”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
+        "Kako da povučem dnevnu aktivnost?"
+      )}
+      ${
+        hasActivity
+          ? `<div class="run-metrics plan-activity-metrics">
+              ${tiles
+                .map(
+                  (tile) => `
+                    <div class="run-metric">
+                      <span class="run-metric-label">${tile.label}</span>
+                      <span class="run-metric-value">${tile.value}${tile.unit ? ` <small>${tile.unit}</small>` : ""}</span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+            ${
+              activity.workouts && activity.workouts.length
+                ? `<div class="pill-row plan-activity-workouts">${activity.workouts
+                    .map(
+                      (workout) =>
+                        `<span class="pill strong">${escapeHtml(workout.name)}${workout.durationSec ? ` · ${formatRunDuration(workout.durationSec)}` : ""}${workout.kcal ? ` · ${workout.kcal} kcal` : ""}</span>`
+                    )
+                    .join("")}</div>`
+                : ""
+            }`
+          : `<div class="empty">Još nema podataka za danas. Pokreni prečicu ili tapni „Učitaj sa sata”.</div>`
+      }
+    </section>
+  `;
+}
+
 // In-app reminders (no backend / push needed — works on static hosting).
 // Surfaced as a dismissible banner at the top of the Plan tab on open.
 function getTodayReminders() {
@@ -7467,6 +7544,8 @@ function renderPlanTab(entries) {
     ${renderPlanWaterSection()}
 
     ${renderPlanStepsSection()}
+
+    ${renderPlanActivitySection()}
 
     ${renderPlanShoppingSection()}
   `;
@@ -8548,15 +8627,27 @@ function getRunStats() {
   return stats;
 }
 
-// Apple Prečica formatira brojeve po lokalitetu i često zalepi jedinicu
-// (npr. "5,2 km", "152 bpm"). toNumber gleda samo čist broj, pa ovde:
-// zarez -> tačka, pa skinemo sve sem cifara/tačke/minusa.
+// Apple Prečica formatira brojeve po lokalitetu i zalepi jedinicu ("5,2 km",
+// "152 bpm", "9.123 koraka", "1,234 kcal"). Skinemo jedinicu, pa razlučimo
+// decimalu od grupnog separatora: poslednji separator je decimalni samo ako ga
+// prati 1–2 cifre (npr. "523.4" -> 523.4), inače je grupisanje ("9.123" ->
+// 9123, "1,234" -> 1234). Tako i koraci/kalorije preko 1000 ulaze ispravno.
 function parseRunNumber(value) {
-  return toNumber(
-    String(value ?? "")
-      .replace(",", ".")
-      .replace(/[^0-9.\-]/g, "")
-  );
+  const cleaned = String(value ?? "").replace(/[^0-9.,\-]/g, "");
+  if (!cleaned) {
+    return 0;
+  }
+  const lastSep = Math.max(cleaned.lastIndexOf(","), cleaned.lastIndexOf("."));
+  if (lastSep === -1) {
+    return Number(cleaned) || 0;
+  }
+  const decimalsAfter = cleaned.length - lastSep - 1;
+  if (decimalsAfter >= 1 && decimalsAfter <= 2) {
+    const intPart = cleaned.slice(0, lastSep).replace(/[.,]/g, "");
+    const fraction = cleaned.slice(lastSep + 1);
+    return Number(`${intPart}.${fraction}`) || 0;
+  }
+  return Number(cleaned.replace(/[.,]/g, "")) || 0;
 }
 
 // "MM:SS" / "H:MM:SS" -> sekunde (svaki deo toleriše zalepljenu jedinicu).
@@ -8685,39 +8776,226 @@ function parseRunImportHash(hash) {
   return buildRunDraftFromFields(fields);
 }
 
-// Ako je URL deep-link za uvoz: popuni draft, prebaci na Trčanje i očisti hash
-// (da reload ne ponovi uvoz). Vraća true ako je nešto obrađeno.
-function consumeRunImportFromUrl() {
-  const hash = String(window.location.hash || "");
-  if (!/^#?(?:import-run|run-import|run)\?/i.test(hash)) {
+// ---- Dnevna aktivnost sa sata (Apple Watch summary) -----------------------
+// YYYY-MM-DD -> ime dana iz WEEKDAYS (Pon..Ned), da Move kcal upišemo u
+// postojeću po-dan potrošnju koja već ulazi u kalorijski bilans.
+function weekdayFromDateValue(dateValue) {
+  const date = getDateValueAsLocalDate(dateValue);
+  if (!date) {
+    return "";
+  }
+  return WEEKDAYS[(date.getDay() + 6) % 7] || "";
+}
+
+// "Trčanje|1800|320;Teretana|2400|210" -> [{name,durationSec,kcal}]. Toleriše i
+// običan spisak imena bez brojeva ("Trčanje, Teretana").
+function parseActivityWorkouts(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    return [];
+  }
+  return raw
+    .split(/[;\n]+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((chunk) => {
+      const parts = chunk.split("|");
+      const name = String(parts[0] || "").trim();
+      if (!name) {
+        return null;
+      }
+      const durationSec = parts.length > 1 ? parseRunDurationValue(parts[1]) : 0;
+      const kcal = parts.length > 2 ? Math.round(parseRunNumber(parts[2])) : 0;
+      return { name, durationSec: durationSec > 0 ? durationSec : null, kcal: kcal > 0 ? kcal : null };
+    })
+    .filter(Boolean);
+}
+
+// Skup polja -> zapis dnevne aktivnosti, ili null ako nema nijedne metrike.
+function buildActivityFromFields(fields) {
+  const moveKcal = Math.round(parseRunNumber(fields.move ?? fields.kcal ?? fields.active ?? fields.aktivne));
+  const exerciseMin = Math.round(parseRunNumber(fields.ex ?? fields.exercise ?? fields.vezbanje ?? fields.trening));
+  const standHours = Math.round(parseRunNumber(fields.stand ?? fields.stajanje));
+  const steps = Math.round(parseRunNumber(fields.steps ?? fields.koraci));
+  const distanceKm = roundValue(parseRunNumber(fields.dist ?? fields.distance ?? fields.distanca ?? fields.km), 2);
+  const workouts = parseActivityWorkouts(fields.workouts ?? fields.treninzi ?? fields.w);
+  const date = normalizeDateValue(fields.datum ?? fields.date ?? "") || getTodayDateValue();
+
+  const hasAny =
+    moveKcal > 0 || exerciseMin > 0 || standHours > 0 || steps > 0 || distanceKm > 0 || workouts.length > 0;
+  if (!hasAny) {
+    return null;
+  }
+
+  return {
+    date,
+    moveKcal: moveKcal > 0 ? moveKcal : null,
+    exerciseMin: exerciseMin > 0 ? exerciseMin : null,
+    standHours: standHours > 0 ? standHours : null,
+    steps: steps > 0 ? steps : null,
+    distanceKm: distanceKm > 0 ? distanceKm : null,
+    workouts,
+  };
+}
+
+function parseActivityImportHash(hash) {
+  const match = String(hash || "").match(/^#?import-activity\?(.*)$/i);
+  if (!match) {
+    return null;
+  }
+  const params = new URLSearchParams(match[1]);
+  const fields = {};
+  params.forEach((value, key) => {
+    fields[key.trim().toLowerCase()] = value;
+  });
+  return buildActivityFromFields(fields);
+}
+
+// Clipboard format: FITACT;move=523;ex=46;stand=10;steps=8432;dist=6.1;workouts=Trčanje|1800|320
+function parseActivityClipboard(rawText) {
+  const text = String(rawText || "").trim();
+  const markerIndex = text.search(/FITACT/i);
+  if (markerIndex === -1) {
+    return null;
+  }
+  const fields = {};
+  text
+    .slice(markerIndex + "FITACT".length)
+    .split(/[;\n\r]+/)
+    .forEach((chunk) => {
+      const eq = chunk.indexOf("=");
+      if (eq === -1) {
+        return;
+      }
+      const key = chunk.slice(0, eq).trim().toLowerCase();
+      const value = chunk.slice(eq + 1).trim();
+      if (key) {
+        fields[key] = value;
+      }
+    });
+  return buildActivityFromFields(fields);
+}
+
+function getActivityForDate(dateValue) {
+  const record = (store.activityByDate || {})[dateValue];
+  return record && typeof record === "object" ? record : null;
+}
+
+// Upiše dnevnu aktivnost: bogat zapis po datumu + Move kcal u po-dan potrošnju
+// (koja već ulazi u neto, pa zameni ručnu, bez duplog brojanja) + korake po datumu.
+// Idempotentno je — ponovni uvoz istog datuma samo prepiše, ne duplira.
+function applyActivityImport(record) {
+  if (!record || !record.date) {
     return false;
   }
-  const draft = parseRunImportHash(hash);
-  const cleanUrl = window.location.pathname + window.location.search + "#running";
-  try {
-    window.history.replaceState(null, "", cleanUrl);
-  } catch (error) {
-    window.location.hash = "running";
+  store.activityByDate = store.activityByDate && typeof store.activityByDate === "object" ? store.activityByDate : {};
+  store.activityByDate[record.date] = { ...record, updatedAt: new Date().toISOString() };
+
+  if (record.moveKcal != null) {
+    const weekday = weekdayFromDateValue(record.date);
+    if (weekday) {
+      store.trainingBurnByWeekday = store.trainingBurnByWeekday || {};
+      store.trainingBurnByWeekday[weekday] = record.moveKcal;
+    }
   }
-  state.activeTab = "running";
-  state.navMenuOpen = false;
-  if (draft) {
-    state.runImportDraft = draft;
-    showFeedbackToast({
-      title: "Učitano sa sata",
-      detail: "Proveri vrednosti i pritisni „Sačuvaj trčanje”.",
-      tone: "success",
-      duration: 3400,
-    });
-  } else {
-    showFeedbackToast({
-      title: "Link bez podataka",
-      detail: "Prečica nije poslala distancu ni vreme. Proveri akcije u prečici.",
-      tone: "warning",
-      duration: 3400,
-    });
+  if (record.steps != null) {
+    store.stepsByDate = store.stepsByDate && typeof store.stepsByDate === "object" ? store.stepsByDate : {};
+    store.stepsByDate[record.date] = record.steps;
   }
+  persist();
   return true;
+}
+
+function applyActivityClipboardText(text, options = {}) {
+  const { silentOnMiss = false } = options;
+  const record = parseActivityClipboard(text);
+  if (!record) {
+    if (!silentOnMiss) {
+      showFeedbackToast({
+        title: "Ništa za uvoz",
+        detail: "Nisam našao dnevnu aktivnost u clipboard-u. Pokreni prečicu pa probaj ponovo.",
+        tone: "warning",
+        duration: 3400,
+      });
+    }
+    return false;
+  }
+  applyActivityImport(record);
+  render();
+  showFeedbackToast({
+    title: "Aktivnost učitana",
+    detail: "Dnevni podaci sa sata su sačuvani.",
+    tone: "success",
+    duration: 3400,
+  });
+  return true;
+}
+
+// Deep-link uvoz: Prečica otvori sajt na #import-run?... (trčanje, popuni formu)
+// ili #import-activity?... (dnevna aktivnost, odmah sačuva). Očisti hash da
+// reload ne ponovi uvoz. Vraća true ako je nešto obrađeno.
+function consumeImportFromUrl() {
+  const hash = String(window.location.hash || "");
+
+  if (/^#?import-activity\?/i.test(hash)) {
+    const record = parseActivityImportHash(hash);
+    const cleanUrl = window.location.pathname + window.location.search + "#plan";
+    try {
+      window.history.replaceState(null, "", cleanUrl);
+    } catch (error) {
+      window.location.hash = "plan";
+    }
+    state.activeTab = "plan";
+    state.navMenuOpen = false;
+    if (record) {
+      applyActivityImport(record);
+      showFeedbackToast({
+        title: "Aktivnost učitana",
+        detail: "Dnevni podaci sa sata su sačuvani.",
+        tone: "success",
+        duration: 3400,
+      });
+    } else {
+      showFeedbackToast({
+        title: "Link bez podataka",
+        detail: "Prečica nije poslala nijednu metriku. Proveri akcije u prečici.",
+        tone: "warning",
+        duration: 3400,
+      });
+    }
+    return true;
+  }
+
+  if (/^#?(?:import-run|run-import|run)\?/i.test(hash)) {
+    const draft = parseRunImportHash(hash);
+    const cleanUrl = window.location.pathname + window.location.search + "#running";
+    try {
+      window.history.replaceState(null, "", cleanUrl);
+    } catch (error) {
+      window.location.hash = "running";
+    }
+    state.activeTab = "running";
+    state.navMenuOpen = false;
+    if (draft) {
+      state.runImportDraft = draft;
+      showFeedbackToast({
+        title: "Učitano sa sata",
+        detail: "Proveri vrednosti i pritisni „Sačuvaj trčanje”.",
+        tone: "success",
+        duration: 3400,
+      });
+    } else {
+      showFeedbackToast({
+        title: "Link bez podataka",
+        detail: "Prečica nije poslala distancu ni vreme. Proveri akcije u prečici.",
+        tone: "warning",
+        duration: 3400,
+      });
+    }
+    return true;
+  }
+
+  return false;
 }
 
 function applyRunClipboardText(text, options = {}) {
@@ -13970,6 +14248,30 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "import-activity-clipboard") {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
+      showFeedbackToast({
+        title: "Nije podržano",
+        detail: "Ovaj browser ne dozvoljava čitanje clipboard-a.",
+        tone: "error",
+        duration: 3400,
+      });
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      applyActivityClipboardText(text, { silentOnMiss: false });
+    } catch (error) {
+      showFeedbackToast({
+        title: "Nema pristupa clipboard-u",
+        detail: "Kad iskoči dozvola za lepljenje, prihvati je pa probaj opet.",
+        tone: "error",
+        duration: 3400,
+      });
+    }
+    return;
+  }
+
   if (action === "save-training-favorite") {
     const template = store.trainingTemplates.find((entry) => entry.id === actionTarget.dataset.templateId);
     if (!template) {
@@ -15308,7 +15610,7 @@ document.addEventListener("keydown", (event) => {
 
 window.addEventListener("hashchange", () => {
   // Prečica koja "Open URL"-uje dok je app već otvoren stigne kao hashchange.
-  if (consumeRunImportFromUrl()) {
+  if (consumeImportFromUrl()) {
     render();
     return;
   }
@@ -15362,8 +15664,8 @@ onAuthStateChanged(firebaseAuth, async (user) => {
     persist();
   }
   state.authReady = true;
-  // Cold-start preko deep-linka iz Prečice (#import-run?...) — popuni Trčanje.
-  consumeRunImportFromUrl();
+  // Cold-start preko deep-linka iz Prečice (#import-run / #import-activity).
+  consumeImportFromUrl();
   render();
 });
 

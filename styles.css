@@ -3765,6 +3765,14 @@ label.is-invalid textarea:focus {
   font-weight: 700;
 }
 
+.plan-activity-metrics {
+  margin-top: 4px;
+}
+
+.plan-activity-workouts {
+  margin-top: 12px;
+}
+
 .help-note-body code {
   display: inline-block;
   margin: 3px 0;
