@@ -9159,7 +9159,8 @@ function renderRunningTab() {
   const hasRuns = runs.length > 0;
   const weekPaceSec = stats.weekKm > 0 ? stats.weekSec / stats.weekKm : null;
 
-  // Pre-fill iz clipboard-a (Apple Prečica) — popunjava polja dok se ne sačuva.
+  // Deep-link iz Prečice (#import-run) i dalje radi i popuni polja ako stigne;
+  // inače je ovo običan ručni unos.
   const draft = state.runImportDraft || {};
   const draftDate = draft.date || getTodayDateValue();
   const draftKm = draft.km != null ? String(draft.km) : "";
@@ -9168,11 +9169,6 @@ function renderRunningTab() {
   const draftAvgHr = draft.avgHr != null ? String(draft.avgHr) : "";
   const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
   const draftType = draft.type || "";
-  const hasImportDraft = Boolean(state.runImportDraft);
-  const runShortcutName = getShortcutName("run");
-  // Tačan prefiks linka koji Prečica treba da otvori ("Open URL"), sa ovog uređaja.
-  const importBase = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, "")}`;
-  const importLinkExample = `${importBase}#import-run?km=5.2&sec=1800&hr=145&hrmax=168&tip=lagano`;
 
   return `
     <section class="section running-summary-section">
@@ -9213,32 +9209,10 @@ function renderRunningTab() {
       <div class="section-header">
         <div>
           <h2>Dodaj trčanje</h2>
-          <p>Unesi distancu i vreme; puls i napomenu po želji — ili učitaj zadnje trčanje sa Apple Watch-a.</p>
+          <p>Unesi distancu i vreme; puls i napomenu po želji — tempo, brzinu i kalorije računa app.</p>
         </div>
       </div>
       <article class="food-card suggestion-surface running-add-card">
-        <div class="run-import-bar ${hasImportDraft ? "is-loaded" : ""}">
-          <button class="solid-button button-with-icon run-import-button" type="button" data-action="launch-run-shortcut">
-            ${renderButtonContent("Sa sata", "open")}
-          </button>
-          <button class="ghost-button button-with-icon run-import-button" type="button" data-action="import-run-clipboard">
-            ${renderButtonContent("Iz clipboard-a", "copy")}
-          </button>
-          <p class="run-import-hint">${
-            hasImportDraft
-              ? "Učitano iz Prečice — proveri brojke i sačuvaj."
-              : "Tapni „Sa sata” — pokrene tvoju prečicu i vrati te ovde popunjeno. (Prečicu napraviš jednom.)"
-          }</p>
-        </div>
-        ${
-          runShortcutName
-            ? `<div class="shortcut-note footer-note">Prečica: „${escapeHtml(runShortcutName)}” · <button type="button" class="text-link-button" data-action="rename-run-shortcut">promeni</button></div>`
-            : ""
-        }
-        ${renderHelpNote(
-          `<strong>Najlakši način — prečica te otvori sa popunjenim trčanjem (jedan tap):</strong><br>1) <strong>Shortcuts</strong> app → nova prečica → <strong>„Find Workouts”</strong> (Health): <em>Type is Running</em>, sort <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Open URLs”</strong> akcija, a kao URL ukucaj ovo i na ⟨…⟩ ubaci detalje trčanja (Distance, Duration, Avg/Max HR):<br><code>${escapeHtml(importBase)}#import-run?km=⟨Distance⟩&sec=⟨Duration⟩&hr=⟨Avg HR⟩&hrmax=⟨Max HR⟩&tip=lagano</code><br>3) Gotovo. Posle trčanja pokreneš prečicu → app se otvori, Trčanje je popunjeno → samo <strong>Sačuvaj</strong>.<br><br>Dugme <strong>„Sa sata”</strong> gore pokreće baš tu prečicu (prvi put te pita kako se zove), pa ne moraš da je tražiš.<br><br>Primer kako gotov link izgleda:<br><code>${escapeHtml(importLinkExample)}</code><br><br><strong>Rezerva (clipboard):</strong> ako radije, neka prečica na kraju ima <strong>„Copy to Clipboard”</strong> sa tekstom <code>FITRUN;km=⟨Distance⟩;sec=⟨Duration⟩;hr=⟨Avg HR⟩</code>, pa ovde tapni „Popuni sa sata”.<br><br><em>Napomena:</em> web app ne može direktno da čita Apple Watch — zato Prečica gurne podatke iz Health-a u app.`,
-          "Kako da povučem sa Apple Watch-a? (lako)"
-        )}
         <form id="run-form" class="form-grid split run-form">
           <div class="field date-field">
             <label for="run-date">Datum</label>
