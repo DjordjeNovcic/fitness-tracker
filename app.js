@@ -641,6 +641,10 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     foodUsage: rawStore.foodUsage && typeof rawStore.foodUsage === "object" ? rawStore.foodUsage : {},
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
     activityByDate: rawStore.activityByDate && typeof rawStore.activityByDate === "object" ? rawStore.activityByDate : {},
+    shortcutNames: {
+      run: String(rawStore.shortcutNames?.run || ""),
+      activity: String(rawStore.shortcutNames?.activity || ""),
+    },
     shoppingChecked:
       rawStore.shoppingChecked && typeof rawStore.shoppingChecked === "object" ? rawStore.shoppingChecked : {},
     shoppingStaples:
@@ -760,6 +764,10 @@ function ensureStoreCollections(targetStore) {
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.activityByDate =
     targetStore.activityByDate && typeof targetStore.activityByDate === "object" ? targetStore.activityByDate : {};
+  targetStore.shortcutNames =
+    targetStore.shortcutNames && typeof targetStore.shortcutNames === "object" ? targetStore.shortcutNames : {};
+  targetStore.shortcutNames.run = String(targetStore.shortcutNames.run || "");
+  targetStore.shortcutNames.activity = String(targetStore.shortcutNames.activity || "");
   targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
@@ -6745,6 +6753,7 @@ function renderPlanActivitySection() {
   const date = getTodayDateValue();
   const activity = getActivityForDate(date);
   const hasActivity = Boolean(activity);
+  const activityShortcutName = getShortcutName("activity");
   const importBase = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, "")}`;
 
   const tiles = [];
@@ -6769,15 +6778,23 @@ function renderPlanActivitySection() {
         </div>
       </div>
       <div class="run-import-bar ${hasActivity ? "is-loaded" : ""}">
-        <button class="solid-button secondary-button button-with-icon" type="button" data-action="import-activity-clipboard">
-          ${renderButtonContent(hasActivity ? "Osveži sa sata" : "Učitaj sa sata", "copy")}
+        <button class="solid-button button-with-icon run-import-button" type="button" data-action="launch-activity-shortcut">
+          ${renderButtonContent("Sa sata", "open")}
+        </button>
+        <button class="ghost-button button-with-icon run-import-button" type="button" data-action="import-activity-clipboard">
+          ${renderButtonContent("Iz clipboard-a", "copy")}
         </button>
         <p class="run-import-hint">${
           hasActivity
-            ? "Učitano — možeš ponovo da povučeš da osvežiš."
-            : "Najlakše preko prečice (vidi uputstvo); dugme čita iz clipboard-a."
+            ? "Učitano — tapni „Sa sata” da osvežiš."
+            : "Tapni „Sa sata” — pokrene tvoju prečicu i vrati te ovde sa današnjom aktivnošću."
         }</p>
       </div>
+      ${
+        activityShortcutName
+          ? `<div class="shortcut-note footer-note">Prečica: „${escapeHtml(activityShortcutName)}” · <button type="button" class="text-link-button" data-action="rename-activity-shortcut">promeni</button></div>`
+          : ""
+      }
       ${renderHelpNote(
         `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Učitaj sa sata”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
         "Kako da povučem dnevnu aktivnost?"
@@ -8933,6 +8950,22 @@ function applyActivityClipboardText(text, options = {}) {
   return true;
 }
 
+// Pokreni korisnikovu Prečicu po imenu preko iOS "shortcuts://" šeme. Prečica
+// pročita Health i (preko "Open URL" na kraju) vrati u app sa podacima. Na
+// ne-iOS uređajima šema nema handler pa se ništa ne desi (bez greške).
+function launchShortcut(name) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) {
+    return false;
+  }
+  window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(trimmed)}`;
+  return true;
+}
+
+function getShortcutName(key) {
+  return String(store.shortcutNames?.[key] || "").trim();
+}
+
 // Deep-link uvoz: Prečica otvori sajt na #import-run?... (trčanje, popuni formu)
 // ili #import-activity?... (dnevna aktivnost, odmah sačuva). Očisti hash da
 // reload ne ponovi uvoz. Vraća true ako je nešto obrađeno.
@@ -9113,6 +9146,7 @@ function renderRunningTab() {
   const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
   const draftType = draft.type || "";
   const hasImportDraft = Boolean(state.runImportDraft);
+  const runShortcutName = getShortcutName("run");
   // Tačan prefiks linka koji Prečica treba da otvori ("Open URL"), sa ovog uređaja.
   const importBase = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, "")}`;
   const importLinkExample = `${importBase}#import-run?km=5.2&sec=1800&hr=145&hrmax=168&tip=lagano`;
@@ -9161,17 +9195,25 @@ function renderRunningTab() {
       </div>
       <article class="food-card suggestion-surface running-add-card">
         <div class="run-import-bar ${hasImportDraft ? "is-loaded" : ""}">
-          <button class="solid-button secondary-button button-with-icon run-import-button" type="button" data-action="import-run-clipboard">
-            ${renderButtonContent(hasImportDraft ? "Učitaj ponovo sa sata" : "Popuni sa sata", "copy")}
+          <button class="solid-button button-with-icon run-import-button" type="button" data-action="launch-run-shortcut">
+            ${renderButtonContent("Sa sata", "open")}
+          </button>
+          <button class="ghost-button button-with-icon run-import-button" type="button" data-action="import-run-clipboard">
+            ${renderButtonContent("Iz clipboard-a", "copy")}
           </button>
           <p class="run-import-hint">${
             hasImportDraft
               ? "Učitano iz Prečice — proveri brojke i sačuvaj."
-              : "Najlakše: prečica koja te otvori sa popunjenim trčanjem (vidi uputstvo). Ovo dugme je rezerva — čita iz clipboard-a."
+              : "Tapni „Sa sata” — pokrene tvoju prečicu i vrati te ovde popunjeno. (Prečicu napraviš jednom.)"
           }</p>
         </div>
+        ${
+          runShortcutName
+            ? `<div class="shortcut-note footer-note">Prečica: „${escapeHtml(runShortcutName)}” · <button type="button" class="text-link-button" data-action="rename-run-shortcut">promeni</button></div>`
+            : ""
+        }
         ${renderHelpNote(
-          `<strong>Najlakši način — prečica te otvori sa popunjenim trčanjem (jedan tap):</strong><br>1) <strong>Shortcuts</strong> app → nova prečica → <strong>„Find Workouts”</strong> (Health): <em>Type is Running</em>, sort <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Open URLs”</strong> akcija, a kao URL ukucaj ovo i na ⟨…⟩ ubaci detalje trčanja (Distance, Duration, Avg/Max HR):<br><code>${escapeHtml(importBase)}#import-run?km=⟨Distance⟩&sec=⟨Duration⟩&hr=⟨Avg HR⟩&hrmax=⟨Max HR⟩&tip=lagano</code><br>3) Gotovo. Posle trčanja pokreneš prečicu → app se otvori, Trčanje je popunjeno → samo <strong>Sačuvaj</strong>.<br><br>Primer kako gotov link izgleda:<br><code>${escapeHtml(importLinkExample)}</code><br><br><strong>Rezerva (clipboard):</strong> ako radije, neka prečica na kraju ima <strong>„Copy to Clipboard”</strong> sa tekstom <code>FITRUN;km=⟨Distance⟩;sec=⟨Duration⟩;hr=⟨Avg HR⟩</code>, pa ovde tapni „Popuni sa sata”.<br><br><em>Napomena:</em> web app ne može direktno da čita Apple Watch — zato Prečica gurne podatke iz Health-a u app.`,
+          `<strong>Najlakši način — prečica te otvori sa popunjenim trčanjem (jedan tap):</strong><br>1) <strong>Shortcuts</strong> app → nova prečica → <strong>„Find Workouts”</strong> (Health): <em>Type is Running</em>, sort <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Open URLs”</strong> akcija, a kao URL ukucaj ovo i na ⟨…⟩ ubaci detalje trčanja (Distance, Duration, Avg/Max HR):<br><code>${escapeHtml(importBase)}#import-run?km=⟨Distance⟩&sec=⟨Duration⟩&hr=⟨Avg HR⟩&hrmax=⟨Max HR⟩&tip=lagano</code><br>3) Gotovo. Posle trčanja pokreneš prečicu → app se otvori, Trčanje je popunjeno → samo <strong>Sačuvaj</strong>.<br><br>Dugme <strong>„Sa sata”</strong> gore pokreće baš tu prečicu (prvi put te pita kako se zove), pa ne moraš da je tražiš.<br><br>Primer kako gotov link izgleda:<br><code>${escapeHtml(importLinkExample)}</code><br><br><strong>Rezerva (clipboard):</strong> ako radije, neka prečica na kraju ima <strong>„Copy to Clipboard”</strong> sa tekstom <code>FITRUN;km=⟨Distance⟩;sec=⟨Duration⟩;hr=⟨Avg HR⟩</code>, pa ovde tapni „Popuni sa sata”.<br><br><em>Napomena:</em> web app ne može direktno da čita Apple Watch — zato Prečica gurne podatke iz Health-a u app.`,
           "Kako da povučem sa Apple Watch-a? (lako)"
         )}
         <form id="run-form" class="form-grid split run-form">
@@ -14271,6 +14313,40 @@ async function handleDocumentClick(event) {
         duration: 3400,
       });
     }
+    return;
+  }
+
+  if (action === "launch-run-shortcut" || action === "launch-activity-shortcut") {
+    const key = action === "launch-run-shortcut" ? "run" : "activity";
+    store.shortcutNames = store.shortcutNames || { run: "", activity: "" };
+    let name = getShortcutName(key);
+    if (!name) {
+      const label = key === "run" ? "trčanje" : "dnevnu aktivnost";
+      const entered = window.prompt(
+        `Kako se TAČNO zove tvoja prečica za ${label}? (isto kao u Shortcuts app-u)`,
+        ""
+      );
+      name = String(entered || "").trim();
+      if (!name) {
+        return;
+      }
+      store.shortcutNames[key] = name;
+      persist();
+    }
+    launchShortcut(name);
+    return;
+  }
+
+  if (action === "rename-run-shortcut" || action === "rename-activity-shortcut") {
+    const key = action === "rename-run-shortcut" ? "run" : "activity";
+    const entered = window.prompt("Ime prečice u Shortcuts app-u:", getShortcutName(key));
+    if (entered === null) {
+      return;
+    }
+    store.shortcutNames = store.shortcutNames || { run: "", activity: "" };
+    store.shortcutNames[key] = String(entered).trim();
+    persist();
+    render();
     return;
   }
 
