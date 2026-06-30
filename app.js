@@ -8548,10 +8548,18 @@ function getRunStats() {
   return stats;
 }
 
-// Format koji Apple Prečica izbaci u clipboard: jedna linija sa markerom
-// "FITRUN" pa key=value parovi razdvojeni tačka-zarezom ili novim redom, npr:
-//   FITRUN;km=5.2;t=30:00;hr=145;hrmax=168;tip=lagano;datum=2026-06-30
-// Vreme može doći kao t=MM:SS / t=H:MM:SS, sec=<sekunde> ili min=<decimalno>.
+// Apple Prečica formatira brojeve po lokalitetu i često zalepi jedinicu
+// (npr. "5,2 km", "152 bpm"). toNumber gleda samo čist broj, pa ovde:
+// zarez -> tačka, pa skinemo sve sem cifara/tačke/minusa.
+function parseRunNumber(value) {
+  return toNumber(
+    String(value ?? "")
+      .replace(",", ".")
+      .replace(/[^0-9.\-]/g, "")
+  );
+}
+
+// "MM:SS" / "H:MM:SS" -> sekunde (svaki deo toleriše zalepljenu jedinicu).
 function parseRunTimeToSeconds(value) {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -8575,13 +8583,75 @@ function parseRunTimeToSeconds(value) {
   return 0;
 }
 
+// Trajanje iz Prečice ume da dođe kao "1800", "30:00", "30 min", "0,5 h"...
+// Pametno prepoznajemo format: dvotačka -> vreme; "min"/"h" -> množimo;
+// inače čiste sekunde (grupni separatori se skidaju, npr. "1,800" -> 1800).
+function parseRunDurationValue(value) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) {
+    return 0;
+  }
+  if (raw.includes(":")) {
+    return parseRunTimeToSeconds(raw);
+  }
+  const decimal = Number(raw.replace(",", ".").replace(/[^0-9.\-]/g, ""));
+  if (/m(in|inut)/.test(raw)) {
+    return Number.isFinite(decimal) ? Math.max(0, Math.round(decimal * 60)) : 0;
+  }
+  if (/(^|\d)\s*(h|hr|hour|sat|cas|čas)/.test(raw)) {
+    return Number.isFinite(decimal) ? Math.max(0, Math.round(decimal * 3600)) : 0;
+  }
+  const seconds = Number(raw.replace(/[^0-9]/g, ""));
+  return Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+}
+
+// Zajednička logika: skup polja (iz clipboard linije ili URL parametara) ->
+// draft za formu, ili null ako nema ni distance ni vremena.
+function buildRunDraftFromFields(fields) {
+  const km = parseRunNumber(fields.km ?? fields.distanca ?? fields.distance);
+
+  let durationSec = 0;
+  if (fields.sec) {
+    durationSec = parseRunDurationValue(fields.sec);
+  } else if (fields.min) {
+    const minRaw = String(fields.min).toLowerCase();
+    // "min" key bez jedinice/dvotačke = minuti; ako nosi jedinicu, pusti pametni parser.
+    durationSec = /[:hms]/.test(minRaw)
+      ? parseRunDurationValue(minRaw)
+      : Math.max(0, Math.round(parseRunNumber(minRaw) * 60));
+  } else if (fields.t || fields.vreme || fields.time || fields.duration || fields.trajanje) {
+    durationSec = parseRunDurationValue(fields.t ?? fields.vreme ?? fields.time ?? fields.duration ?? fields.trajanje);
+  }
+
+  // Bez bar distance ili vremena nema šta da se popuni — tretiramo kao promašaj.
+  if (!(km > 0) && !(durationSec > 0)) {
+    return null;
+  }
+
+  const avgHr = Math.round(parseRunNumber(fields.hr ?? fields.puls ?? fields.avghr));
+  const maxHr = Math.round(parseRunNumber(fields.hrmax ?? fields.maxpuls ?? fields.maxhr));
+  const typeRaw = String(fields.tip ?? fields.type ?? "").trim().toLowerCase();
+  const type = RUN_TYPES.some((entry) => entry.id === typeRaw) ? typeRaw : null;
+  const date = normalizeDateValue(fields.datum ?? fields.date ?? "");
+
+  return {
+    km: km > 0 ? roundValue(km, 2) : null,
+    durationSec: durationSec > 0 ? durationSec : null,
+    avgHr: avgHr > 0 ? avgHr : null,
+    maxHr: maxHr > 0 ? maxHr : null,
+    type,
+    date: date || null,
+  };
+}
+
+// Clipboard format (FITRUN marker pa key=value parovi razdvojeni ; ili novim redom):
+//   FITRUN;km=5.2;sec=1800;hr=145;hrmax=168;tip=lagano;datum=2026-06-30
 function parseRunClipboard(rawText) {
   const text = String(rawText || "").trim();
   const markerIndex = text.search(/FITRUN/i);
   if (markerIndex === -1) {
     return null;
   }
-
   const fields = {};
   text
     .slice(markerIndex + "FITRUN".length)
@@ -8597,47 +8667,57 @@ function parseRunClipboard(rawText) {
         fields[key] = value;
       }
     });
+  return buildRunDraftFromFields(fields);
+}
 
-  // Apple Prečica formatira brojeve po lokalitetu i često zalepi jedinicu
-  // (npr. "5,2 km", "152 bpm"). toNumber gleda samo čist broj, pa ovde:
-  // zarez -> tačka, pa skinemo sve sem cifara/tačke/minusa.
-  const num = (value) =>
-    toNumber(
-      String(value ?? "")
-        .replace(",", ".")
-        .replace(/[^0-9.\-]/g, "")
-    );
-
-  const km = num(fields.km ?? fields.distanca ?? fields.distance);
-
-  let durationSec = 0;
-  if (fields.sec) {
-    durationSec = Math.max(0, Math.round(num(fields.sec)));
-  } else if (fields.min) {
-    durationSec = Math.max(0, Math.round(num(fields.min) * 60));
-  } else if (fields.t || fields.vreme || fields.time) {
-    durationSec = parseRunTimeToSeconds(fields.t ?? fields.vreme ?? fields.time);
-  }
-
-  // Bez bar distance ili vremena nema šta da se popuni — tretiramo kao promašaj.
-  if (!(km > 0) && !(durationSec > 0)) {
+// Deep-link uvoz: Prečica otvori sajt na #import-run?km=...&sec=...&hr=...
+// pa app sam popuni formu — bez clipboard-a i bez dozvola.
+function parseRunImportHash(hash) {
+  const match = String(hash || "").match(/^#?(?:import-run|run-import|run)\?(.*)$/i);
+  if (!match) {
     return null;
   }
+  const params = new URLSearchParams(match[1]);
+  const fields = {};
+  params.forEach((value, key) => {
+    fields[key.trim().toLowerCase()] = value;
+  });
+  return buildRunDraftFromFields(fields);
+}
 
-  const avgHr = Math.round(num(fields.hr ?? fields.puls ?? fields.avghr));
-  const maxHr = Math.round(num(fields.hrmax ?? fields.maxpuls ?? fields.maxhr));
-  const typeRaw = String(fields.tip ?? fields.type ?? "").trim().toLowerCase();
-  const type = RUN_TYPES.some((entry) => entry.id === typeRaw) ? typeRaw : null;
-  const date = normalizeDateValue(fields.datum ?? fields.date ?? "");
-
-  return {
-    km: km > 0 ? roundValue(km, 2) : null,
-    durationSec: durationSec > 0 ? durationSec : null,
-    avgHr: avgHr > 0 ? avgHr : null,
-    maxHr: maxHr > 0 ? maxHr : null,
-    type,
-    date: date || null,
-  };
+// Ako je URL deep-link za uvoz: popuni draft, prebaci na Trčanje i očisti hash
+// (da reload ne ponovi uvoz). Vraća true ako je nešto obrađeno.
+function consumeRunImportFromUrl() {
+  const hash = String(window.location.hash || "");
+  if (!/^#?(?:import-run|run-import|run)\?/i.test(hash)) {
+    return false;
+  }
+  const draft = parseRunImportHash(hash);
+  const cleanUrl = window.location.pathname + window.location.search + "#running";
+  try {
+    window.history.replaceState(null, "", cleanUrl);
+  } catch (error) {
+    window.location.hash = "running";
+  }
+  state.activeTab = "running";
+  state.navMenuOpen = false;
+  if (draft) {
+    state.runImportDraft = draft;
+    showFeedbackToast({
+      title: "Učitano sa sata",
+      detail: "Proveri vrednosti i pritisni „Sačuvaj trčanje”.",
+      tone: "success",
+      duration: 3400,
+    });
+  } else {
+    showFeedbackToast({
+      title: "Link bez podataka",
+      detail: "Prečica nije poslala distancu ni vreme. Proveri akcije u prečici.",
+      tone: "warning",
+      duration: 3400,
+    });
+  }
+  return true;
 }
 
 function applyRunClipboardText(text, options = {}) {
@@ -8753,6 +8833,9 @@ function renderRunningTab() {
   const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
   const draftType = draft.type || "";
   const hasImportDraft = Boolean(state.runImportDraft);
+  // Tačan prefiks linka koji Prečica treba da otvori ("Open URL"), sa ovog uređaja.
+  const importBase = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, "")}`;
+  const importLinkExample = `${importBase}#import-run?km=5.2&sec=1800&hr=145&hrmax=168&tip=lagano`;
 
   return `
     <section class="section running-summary-section">
@@ -8804,12 +8887,12 @@ function renderRunningTab() {
           <p class="run-import-hint">${
             hasImportDraft
               ? "Učitano iz Prečice — proveri brojke i sačuvaj."
-              : "Pokreni Apple prečicu, pa ovde učitaj zadnje trčanje iz clipboard-a."
+              : "Najlakše: prečica koja te otvori sa popunjenim trčanjem (vidi uputstvo). Ovo dugme je rezerva — čita iz clipboard-a."
           }</p>
         </div>
         ${renderHelpNote(
-          "Web app ne može direktno da čita Apple Watch, pa ide preko <strong>Prečice (Shortcuts app)</strong>:<br>1) Shortcuts → nova prečica → akcija <strong>„Find Workouts”</strong> (Health), filter <em>Type is Running</em>, sortiraj po <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Get details of Workouts”</strong> → uzmi Distance, Duration, Average Heart Rate.<br>3) <strong>„Text”</strong> akcija složi liniju:<br><code>FITRUN;km=[Distance];sec=[Duration];hr=[Avg HR];hrmax=[Max HR];tip=lagano;datum=[Date]</code><br>4) <strong>„Copy to Clipboard”</strong>.<br>Pokreneš prečicu → vratiš se ovde → „Popuni sa sata”. Polja koja pošalješ se popune, ostalo dopuniš ručno.",
-          "Kako da povučem sa Apple Watch-a?"
+          `<strong>Najlakši način — prečica te otvori sa popunjenim trčanjem (jedan tap):</strong><br>1) <strong>Shortcuts</strong> app → nova prečica → <strong>„Find Workouts”</strong> (Health): <em>Type is Running</em>, sort <em>End Date</em>, <em>Limit 1</em>.<br>2) <strong>„Open URLs”</strong> akcija, a kao URL ukucaj ovo i na ⟨…⟩ ubaci detalje trčanja (Distance, Duration, Avg/Max HR):<br><code>${escapeHtml(importBase)}#import-run?km=⟨Distance⟩&sec=⟨Duration⟩&hr=⟨Avg HR⟩&hrmax=⟨Max HR⟩&tip=lagano</code><br>3) Gotovo. Posle trčanja pokreneš prečicu → app se otvori, Trčanje je popunjeno → samo <strong>Sačuvaj</strong>.<br><br>Primer kako gotov link izgleda:<br><code>${escapeHtml(importLinkExample)}</code><br><br><strong>Rezerva (clipboard):</strong> ako radije, neka prečica na kraju ima <strong>„Copy to Clipboard”</strong> sa tekstom <code>FITRUN;km=⟨Distance⟩;sec=⟨Duration⟩;hr=⟨Avg HR⟩</code>, pa ovde tapni „Popuni sa sata”.<br><br><em>Napomena:</em> web app ne može direktno da čita Apple Watch — zato Prečica gurne podatke iz Health-a u app.`,
+          "Kako da povučem sa Apple Watch-a? (lako)"
         )}
         <form id="run-form" class="form-grid split run-form">
           <div class="field date-field">
@@ -15224,6 +15307,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("hashchange", () => {
+  // Prečica koja "Open URL"-uje dok je app već otvoren stigne kao hashchange.
+  if (consumeRunImportFromUrl()) {
+    render();
+    return;
+  }
   const nextTab = getInitialTab();
   if (nextTab !== state.activeTab) {
     state.activeTab = nextTab;
@@ -15274,6 +15362,8 @@ onAuthStateChanged(firebaseAuth, async (user) => {
     persist();
   }
   state.authReady = true;
+  // Cold-start preko deep-linka iz Prečice (#import-run?...) — popuni Trčanje.
+  consumeRunImportFromUrl();
   render();
 });
 
