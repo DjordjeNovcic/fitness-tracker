@@ -3149,11 +3149,12 @@ textarea::placeholder {
 }
 .lab-status--ok { background: var(--secondary-soft); color: var(--accent); }
 .lab-status--over,
-.lab-status--under { background: rgba(194, 90, 28, 0.14); color: #b4530e; }
+.lab-status--under { background: var(--status-warning-bg); color: var(--status-warning-text); }
 .lab-row-value { display: flex; align-items: baseline; gap: 9px; margin-top: 4px; }
 .lab-row-value strong { font-size: 1.3rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .lab-unit { color: var(--muted); font-size: 0.85rem; }
-.lab-delta { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.lab-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.lab-delta svg { width: 11px; height: 11px; }
 .lab-row-meta { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
 .lab-spark { width: 96px; height: 30px; flex: 0 0 auto; }
 .lab-spark polyline { stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -3170,13 +3171,7 @@ textarea::placeholder {
   cursor: pointer;
   font-size: 0.85rem;
 }
-.lab-row-del:hover { color: #b4530e; background: rgba(194, 90, 28, 0.1); }
-
-:root[data-theme="dark"] .lab-status--over,
-:root[data-theme="dark"] .lab-status--under {
-  background: rgba(240, 179, 90, 0.16);
-  color: #f0b35a;
-}
+.lab-row-del:hover { color: var(--status-warning-text); background: color-mix(in srgb, var(--status-warning-text) 12%, transparent); }
 
 /* Segmented sub-navigation within a tab (Napredak, Ciljevi) */
 .seg-nav {
@@ -3328,9 +3323,10 @@ textarea::placeholder {
   color: var(--muted);
 }
 .bc-row { grid-template-columns: 1fr auto; }
-.bc-delta { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.bc-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.bc-delta svg { width: 11px; height: 11px; }
 .bc-delta--good { color: var(--accent); }
-.bc-delta--bad { color: #b4530e; }
+.bc-delta--bad { color: var(--status-warning-text); }
 
 .bc-sessions { margin-top: 14px; }
 .bc-session-list { display: grid; gap: 2px; margin-top: 6px; }
@@ -3346,10 +3342,11 @@ textarea::placeholder {
 }
 .bc-session-row:last-child { border-bottom: 0; }
 
-/* Dark accent is gold, not green — use an explicit green so a "good" change
-   stays clearly distinct from the amber "bad". */
-:root[data-theme="dark"] .bc-delta--good { color: #5cc98c; }
-:root[data-theme="dark"] .bc-delta--bad { color: #f0b35a; }
+/* Reuse the existing success/warning status tokens instead of inventing
+   one-off colors — keeps "good"/"bad" meaning consistent with the rest
+   of the app's status pills in dark mode. */
+:root[data-theme="dark"] .bc-delta--good { color: var(--status-success-text); }
+:root[data-theme="dark"] .bc-delta--bad { color: var(--status-warning-text); }
 
 .entry-actions {
   display: flex;
@@ -3729,10 +3726,6 @@ label.is-invalid textarea:focus {
 }
 
 /* ---- Trčanje (running log) --------------------------------------------- */
-.running-add-card {
-  height: auto;
-}
-
 .run-form {
   margin-top: 2px;
 }
@@ -3925,44 +3918,6 @@ label.is-invalid textarea:focus {
   color: #8a3d68;
 }
 
-.run-metrics {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.run-metric {
-  display: grid;
-  gap: 3px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: var(--pill-bg);
-  border: 1px solid var(--pill-border);
-}
-
-.run-metric-label {
-  font-size: 0.7rem;
-  font-weight: 760;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.run-metric-value {
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.run-metric-value small {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0;
-}
-
 .run-card-note {
   margin-top: 12px;
 }
@@ -3991,12 +3946,6 @@ label.is-invalid textarea:focus {
   background: oklch(0.55 0.13 340 / 0.22);
   border-color: oklch(0.65 0.15 340 / 0.34);
   color: oklch(0.81 0.13 340);
-}
-
-@media (min-width: 540px) {
-  .run-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .suggestion-row {
@@ -4136,6 +4085,7 @@ label.is-invalid textarea:focus {
   color: var(--muted);
 }
 .chart-eta strong { color: var(--ink); }
+.chart-eta--warn { color: var(--status-warning-text); }
 
 /* Goal ETA readout (Ciljevi) */
 .goal-eta {
@@ -4151,9 +4101,8 @@ label.is-invalid textarea:focus {
 .goal-eta-icon { font-size: 1.1rem; line-height: 1.3; flex: 0 0 auto; }
 .goal-eta p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--ink); }
 .goal-eta--good { border-color: var(--accent); }
-.goal-eta--warn { background: rgba(194, 90, 28, 0.12); }
+.goal-eta--warn { background: var(--status-warning-bg); }
 :root[data-theme="dark"] .goal-eta { background: rgba(255, 255, 255, 0.045); }
-:root[data-theme="dark"] .goal-eta--warn { background: rgba(240, 179, 90, 0.14); }
 
 .photo-picker {
   padding: 14px;
@@ -7711,17 +7660,17 @@ body.menu-open .tab-bar {
   padding: 14px;
   border-radius: 20px;
   background: rgba(255, 248, 238, 0.97);
-  border: 1px solid rgba(194, 90, 28, 0.28);
+  border: 1px solid var(--status-warning-border);
   box-shadow: 0 18px 34px rgba(25, 34, 31, 0.14);
   backdrop-filter: blur(18px);
 }
-.offline-banner strong { color: #b4530e; }
+.offline-banner strong { color: var(--status-warning-text); }
 .offline-banner-dot {
   flex: 0 0 auto;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #c2541c;
+  background: var(--status-warning-text);
   box-shadow: 0 0 0 0 rgba(194, 90, 28, 0.5);
   animation: offline-pulse 1.8s ease-out infinite;
 }
@@ -7737,10 +7686,8 @@ body.menu-open .tab-bar {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-elevated);
-  border-color: rgba(240, 179, 90, 0.4);
+  border-color: var(--status-warning-border);
 }
-:root[data-theme="dark"] .offline-banner strong { color: #f0b35a; }
-:root[data-theme="dark"] .offline-banner-dot { background: #f0b35a; }
 
 :root[data-theme="dark"] .sync-conflict-banner {
   background:

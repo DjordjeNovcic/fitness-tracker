@@ -6267,6 +6267,11 @@ function renderStarIcon(isActive) {
   return `<svg class="star-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4l2.55 5.17 5.7.83-4.13 4.02.98 5.68L12 16.6l-5.1 2.68.98-5.68L3.75 9.4l5.7-.83z"/></svg>`;
 }
 
+// Small up/down trend arrow — replaces ↑/↓ text glyphs in delta readouts.
+function renderTrendArrowIcon(down) {
+  return `<svg class="trend-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${down ? "M12 5v14M6 13l6 6 6-6" : "M12 19V5M6 11l6-6 6 6"}"/></svg>`;
+}
+
 function renderAuthShell() {
   const submitLabel = state.authPending
     ? state.authMode === "register"
@@ -6758,11 +6763,11 @@ function renderPlanActivitySection() {
 
   const tiles = [];
   if (activity) {
-    if (activity.moveKcal != null) tiles.push({ label: "Potrošeno (Move)", value: `${activity.moveKcal}`, unit: "kcal" });
-    if (activity.exerciseMin != null) tiles.push({ label: "Vežbanje", value: `${activity.exerciseMin}`, unit: "min" });
-    if (activity.standHours != null) tiles.push({ label: "Stajanje", value: `${activity.standHours}`, unit: "h" });
-    if (activity.steps != null) tiles.push({ label: "Koraci", value: activity.steps.toLocaleString("sr-RS"), unit: "" });
-    if (activity.distanceKm != null) tiles.push({ label: "Distanca", value: `${roundValue(activity.distanceKm, 2)}`, unit: "km" });
+    if (activity.moveKcal != null) tiles.push({ text: `${activity.moveKcal} kcal (Move)`, strong: true });
+    if (activity.exerciseMin != null) tiles.push({ text: `${activity.exerciseMin} min vežbanja` });
+    if (activity.standHours != null) tiles.push({ text: `${activity.standHours} h stajanja` });
+    if (activity.steps != null) tiles.push({ text: `${activity.steps.toLocaleString("sr-RS")} koraka` });
+    if (activity.distanceKm != null) tiles.push({ text: `${roundValue(activity.distanceKm, 2)} km` });
   }
 
   return `
@@ -6796,22 +6801,13 @@ function renderPlanActivitySection() {
           : ""
       }
       ${renderHelpNote(
-        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Učitaj sa sata”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
+        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
         "Kako da povučem dnevnu aktivnost?"
       )}
       ${
         hasActivity
-          ? `<div class="run-metrics plan-activity-metrics">
-              ${tiles
-                .map(
-                  (tile) => `
-                    <div class="run-metric">
-                      <span class="run-metric-label">${tile.label}</span>
-                      <span class="run-metric-value">${tile.value}${tile.unit ? ` <small>${tile.unit}</small>` : ""}</span>
-                    </div>
-                  `
-                )
-                .join("")}
+          ? `<div class="pill-row plan-activity-metrics">
+              ${tiles.map((tile) => `<span class="pill${tile.strong ? " strong" : ""}">${escapeHtml(tile.text)}</span>`).join("")}
             </div>
             ${
               activity.workouts && activity.workouts.length
@@ -6823,7 +6819,7 @@ function renderPlanActivitySection() {
                     .join("")}</div>`
                 : ""
             }`
-          : `<div class="empty">Još nema podataka za danas. Pokreni prečicu ili tapni „Učitaj sa sata”.</div>`
+          : `<div class="empty">Još nema podataka za danas. Tapni „Sa sata” da pokreneš prečicu, ili „Iz clipboard-a” ako si već kopirao/la podatke.</div>`
       }
     </section>
   `;
@@ -9111,20 +9107,20 @@ async function maybeAutoImportRunFromClipboard() {
 function renderRunCard(run) {
   const derived = getRunDerived(run);
   const dateLabel = new Date(run.date).toLocaleDateString("sr-RS", { day: "numeric", month: "long", year: "numeric" });
-  const metrics = [
-    { label: "Distanca", value: `${roundValue(derived.distanceKm, 2)}`, unit: "km" },
-    { label: "Vreme", value: formatRunDuration(derived.durationSec), unit: "" },
-    { label: "Tempo", value: formatRunPace(derived.paceSec), unit: "/km" },
-    { label: "Brzina", value: derived.speedKmh ? `${roundValue(derived.speedKmh, 1)}` : "—", unit: "km/h" },
+  const pills = [
+    { text: `${roundValue(derived.distanceKm, 2)} km`, strong: true },
+    { text: formatRunDuration(derived.durationSec) },
+    { text: `${formatRunPace(derived.paceSec)} /km` },
+    { text: derived.speedKmh ? `${roundValue(derived.speedKmh, 1)} km/h` : "— km/h" },
   ];
   if (run.avgHr) {
-    metrics.push({ label: "Puls (pros.)", value: `${run.avgHr}`, unit: "bpm" });
+    pills.push({ text: `Pros. ${run.avgHr} bpm` });
   }
   if (run.maxHr) {
-    metrics.push({ label: "Puls (maks.)", value: `${run.maxHr}`, unit: "bpm" });
+    pills.push({ text: `Maks. ${run.maxHr} bpm` });
   }
   if (derived.calories) {
-    metrics.push({ label: "Kalorije", value: `${derived.calories}`, unit: "kcal" });
+    pills.push({ text: `${derived.calories} kcal` });
   }
 
   return `
@@ -9136,17 +9132,8 @@ function renderRunCard(run) {
         </div>
         <button class="danger-button" data-action="delete-run" data-run-id="${run.id}">Obriši</button>
       </div>
-      <div class="run-metrics">
-        ${metrics
-          .map(
-            (metric) => `
-              <div class="run-metric">
-                <span class="run-metric-label">${metric.label}</span>
-                <span class="run-metric-value">${metric.value}${metric.unit ? ` <small>${metric.unit}</small>` : ""}</span>
-              </div>
-            `
-          )
-          .join("")}
+      <div class="pill-row">
+        ${pills.map((pill) => `<span class="pill${pill.strong ? " strong" : ""}">${escapeHtml(pill.text)}</span>`).join("")}
       </div>
       ${run.note ? `<div class="footer-note run-card-note">${escapeHtml(run.note)}</div>` : ""}
     </article>
@@ -9181,77 +9168,79 @@ function renderRunningTab() {
       ${renderHelpNote(
         "Upiši svako trčanje sa <strong>distancom</strong> i <strong>vremenom</strong> — aplikacija sama računa <strong>tempo</strong> (min/km), brzinu i grubu procenu potrošnje kalorija (na osnovu tvoje težine iz profila). Puls je opcioni, ali pomaže da pratiš da li trčiš lagano ili napadaš. Tip trčanja (lagano, tempo, intervali, dugačko, trka) ti kasnije olakšava da prepoznaš kakva je sesija bila."
       )}
-      <div class="stats-grid running-summary-grid">
-        <article class="stat-card">
-          <strong>Trčanja</strong>
-          <div class="macro-value">${stats.weekCount}</div>
-          <div class="footer-note">Poslednjih 7 dana</div>
-        </article>
-        <article class="stat-card">
-          <strong>Kilometri</strong>
-          <div class="macro-value">${roundValue(stats.weekKm, 1)} <small>km</small></div>
-          <div class="footer-note">Ukupno ove nedelje</div>
-        </article>
-        <article class="stat-card">
-          <strong>Vreme</strong>
-          <div class="macro-value">${stats.weekSec ? formatRunDuration(stats.weekSec) : "0:00"}</div>
-          <div class="footer-note">Provedeno u trčanju</div>
-        </article>
-        <article class="stat-card">
-          <strong>Prosečan tempo</strong>
-          <div class="macro-value">${formatRunPace(weekPaceSec)} <small>/km</small></div>
-          <div class="footer-note">Nedeljni prosek</div>
-        </article>
-      </div>
+      ${
+        hasRuns
+          ? `
+            <div class="stats-grid running-summary-grid">
+              <article class="stat-card">
+                <strong>Trčanja</strong>
+                <div class="macro-value">${stats.weekCount}</div>
+                <div class="footer-note">Poslednjih 7 dana</div>
+              </article>
+              <article class="stat-card">
+                <strong>Kilometri</strong>
+                <div class="macro-value">${roundValue(stats.weekKm, 1)} <small>km</small></div>
+                <div class="footer-note">Ukupno ove nedelje</div>
+              </article>
+              <article class="stat-card">
+                <strong>Vreme</strong>
+                <div class="macro-value">${stats.weekSec ? formatRunDuration(stats.weekSec) : "0:00"}</div>
+                <div class="footer-note">Provedeno u trčanju</div>
+              </article>
+              <article class="stat-card">
+                <strong>Prosečan tempo</strong>
+                <div class="macro-value">${formatRunPace(weekPaceSec)} <small>/km</small></div>
+                <div class="footer-note">Nedeljni prosek</div>
+              </article>
+            </div>
+          `
+          : `<div class="empty">Još nema trčanja ove nedelje. Dodaj prvo ispod i ovde se pojavljuje nedeljni zbir.</div>`
+      }
     </section>
 
-    <section class="section running-add-section">
-      <div class="section-header">
-        <div>
-          <h2>Dodaj trčanje</h2>
-          <p>Unesi distancu i vreme; puls i napomenu po želji — tempo, brzinu i kalorije računa app.</p>
+    <details class="section form-collapse running-add-section" ${state.runImportDraft ? "open" : ""}>
+      <summary>
+        <span class="form-collapse-title">Dodaj trčanje</span>
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
+      <form id="run-form" class="form-grid split run-form">
+        <div class="field date-field">
+          <label for="run-date">Datum</label>
+          <input id="run-date" name="date" type="date" value="${draftDate}" required />
         </div>
-      </div>
-      <article class="food-card suggestion-surface running-add-card">
-        <form id="run-form" class="form-grid split run-form">
-          <div class="field date-field">
-            <label for="run-date">Datum</label>
-            <input id="run-date" name="date" type="date" value="${draftDate}" required />
+        <div class="field">
+          <label for="run-type">Tip trčanja</label>
+          <select id="run-type" name="type">
+            ${RUN_TYPES.map((type) => `<option value="${type.id}" ${type.id === draftType ? "selected" : ""}>${type.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="run-distance">Distanca (km)</label>
+          <input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />
+        </div>
+        <div class="field">
+          <label for="run-minutes">Vreme (min : sek)</label>
+          <div class="run-time-inputs">
+            <input id="run-minutes" name="minutes" type="number" min="0" step="1" inputmode="numeric" placeholder="min" aria-label="Minuti" value="${draftMinutes}" />
+            <span class="run-time-sep" aria-hidden="true">:</span>
+            <input id="run-seconds" name="seconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="sek" aria-label="Sekunde" value="${draftSeconds}" />
           </div>
-          <div class="field">
-            <label for="run-type">Tip trčanja</label>
-            <select id="run-type" name="type">
-              ${RUN_TYPES.map((type) => `<option value="${type.id}" ${type.id === draftType ? "selected" : ""}>${type.label}</option>`).join("")}
-            </select>
-          </div>
-          <div class="field">
-            <label for="run-distance">Distanca (km)</label>
-            <input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />
-          </div>
-          <div class="field">
-            <label for="run-minutes">Vreme (min : sek)</label>
-            <div class="run-time-inputs">
-              <input id="run-minutes" name="minutes" type="number" min="0" step="1" inputmode="numeric" placeholder="min" aria-label="Minuti" value="${draftMinutes}" />
-              <span class="run-time-sep" aria-hidden="true">:</span>
-              <input id="run-seconds" name="seconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="sek" aria-label="Sekunde" value="${draftSeconds}" />
-            </div>
-          </div>
-          <div class="field">
-            <label for="run-avg-hr">Prosečan puls</label>
-            <input id="run-avg-hr" name="avgHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 145" value="${draftAvgHr}" />
-          </div>
-          <div class="field">
-            <label for="run-max-hr">Maksimalan puls</label>
-            <input id="run-max-hr" name="maxHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 168" value="${draftMaxHr}" />
-          </div>
-          <div class="field run-note-field">
-            <label for="run-note">Napomena</label>
-            <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" />
-          </div>
-          <button class="solid-button secondary-button run-form-submit" type="submit">Sačuvaj trčanje</button>
-        </form>
-      </article>
-    </section>
+        </div>
+        <div class="field">
+          <label for="run-avg-hr">Prosečan puls</label>
+          <input id="run-avg-hr" name="avgHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 145" value="${draftAvgHr}" />
+        </div>
+        <div class="field">
+          <label for="run-max-hr">Maksimalan puls</label>
+          <input id="run-max-hr" name="maxHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 168" value="${draftMaxHr}" />
+        </div>
+        <div class="field run-note-field">
+          <label for="run-note">Napomena</label>
+          <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" />
+        </div>
+        <button class="solid-button secondary-button run-form-submit" type="submit">Sačuvaj trčanje</button>
+      </form>
+    </details>
 
     ${
       hasRuns
@@ -10671,6 +10660,10 @@ function renderTrendCard(field) {
       etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
     } else if (eta.status === "reached") {
       etaCaption = `<div class="chart-eta">🎯 cilj dostignut!</div>`;
+    } else if (eta.status === "no-rate") {
+      etaCaption = `<div class="chart-eta">Izaberi tempo (ne „održavanje“) da procenim datum.</div>`;
+    } else if (eta.status === "wrong-direction") {
+      etaCaption = `<div class="chart-eta chart-eta--warn">Težina ide suprotno od cilja — proveri podešavanja.</div>`;
     }
   }
   const legendHtml = legendItems.length ? `<div class="chart-legend">${legendItems.join("")}</div>` : "";
@@ -10951,7 +10944,7 @@ function renderMeasurementDelta(delta, unit) {
   }
   const down = delta < 0;
   return `<span class="measure-delta ${down ? "measure-delta--down" : "measure-delta--up"}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${down ? "M12 5v14M6 13l6 6 6-6" : "M12 19V5M6 11l6-6 6 6"}"/></svg>
+    ${renderTrendArrowIcon(down)}
     ${Math.abs(delta)}${suffix}
   </span>`;
 }
@@ -11261,7 +11254,7 @@ function renderLabSection() {
           <p>Upiši nalaze i prati koliko je bilo pre, koliko je sad.</p>
         </div>
       </div>
-      ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera — deltu i mini-grafik trenda. Referentni opsezi su orijentacioni i nisu medicinski savet.")}
+      ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera — deltu i mini-grafik trenda.")}
 
       <details class="form-collapse">
         <summary>
@@ -11306,7 +11299,7 @@ function renderLabSection() {
                     deltaHtml =
                       d === 0
                         ? `<span class="lab-delta">bez promene</span>`
-                        : `<span class="lab-delta lab-delta--${d > 0 ? "up" : "down"}">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</span>`;
+                        : `<span class="lab-delta lab-delta--${d > 0 ? "up" : "down"}">${renderTrendArrowIcon(d < 0)} ${Math.abs(d)}</span>`;
                   }
                   const metaText = [rangeText, new Date(latest.date).toLocaleDateString("sr-RS"), group.entries.length > 1 ? `${group.entries.length} nalaza` : ""]
                     .filter(Boolean)
@@ -11371,7 +11364,7 @@ function renderBodyDelta(curr, prev, dir, dec) {
     const good = (dir === "down" && d < 0) || (dir === "up" && d > 0);
     tone = good ? "good" : "bad";
   }
-  return `<span class="bc-delta bc-delta--${tone}">${d > 0 ? "↑ +" : "↓ "}${d}</span>`;
+  return `<span class="bc-delta bc-delta--${tone}">${renderTrendArrowIcon(d < 0)} ${d > 0 ? `+${d}` : d}</span>`;
 }
 
 function renderBodySparkline(values) {
