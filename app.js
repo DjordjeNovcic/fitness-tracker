@@ -475,6 +475,8 @@ const state = {
   foodEditorOpen: false,
   scannerOpen: false,
   scannerStatus: "",
+  scannerTorchOn: false,
+  scannerTorchSupported: false,
   scannedFood: null,
   scannedBarcode: "",
   recipeMealFilter: "Sve",
@@ -5090,6 +5092,30 @@ function getBarcodeReader() {
   return barcodeReaderPromise;
 }
 
+// The video element's srcObject is set directly by ZXing, so this is the
+// only way to reach the live track for torch/focus control without going
+// through a full render() (which would tear down and reattach the stream).
+function getScannerVideoTrack() {
+  const video = document.querySelector("#barcode-video");
+  const stream = video && video.srcObject;
+  return stream instanceof MediaStream ? stream.getVideoTracks()[0] || null : null;
+}
+
+// Torch is Chrome/Android-only (no Safari support at all), so the button
+// stays hidden by default and only reveals itself once we've confirmed the
+// live track actually supports it — pure DOM toggle, no render().
+function syncScannerTorchButton() {
+  const track = getScannerVideoTrack();
+  const capabilities = track && typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+  state.scannerTorchSupported = Boolean(capabilities.torch);
+  state.scannerTorchOn = false;
+  const torchBtn = document.querySelector("#scanner-torch-btn");
+  if (torchBtn) {
+    torchBtn.hidden = !state.scannerTorchSupported;
+    torchBtn.classList.remove("is-active");
+  }
+}
+
 async function startBarcodeScan() {
   const video = document.querySelector("#barcode-video");
   if (!video) {
@@ -5105,16 +5131,23 @@ async function startBarcodeScan() {
       stopBarcodeScan();
       handleScannedBarcode(text);
     };
+    // Ask for a sharp, high-res feed with continuous autofocus where the
+    // browser supports it — low-res/default streams are the main reason
+    // barcodes take forever to lock in, especially on multi-lens phones
+    // that default to an ultra-wide with poor close-focus.
+    const videoConstraints = {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      advanced: [{ focusMode: "continuous" }],
+    };
     // Prefer the rear camera on phones; fall back to the default device.
     if (typeof reader.decodeFromConstraints === "function") {
-      activeScanControls = await reader.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } } },
-        video,
-        onResult
-      );
+      activeScanControls = await reader.decodeFromConstraints({ video: videoConstraints }, video, onResult);
     } else {
       activeScanControls = await reader.decodeFromVideoDevice(undefined, video, onResult);
     }
+    syncScannerTorchButton();
   } catch (error) {
     console.warn("Barcode scan failed", error);
     const name = (error && error.name) || "";
@@ -5148,6 +5181,34 @@ function stopBarcodeScan() {
     /* ignore */
   }
   activeScanControls = null;
+}
+
+// Tap-to-focus: nudges the camera's focus point where the user tapped
+// (Chrome/Android; a silent no-op elsewhere) and always shows a focus-ring
+// pulse so tapping still reads as "doing something" on every browser —
+// the pause-and-reaim itself often fixes a hunting autofocus regardless.
+function focusScannerAt(viewportEl, clientX, clientY) {
+  const rect = viewportEl.getBoundingClientRect();
+  const localX = clientX - rect.left;
+  const localY = clientY - rect.top;
+
+  const ring = document.createElement("div");
+  ring.className = "scanner-focus-ring";
+  ring.style.left = `${localX}px`;
+  ring.style.top = `${localY}px`;
+  viewportEl.appendChild(ring);
+  ring.addEventListener("animationend", () => ring.remove());
+
+  const track = getScannerVideoTrack();
+  const capabilities = track && typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+  if (!capabilities.pointsOfInterest) {
+    return;
+  }
+  track
+    .applyConstraints({ advanced: [{ pointsOfInterest: [{ x: localX / rect.width, y: localY / rect.height }] }] })
+    .catch(() => {
+      /* best-effort only */
+    });
 }
 
 async function fetchOpenFoodFacts(barcode) {
@@ -5289,15 +5350,18 @@ function renderBarcodeScanner() {
           <div class="stack" style="gap:4px;">
             <div class="hero-picker-label">Skener</div>
             <h3>Skeniraj barkod</h3>
-            <p>Usmeri kameru na barkod proizvoda — vrednosti na 100 g se popunjavaju automatski.</p>
+            <p>Drži telefon mirno, ~10-15 cm od barkoda. Ne fokusira se? Dodirni barkod na slici.</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-scanner" aria-label="Zatvori skener">
             ${renderMenuToggleIcon(true)}
           </button>
         </div>
-        <div class="scanner-viewport">
+        <div class="scanner-viewport" data-action="focus-scanner">
           <video id="barcode-video" playsinline muted autoplay></video>
           <div class="scanner-reticle" aria-hidden="true"></div>
+          <button id="scanner-torch-btn" class="scanner-torch-btn" type="button" data-action="toggle-scanner-torch" aria-label="Uključi/isključi blic" hidden>
+            ${renderActionIcon("flash")}
+          </button>
         </div>
         <div class="footer-note scanner-status">${state.scannerStatus || "Tražim kameru…"}</div>
         <div class="entry-actions" style="justify-content:flex-start;">
@@ -6183,6 +6247,7 @@ function renderActionIcon(kind) {
     share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
     close: '<path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"/>',
     minus: '<path fill="currentColor" d="M5 11h14v2H5z"/>',
+    flash: '<path fill="currentColor" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -13065,6 +13130,30 @@ async function handleDocumentClick(event) {
     window.requestAnimationFrame(() => {
       document.querySelector("#food-name")?.focus();
     });
+    return;
+  }
+
+  // No render() in these two — the live camera stream is attached directly
+  // to the #barcode-video element, and a re-render would recreate it (and
+  // drop the feed) since ZXing owns that element outside the state model.
+  if (action === "focus-scanner") {
+    focusScannerAt(actionTarget, event.clientX, event.clientY);
+    return;
+  }
+
+  if (action === "toggle-scanner-torch") {
+    const track = getScannerVideoTrack();
+    if (!track) {
+      return;
+    }
+    const next = !state.scannerTorchOn;
+    track
+      .applyConstraints({ advanced: [{ torch: next }] })
+      .then(() => {
+        state.scannerTorchOn = next;
+        actionTarget.classList.toggle("is-active", next);
+      })
+      .catch((error) => console.warn("Torch toggle failed", error));
     return;
   }
 

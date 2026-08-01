@@ -7420,6 +7420,7 @@ body.menu-open .tab-bar {
   overflow: hidden;
   background: #0c1813;
   margin-bottom: 12px;
+  cursor: pointer;
 }
 
 .scanner-viewport video {
@@ -7435,6 +7436,69 @@ body.menu-open .tab-bar {
   border: 2px solid rgba(255, 255, 255, 0.92);
   border-radius: 14px;
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.4);
+}
+
+/* Tap-to-focus pulse — shown on every tap regardless of whether the browser
+   actually supports steering the focus point, so tapping always reads as
+   "doing something" and nudges the user to re-aim/hold steadier. */
+.scanner-focus-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -32px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  pointer-events: none;
+  animation: scanner-focus-pulse 0.5s ease-out;
+}
+
+@keyframes scanner-focus-pulse {
+  from {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanner-focus-ring {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Torch toggle — only ever unhidden when the live track reports it actually
+   supports it (Chrome/Android; no Safari support at all). */
+.scanner-torch-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 24, 19, 0.55);
+  color: #fff;
+  border: 0;
+}
+
+.scanner-torch-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.scanner-torch-btn.is-active {
+  background: #e0a92e;
+  color: #241a00;
 }
 
 .scanner-status {
