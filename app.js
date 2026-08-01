@@ -6182,6 +6182,7 @@ function renderActionIcon(kind) {
     apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
     share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
     close: '<path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"/>',
+    minus: '<path fill="currentColor" d="M5 11h14v2H5z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -6481,7 +6482,11 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
           <span class="food-form-step-num">2</span>
           <label class="food-form-step-title" for="grams">${quantityLabel}</label>
         </div>
-        <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
+        <div class="amount-stepper">
+          <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="-1" aria-label="Smanji količinu">${renderActionIcon("minus")}</button>
+          <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
+          <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="1" aria-label="Povećaj količinu">${renderActionIcon("add")}</button>
+        </div>
         <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(draftFood)}</div>
       </div>
       <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
@@ -13871,6 +13876,20 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "nudge-plan-draft-grams") {
+    const direction = toNumber(actionTarget.dataset.direction) || 1;
+    const step = getFoodServingUnit(getFoodById(state.planDraft.foodId)) === "piece" ? 1 : 10;
+    const gramsInput = document.querySelector("#grams");
+    const current = toNumber(gramsInput?.value) || 0;
+    const next = Math.max(1, roundValue(current + direction * step, 0));
+    state.planDraft.grams = String(next);
+    if (gramsInput instanceof HTMLInputElement) {
+      gramsInput.value = state.planDraft.grams;
+    }
+    syncEntryPreview();
+    return;
+  }
+
   if (action === "add-companion-suggestion") {
     const foodId = actionTarget.dataset.foodId;
     const grams = toNumber(actionTarget.dataset.grams);
@@ -14787,9 +14806,18 @@ async function handleSubmit(event) {
     }
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     persist();
+    const wasEditingEntry = Boolean(state.editingEntryId);
     resetPlanDraft();
     event.target.reset();
     render();
+    // Fresh adds (not edits) keep the composer open for the next item, so
+    // refocus the search field — logging several foods in a row shouldn't
+    // need a re-tap between each one.
+    if (!wasEditingEntry) {
+      window.requestAnimationFrame(() => {
+        document.querySelector("#food-search-input")?.focus();
+      });
+    }
     return;
   }
 

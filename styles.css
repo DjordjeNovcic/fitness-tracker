@@ -7199,7 +7199,8 @@ body.menu-open .menu-fab {
 :root[data-theme="dark"] .field input,
 :root[data-theme="dark"] .field select,
 :root[data-theme="dark"] .field textarea,
-:root[data-theme="dark"] .auth-form .field input {
+:root[data-theme="dark"] .auth-form .field input,
+:root[data-theme="dark"] .amount-stepper-btn {
   background: rgba(12, 22, 18, 0.66);
   border-color: var(--line-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -9634,6 +9635,43 @@ body.app-header-hidden .workspace-header {
   .food-match-chip {
     animation: none;
   }
+}
+
+/* Quantity stepper — the familiar -/qty/+ pattern from nutrition-logging
+   apps, for nudging without opening the keyboard. Step size matches the
+   food's own unit (10 g, or 1 kom for piece-counted foods). */
+.amount-stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.amount-stepper input {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.amount-stepper-btn {
+  flex: 0 0 auto;
+  width: 48px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(24, 33, 30, 0.09);
+  background: rgba(255, 254, 251, 0.98);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.amount-stepper-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.amount-stepper-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* One-tap amount presets (half / base / double the food's own serving size) —
