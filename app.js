@@ -6442,6 +6442,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const selectableFoods = getSelectableFoods();
   const quantityLabel = getFoodQuantityLabel(draftFood);
   const quantityPlaceholder = getFoodQuantityPlaceholder(draftFood);
+  const planFoodSearchValue = draftFood?.name || "";
 
   const isEditing = Boolean(state.editingEntryId);
   const draftGrams = toNumber(state.planDraft.grams);
@@ -6455,13 +6456,12 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
       </div>
       ${isEditing ? "" : renderQuickAddRow(activeMealLabel)}
       <div class="field meal-composer-field">
-        <label for="foodId">1. Koju namirnicu?</label>
-        <select id="foodId" name="foodId" required>
-          <option value="">Izaberi namirnicu…</option>
-          ${selectableFoods
-            .map((food) => `<option value="${food.id}" ${food.id === state.planDraft.foodId ? "selected" : ""}>${escapeHtml(food.name)}</option>`)
-            .join("")}
-        </select>
+        <label for="food-search-input">1. Koju namirnicu?</label>
+        <input id="food-search-input" name="foodSearch" list="plan-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" required />
+        <input id="foodId" name="foodId" type="hidden" value="${state.planDraft.foodId}" />
+        <datalist id="plan-food-options">
+          ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
+        </datalist>
       </div>
       <div class="field meal-composer-field">
         <label for="grams">2. ${quantityLabel}</label>
@@ -12613,15 +12613,15 @@ function handleValidationInteraction(event) {
 }
 
 function syncEntryPreview() {
-  const foodSelect = document.querySelector("#foodId");
+  const foodIdInput = document.querySelector("#foodId");
   const gramsInput = document.querySelector("#grams");
   const preview = document.querySelector("#entry-preview");
 
-  if (!foodSelect || !gramsInput || !preview) {
+  if (!foodIdInput || !gramsInput || !preview) {
     return;
   }
 
-  const food = getFoodById(foodSelect.value);
+  const food = getFoodById(foodIdInput.value);
   const grams = toNumber(gramsInput.value);
   preview.innerHTML = renderEntryPreviewInner(food, grams);
 }
@@ -13460,7 +13460,7 @@ async function handleDocumentClick(event) {
     render();
     window.requestAnimationFrame(() => {
       document.querySelector("#plan-entry-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelector("#foodId")?.focus();
+      document.querySelector("#food-search-input")?.focus();
     });
     return;
   }
@@ -13478,7 +13478,7 @@ async function handleDocumentClick(event) {
     render();
     window.requestAnimationFrame(() => {
       document.querySelector("#plan-entry-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelector("#foodId")?.focus();
+      document.querySelector("#food-search-input")?.focus();
     });
     return;
   }
@@ -15487,13 +15487,32 @@ function handleInput(event) {
     return;
   }
 
-  if (target instanceof HTMLSelectElement && target.id === "foodId") {
-    state.planDraft.foodId = target.value;
-    if (!state.planDraft.grams) {
-      const selectedFood = getFoodById(target.value);
-      state.planDraft.grams = selectedFood ? String(getFoodServingBaseValue(selectedFood)) : "";
+  if (target instanceof HTMLInputElement && target.id === "food-search-input") {
+    const selectedFood = resolveFoodFromQuery(target.value);
+    state.planDraft.foodId = selectedFood?.id || "";
+
+    const hiddenInput = document.querySelector("#foodId");
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = state.planDraft.foodId;
     }
-    render();
+
+    if (selectedFood && !state.planDraft.grams) {
+      state.planDraft.grams = String(getFoodServingBaseValue(selectedFood));
+    }
+
+    const gramsLabel = document.querySelector('label[for="grams"]');
+    const gramsInput = document.querySelector("#grams");
+    if (gramsLabel) {
+      gramsLabel.textContent = `2. ${getFoodQuantityLabel(selectedFood)}`;
+    }
+    if (gramsInput instanceof HTMLInputElement) {
+      gramsInput.placeholder = getFoodQuantityPlaceholder(selectedFood);
+      if (selectedFood && !gramsInput.value) {
+        gramsInput.value = state.planDraft.grams;
+      }
+    }
+
+    syncEntryPreview();
     return;
   }
 
