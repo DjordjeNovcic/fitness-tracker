@@ -6181,6 +6181,7 @@ function renderActionIcon(kind) {
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
     apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
     share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
+    close: '<path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -6270,6 +6271,11 @@ function renderStarIcon(isActive) {
 // Small up/down trend arrow — replaces ↑/↓ text glyphs in delta readouts.
 function renderTrendArrowIcon(down) {
   return `<svg class="trend-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${down ? "M12 5v14M6 13l6 6 6-6" : "M12 19V5M6 11l6-6 6 6"}"/></svg>`;
+}
+
+// Small search glass — same mark as the Namirnice search box, reused inline in field icons.
+function renderSearchIcon() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>`;
 }
 
 function renderAuthShell() {
@@ -6456,16 +6462,27 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
       </div>
       ${isEditing ? "" : renderQuickAddRow(activeMealLabel)}
       <div class="field meal-composer-field">
-        <label for="food-search-input">1. Koju namirnicu?</label>
-        <input id="food-search-input" name="foodSearch" list="plan-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" required />
+        <div class="food-form-step">
+          <span class="food-form-step-num">1</span>
+          <label class="food-form-step-title" for="food-search-input">Koju namirnicu?</label>
+        </div>
+        <div class="food-search-control">
+          <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
+          <input id="food-search-input" name="foodSearch" list="plan-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" required />
+        </div>
         <input id="foodId" name="foodId" type="hidden" value="${state.planDraft.foodId}" />
         <datalist id="plan-food-options">
           ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
         </datalist>
+        <div class="food-match" id="food-match">${renderFoodMatchInner(draftFood)}</div>
       </div>
       <div class="field meal-composer-field">
-        <label for="grams">2. ${quantityLabel}</label>
+        <div class="food-form-step">
+          <span class="food-form-step-num">2</span>
+          <label class="food-form-step-title" for="grams">${quantityLabel}</label>
+        </div>
         <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
+        <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(draftFood)}</div>
       </div>
       <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
       ${
@@ -6517,6 +6534,39 @@ function renderEntryPreviewInner(food, grams) {
       <span class="meal-composer-preview-kcal"><strong>${roundValue(totals.kcal, 0)}</strong> kcal</span>
       <span class="meal-composer-preview-macros">P <strong>${totals.protein}</strong> · UH <strong>${totals.carbs}</strong> · M <strong>${totals.fat}</strong> g</span>
     </div>`;
+}
+
+// Confirmation chip shown under the food search field once typing resolves to
+// a real match — used both on first render and patched live by handleInput so
+// picking a food never leaves it ambiguous whether the search "took".
+function renderFoodMatchInner(food) {
+  if (!food) {
+    return "";
+  }
+  return `
+    <div class="food-match-chip">
+      <span class="food-match-chip-name">${escapeHtml(food.name)}</span>
+      <span class="food-match-chip-meta">${getFoodNutritionBasisLabel(food)} · ${roundValue(food.kcal, 0)} kcal</span>
+      <button type="button" class="food-match-chip-clear" data-action="clear-plan-food-search" aria-label="Ukloni izabranu namirnicu">${renderActionIcon("close")}</button>
+    </div>`;
+}
+
+// One-tap amount presets scaled off the food's own serving basis (half / base /
+// double), so common amounts don't need typing. Same live-patch pattern as the
+// match chip above.
+function renderAmountPresetChipsInner(food) {
+  if (!food) {
+    return "";
+  }
+  const unit = getFoodServingUnit(food) === "piece" ? "kom" : "g";
+  const base = Math.max(1, roundValue(getFoodServingBaseValue(food), 0));
+  const presets = [...new Set([Math.round(base / 2), base, base * 2])].filter((value) => value > 0);
+  return presets
+    .map(
+      (value) =>
+        `<button type="button" class="amount-preset-chip" data-action="set-plan-draft-grams" data-grams="${value}">${value} ${unit}</button>`
+    )
+    .join("");
 }
 
 function truncateText(value, maxLength = 140) {
@@ -13798,6 +13848,29 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "clear-plan-food-search") {
+    state.planDraft.foodId = "";
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#food-search-input")?.focus();
+    });
+    return;
+  }
+
+  if (action === "set-plan-draft-grams") {
+    const grams = String(toNumber(actionTarget.dataset.grams) || "");
+    if (!grams) {
+      return;
+    }
+    state.planDraft.grams = grams;
+    const gramsInput = document.querySelector("#grams");
+    if (gramsInput instanceof HTMLInputElement) {
+      gramsInput.value = grams;
+    }
+    syncEntryPreview();
+    return;
+  }
+
   if (action === "add-companion-suggestion") {
     const foodId = actionTarget.dataset.foodId;
     const grams = toNumber(actionTarget.dataset.grams);
@@ -15496,6 +15569,11 @@ function handleInput(event) {
       hiddenInput.value = state.planDraft.foodId;
     }
 
+    const matchContainer = document.querySelector("#food-match");
+    if (matchContainer) {
+      matchContainer.innerHTML = renderFoodMatchInner(selectedFood);
+    }
+
     if (selectedFood && !state.planDraft.grams) {
       state.planDraft.grams = String(getFoodServingBaseValue(selectedFood));
     }
@@ -15503,13 +15581,18 @@ function handleInput(event) {
     const gramsLabel = document.querySelector('label[for="grams"]');
     const gramsInput = document.querySelector("#grams");
     if (gramsLabel) {
-      gramsLabel.textContent = `2. ${getFoodQuantityLabel(selectedFood)}`;
+      gramsLabel.textContent = getFoodQuantityLabel(selectedFood);
     }
     if (gramsInput instanceof HTMLInputElement) {
       gramsInput.placeholder = getFoodQuantityPlaceholder(selectedFood);
       if (selectedFood && !gramsInput.value) {
         gramsInput.value = state.planDraft.grams;
       }
+    }
+
+    const presetsContainer = document.querySelector("#amount-presets");
+    if (presetsContainer) {
+      presetsContainer.innerHTML = renderAmountPresetChipsInner(selectedFood);
     }
 
     syncEntryPreview();
