@@ -9824,6 +9824,10 @@ body.app-header-hidden .workspace-header {
   gap: 2px;
 }
 
+.meal-composer-suggestions:empty {
+  display: none;
+}
+
 .meal-composer-suggestions-label {
   font-size: 0.6875rem;
   font-weight: 800;
@@ -9833,8 +9837,34 @@ body.app-header-hidden .workspace-header {
   margin-bottom: 4px;
 }
 
+/* Deliberately quieter than the primary add flow above it — one compact
+   line per suggestion, small ghost button — so it reads as an optional
+   aside, not a second set of equally-weighted "add" actions. */
+.meal-composer-suggestions .suggestion-row {
+  padding: 7px 0;
+}
+
+.meal-composer-suggestions .suggestion-row-copy {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .meal-composer-suggestions .suggestion-row-copy strong {
-  display: block;
+  display: inline;
+  font-size: 0.85rem;
+}
+
+.meal-composer-suggestions .suggestion-row-copy .footer-note {
+  margin-top: 0;
+  font-size: 0.76rem;
+}
+
+.meal-composer-suggestions .suggestion-row-add {
+  min-height: 0;
+  padding: 6px 11px;
+  font-size: 0.78rem;
 }
 
 /* Quick add — one-tap re-add of recently used foods */

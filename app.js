@@ -6471,6 +6471,37 @@ function recordFoodUsage(foodId, grams) {
   };
 }
 
+// Single path for "actually push a new plan entry" — used by the composer's
+// submit, the instant-add amount presets, quick-add chips and companion
+// suggestions, so all four ways of adding a food behave identically (same
+// persistence, same usage tracking, same toast) instead of drifting apart.
+function commitPlanDraftEntry(food, grams, mealLabelOverride) {
+  const mealLabel = normalizeMealLabel(mealLabelOverride || state.planDraft.mealLabel || defaultMeals[0]);
+  if (!food || !grams || !mealLabel || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+    return false;
+  }
+  const newEntryId = uid("plan");
+  store.weeklyPlanEntries.push({
+    id: newEntryId,
+    weekday: state.selectedWeekday,
+    mealLabel,
+    foodId: food.id,
+    foodName: food.name,
+    grams,
+    done: false,
+  });
+  state.lastAddedEntryId = newEntryId;
+  recordFoodUsage(food.id, grams);
+  expandMealForWeekday(state.selectedWeekday, mealLabel);
+  persist();
+  showFeedbackToast({
+    title: "Dodato u obrok",
+    detail: `${food.name} · ${formatFoodAmount(food, grams)}`,
+    tone: "success",
+  });
+  return true;
+}
+
 // Most recently used foods that still exist, newest first.
 function getQuickAddFoods(limit = 8) {
   const usage = store.foodUsage || {};
@@ -6555,30 +6586,6 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(draftFood)}</div>
       </div>
       <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
-      ${
-        companionSuggestions.length
-          ? `
-            <div class="meal-composer-suggestions" id="companion-suggestions">
-              <div class="meal-composer-suggestions-label">Ide uz ovo</div>
-              ${companionSuggestions
-                .map(
-                  (suggestion) => `
-                    <div class="suggestion-row">
-                      <div class="suggestion-row-copy">
-                        <strong>${escapeHtml(suggestion.food.name)}</strong>
-                        <div class="footer-note">${formatFoodAmount(suggestion.food, suggestion.grams)} · ${roundValue(suggestion.totals.kcal, 0)} kcal</div>
-                      </div>
-                      <button class="ghost-button button-with-icon" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
-                        ${renderButtonContent("Dodaj", "add")}
-                      </button>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
-          `
-          : ""
-      }
       <div class="meal-composer-actions">
         <button class="solid-button button-with-icon meal-composer-submit" type="submit">${renderButtonContent(isEditing ? "Sačuvaj izmene" : "Dodaj namirnicu", isEditing ? "save" : "add")}</button>
         ${
@@ -6587,6 +6594,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
             : `<button class="ghost-button" type="button" data-action="finish-edit-meal" data-meal-label="${escapeHtml(state.editingMealLabel)}">Zatvori</button>`
         }
       </div>
+      <div class="meal-composer-suggestions" id="companion-suggestions">${renderCompanionSuggestionsInner(companionSuggestions)}</div>
     </form>
   `;
 }
@@ -6637,6 +6645,42 @@ function renderAmountPresetChipsInner(food) {
         `<button type="button" class="amount-preset-chip" data-action="set-plan-draft-grams" data-grams="${value}">${value} ${unit}</button>`
     )
     .join("");
+}
+
+// Companion suggestions depend on the food + amount currently in the draft,
+// which handleInput patches live (no full render, to keep focus/caret intact
+// while typing) — so this gets recomputed and re-patched from those same
+// handlers instead of only at the last full render, or it'd show stale
+// suggestions for whatever food was selected a few keystrokes ago.
+function renderCompanionSuggestionsInner(suggestions) {
+  if (!suggestions.length) {
+    return "";
+  }
+  return `
+    <div class="meal-composer-suggestions-label">Ide uz ovo</div>
+    ${suggestions
+      .map(
+        (suggestion) => `
+          <div class="suggestion-row">
+            <div class="suggestion-row-copy">
+              <strong>${escapeHtml(suggestion.food.name)}</strong>
+              <span class="footer-note">${formatFoodAmount(suggestion.food, suggestion.grams)} · ${roundValue(suggestion.totals.kcal, 0)} kcal</span>
+            </div>
+            <button class="ghost-button button-with-icon suggestion-row-add" type="button" data-action="add-companion-suggestion" data-food-id="${suggestion.food.id}" data-grams="${roundValue(suggestion.grams, 0)}">
+              ${renderButtonContent("Dodaj", "add")}
+            </button>
+          </div>
+        `
+      )
+      .join("")}
+  `;
+}
+
+function syncCompanionSuggestions() {
+  const container = document.querySelector("#companion-suggestions");
+  if (container) {
+    container.innerHTML = renderCompanionSuggestionsInner(generateCompanionSuggestions());
+  }
 }
 
 function truncateText(value, maxLength = 140) {
@@ -13952,16 +13996,34 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "set-plan-draft-grams") {
-    const grams = String(toNumber(actionTarget.dataset.grams) || "");
-    if (!grams) {
+    const grams = toNumber(actionTarget.dataset.grams);
+    const food = getFoodById(state.planDraft.foodId);
+    if (!grams || !food) {
       return;
     }
-    state.planDraft.grams = grams;
-    const gramsInput = document.querySelector("#grams");
-    if (gramsInput instanceof HTMLInputElement) {
-      gramsInput.value = grams;
+    // While editing an existing entry, a preset just fills the field —
+    // saving still goes through the explicit "Sačuvaj izmene" tap.
+    if (state.editingEntryId) {
+      state.planDraft.grams = String(grams);
+      const gramsInput = document.querySelector("#grams");
+      if (gramsInput instanceof HTMLInputElement) {
+        gramsInput.value = state.planDraft.grams;
+      }
+      syncEntryPreview();
+      return;
     }
-    syncEntryPreview();
+    // Otherwise a preset is a full decision (food + a round amount), so it
+    // commits immediately — picking one used to still require a separate
+    // tap on "Dodaj namirnicu" below, which read as clicking add twice for
+    // the same action.
+    if (!commitPlanDraftEntry(food, grams)) {
+      return;
+    }
+    resetPlanDraft();
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#food-search-input")?.focus();
+    });
     return;
   }
 
@@ -13976,6 +14038,7 @@ async function handleDocumentClick(event) {
       gramsInput.value = state.planDraft.grams;
     }
     syncEntryPreview();
+    syncCompanionSuggestions();
     return;
   }
 
@@ -13983,20 +14046,9 @@ async function handleDocumentClick(event) {
     const foodId = actionTarget.dataset.foodId;
     const grams = toNumber(actionTarget.dataset.grams);
     const food = getFoodById(foodId);
-    if (!food || !grams) {
+    if (!commitPlanDraftEntry(food, grams)) {
       return;
     }
-    store.weeklyPlanEntries.push({
-      id: uid("plan"),
-      weekday: state.selectedWeekday,
-      mealLabel: normalizeMealLabel(state.planDraft.mealLabel || defaultMeals[0]),
-      foodId: food.id,
-      foodName: food.name,
-      grams,
-      done: false,
-    });
-    recordFoodUsage(food.id, grams);
-    persist();
     render();
     return;
   }
@@ -14005,24 +14057,10 @@ async function handleDocumentClick(event) {
     const foodId = actionTarget.dataset.foodId;
     const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
     const food = getFoodById(foodId);
-    if (!food || !mealLabel || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+    const grams = quickAddGramsFor(food, store.foodUsage && store.foodUsage[foodId]);
+    if (!commitPlanDraftEntry(food, grams, mealLabel)) {
       return;
     }
-    const grams = quickAddGramsFor(food, store.foodUsage && store.foodUsage[foodId]);
-    const newEntryId = uid("plan");
-    store.weeklyPlanEntries.push({
-      id: newEntryId,
-      weekday: state.selectedWeekday,
-      mealLabel,
-      foodId: food.id,
-      foodName: food.name,
-      grams,
-      done: false,
-    });
-    state.lastAddedEntryId = newEntryId;
-    recordFoodUsage(food.id, grams);
-    expandMealForWeekday(state.selectedWeekday, mealLabel);
-    persist();
     render();
     return;
   }
@@ -14867,7 +14905,8 @@ async function handleSubmit(event) {
       return;
     }
 
-    if (state.editingEntryId) {
+    const wasEditingEntry = Boolean(state.editingEntryId);
+    if (wasEditingEntry) {
       store.weeklyPlanEntries = store.weeklyPlanEntries.map((entry) =>
         entry.id === state.editingEntryId
           ? {
@@ -14879,23 +14918,11 @@ async function handleSubmit(event) {
             }
           : entry
       );
-    } else {
-      const newEntryId = uid("plan");
-      store.weeklyPlanEntries.push({
-        id: newEntryId,
-        weekday: state.selectedWeekday,
-        mealLabel,
-        foodId: food.id,
-        foodName: food.name,
-        grams,
-        done: false,
-      });
-      state.lastAddedEntryId = newEntryId;
-      recordFoodUsage(food.id, grams);
+      expandMealForWeekday(state.selectedWeekday, mealLabel);
+      persist();
+    } else if (!commitPlanDraftEntry(food, grams, mealLabel)) {
+      return;
     }
-    expandMealForWeekday(state.selectedWeekday, mealLabel);
-    persist();
-    const wasEditingEntry = Boolean(state.editingEntryId);
     resetPlanDraft();
     event.target.reset();
     render();
@@ -15638,6 +15665,7 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "grams") {
     state.planDraft.grams = target.value;
     syncEntryPreview();
+    syncCompanionSuggestions();
     return;
   }
 
@@ -15713,6 +15741,7 @@ function handleInput(event) {
     }
 
     syncEntryPreview();
+    syncCompanionSuggestions();
     return;
   }
 
