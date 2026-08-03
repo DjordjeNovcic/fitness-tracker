@@ -9701,6 +9701,37 @@ body.app-header-hidden .workspace-header {
   }
 }
 
+/* Unit toggle — lets gram-based foods (med, ulje, so...) be entered as
+   kašičica/kašika instead of typing a gram estimate. Hidden entirely for
+   piece-counted foods, where it wouldn't make sense. */
+.amount-unit-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.amount-unit-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.amount-unit-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.amount-unit-chip.is-active {
+  background: var(--accent);
+  color: var(--button-primary-text);
+  border-color: var(--accent);
+}
+
 /* Quantity stepper — the familiar -/qty/+ pattern from nutrition-logging
    apps, for nudging without opening the keyboard. Step size matches the
    food's own unit (10 g, or 1 kom for piece-counted foods). */

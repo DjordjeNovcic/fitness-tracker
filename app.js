@@ -492,6 +492,7 @@ const state = {
     mealLabel: "",
     foodId: "",
     grams: "",
+    amountUnit: "g",
   },
   editingFavoriteItem: {
     favoriteId: "",
@@ -509,6 +510,7 @@ const state = {
     items: [],
     foodId: "",
     grams: "",
+    amountUnit: "g",
   },
   recipeApplyDialog: {
     favoriteId: "",
@@ -3870,10 +3872,6 @@ function getFoodNutritionBasisLabel(food = {}) {
   return getFoodServingUnit(food) === "piece" ? "1 komad" : `${roundValue(getFoodServingBaseValue(food), 0)} g`;
 }
 
-function getFoodQuantityLabel(food = {}) {
-  return getFoodServingUnit(food) === "piece" ? "Broj komada" : "Količina u gramima";
-}
-
 function getFoodQuantityPlaceholder(food = {}) {
   return getFoodServingUnit(food) === "piece" ? "1" : "100";
 }
@@ -3884,6 +3882,38 @@ function formatFoodAmount(food, amount) {
     return `${roundValue(value, Number.isInteger(value) ? 0 : 1)} kom`;
   }
   return `${roundValue(value, 0)} g`;
+}
+
+// Lets gram-based foods (medovi, ulja, začini...) be entered as kašičica/
+// kašika instead of typing a gram estimate — same conversion factors the
+// recipe-import text parser already uses (see convertImportedPortionToGrams),
+// so a spoon means the same thing everywhere in the app.
+const AMOUNT_UNIT_FACTORS = { g: 1, tsp: 5, tbsp: 15 };
+
+function amountUnitLabel(unit) {
+  return unit === "tsp" ? "kašičica" : unit === "tbsp" ? "kašika" : "g";
+}
+
+// Serbian plural: 1 = singular, 2-4 = "few" form, 5+ reverts to the
+// singular spelling (genitive plural) — the range recipes actually use.
+function pluralizeSpoonUnit(unit, count) {
+  const n = Math.abs(Math.round(toNumber(count)));
+  if (unit === "tbsp") {
+    return n === 1 ? "kašika" : n >= 2 && n <= 4 ? "kašike" : "kašika";
+  }
+  if (unit === "tsp") {
+    return n === 1 ? "kašičica" : n >= 2 && n <= 4 ? "kašičice" : "kašičica";
+  }
+  return "g";
+}
+
+function convertAmountUnitToGrams(amount, unit) {
+  return toNumber(amount) * (AMOUNT_UNIT_FACTORS[unit] || 1);
+}
+
+function convertGramsToAmountUnit(grams, unit) {
+  const factor = AMOUNT_UNIT_FACTORS[unit] || 1;
+  return roundValue(toNumber(grams) / factor, unit === "g" ? 0 : 2);
 }
 
 function resolveFoodFromQuery(query) {
@@ -4583,6 +4613,9 @@ function setFavoriteDraftFromItem(favorite, item) {
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
     grams: item.grams ? String(roundValue(item.grams, 0)) : "",
+    // Stored items are always real grams — editing starts in "g" rather
+    // than guessing which spoon size the original amount came from.
+    amountUnit: "g",
   };
 }
 
@@ -4815,6 +4848,7 @@ function resetPlanDraft() {
     mealLabel: "",
     foodId: "",
     grams: "",
+    amountUnit: "g",
   };
 }
 
@@ -4826,6 +4860,9 @@ function setPlanDraftFromEntry(entry) {
     mealLabel: entry.mealLabel || "",
     foodId: entry.foodId || "",
     grams: entry.grams ? String(roundValue(entry.grams, 0)) : "",
+    // Stored entries are always real grams — edits start in "g" rather than
+    // guessing which spoon size the original amount might round-trip to.
+    amountUnit: "g",
   };
 }
 
@@ -6543,8 +6580,6 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const mealParts = getMealDisplayParts(activeMealLabel);
   const selectableFoods = getSelectableFoods();
-  const quantityLabel = getFoodQuantityLabel(draftFood);
-  const quantityPlaceholder = getFoodQuantityPlaceholder(draftFood);
   const planFoodSearchValue = draftFood?.name || "";
 
   const isEditing = Boolean(state.editingEntryId);
@@ -6573,18 +6608,7 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         </datalist>
         <div class="food-match" id="food-match">${renderFoodMatchInner(draftFood)}</div>
       </div>
-      <div class="field meal-composer-field">
-        <div class="food-form-step">
-          <span class="food-form-step-num">2</span>
-          <label class="food-form-step-title" for="grams">${quantityLabel}</label>
-        </div>
-        <div class="amount-stepper">
-          <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="-1" aria-label="Smanji količinu">${renderActionIcon("minus")}</button>
-          <input id="grams" name="grams" type="number" min="1" step="1" placeholder="${quantityPlaceholder}" value="${state.planDraft.grams}" required />
-          <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="1" aria-label="Povećaj količinu">${renderActionIcon("add")}</button>
-        </div>
-        <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(draftFood)}</div>
-      </div>
+      <div class="field meal-composer-field" id="amount-field">${renderAmountFieldInner(draftFood)}</div>
       <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
       <div class="meal-composer-actions">
         <button class="solid-button button-with-icon meal-composer-submit" type="submit">${renderButtonContent(isEditing ? "Sačuvaj izmene" : "Dodaj namirnicu", isEditing ? "save" : "add")}</button>
@@ -6629,22 +6653,134 @@ function renderFoodMatchInner(food) {
     </div>`;
 }
 
-// One-tap amount presets scaled off the food's own serving basis (half / base /
-// double), so common amounts don't need typing. Same live-patch pattern as the
-// match chip above.
-function renderAmountPresetChipsInner(food) {
-  if (!food) {
-    return "";
-  }
-  const unit = getFoodServingUnit(food) === "piece" ? "kom" : "g";
-  const base = Math.max(1, roundValue(getFoodServingBaseValue(food), 0));
+function gramsPresetChipsMarkup(base, unitLabel) {
   const presets = [...new Set([Math.round(base / 2), base, base * 2])].filter((value) => value > 0);
   return presets
     .map(
       (value) =>
-        `<button type="button" class="amount-preset-chip" data-action="set-plan-draft-grams" data-grams="${value}">${value} ${unit}</button>`
+        `<button type="button" class="amount-preset-chip" data-action="set-plan-draft-grams" data-grams="${value}">${value} ${unitLabel}</button>`
     )
     .join("");
+}
+
+// One-tap amount presets scaled off the food's own serving basis (half / base /
+// double), so common amounts don't need typing. Same live-patch pattern as the
+// match chip above. Switches to spoon-count presets (1/2/3) when the draft's
+// unit toggle is set to kašičica/kašika instead of grams.
+function renderAmountPresetChipsInner(food) {
+  if (!food) {
+    return "";
+  }
+  const base = Math.max(1, roundValue(getFoodServingBaseValue(food), 0));
+  if (getFoodServingUnit(food) === "piece") {
+    return gramsPresetChipsMarkup(base, "kom");
+  }
+  const unit = state.planDraft.amountUnit || "g";
+  if (unit === "g") {
+    return gramsPresetChipsMarkup(base, "g");
+  }
+  return [1, 2, 3]
+    .map((count) => {
+      const grams = convertAmountUnitToGrams(count, unit);
+      return `<button type="button" class="amount-preset-chip" data-action="set-plan-draft-grams" data-grams="${grams}">${count} ${pluralizeSpoonUnit(unit, count)}</button>`;
+    })
+    .join("");
+}
+
+// Everything for step 2 (label, unit toggle, stepper, presets) regenerates
+// together whenever the food or unit changes — piece-based foods don't get
+// a unit toggle at all, and grams vs. kašičica/kašika need different input
+// wiring (a hidden real-grams field once the visible one isn't grams),
+// so patching individual pieces would drift out of sync.
+function renderAmountFieldInner(food) {
+  const isPiece = getFoodServingUnit(food) === "piece";
+  const grams = toNumber(state.planDraft.grams);
+  const unit = isPiece ? "g" : state.planDraft.amountUnit || "g";
+  const visibleInputId = isPiece ? "grams" : "amount-input";
+  const labelText = isPiece
+    ? "Broj komada"
+    : unit === "tsp"
+      ? "Broj kašičica"
+      : unit === "tbsp"
+        ? "Broj kašika"
+        : "Količina u gramima";
+
+  const unitToggleMarkup = isPiece
+    ? ""
+    : `
+      <div class="amount-unit-toggle">
+        ${["g", "tsp", "tbsp"]
+          .map(
+            (u) =>
+              `<button type="button" class="amount-unit-chip ${u === unit ? "is-active" : ""}" data-action="set-plan-amount-unit" data-unit="${u}">${amountUnitLabel(u)}</button>`
+          )
+          .join("")}
+      </div>
+    `;
+
+  const amountInputMarkup = isPiece
+    ? `<input id="grams" name="grams" type="number" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.planDraft.grams}" required />`
+    : `
+      <input id="amount-input" type="number" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
+      <input id="grams" name="grams" type="hidden" value="${state.planDraft.grams}" />
+    `;
+
+  return `
+    <div class="food-form-step">
+      <span class="food-form-step-num">2</span>
+      <label class="food-form-step-title" for="${visibleInputId}">${labelText}</label>
+    </div>
+    ${unitToggleMarkup}
+    <div class="amount-stepper">
+      <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="-1" aria-label="Smanji količinu">${renderActionIcon("minus")}</button>
+      ${amountInputMarkup}
+      <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="1" aria-label="Povećaj količinu">${renderActionIcon("add")}</button>
+    </div>
+    <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(food)}</div>
+  `;
+}
+
+// Same g/kašičica/kašika toggle as the plan composer's amount field, for
+// the recipe ingredient picker — no stepper or presets here since building
+// a recipe is a slower, more deliberate flow than daily meal logging.
+function renderFavoriteAmountFieldInner(food) {
+  const isPiece = getFoodServingUnit(food) === "piece";
+  const grams = toNumber(state.favoriteDraft.grams);
+  const unit = isPiece ? "g" : state.favoriteDraft.amountUnit || "g";
+  const visibleInputId = isPiece ? "favorite-grams" : "favorite-amount-input";
+  const labelText = isPiece
+    ? "Broj komada"
+    : unit === "tsp"
+      ? "Broj kašičica"
+      : unit === "tbsp"
+        ? "Broj kašika"
+        : "Količina u gramima";
+
+  const unitToggleMarkup = isPiece
+    ? ""
+    : `
+      <div class="amount-unit-toggle">
+        ${["g", "tsp", "tbsp"]
+          .map(
+            (u) =>
+              `<button type="button" class="amount-unit-chip ${u === unit ? "is-active" : ""}" data-action="set-favorite-amount-unit" data-unit="${u}">${amountUnitLabel(u)}</button>`
+          )
+          .join("")}
+      </div>
+    `;
+
+  const inputMarkup = isPiece
+    ? `<input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.favoriteDraft.grams}" required />`
+    : `
+      <input id="favorite-amount-input" type="number" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
+      <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
+    `;
+
+  return `
+    <label for="${visibleInputId}">${labelText}</label>
+    ${unitToggleMarkup}
+    ${inputMarkup}
+  `;
 }
 
 // Companion suggestions depend on the food + amount currently in the draft,
@@ -7980,8 +8116,6 @@ function renderRecipesTab() {
   ];
   const draftPreview = getFavoriteDraftPreview();
   const favoriteDraftFood = getFoodById(state.favoriteDraft.foodId);
-  const favoriteQuantityLabel = getFoodQuantityLabel(favoriteDraftFood);
-  const favoriteQuantityPlaceholder = getFoodQuantityPlaceholder(favoriteDraftFood);
   const favoriteFoodSearchValue = favoriteDraftFood?.name || "";
   const recipeMealFilters = ["Sve", ...meals.filter(Boolean)];
   const filteredFavorites = favorites.filter((favorite) => {
@@ -8072,10 +8206,7 @@ function renderRecipesTab() {
               ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
             </datalist>
           </div>
-          <div class="field">
-            <label for="favorite-grams">${favoriteQuantityLabel}</label>
-            <input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="${favoriteQuantityPlaceholder}" value="${state.favoriteDraft.grams}" required />
-          </div>
+          <div class="field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
             <button class="solid-button secondary-button button-with-icon" type="submit">
               ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj stavku u preview" : "Dodaj stavku u preview", state.editingFavoriteItem.itemId ? "save" : "add")}
@@ -14005,9 +14136,9 @@ async function handleDocumentClick(event) {
     // saving still goes through the explicit "Sačuvaj izmene" tap.
     if (state.editingEntryId) {
       state.planDraft.grams = String(grams);
-      const gramsInput = document.querySelector("#grams");
-      if (gramsInput instanceof HTMLInputElement) {
-        gramsInput.value = state.planDraft.grams;
+      const amountField = document.querySelector("#amount-field");
+      if (amountField) {
+        amountField.innerHTML = renderAmountFieldInner(food);
       }
       syncEntryPreview();
       return;
@@ -14027,15 +14158,62 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "set-plan-amount-unit") {
+    const unit = String(actionTarget.dataset.unit || "g");
+    if (!AMOUNT_UNIT_FACTORS[unit] || unit === state.planDraft.amountUnit) {
+      return;
+    }
+    state.planDraft.amountUnit = unit;
+    const food = getFoodById(state.planDraft.foodId);
+    const amountField = document.querySelector("#amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderAmountFieldInner(food);
+    }
+    syncEntryPreview();
+    syncCompanionSuggestions();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#amount-input")?.focus();
+    });
+    return;
+  }
+
+  if (action === "set-favorite-amount-unit") {
+    const unit = String(actionTarget.dataset.unit || "g");
+    if (!AMOUNT_UNIT_FACTORS[unit] || unit === state.favoriteDraft.amountUnit) {
+      return;
+    }
+    state.favoriteDraft.amountUnit = unit;
+    const food = getFoodById(state.favoriteDraft.foodId);
+    const amountField = document.querySelector("#favorite-amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderFavoriteAmountFieldInner(food);
+    }
+    window.requestAnimationFrame(() => {
+      document.querySelector("#favorite-amount-input")?.focus();
+    });
+    return;
+  }
+
   if (action === "nudge-plan-draft-grams") {
     const direction = toNumber(actionTarget.dataset.direction) || 1;
-    const step = getFoodServingUnit(getFoodById(state.planDraft.foodId)) === "piece" ? 1 : 10;
-    const gramsInput = document.querySelector("#grams");
-    const current = toNumber(gramsInput?.value) || 0;
-    const next = Math.max(1, roundValue(current + direction * step, 0));
-    state.planDraft.grams = String(next);
-    if (gramsInput instanceof HTMLInputElement) {
-      gramsInput.value = state.planDraft.grams;
+    const food = getFoodById(state.planDraft.foodId);
+    const isPiece = getFoodServingUnit(food) === "piece";
+    const unit = isPiece ? "g" : state.planDraft.amountUnit || "g";
+    const step = isPiece || unit === "g" ? (isPiece ? 1 : 10) : 1;
+    const visibleInput = document.querySelector(isPiece ? "#grams" : "#amount-input");
+    const current = toNumber(visibleInput?.value) || 0;
+    const minValue = isPiece || unit === "g" ? 1 : 0.5;
+    const roundDigits = isPiece || unit === "g" ? 0 : 2;
+    const next = Math.max(minValue, roundValue(current + direction * step, roundDigits));
+    if (visibleInput instanceof HTMLInputElement) {
+      visibleInput.value = next;
+    }
+    state.planDraft.grams = String(roundValue(isPiece ? next : convertAmountUnitToGrams(next, unit), 0));
+    if (!isPiece) {
+      const hiddenGrams = document.querySelector("#grams");
+      if (hiddenGrams instanceof HTMLInputElement) {
+        hiddenGrams.value = state.planDraft.grams;
+      }
     }
     syncEntryPreview();
     syncCompanionSuggestions();
@@ -14210,6 +14388,7 @@ async function handleDocumentClick(event) {
     state.editingFavoriteItem = { favoriteId: state.editingFavoriteItem.favoriteId, itemId: "", itemIndex: -1 };
     state.favoriteDraft.foodId = "";
     state.favoriteDraft.grams = "";
+    state.favoriteDraft.amountUnit = "g";
     render();
     return;
   }
@@ -14225,6 +14404,7 @@ async function handleDocumentClick(event) {
       state.editingFavoriteItem = { favoriteId: state.editingFavoriteItem.favoriteId, itemId: "", itemIndex: -1 };
       state.favoriteDraft.foodId = "";
       state.favoriteDraft.grams = "";
+      state.favoriteDraft.amountUnit = "g";
     }
     render();
     return;
@@ -15283,6 +15463,7 @@ async function handleSubmit(event) {
 
     state.favoriteDraft.foodId = "";
     state.favoriteDraft.grams = "";
+    state.favoriteDraft.amountUnit = "g";
     render();
     return;
   }
@@ -15669,14 +15850,34 @@ function handleInput(event) {
     return;
   }
 
+  // Only rendered for non-piece foods, showing the amount in whichever unit
+  // (g/kašičica/kašika) is currently toggled — #grams stays the real-gram
+  // hidden field the rest of the composer (preview, submit) reads from.
+  if (target instanceof HTMLInputElement && target.id === "amount-input") {
+    const unit = state.planDraft.amountUnit || "g";
+    const grams = convertAmountUnitToGrams(target.value, unit);
+    state.planDraft.grams = grams ? String(roundValue(grams, 0)) : "";
+    const hiddenGrams = document.querySelector("#grams");
+    if (hiddenGrams instanceof HTMLInputElement) {
+      hiddenGrams.value = state.planDraft.grams;
+    }
+    syncEntryPreview();
+    syncCompanionSuggestions();
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "favorite-grams") {
     state.favoriteDraft.grams = target.value;
     return;
   }
 
   if (target instanceof HTMLInputElement && target.id === "favorite-food-search") {
+    const previousFoodId = state.favoriteDraft.foodId;
     const selectedFood = resolveFoodFromQuery(target.value);
     state.favoriteDraft.foodId = selectedFood?.id || "";
+    if (state.favoriteDraft.foodId !== previousFoodId) {
+      state.favoriteDraft.amountUnit = "g";
+    }
     if (selectedFood && !state.favoriteDraft.grams) {
       state.favoriteDraft.grams = String(getFoodServingBaseValue(selectedFood));
     }
@@ -15686,16 +15887,20 @@ function handleInput(event) {
       hiddenInput.value = state.favoriteDraft.foodId;
     }
 
-    const gramsLabel = document.querySelector('label[for="favorite-grams"]');
-    const gramsInput = document.querySelector("#favorite-grams");
-    if (gramsLabel) {
-      gramsLabel.textContent = getFoodQuantityLabel(selectedFood);
+    const amountField = document.querySelector("#favorite-amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderFavoriteAmountFieldInner(selectedFood);
     }
-    if (gramsInput instanceof HTMLInputElement) {
-      gramsInput.placeholder = getFoodQuantityPlaceholder(selectedFood);
-      if (selectedFood && !gramsInput.value) {
-        gramsInput.value = state.favoriteDraft.grams;
-      }
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.id === "favorite-amount-input") {
+    const unit = state.favoriteDraft.amountUnit || "g";
+    const grams = convertAmountUnitToGrams(target.value, unit);
+    state.favoriteDraft.grams = grams ? String(roundValue(grams, 0)) : "";
+    const hiddenGrams = document.querySelector("#favorite-grams");
+    if (hiddenGrams instanceof HTMLInputElement) {
+      hiddenGrams.value = state.favoriteDraft.grams;
     }
     return;
   }
@@ -15706,8 +15911,14 @@ function handleInput(event) {
   }
 
   if (target instanceof HTMLInputElement && target.id === "food-search-input") {
+    const previousFoodId = state.planDraft.foodId;
     const selectedFood = resolveFoodFromQuery(target.value);
     state.planDraft.foodId = selectedFood?.id || "";
+    if (state.planDraft.foodId !== previousFoodId) {
+      // Switching food resets the unit — a spoon choice made for honey
+      // shouldn't silently carry over to chicken breast.
+      state.planDraft.amountUnit = "g";
+    }
 
     const hiddenInput = document.querySelector("#foodId");
     if (hiddenInput instanceof HTMLInputElement) {
@@ -15723,21 +15934,13 @@ function handleInput(event) {
       state.planDraft.grams = String(getFoodServingBaseValue(selectedFood));
     }
 
-    const gramsLabel = document.querySelector('label[for="grams"]');
-    const gramsInput = document.querySelector("#grams");
-    if (gramsLabel) {
-      gramsLabel.textContent = getFoodQuantityLabel(selectedFood);
-    }
-    if (gramsInput instanceof HTMLInputElement) {
-      gramsInput.placeholder = getFoodQuantityPlaceholder(selectedFood);
-      if (selectedFood && !gramsInput.value) {
-        gramsInput.value = state.planDraft.grams;
-      }
-    }
-
-    const presetsContainer = document.querySelector("#amount-presets");
-    if (presetsContainer) {
-      presetsContainer.innerHTML = renderAmountPresetChipsInner(selectedFood);
+    // Piece vs. gram-based foods (and the spoon toggle, which only applies
+    // to the latter) need different fields entirely, not just new label
+    // text, so the whole amount field regenerates rather than patching
+    // individual pieces of it.
+    const amountField = document.querySelector("#amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderAmountFieldInner(selectedFood);
     }
 
     syncEntryPreview();
