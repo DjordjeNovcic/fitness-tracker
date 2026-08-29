@@ -5962,7 +5962,7 @@ function renderHero(entries, totals) {
           .map(
             (track) => `
               <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
-                ${getWeekTrackLabel(track)}
+                ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
           )
