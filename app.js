@@ -134,6 +134,18 @@ const FIREBASE_CONFIG = {
   appId: "1:573104342048:web:626332b425b77051756845",
 };
 const WEEKDAYS = ["Ponedeljak", "Utorak", "Sreda", "Cetvrtak", "Petak", "Subota", "Nedelja"];
+// Arbitrary but stable-forever anchor Monday used only to derive an
+// alternating 0/1 week track for the meal plan's Week A / Week B cycle.
+// 2024-01-01 is a Monday. Declared here (not near getCurrentWeekTrack below)
+// because `state`'s initializer calls getCurrentWeekTrack() at module-load
+// time, before that later part of the file would otherwise have run.
+const WEEK_TRACK_EPOCH_MONDAY_UTC = Date.UTC(2024, 0, 1);
+
+// Fixed 14-slot chronological cycle: track 0's 7 weekdays (WEEKDAYS order), then
+// track 1's 7 weekdays (WEEKDAYS order), then repeats. This ordering always
+// matches real chronological progression regardless of which track happens to
+// be "currently active" right now — used for meal-prep's cross-track wraparound.
+const WEEK_TRACK_CYCLE = [0, 1].flatMap((weekTrack) => WEEKDAYS.map((weekday) => ({ weekday, weekTrack })));
 // "Cetvrtak" stays the stored key (existing data is keyed by it); only the
 // displayed label gets its diacritic. Other days need none.
 function weekdayLabel(weekday) {
@@ -460,6 +472,7 @@ const state = {
   onboarding: null,
   lastAddedEntryId: "",
   selectedWeekday: getTodayWeekday(),
+  selectedWeekTrack: getCurrentWeekTrack(),
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
@@ -487,7 +500,11 @@ const state = {
   prepMealLabel: "",
   prepMode: "next",
   prepDays: 2,
-  prepPickDays: [],
+  prepPickDays: [], // {weekday, weekTrack}[]
+  // Bulk "delete all meals" picker (Plan tab) — shares the day-picker markup
+  // with meal-prep's "pick exact days" mode.
+  bulkDeletePanelOpen: false,
+  bulkDeletePickDays: [], // {weekday, weekTrack}[]
   planDraft: {
     mealLabel: "",
     foodId: "",
@@ -515,6 +532,7 @@ const state = {
   recipeApplyDialog: {
     favoriteId: "",
     weekday: "",
+    weekTrack: "",
     mealLabel: "",
   },
   isPlanHeroCompact: false,
@@ -811,6 +829,7 @@ function ensureStoreCollections(targetStore) {
     ...entry,
     mealLabel: normalizeMealLabel(entry.mealLabel),
     done: Boolean(entry.done),
+    weekTrack: normalizeWeekTrack(entry.weekTrack),
   }));
   targetStore.favoriteMeals = targetStore.favoriteMeals.map((favorite) => normalizeFavoriteMealRecord(favorite));
   seedDemoFavoriteMeals(targetStore);
@@ -1811,7 +1830,9 @@ function applyNutritionPlanDayToSelectedWeekday(planId, mode = "replace") {
   }
 
   if (mode === "replace") {
-    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => entry.weekday !== state.selectedWeekday);
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
+      (entry) => !(entry.weekday === state.selectedWeekday && normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
+    );
   }
 
   let appliedCount = 0;
@@ -1829,6 +1850,7 @@ function applyNutritionPlanDayToSelectedWeekday(planId, mode = "replace") {
       store.weeklyPlanEntries.push({
         id: uid("plan"),
         weekday: state.selectedWeekday,
+        weekTrack: state.selectedWeekTrack,
         mealLabel,
         foodId: item.foodId,
         foodName: item.foodName || item.displayName || "",
@@ -3948,9 +3970,9 @@ function divideTotals(totals = {}, divisor = 1) {
   };
 }
 
-function getPlanEntriesForDay(weekday) {
+function getPlanEntriesForDay(weekday, weekTrack) {
   return store.weeklyPlanEntries
-    .filter((entry) => entry.weekday === weekday)
+    .filter((entry) => entry.weekday === weekday && normalizeWeekTrack(entry.weekTrack) === weekTrack)
     .map((entry) => {
       const food = getFoodById(entry.foodId) || store.foods.find((item) => item.name === entry.foodName);
       const totals = food ? calculateEntry(food, entry.grams) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
@@ -3990,9 +4012,9 @@ function getDayTotals(entries) {
   );
 }
 
-function getWeeklySummary() {
+function getWeeklySummary(weekTrack = getCurrentWeekTrack()) {
   return WEEKDAYS.map((weekday) => {
-    const entries = getPlanEntriesForDay(weekday);
+    const entries = getPlanEntriesForDay(weekday, weekTrack);
     return {
       weekday,
       totals: getDayTotals(entries),
@@ -4001,8 +4023,8 @@ function getWeeklySummary() {
   });
 }
 
-function getWeeklyOverview() {
-  const days = getWeeklySummary().map((day) => {
+function getWeeklyOverview(weekTrack = getCurrentWeekTrack()) {
+  const days = getWeeklySummary(weekTrack).map((day) => {
     const trainingBurn = getTrainingBurnForDay(day.weekday);
     return {
       ...day,
@@ -4267,6 +4289,30 @@ function getCurrentWeekId() {
   const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((day + 6) % 7));
   return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+}
+
+// Pure function of the real calendar date: alternates 0/1 every 7 real days,
+// forever, with no stored anchor. Uses a plain UTC day-count from a fixed
+// epoch Monday (not getISOWeek()-style logic) so it can't drift at
+// year/DST boundaries the way locale-based week numbering can.
+function getCurrentWeekTrack() {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - ((day + 6) % 7));
+  const daysSinceEpoch = Math.round((mondayUtc - WEEK_TRACK_EPOCH_MONDAY_UTC) / DAY_IN_MS);
+  const weeksSinceEpoch = Math.floor(daysSinceEpoch / 7);
+  return ((weeksSinceEpoch % 2) + 2) % 2; // non-negative modulo
+}
+
+function normalizeWeekTrack(value) {
+  return toNumber(value) === 1 ? 1 : 0;
+}
+
+// "Ova nedelja" / "Sledeća nedelja" — never hardcode which physical track this
+// means; it's whichever equals getCurrentWeekTrack() right now, and that
+// mapping flips every real week (intentional).
+function getWeekTrackLabel(weekTrack) {
+  return weekTrack === getCurrentWeekTrack() ? "Ova nedelja" : "Sledeća nedelja";
 }
 
 // When a new week starts, clear this-week's completion marks so the new week
@@ -4880,7 +4926,7 @@ function getDraftTotals() {
 }
 
 function getEffectiveDayTotals() {
-  const baseEntries = getPlanEntriesForDay(state.selectedWeekday).filter((entry) => entry.id !== state.editingEntryId);
+  const baseEntries = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack).filter((entry) => entry.id !== state.editingEntryId);
   const totals = getDayTotals(baseEntries);
   const draftTotals = getDraftTotals();
   return {
@@ -4891,10 +4937,13 @@ function getEffectiveDayTotals() {
   };
 }
 
-function getMealEntriesForWeekday(weekday, mealLabel) {
+function getMealEntriesForWeekday(weekday, mealLabel, weekTrack = state.selectedWeekTrack) {
   const normalizedMealLabel = normalizeMealLabel(mealLabel);
   return store.weeklyPlanEntries.filter(
-    (entry) => entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === normalizedMealLabel
+    (entry) =>
+      entry.weekday === weekday &&
+      normalizeMealLabel(entry.mealLabel) === normalizedMealLabel &&
+      normalizeWeekTrack(entry.weekTrack) === weekTrack
   );
 }
 
@@ -4905,17 +4954,20 @@ function getMealEntriesForWeekday(weekday, mealLabel) {
 // per-food cook totals across every day the meal will exist (source included).
 function getMealPrepPlan(mealLabel) {
   const sourceDay = state.selectedWeekday;
-  const sourceEntries = getMealEntriesForWeekday(sourceDay, mealLabel);
-  const sourceIdx = WEEKDAYS.indexOf(sourceDay);
+  const sourceWeekTrack = state.selectedWeekTrack;
+  const sourceEntries = getMealEntriesForWeekday(sourceDay, mealLabel, sourceWeekTrack);
+  const sourceIdx = WEEK_TRACK_CYCLE.findIndex((slot) => slot.weekday === sourceDay && slot.weekTrack === sourceWeekTrack);
 
-  let targetDays;
+  let targetDays; // array of {weekday, weekTrack}
   if (state.prepMode === "pick") {
-    targetDays = (state.prepPickDays || []).filter((day) => day !== sourceDay && WEEKDAYS.includes(day));
+    targetDays = (state.prepPickDays || []).filter(
+      (pick) => !(pick.weekday === sourceDay && pick.weekTrack === sourceWeekTrack) && WEEKDAYS.includes(pick.weekday)
+    );
   } else {
     const extraDays = Math.max(1, roundValue(toNumber(state.prepDays) || 2, 0)) - 1;
     targetDays = [];
     for (let i = 1; i <= extraDays; i += 1) {
-      targetDays.push(WEEKDAYS[(sourceIdx + i) % WEEKDAYS.length]);
+      targetDays.push(WEEK_TRACK_CYCLE[(sourceIdx + i) % WEEK_TRACK_CYCLE.length]);
     }
   }
 
@@ -4937,7 +4989,7 @@ function getMealPrepPlan(mealLabel) {
     }
   });
 
-  return { sourceDay, sourceEntries, targetDays, totalDays, cookItems: [...cookMap.values()] };
+  return { sourceDay, sourceWeekTrack, sourceEntries, targetDays, totalDays, cookItems: [...cookMap.values()] };
 }
 
 // Two meal slots are "the same prepped meal" when they share a meal label and an
@@ -4969,12 +5021,13 @@ function applyFavoriteMealToDay(favorite, options = {}) {
   }
 
   const weekday = options.weekday || state.selectedWeekday;
+  const weekTrack = options.weekTrack ?? state.selectedWeekTrack;
   const targetMealLabel = normalizeMealLabel(options.mealLabel || favorite.mealLabel || favorite.name);
   const mode = options.mode || "append";
   const servings = getRecipeServingCount(favorite);
-  const existingEntries = getMealEntriesForWeekday(weekday, targetMealLabel);
+  const existingEntries = getMealEntriesForWeekday(weekday, targetMealLabel, weekTrack);
 
-  if (isMealCompletedForWeekday(weekday, targetMealLabel)) {
+  if (isMealCompletedForWeekday(weekday, targetMealLabel, weekTrack)) {
     showFeedbackToast({
       title: "Obrok je zaključan",
       detail: "Skini čekiranje sa tog obroka pa onda ubaci ili zameni recept.",
@@ -4989,7 +5042,8 @@ function applyFavoriteMealToDay(favorite, options = {}) {
       return false;
     }
     store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
-      (entry) => !(entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === targetMealLabel)
+      (entry) =>
+        !(entry.weekday === weekday && normalizeWeekTrack(entry.weekTrack) === weekTrack && normalizeMealLabel(entry.mealLabel) === targetMealLabel)
     );
   }
 
@@ -4997,6 +5051,7 @@ function applyFavoriteMealToDay(favorite, options = {}) {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
       weekday,
+      weekTrack,
       mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
@@ -5024,6 +5079,7 @@ function openRecipeApplyDialog(favorite) {
   state.recipeApplyDialog = {
     favoriteId: favorite.id,
     weekday: state.selectedWeekday,
+    weekTrack: state.selectedWeekTrack,
     mealLabel: mealOptions.includes(suggestedMeal) ? suggestedMeal : mealOptions[0] || defaultMeals[0],
   };
 }
@@ -5032,6 +5088,7 @@ function closeRecipeApplyDialog() {
   state.recipeApplyDialog = {
     favoriteId: "",
     weekday: "",
+    weekTrack: "",
     mealLabel: "",
   };
 }
@@ -5050,6 +5107,11 @@ function renderRecipeApplyDialog() {
 
   const mealOptions = getRecipeApplyMealOptions(favorite);
   const selectedWeekday = state.recipeApplyDialog.weekday || state.selectedWeekday;
+  const selectedWeekTrack = normalizeWeekTrack(
+    state.recipeApplyDialog.weekTrack === "" || state.recipeApplyDialog.weekTrack == null
+      ? state.selectedWeekTrack
+      : state.recipeApplyDialog.weekTrack
+  );
   const selectedMealLabel = state.recipeApplyDialog.mealLabel || mealOptions[0] || defaultMeals[0];
 
   return `
@@ -5073,6 +5135,12 @@ function renderRecipeApplyDialog() {
               <span>Dan</span>
               <select name="weekday">
                 ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>`).join("")}
+              </select>
+            </label>
+            <label>
+              <span>Nedelja</span>
+              <select name="weekTrack">
+                ${[0, 1].map((track) => `<option value="${track}" ${track === selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`).join("")}
               </select>
             </label>
             <label>
@@ -5514,8 +5582,8 @@ function renderFoodEditorDialog() {
   `;
 }
 
-function isMealCompletedForWeekday(weekday, mealLabel) {
-  const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
+function isMealCompletedForWeekday(weekday, mealLabel, weekTrack = state.selectedWeekTrack) {
+  const mealEntries = getMealEntriesForWeekday(weekday, mealLabel, weekTrack);
   return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
 }
 
@@ -5888,11 +5956,25 @@ function renderHero(entries, totals) {
         </button>
       </div>
       <div class="hero-day-picker">
+        <span class="hero-day-label">Nedelja</span>
+        <div class="chips hero-day-chips">
+        ${[0, 1]
+          .map(
+            (track) => `
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+                ${getWeekTrackLabel(track)}
+              </button>
+            `
+          )
+          .join("")}
+        </div>
+      </div>
+      <div class="hero-day-picker">
         <span class="hero-day-label">Izaberi dan</span>
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
               ${weekdayLabel(weekday).slice(0, 3)}
             </button>
           `
@@ -6521,6 +6603,7 @@ function commitPlanDraftEntry(food, grams, mealLabelOverride) {
   store.weeklyPlanEntries.push({
     id: newEntryId,
     weekday: state.selectedWeekday,
+    weekTrack: state.selectedWeekTrack,
     mealLabel,
     foodId: food.id,
     foodName: food.name,
@@ -7129,7 +7212,7 @@ function renderPlanActivitySection() {
 // Surfaced as a dismissible banner at the top of the Plan tab on open.
 function getTodayReminders() {
   const reminders = [];
-  const entries = getPlanEntriesForDay(getTodayWeekday());
+  const entries = getPlanEntriesForDay(getTodayWeekday(), getCurrentWeekTrack());
   const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
   const mealsDone = mealLabels.filter((label) => {
     const mealEntries = entries.filter((entry) => entry.mealLabel === label);
@@ -7195,9 +7278,12 @@ function formatShoppingAmount(unit, amount) {
 // Weekly shopping list: aggregate every food across the whole plan, summing the
 // per-food amount (grams, or piece count for piece-based foods), grouped by
 // category. Pure client-side (no backend).
-function getShoppingList() {
+function getShoppingList(weekTrack = state.selectedWeekTrack) {
   const totals = new Map();
   (store.weeklyPlanEntries || []).forEach((entry) => {
+    if (normalizeWeekTrack(entry.weekTrack) !== weekTrack) {
+      return;
+    }
     const grams = toNumber(entry.grams);
     if (!grams) {
       return;
@@ -7306,10 +7392,10 @@ function renderPlanShoppingSection() {
       <button class="section-disclosure" type="button" data-action="toggle-plan-shopping" aria-expanded="${state.shoppingExpanded}">
         <div class="section-disclosure-copy">
           <h2>Lista za kupovinu</h2>
-          <p>${activeItems.length ? `${activeItems.length} namirnica iz celog nedeljnog plana.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
+          <p>${activeItems.length ? `${activeItems.length} namirnica iz plana za ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="pill note">cela nedelja</span>
+          <span class="pill note">${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.shoppingExpanded)}</span>
         </div>
       </button>
@@ -7338,6 +7424,39 @@ function renderPlanShoppingSection() {
 // First-run orientation for a brand-new user: shown only while the whole weekly
 // plan is empty, so it disappears on its own as soon as they add anything. Steps
 // adapt to what's already done and reuse existing actions (no new JS handler).
+// Shared 14-slot (weekday, weekTrack) picker chip grid — one row per track,
+// each row labeled "Ova nedelja"/"Sledeća nedelja". Used by meal-prep's "pick
+// exact days" mode and by the bulk "delete multiple days" panel so both
+// features look and behave identically.
+function renderWeekTrackDayPicker({ action, selectedPairs = [], excludePair = null, dataset = {} }) {
+  const extraAttrs = Object.entries(dataset)
+    .map(([key, value]) => ` data-${escapeHtml(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`))}="${escapeHtml(String(value))}"`)
+    .join("");
+  return [0, 1]
+    .map((track) => {
+      const chips = WEEKDAYS.map((weekday) => {
+        if (excludePair && excludePair.weekday === weekday && excludePair.weekTrack === track) {
+          return `<span class="prep-day-chip is-source">${escapeHtml(weekdayLabel(weekday))}</span>`;
+        }
+        const isOn = selectedPairs.some((pair) => pair.weekday === weekday && pair.weekTrack === track);
+        return `<button type="button" class="prep-day-chip ${isOn ? "is-on" : ""}" data-action="${action}" data-weekday="${escapeHtml(weekday)}" data-week-track="${track}"${extraAttrs} aria-pressed="${isOn}">${escapeHtml(weekdayLabel(weekday))}</button>`;
+      }).join("");
+      return `
+        <div class="week-track-day-picker-row">
+          <span class="hero-picker-label">${getWeekTrackLabel(track)}</span>
+          <div class="prep-day-picker">${chips}</div>
+        </div>`;
+    })
+    .join("");
+}
+
+// "Uto" if same track as the reference day, "Uto (druga nedelja)" if it
+// crosses into the other track — disambiguates the 14-slot prep day list.
+function formatWeekTrackDayLabel(day, referenceWeekTrack) {
+  const base = weekdayLabel(day.weekday);
+  return day.weekTrack === referenceWeekTrack ? base : `${base} (druga nedelja)`;
+}
+
 // Inline "kuvaj unapred" panel under a meal: pick how many days (or exact days)
 // and see the total to cook in one batch before confirming.
 function renderMealPrepPanel(mealLabel) {
@@ -7354,16 +7473,17 @@ function renderMealPrepPanel(mealLabel) {
 
   const pickActive = state.prepMode === "pick";
   const pickChips = pickActive
-    ? `<div class="prep-day-picker">${WEEKDAYS.map((day) => {
-        if (day === plan.sourceDay) {
-          return `<span class="prep-day-chip is-source">${escapeHtml(weekdayLabel(day))}</span>`;
-        }
-        const on = (state.prepPickDays || []).includes(day);
-        return `<button type="button" class="prep-day-chip ${on ? "is-on" : ""}" data-action="toggle-meal-prep-day" data-weekday="${escapeHtml(day)}" data-meal-label="${escapeHtml(mealLabel)}" aria-pressed="${on}">${escapeHtml(weekdayLabel(day))}</button>`;
-      }).join("")}</div>`
+    ? renderWeekTrackDayPicker({
+        action: "toggle-meal-prep-day",
+        selectedPairs: state.prepPickDays || [],
+        excludePair: { weekday: plan.sourceDay, weekTrack: plan.sourceWeekTrack },
+        dataset: { mealLabel },
+      })
     : "";
 
-  const daysList = [plan.sourceDay, ...plan.targetDays].map((day) => weekdayLabel(day)).join(", ");
+  const daysList = [{ weekday: plan.sourceDay, weekTrack: plan.sourceWeekTrack }, ...plan.targetDays]
+    .map((day) => formatWeekTrackDayLabel(day, plan.sourceWeekTrack))
+    .join(", ");
   const cookHtml = plan.cookItems.length
     ? plan.cookItems
         .map(
@@ -7575,7 +7695,7 @@ function renderPlanTab(entries) {
         <div class="plan-quick-toggle-copy">
           <div class="plan-quick-toggle-title-row">
             <h2>Brze akcije</h2>
-            <span class="pill note plan-quick-toggle-badge">3 alata</span>
+            <span class="pill note plan-quick-toggle-badge">4 alata</span>
           </div>
           <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
         </div>
@@ -7589,20 +7709,25 @@ function renderPlanTab(entries) {
                 <h3>Kopiraj plan dana</h3>
                 <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
               </div>
-              <span class="pill strong">${weekdayLabel(state.selectedWeekday)}</span>
+              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
             </div>
             <div class="plan-quick-card-source">
               <span class="footer-note">Izvor dana</span>
-              <strong>${weekdayLabel(state.selectedWeekday)}</strong>
+              <strong>${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</strong>
             </div>
             <form id="duplicate-day-form" class="form-grid split plan-quick-form">
               <div class="field">
                 <label for="duplicate-target-weekday">Ciljni dan</label>
                 <select id="duplicate-target-weekday" name="targetWeekday" required>
                   <option value="">Izaberi dan</option>
-                  ${WEEKDAYS.filter((weekday) => weekday !== state.selectedWeekday)
-                    .map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`)
-                    .join("")}
+                  ${WEEKDAYS.map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label for="duplicate-target-week-track">Ciljna nedelja</label>
+                <select id="duplicate-target-week-track" name="targetWeekTrack">
+                  <option value="${state.selectedWeekTrack}">${getWeekTrackLabel(state.selectedWeekTrack)}</option>
+                  <option value="${state.selectedWeekTrack === 1 ? 0 : 1}">${getWeekTrackLabel(state.selectedWeekTrack === 1 ? 0 : 1)}</option>
                 </select>
               </div>
               <div class="field">
@@ -7617,6 +7742,39 @@ function renderPlanTab(entries) {
           </article>
         </div>
         <div class="plan-quick-aside">
+          <article class="food-card plan-quick-card plan-quick-card--secondary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Obriši ceo dan</h3>
+                <p>Isprazni jelovnik za ovaj dan, ili izaberi više dana odjednom.</p>
+              </div>
+              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
+            </div>
+            <div class="entry-actions entry-actions--start plan-inline-actions">
+              <button class="danger-button button-with-icon" type="button" data-action="delete-day-plan" ${entries.length ? "" : "disabled"}>
+                ${renderButtonContent(`Obriši ${weekdayLabel(state.selectedWeekday)}`, "delete")}
+              </button>
+              <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
+                ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
+              </button>
+            </div>
+            ${
+              state.bulkDeletePanelOpen
+                ? `
+              <div class="meal-prep-panel bulk-delete-panel">
+                ${renderWeekTrackDayPicker({ action: "toggle-bulk-delete-day", selectedPairs: state.bulkDeletePickDays || [] })}
+                <div class="entry-actions prep-actions">
+                  <button class="danger-button button-with-icon" type="button" data-action="confirm-bulk-delete-days" ${
+                    (state.bulkDeletePickDays || []).length ? "" : "disabled"
+                  }>
+                    ${renderButtonContent(`Obriši izabrane dane (${(state.bulkDeletePickDays || []).length})`, "delete")}
+                  </button>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </article>
           <article class="food-card plan-quick-card plan-quick-card--secondary">
             <div class="food-card-top plan-quick-card-top">
               <div class="plan-quick-card-copy">
@@ -7693,7 +7851,9 @@ function renderPlanTab(entries) {
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
-          <h2>Obroci za ${weekdayLabel(state.selectedWeekday)}</h2>
+          <h2>Obroci za ${weekdayLabel(state.selectedWeekday)}${
+            state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}`
+          }</h2>
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
@@ -11250,7 +11410,7 @@ function renderMeasurementDelta(delta, unit) {
 function recordTodaySnapshot() {
   const date = getTodayDateValue();
   const weekday = getTodayWeekday();
-  const entries = getPlanEntriesForDay(weekday);
+  const entries = getPlanEntriesForDay(weekday, getCurrentWeekTrack());
   const eaten = getDayTotals(entries.filter((entry) => entry.done));
   const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
   const mealsDone = mealLabels.filter((label) => {
@@ -12586,7 +12746,7 @@ function render() {
     return;
   }
 
-  const entries = getPlanEntriesForDay(state.selectedWeekday);
+  const entries = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack);
   const totals = getDayTotals(entries);
   const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
   // Plan and Foods bring their own compact in-tab header, so skip the global
@@ -13207,6 +13367,15 @@ async function handleDocumentClick(event) {
     state.navMenuOpen = false;
     resetPlanDraft();
     resetRoutineEditing();
+    render();
+    window.requestAnimationFrame(() => scrollPageTop("smooth"));
+    return;
+  }
+
+  if (action === "select-week-track") {
+    state.selectedWeekTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
+    state.editingMealLabel = "";
+    resetPlanDraft();
     render();
     window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
@@ -13859,17 +14028,16 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-meal-prep-day") {
     const weekday = String(actionTarget.dataset.weekday || "").trim();
-    if (!weekday || weekday === state.selectedWeekday || !WEEKDAYS.includes(weekday)) {
+    const weekTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
+    if (!weekday || !WEEKDAYS.includes(weekday) || (weekday === state.selectedWeekday && weekTrack === state.selectedWeekTrack)) {
       return;
     }
     state.prepMode = "pick";
-    const picked = new Set(state.prepPickDays || []);
-    if (picked.has(weekday)) {
-      picked.delete(weekday);
-    } else {
-      picked.add(weekday);
-    }
-    state.prepPickDays = [...picked];
+    const picked = state.prepPickDays || [];
+    const exists = picked.some((pick) => pick.weekday === weekday && pick.weekTrack === weekTrack);
+    state.prepPickDays = exists
+      ? picked.filter((pick) => !(pick.weekday === weekday && pick.weekTrack === weekTrack))
+      : [...picked, { weekday, weekTrack }];
     render();
     return;
   }
@@ -13888,17 +14056,23 @@ async function handleDocumentClick(event) {
     const lockedDays = [];
     plan.targetDays.forEach((day) => {
       // Don't overwrite a meal the user already ticked off as eaten.
-      if (isMealCompletedForWeekday(day, normalizedMealLabel)) {
+      if (isMealCompletedForWeekday(day.weekday, normalizedMealLabel, day.weekTrack)) {
         lockedDays.push(day);
         return;
       }
       store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
-        (entry) => !(entry.weekday === day && normalizeMealLabel(entry.mealLabel) === normalizedMealLabel)
+        (entry) =>
+          !(
+            entry.weekday === day.weekday &&
+            normalizeWeekTrack(entry.weekTrack) === day.weekTrack &&
+            normalizeMealLabel(entry.mealLabel) === normalizedMealLabel
+          )
       );
       plan.sourceEntries.forEach((entry) => {
         store.weeklyPlanEntries.push({
           id: uid("plan"),
-          weekday: day,
+          weekday: day.weekday,
+          weekTrack: day.weekTrack,
           mealLabel: normalizedMealLabel,
           foodId: entry.foodId,
           foodName: entry.foodName,
@@ -13926,9 +14100,9 @@ async function handleDocumentClick(event) {
     const cookList = allApplied
       ? plan.cookItems.map((item) => `${item.name} ${formatShoppingAmount(item.unit, item.totalGrams)}`).join(", ")
       : "";
-    const detail = `${cookList ? `Skuvaj: ${cookList}.` : `Prekopirano na: ${appliedDays.map((day) => weekdayLabel(day)).join(", ")}.`}${
-      lockedDays.length ? ` ${lockedDays.length} zaključanih dana preskočeno.` : ""
-    }`;
+    const detail = `${
+      cookList ? `Skuvaj: ${cookList}.` : `Prekopirano na: ${appliedDays.map((day) => formatWeekTrackDayLabel(day, plan.sourceWeekTrack)).join(", ")}.`
+    }${lockedDays.length ? ` ${lockedDays.length} zaključanih dana preskočeno.` : ""}`;
     showFeedbackToast({ title: `Pripremljeno za ${appliedDays.length + 1} dana`, detail, tone: "success" });
     render();
     return;
@@ -13936,7 +14110,7 @@ async function handleDocumentClick(event) {
 
   if (action === "edit-entry") {
     const entryId = actionTarget.dataset.entryId;
-    const entry = getPlanEntriesForDay(state.selectedWeekday).find((item) => item.id === entryId);
+    const entry = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack).find((item) => item.id === entryId);
     if (!entry || isMealCompletedForWeekday(state.selectedWeekday, entry.mealLabel)) {
       return;
     }
@@ -14254,13 +14428,16 @@ async function handleDocumentClick(event) {
       if (!confirmed) {
         return;
       }
-      store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => entry.weekday !== state.selectedWeekday);
+      store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
+        (entry) => !(entry.weekday === state.selectedWeekday && normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
+      );
     }
     suggestion.meals.forEach((meal) => {
       meal.items.forEach((item) => {
         store.weeklyPlanEntries.push({
           id: uid("plan"),
           weekday: state.selectedWeekday,
+          weekTrack: state.selectedWeekTrack,
           mealLabel: normalizeMealLabel(meal.mealLabel),
           foodId: item.food.id,
           foodName: item.food.name,
@@ -14279,7 +14456,7 @@ async function handleDocumentClick(event) {
     if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
       return;
     }
-    const mealEntries = getPlanEntriesForDay(state.selectedWeekday)
+    const mealEntries = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack)
       .filter((entry) => normalizeMealLabel(entry.mealLabel) === normalizeMealLabel(mealLabel))
       .map((entry) => ({
         id: uid("favorite-item"),
@@ -14537,6 +14714,7 @@ async function handleDocumentClick(event) {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
       weekday: state.selectedWeekday,
+      weekTrack: state.selectedWeekTrack,
       mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
@@ -14598,7 +14776,7 @@ async function handleDocumentClick(event) {
 
   if (action === "delete-entry") {
     const entryId = actionTarget.dataset.entryId;
-    const entry = getPlanEntriesForDay(state.selectedWeekday).find((item) => item.id === entryId);
+    const entry = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack).find((item) => item.id === entryId);
     if (entry && isMealCompletedForWeekday(state.selectedWeekday, entry.mealLabel)) {
       return;
     }
@@ -14616,6 +14794,103 @@ async function handleDocumentClick(event) {
         persist();
       });
     }
+    render();
+    return;
+  }
+
+  if (action === "delete-day-plan") {
+    const weekday = state.selectedWeekday;
+    const weekTrack = state.selectedWeekTrack;
+    const dayEntries = store.weeklyPlanEntries.filter(
+      (entry) => entry.weekday === weekday && normalizeWeekTrack(entry.weekTrack) === weekTrack
+    );
+    if (!dayEntries.length) {
+      return;
+    }
+    const removableIds = new Set(
+      dayEntries.filter((entry) => !isMealCompletedForWeekday(weekday, entry.mealLabel, weekTrack)).map((entry) => entry.id)
+    );
+    if (!removableIds.size) {
+      showFeedbackToast({ title: "Ništa nije obrisano", detail: "Svi obroci ovog dana su zaključani (čekirani).", tone: "warning" });
+      return;
+    }
+    const previousEntries = store.weeklyPlanEntries;
+    const removedCount = removableIds.size;
+    const lockedCount = dayEntries.length - removedCount;
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
+    persist();
+    queuePendingUndo(
+      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} za ${weekdayLabel(weekday)}.${
+        lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
+      }`,
+      () => {
+        store.weeklyPlanEntries = previousEntries;
+        persist();
+      }
+    );
+    render();
+    return;
+  }
+
+  if (action === "toggle-bulk-delete-panel") {
+    state.bulkDeletePanelOpen = !state.bulkDeletePanelOpen;
+    state.bulkDeletePickDays = [];
+    render();
+    return;
+  }
+
+  if (action === "toggle-bulk-delete-day") {
+    const weekday = String(actionTarget.dataset.weekday || "").trim();
+    const weekTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
+    if (!weekday || !WEEKDAYS.includes(weekday)) {
+      return;
+    }
+    const picked = state.bulkDeletePickDays || [];
+    const exists = picked.some((pair) => pair.weekday === weekday && pair.weekTrack === weekTrack);
+    state.bulkDeletePickDays = exists
+      ? picked.filter((pair) => !(pair.weekday === weekday && pair.weekTrack === weekTrack))
+      : [...picked, { weekday, weekTrack }];
+    render();
+    return;
+  }
+
+  if (action === "confirm-bulk-delete-days") {
+    const pairs = state.bulkDeletePickDays || [];
+    if (!pairs.length) {
+      return;
+    }
+    const targetEntries = store.weeklyPlanEntries.filter((entry) =>
+      pairs.some((pair) => pair.weekday === entry.weekday && normalizeWeekTrack(entry.weekTrack) === pair.weekTrack)
+    );
+    if (!targetEntries.length) {
+      showFeedbackToast({ title: "Nema šta da se obriše", detail: "Izabrani dani su već prazni.", tone: "warning" });
+      return;
+    }
+    const removableIds = new Set(
+      targetEntries
+        .filter((entry) => !isMealCompletedForWeekday(entry.weekday, entry.mealLabel, normalizeWeekTrack(entry.weekTrack)))
+        .map((entry) => entry.id)
+    );
+    if (!removableIds.size) {
+      showFeedbackToast({ title: "Ništa nije obrisano", detail: "Svi obroci izabranih dana su zaključani (čekirani).", tone: "warning" });
+      return;
+    }
+    const previousEntries = store.weeklyPlanEntries;
+    const removedCount = removableIds.size;
+    const lockedCount = targetEntries.length - removedCount;
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
+    state.bulkDeletePanelOpen = false;
+    state.bulkDeletePickDays = [];
+    persist();
+    queuePendingUndo(
+      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} sa ${pairs.length} dana.${
+        lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
+      }`,
+      () => {
+        store.weeklyPlanEntries = previousEntries;
+        persist();
+      }
+    );
     render();
     return;
   }
@@ -15119,23 +15394,33 @@ async function handleSubmit(event) {
 
   if (event.target.id === "duplicate-day-form") {
     const targetWeekday = String(formData.get("targetWeekday") || "").trim();
+    const targetWeekTrack = normalizeWeekTrack(formData.get("targetWeekTrack"));
     const mode = String(formData.get("mode") || "append").trim();
-    if (!targetWeekday || targetWeekday === state.selectedWeekday) {
+    if (!targetWeekday || (targetWeekday === state.selectedWeekday && targetWeekTrack === state.selectedWeekTrack)) {
       return;
     }
 
-    const sourceEntries = store.weeklyPlanEntries.filter((entry) => entry.weekday === state.selectedWeekday);
+    const sourceWeekTrack = state.selectedWeekTrack;
+    const sourceEntries = store.weeklyPlanEntries.filter(
+      (entry) => entry.weekday === state.selectedWeekday && normalizeWeekTrack(entry.weekTrack) === sourceWeekTrack
+    );
     if (!sourceEntries.length) {
       return;
     }
 
-    const targetHasEntries = store.weeklyPlanEntries.some((entry) => entry.weekday === targetWeekday);
+    const targetHasEntries = store.weeklyPlanEntries.some(
+      (entry) => entry.weekday === targetWeekday && normalizeWeekTrack(entry.weekTrack) === targetWeekTrack
+    );
     if (mode === "replace" && targetHasEntries) {
-      const confirmed = window.confirm(`Da li želiš da zameniš sve stavke za ${targetWeekday}?`);
+      const confirmed = window.confirm(
+        `Da li želiš da zameniš sve stavke za ${weekdayLabel(targetWeekday)} (${getWeekTrackLabel(targetWeekTrack).toLowerCase()})?`
+      );
       if (!confirmed) {
         return;
       }
-      store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => entry.weekday !== targetWeekday);
+      store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
+        (entry) => !(entry.weekday === targetWeekday && normalizeWeekTrack(entry.weekTrack) === targetWeekTrack)
+      );
     }
 
     sourceEntries.forEach((entry) => {
@@ -15143,6 +15428,7 @@ async function handleSubmit(event) {
         ...entry,
         id: uid("plan"),
         weekday: targetWeekday,
+        weekTrack: targetWeekTrack,
         done: false,
       });
     });
@@ -15471,13 +15757,14 @@ async function handleSubmit(event) {
   if (event.target.id === "recipe-apply-form") {
     const favoriteId = String(formData.get("favoriteId") || "").trim();
     const weekday = String(formData.get("weekday") || state.selectedWeekday).trim();
+    const weekTrack = normalizeWeekTrack(formData.get("weekTrack") ?? state.selectedWeekTrack);
     const mealLabel = normalizeMealLabel(String(formData.get("mealLabel") || "").trim());
     const favorite = store.favoriteMeals.find((entry) => entry.id === favoriteId);
     if (!favorite || !weekday || !mealLabel) {
       return;
     }
 
-    if (!applyFavoriteMealToDay(favorite, { weekday, mealLabel })) {
+    if (!applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel })) {
       return;
     }
 

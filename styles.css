@@ -3055,6 +3055,15 @@ textarea::placeholder {
   cursor: default;
 }
 
+.week-track-day-picker-row {
+  display: grid;
+  gap: 6px;
+}
+
+.week-track-day-picker-row + .week-track-day-picker-row {
+  margin-top: 10px;
+}
+
 .prep-summary {
   display: grid;
   gap: 6px;
