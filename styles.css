@@ -3357,6 +3357,38 @@ textarea::placeholder {
 :root[data-theme="dark"] .bc-delta--good { color: var(--status-success-text); }
 :root[data-theme="dark"] .bc-delta--bad { color: var(--status-warning-text); }
 
+/* Once the sidebar layout kicks in, the Napredak sections (Zdravlje,
+   Merenja, Slike) can be 1000-1700px wide — great for the multi-column
+   grids, but record rows and forms just sprawl edge to edge with big
+   empty gaps. Cap those specific pieces to a comfortable reading width
+   instead of the whole section, so the photo/chart grids keep using
+   the extra room while forms and lists don't. */
+@media (min-width: 900px) {
+  #lab-form,
+  #measurement-form,
+  #body-comp-form,
+  #photo-form,
+  .progress-compare-block .form-grid,
+  .lab-list,
+  .bc-trends,
+  .bc-sessions {
+    max-width: 640px;
+  }
+
+  /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
+     on phones it should fill the width like a tab bar, but stretched
+     across a 1000px+ section it turns into a handful of giant pills
+     with mostly empty padding. Let it hug its own content instead. */
+  .seg-nav {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .seg-nav-btn {
+    flex: 0 1 auto;
+  }
+}
+
 .entry-actions {
   display: flex;
   justify-content: flex-end;
