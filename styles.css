@@ -3185,6 +3185,7 @@ textarea::placeholder {
 /* Segmented sub-navigation within a tab (Napredak, Ciljevi) */
 .seg-nav {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-bottom: 16px;
   padding: 5px;
@@ -3378,10 +3379,16 @@ textarea::placeholder {
   /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
      on phones it should fill the width like a tab bar, but stretched
      across a 1000px+ section it turns into a handful of giant pills
-     with mostly empty padding. Let it hug its own content instead. */
-  .seg-nav {
+     with mostly empty padding. Let it hug its own content instead.
+     Needs to beat ".app-main.shell > *" (width:100%, specificity 0,2,0),
+     set a bit further below in this same breakpoint and again at
+     1280px, so this is scoped one level tighter (0,3,0) instead of
+     just ".seg-nav" — otherwise that rule silently wins and the bar
+     stays full width. */
+  .app-main.shell > .seg-nav {
     width: fit-content;
     max-width: 100%;
+    align-self: start;
   }
 
   .seg-nav-btn {
