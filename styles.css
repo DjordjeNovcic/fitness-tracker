@@ -7078,6 +7078,18 @@ body.menu-open .menu-fab {
   }
 }
 
+/* Past ~1280px the frame keeps stretching edge-to-edge with the viewport,
+   which reads as sparse/ugly on large monitors. Cap it and center it once
+   the screen is wide enough that the cap actually kicks in (below this,
+   the unbounded width above is narrower than the cap, so nothing changes
+   on typical laptop screens). */
+@media (min-width: 1760px) {
+  .app-frame {
+    max-width: 1760px;
+    margin: 0 auto;
+  }
+}
+
 /* ============================================================
    Dark theme
    Resolved to an explicit data-theme="dark" on <html> by the
