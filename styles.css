@@ -5511,8 +5511,6 @@ body.menu-open .menu-fab {
   .plan-favorite-chips {
     margin-top: 6px;
     gap: 8px;
-    max-height: 88px;
-    overflow: hidden;
   }
 
   .plan-favorite-chips .chip {

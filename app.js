@@ -9865,7 +9865,7 @@ function renderRoutineTab() {
       ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Taskovi</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni streakovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule.")}
       <div class="hero-day-picker routine-day-picker">
         <div class="hero-picker-label">Dan u nedelji</div>
-        <div class="chips" style="margin-top:12px;">
+        <div class="chips hero-day-chips" style="margin-top:12px;">
           ${WEEKDAYS.map(
             (weekday) => `
               <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
