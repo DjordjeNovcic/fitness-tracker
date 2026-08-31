@@ -925,12 +925,13 @@ async function resetRealAccountToBlank() {
   const keepFoods = store.foods;
   const keepProfile = store.profile;
   const keepGoals = store.goals;
+  const keepFavoriteMeals = store.favoriteMeals;
   replaceStore({});
   store.foods = keepFoods;
   store.profile = keepProfile;
   store.goals = keepGoals;
+  store.favoriteMeals = keepFavoriteMeals;
   store.weeklyPlanEntries = [];
-  store.favoriteMeals = [];
   store.trainingTemplates = [];
   store.onboarded = true;
   persistLocal();
@@ -11041,7 +11042,7 @@ ${
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Obriši sve podatke</strong>
-              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
+              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
             </div>
             <span class="pill strong pill--warning">Trajno</span>
           </div>
@@ -15457,7 +15458,7 @@ async function handleDocumentClick(event) {
       return;
     }
     const confirmed = window.confirm(
-      `Obriši plan, trening, rutinu, dnevnik, merenja i slike na nalogu ${state.authUser?.email || ""}?\n\nNamirnice, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
+      `Obriši plan, trening, rutinu, dnevnik, merenja i slike na nalogu ${state.authUser?.email || ""}?\n\nNamirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
     );
     if (!confirmed) {
       return;
@@ -15466,7 +15467,7 @@ async function handleDocumentClick(event) {
       await runButtonAction(actionTarget, () => resetRealAccountToBlank(), {
         busyLabel: "Brišem...",
         successTitle: "Podaci su obrisani",
-        successDetail: "Plan, trening, rutina i istorija su obrisani. Namirnice, profil i ciljevi su ostali.",
+        successDetail: "Plan, trening, rutina i istorija su obrisani. Namirnice, recepti, profil i ciljevi su ostali.",
         errorTitle: "Brisanje nije uspelo",
         errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
       });
