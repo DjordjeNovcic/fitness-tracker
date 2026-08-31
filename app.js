@@ -203,7 +203,7 @@ function renderTabIcon(id) {
 
 // Primary destinations for the iOS-style bottom tab bar (phones).
 // Everything else lives behind "Više", which opens the full sidebar.
-const PRIMARY_TABS = ["plan", "foods", "training", "progress"];
+const PRIMARY_TABS = ["plan", "foods", "training", "routine"];
 
 function renderTabBar() {
   const items = PRIMARY_TABS.map((id) => {
