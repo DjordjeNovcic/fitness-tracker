@@ -5997,7 +5997,7 @@ function renderHero(entries, totals) {
         ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
                 ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
@@ -6010,7 +6010,7 @@ function renderHero(entries, totals) {
         <div class="chips hero-day-chips">
         ${WEEKDAYS.map(
           (weekday) => `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
               ${weekdayLabel(weekday).slice(0, 3)}
             </button>
           `
@@ -8729,7 +8729,7 @@ function renderTrainingTab() {
         ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
                 ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
@@ -9857,7 +9857,7 @@ function renderRoutineTab() {
         <div class="chips" style="margin-top:12px;">
           ${WEEKDAYS.map(
             (weekday) => `
-              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}">
+              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
                 ${weekdayLabel(weekday).slice(0, 3)}
               </button>
             `
@@ -10068,7 +10068,7 @@ function renderRoutineTab() {
         ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
                 ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
@@ -15067,8 +15067,17 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-training-log") {
-    store.trainingLogs = store.trainingLogs.filter((log) => log.id !== actionTarget.dataset.logId);
+    const logId = actionTarget.dataset.logId;
+    const prevLogs = store.trainingLogs;
+    if (!prevLogs.some((log) => log.id === logId)) {
+      return;
+    }
+    store.trainingLogs = store.trainingLogs.filter((log) => log.id !== logId);
     persist();
+    queuePendingUndo("Beleška obrisana.", () => {
+      store.trainingLogs = prevLogs;
+      persist();
+    });
     render();
     return;
   }
@@ -15266,24 +15275,49 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "delete-measurement") {
-    store.measurements = store.measurements.filter((entry) => entry.id !== actionTarget.dataset.measurementId);
+    const measurementId = actionTarget.dataset.measurementId;
+    const prevMeasurements = store.measurements;
+    if (!prevMeasurements.some((entry) => entry.id === measurementId)) {
+      return;
+    }
+    store.measurements = store.measurements.filter((entry) => entry.id !== measurementId);
     persist();
+    queuePendingUndo("Merenje obrisano.", () => {
+      store.measurements = prevMeasurements;
+      persist();
+    });
     render();
     return;
   }
 
   if (action === "delete-lab-result") {
     const id = actionTarget.dataset.id;
+    const prevLabResults = store.labResults;
+    if (!prevLabResults.some((entry) => entry.id === id)) {
+      return;
+    }
     store.labResults = store.labResults.filter((entry) => entry.id !== id);
     persist();
+    queuePendingUndo("Analiza obrisana.", () => {
+      store.labResults = prevLabResults;
+      persist();
+    });
     render();
     return;
   }
 
   if (action === "delete-body-comp") {
     const id = actionTarget.dataset.id;
+    const prevBodyComposition = store.bodyComposition;
+    if (!prevBodyComposition.some((entry) => entry.id === id)) {
+      return;
+    }
     store.bodyComposition = store.bodyComposition.filter((entry) => entry.id !== id);
     persist();
+    queuePendingUndo("Unos obrisan.", () => {
+      store.bodyComposition = prevBodyComposition;
+      persist();
+    });
     render();
     return;
   }
