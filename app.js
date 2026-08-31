@@ -5527,15 +5527,6 @@ function renderFoodEditorDialog() {
   // For a fresh scan there is no editingFood, but state.scannedFood pre-fills the inputs.
   const prefill = editingFood || state.scannedFood || null;
   const isScannedDraft = !editingFood && Boolean(state.scannedBarcode);
-  const macroClassMap = {
-    Proteini: "proteins",
-    UH: "carbs",
-    Masti: "fats",
-    Ostalo: "other",
-    Sve: "all",
-  };
-  const editorGroup = editingFood ? getFoodMacroGroup(editingFood) : "Sve";
-  const editorToneClass = macroClassMap[editorGroup] || "other";
   const editingFoodBasisLabel = getFoodNutritionBasisLabel(editingFood);
   const foodEditorServingUnit = getFoodServingUnit(editingFood);
   const foodEditorHelpText =
@@ -8176,13 +8167,6 @@ function renderFoodsTab() {
         : selectableFoods.filter((food) => getFoodMacroGroup(food) === filter).length;
     return acc;
   }, {});
-  const macroClassMap = {
-    Proteini: "proteins",
-    UH: "carbs",
-    Masti: "fats",
-    Ostalo: "other",
-    Sve: "all",
-  };
   const macroChips = ["Sve", "Proteini", "UH", "Masti"];
   const nutritionChips = ["Sve", "Visok protein", "Malo UH", "Malo masti", "Manje kcal"];
 

@@ -14,17 +14,20 @@
      (workspace header, onboarding, food nutrition filters); not a
      shared concept, just where those specific components happen to
      need a tweak.
-   - 1100/1280/1760px — wide-desktop refinements once the sidebar
+   - 1100/1280/1400/1760px — wide-desktop refinements once the sidebar
      layout has a lot of extra room (form/list width caps, seg-nav
-     un-stretching, training-day-spotlight columns).
-   - 1024px — legacy: styled a table/grid Foods layout
-     (`.foods-list-table-head`, `.foods-list-row`, `.foods-grid-view`,
-     `.foods-card`, `.foods-thumbnail-card`, `.foods-toolbar-view-toggle`)
-     that app.js no longer renders — Foods now uses the simpler
-     `.food-row` list (see `renderFoodsTab`). That CSS is dead; the
-     breakpoint isn't wired to anything live. Safe to delete in a
-     dedicated cleanup pass, but verify no other selector still reads
-     it before removing.
+     un-stretching, training-day-spotlight columns, the Recipes
+     library's 3rd column).
+   - 1024px — a leftover width guard for `.foods-section`/`.food-list`
+     (`min-width: 0`). Used to also style a whole table/grid Foods
+     layout (`.foods-list-table-head`, `.foods-list-row`,
+     `.foods-grid-view`, `.foods-card`, `.foods-thumbnail-card`,
+     `.foods-toolbar-view-toggle` and friends) that app.js no longer
+     renders (Foods uses the simpler `.food-row` list now, see
+     `renderFoodsTab`) — that dead CSS (~850 lines across ~160 rules)
+     was removed in a 2026-08 cleanup pass, verified by cross-
+     referencing every `foods-`/`food-` class in this file against
+     both app.js and index.html before deleting.
    ============================================================ */
 :root {
   --bg: #ece2d3;
@@ -1570,12 +1573,6 @@ textarea::placeholder {
   font-weight: 700; font-size: 0.86rem; cursor: pointer;
 }
 .foods-scan-btn svg { width: 16px; height: 16px; }
-.foods-import-link {
-  margin-left: auto;
-  background: transparent; border: 0; color: var(--muted);
-  font-weight: 600; font-size: 0.84rem; cursor: pointer;
-  text-decoration: underline; text-underline-offset: 2px;
-}
 
 .food-list.foods-list { display: block; margin-top: 4px; }
 .food-row {
@@ -1650,468 +1647,13 @@ textarea::placeholder {
 :root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
 :root[data-theme="dark"] .foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.22); }
 
-.foods-filter-bar {
-  gap: 10px;
-}
-
-.foods-filter-chip {
-  position: relative;
-  overflow: hidden;
-}
-
-.foods-filter-chip::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 180ms ease;
-  pointer-events: none;
-}
-
-.foods-filter-chip--proteins::before {
-  background: linear-gradient(135deg, rgba(63, 128, 106, 0.14), rgba(255, 250, 242, 0));
-}
-
-.foods-filter-chip--carbs::before {
-  background: linear-gradient(135deg, rgba(206, 166, 92, 0.18), rgba(255, 250, 242, 0));
-}
-
-.foods-filter-chip--fats::before {
-  background: linear-gradient(135deg, rgba(102, 120, 81, 0.18), rgba(255, 250, 242, 0));
-}
-
-.foods-filter-chip--other::before,
-.foods-filter-chip--all::before {
-  background: linear-gradient(135deg, rgba(44, 123, 116, 0.12), rgba(255, 250, 242, 0));
-}
-
-.foods-filter-chip:hover::before,
-.foods-filter-chip.is-active::before {
-  opacity: 1;
-}
-
-.foods-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.foods-list {
   gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.foods-toolbar-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 251, 245, 0.82);
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-.foods-toolbar-view-toggle .chip {
-  margin: 0;
-}
-
-.foods-toolbar-add {
-  min-height: 42px;
-}
-
-.foods-list,
-.foods-grid-view {
-  gap: 12px;
-}
-
-.foods-list-table-wrap {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(25, 34, 31, 0.08);
-}
-
-.foods-list-table-head {
-  display: grid;
-  grid-template-columns: 34px minmax(300px, 1fr) 80px 104px 126px 88px 208px;
-  align-items: center;
-  gap: 14px;
-  padding: 0 12px 10px;
-  color: var(--muted);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.foods-list-table-head-favorite {
-  grid-column: 1;
-  text-align: center;
-  opacity: 0.6;
-}
-
-.foods-list-table-head-name {
-  grid-column: 2;
-}
-
-.foods-list-table-head-value {
-  justify-self: end;
-  text-align: right;
-}
-
-.foods-list-table-head-actions {
-  grid-column: 7;
-  text-align: right;
-}
-
-.foods-grid-view {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.foods-card,
-.foods-list-row,
-.foods-thumbnail-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(132, 138, 117, 0.18);
-  background:
-    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(251, 246, 238, 0.98)),
-    var(--surface-strong);
-  box-shadow:
-    0 12px 24px rgba(25, 34, 31, 0.055),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
-}
-
-.foods-list-row,
-.foods-thumbnail-card {
-  border-radius: 20px;
-  padding: 16px 18px;
-}
-
-.foods-thumbnail-card {
-  padding: 20px;
-  border-radius: 26px;
-  box-shadow:
-    0 16px 34px rgba(25, 34, 31, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
-}
-
-.foods-list-row {
-  display: grid;
-  grid-template-columns: 34px minmax(300px, 1fr) 80px 104px 126px 88px 208px;
-  align-items: center;
-  gap: 14px;
-  min-height: 76px;
-  padding: 10px 12px;
-  border-radius: 16px;
-}
-
-.foods-card--proteins,
-.foods-list-row--proteins,
-.foods-thumbnail-card.foods-card--proteins {
-  background:
-    radial-gradient(circle at 50% 18%, rgba(112, 178, 145, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(248, 251, 248, 0.98), rgba(251, 246, 238, 0.98)),
-    var(--surface-strong);
-}
-
-.foods-card--carbs,
-.foods-list-row--carbs,
-.foods-thumbnail-card.foods-card--carbs {
-  background:
-    radial-gradient(circle at 50% 18%, rgba(232, 191, 112, 0.1), transparent 38%),
-    linear-gradient(180deg, rgba(252, 248, 238, 0.98), rgba(251, 246, 238, 0.98)),
-    var(--surface-strong);
-}
-
-.foods-card--fats,
-.foods-list-row--fats,
-.foods-thumbnail-card.foods-card--fats {
-  background:
-    radial-gradient(circle at 50% 18%, rgba(178, 194, 123, 0.09), transparent 38%),
-    linear-gradient(180deg, rgba(248, 250, 242, 0.98), rgba(251, 246, 238, 0.98)),
-    var(--surface-strong);
-}
-
-.foods-card--other,
-.foods-list-row--other,
-.foods-thumbnail-card.foods-card--other {
-  background:
-    radial-gradient(circle at 50% 18%, rgba(170, 186, 180, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(247, 248, 247, 0.98), rgba(251, 246, 238, 0.98)),
-    var(--surface-strong);
-}
-
-.foods-list-row h3,
-.foods-thumbnail-card h3,
-.foods-editor-card h3 {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  font-weight: 800;
-  color: var(--ink);
-  text-wrap: pretty;
-}
-
-.foods-list-favorite-cell {
-  grid-column: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.foods-thumbnail-card h3 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-  font-size: clamp(1.55rem, 1.75vw, 2.3rem);
-  line-height: 0.96;
-  letter-spacing: -0.045em;
-  font-weight: 900;
-  text-wrap: balance;
-  min-height: 2.88em;
-}
-
-.foods-list-main {
-  grid-column: 2;
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.foods-list-title-block {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.foods-list-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.foods-list-basis {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.foods-list-value-cell {
-  display: grid;
-  gap: 2px;
-  align-content: center;
-  min-width: 0;
-  padding: 6px 4px;
-  text-align: right;
-  justify-self: end;
-  width: 100%;
 }
 
 /* On the wide table the values wrapper dissolves so each cell aligns under
    its column header; on narrow screens it becomes a real flex row (see the
    max-width:1024px block). */
-.foods-list-values {
-  display: contents;
-}
-
-.foods-list-value-cell--kcal {
-  grid-column: 3;
-}
-
-.foods-list-value-cell--protein {
-  grid-column: 4;
-}
-
-.foods-list-value-cell--carbs {
-  grid-column: 5;
-}
-
-.foods-list-value-cell--fat {
-  grid-column: 6;
-}
-
-.foods-list-macro {
-  display: grid;
-  gap: 4px;
-  align-content: start;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 253, 248, 0.84);
-  border: 1px solid rgba(24, 33, 30, 0.07);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
-}
-
-.foods-list-macro:first-child {
-  background:
-    linear-gradient(135deg, rgba(223, 231, 192, 0.9), rgba(255, 252, 245, 0.98));
-}
-
-.foods-list-macro-label {
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.foods-list-macro strong {
-  font-size: 0.9375rem;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.foods-list-value-cell strong {
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.foods-list-value-cell--kcal strong {
-  color: var(--teal);
-}
-
-.foods-list-mobile-label {
-  display: none;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.foods-thumbnail-card {
-  min-height: auto;
-}
-
-.foods-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.foods-title-block {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  flex: 1 1 auto;
-  padding-right: 8px;
-}
-
-.foods-card-top-actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.foods-summary {
-  margin-top: 18px;
-  display: grid;
-  gap: 16px;
-}
-
-.foods-energy-display {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.foods-energy-value {
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 9px;
-  color: #2b312c;
-}
-
-.foods-energy-value strong {
-  font-size: clamp(2.4rem, 2.8vw, 3.25rem);
-  line-height: 0.9;
-  font-weight: 900;
-  letter-spacing: -0.06em;
-  color: rgba(153, 130, 94, 0.84);
-}
-
-.foods-energy-value span {
-  font-size: clamp(0.96rem, 1.2vw, 1.05rem);
-  font-weight: 700;
-  color: #1b1f1d;
-}
-
-.foods-energy-basis {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #3f4a45;
-}
-
-.foods-macro-bar {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  min-height: 18px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(215, 214, 208, 0.7);
-  border: 1px solid rgba(186, 183, 175, 0.4);
-  box-shadow:
-    inset 0 1px 3px rgba(255, 255, 255, 0.58),
-    0 6px 12px rgba(25, 34, 31, 0.04);
-}
-
-.foods-macro-segment {
-  min-width: 18px;
-}
-
-.foods-macro-segment--protein {
-  background: linear-gradient(90deg, #d7c06f, #deca88);
-}
-
-.foods-macro-segment--carbs {
-  background: linear-gradient(90deg, #8fc2bc, #9ccdc7);
-}
-
-.foods-macro-segment--fat {
-  background: linear-gradient(90deg, #bd9367, #caa278);
-}
-
-.foods-macro-values {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.foods-macro-value {
-  min-width: 0;
-  text-align: center;
-  font-size: 0.9375rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #28312d;
-}
-
-.foods-macro-value--protein {
-  color: #5f5734;
-}
-
-.foods-macro-value--carbs {
-  color: #44655f;
-}
-
-.foods-macro-value--fat {
-  color: #6f5741;
-}
-
-.foods-macro-value.is-dominant {
-  transform: translateY(-1px);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
-}
 
 .foods-card-kicker {
   font-size: 0.75rem;
@@ -2119,336 +1661,6 @@ textarea::placeholder {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-}
-
-.foods-group-badge {
-  flex-shrink: 0;
-  min-height: 28px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  box-shadow:
-    0 8px 14px rgba(25, 34, 31, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.foods-thumbnail-card .foods-group-badge {
-  min-height: 40px;
-  padding: 8px 14px;
-  border-radius: 16px;
-  font-size: 0.8125rem;
-}
-
-.foods-favorite-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border-radius: 12px;
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  background: rgba(255, 253, 248, 0.96);
-  color: #baa06b;
-  font-size: 0.9375rem;
-  line-height: 1;
-  box-shadow:
-    0 8px 16px rgba(25, 34, 31, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    background 160ms ease;
-}
-
-.foods-thumbnail-card .foods-favorite-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
-  font-size: 1.125rem;
-}
-
-.foods-favorite-toggle:hover,
-.foods-favorite-toggle:focus-visible {
-  transform: translateY(-1px);
-  border-color: rgba(186, 160, 107, 0.28);
-  color: #9f7b2a;
-  box-shadow:
-    0 14px 26px rgba(25, 34, 31, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.foods-favorite-toggle.is-active {
-  background: linear-gradient(180deg, rgba(255, 244, 214, 0.98), rgba(247, 231, 188, 0.96));
-  border-color: rgba(181, 140, 47, 0.24);
-  color: #ab7b16;
-  box-shadow:
-    0 14px 28px rgba(145, 113, 34, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-}
-
-.foods-group-badge--proteins {
-  background: rgba(217, 234, 222, 0.98);
-  color: #355a47;
-}
-
-.foods-group-badge--carbs {
-  background: rgba(245, 227, 188, 0.92);
-  color: #8a6230;
-}
-
-.foods-group-badge--fats {
-  background: rgba(223, 231, 208, 0.94);
-  color: #596647;
-}
-
-.foods-group-badge--other {
-  background: rgba(230, 236, 232, 0.94);
-  color: #55625d;
-}
-
-.foods-card-actions {
-  margin-top: 0;
-  padding-top: 0;
-  gap: 8px;
-  border-top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-}
-
-.foods-list-actions {
-  grid-column: 7;
-  width: 208px;
-  align-self: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.foods-thumbnail-actions {
-  margin-top: 18px;
-}
-
-.foods-card-actions > button {
-  min-height: 34px;
-  padding-inline: 11px;
-  flex: 1 1 0;
-  width: auto;
-  max-width: calc(50% - 4px);
-  border-radius: 999px;
-  box-shadow:
-    0 8px 14px rgba(25, 34, 31, 0.045),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-}
-
-.foods-thumbnail-card .foods-card-actions {
-  gap: 12px;
-}
-
-.foods-thumbnail-card .foods-card-actions > button {
-  min-height: 50px;
-  padding-inline: 18px;
-  max-width: calc(50% - 6px);
-  box-shadow:
-    0 10px 18px rgba(25, 34, 31, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-}
-
-.foods-card-actions .ghost-button,
-.foods-card-actions .solid-button,
-.foods-card-actions .secondary-button,
-.foods-card-actions .danger-button {
-  border-width: 1.5px;
-}
-
-.foods-card-actions .ghost-button {
-  background: rgba(255, 253, 248, 0.96);
-}
-
-.foods-card-actions .danger-button {
-  background: rgba(244, 235, 223, 0.92);
-  color: #8b613c;
-  border-color: rgba(163, 122, 76, 0.18);
-}
-
-@media (max-width: 1024px) {
-  .foods-list-table-head {
-    display: none;
-  }
-
-  .foods-grid-view {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .foods-card,
-  .foods-list-row {
-    padding: 18px;
-  }
-
-  .foods-list-row {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: 0;
-    padding: 14px;
-  }
-
-  .foods-list-main,
-  .foods-list-value-cell,
-  .foods-list-actions {
-    grid-column: auto;
-  }
-
-  .foods-list-value-cell {
-    padding: 8px 0 0;
-    border-top: 1px dashed rgba(24, 33, 30, 0.08);
-    text-align: left;
-  }
-
-  .foods-list-favorite-cell {
-    grid-column: auto;
-    justify-content: flex-start;
-    margin-bottom: 8px;
-  }
-
-  .foods-list-actions {
-    width: 100%;
-    margin-top: 6px;
-    justify-content: flex-start;
-  }
-
-  .foods-list-mobile-label {
-    display: inline-block;
-  }
-
-  .foods-list-row h3 {
-    font-size: 1.125rem;
-  }
-
-  .foods-group-badge,
-  .foods-favorite-toggle {
-    min-height: 38px;
-    height: 38px;
-  }
-
-  .foods-thumbnail-card h3 {
-    font-size: clamp(1.45rem, 7vw, 2rem);
-    min-height: 2.9em;
-  }
-
-  .foods-card-top {
-    gap: 12px;
-  }
-
-  .foods-macro-values {
-    gap: 10px;
-  }
-
-  .foods-macro-value {
-    font-size: 0.875rem;
-  }
-
-  .foods-card-actions > button {
-    min-height: 46px;
-    padding-inline: 16px;
-  }
-}
-
-@media (max-width: 780px) {
-  .foods-toolbar {
-    align-items: stretch;
-  }
-
-  .foods-toolbar-view-toggle {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .foods-toolbar-view-toggle .chip {
-    flex: 1 1 0;
-    justify-content: center;
-  }
-
-  .foods-toolbar-add {
-    width: 100%;
-  }
-
-  .foods-grid-view {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.foods-editor-card {
-  padding: 18px;
-  border-radius: 24px;
-  overflow: hidden;
-}
-
-.foods-editor-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  border-radius: 999px;
-  opacity: 0.9;
-}
-
-.foods-editor-card--proteins::before {
-  background: linear-gradient(90deg, rgba(44, 123, 116, 0.7), rgba(86, 152, 121, 0.9));
-}
-
-.foods-editor-card--carbs::before {
-  background: linear-gradient(90deg, rgba(200, 154, 74, 0.65), rgba(224, 187, 113, 0.92));
-}
-
-.foods-editor-card--fats::before {
-  background: linear-gradient(90deg, rgba(112, 126, 82, 0.7), rgba(156, 168, 108, 0.92));
-}
-
-.foods-editor-card--other::before,
-.foods-editor-card--all::before {
-  background: linear-gradient(90deg, rgba(98, 118, 110, 0.62), rgba(158, 175, 167, 0.92));
-}
-
-.foods-editor-intro {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.foods-editor-copy {
-  display: grid;
-  gap: 6px;
-}
-
-.foods-editor-copy h3,
-.foods-editor-copy p {
-  margin: 0;
-}
-
-.foods-editor-copy p {
-  color: var(--muted);
-  max-width: 60ch;
-}
-
-.foods-editor-pills {
-  margin-top: 0;
-}
-
-.foods-editor-form {
-  margin-top: 0;
-}
-
-.foods-editor-actions {
-  margin-top: 4px;
-}
-
-.foods-editor-actions > button {
-  min-height: 42px;
 }
 
 .composer-context {
@@ -5377,10 +4589,6 @@ label.is-invalid textarea:focus {
   width: min(760px, calc(100vw - 28px));
 }
 
-.food-editor-dialog .foods-editor-card {
-  margin-top: 6px;
-}
-
 .recipe-apply-actions {
   justify-content: flex-end;
   gap: 10px;
@@ -6662,20 +5870,10 @@ body.menu-open .menu-fab {
     height: 100%;
   }
 
-  .foods-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-
   .recipes-library-section .stack,
   .routine-habits-section .stack,
   .routine-tasks-section .stack {
     gap: 16px;
-  }
-
-  .foods-editor-intro {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
   }
 
   .meal-composer {
@@ -6759,9 +5957,7 @@ body.menu-open .menu-fab {
   .food-card.recipe-studio-card,
   .recipe-studio-card,
   .food-card.recipe-draft-card,
-  .recipe-draft-card,
-  .food-card.foods-editor-card,
-  .foods-editor-card {
+  .recipe-draft-card {
     height: auto;
     align-self: start;
   }
@@ -7186,10 +6382,6 @@ body.menu-open .menu-fab {
   }
 
   .plan-quick-stack {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .foods-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -7657,11 +6849,6 @@ body.menu-open .tab-bar {
   margin-bottom: 12px;
 }
 
-.foods-toolbar-scan .tab-icon {
-  width: 19px;
-  height: 19px;
-}
-
 /* ============================================================
    Dark theme — color fixes for light values that didn't invert
    (pill text was hardcoded dark; eyebrow pills kept a light bg).
@@ -7822,7 +7009,6 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .plan-recipe-ingredient,
 :root[data-theme="dark"] .recipe-library-method,
 :root[data-theme="dark"] .nutrition-plan-notes,
-:root[data-theme="dark"] .foods-list-macro,
 :root[data-theme="dark"] .routine-day-picker,
 :root[data-theme="dark"] .routine-overview-section .routine-day-picker {
   background:
@@ -7837,8 +7023,6 @@ body.menu-open .tab-bar {
   color: var(--accent-strong);
 }
 
-:root[data-theme="dark"] .foods-toolbar-view-toggle,
-:root[data-theme="dark"] .foods-favorite-toggle,
 :root[data-theme="dark"] .meal-collapse-toggle,
 :root[data-theme="dark"] .routine-check-ui,
 :root[data-theme="dark"] .photo-picker,
@@ -7848,7 +7032,6 @@ body.menu-open .tab-bar {
   border-color: var(--line-strong);
 }
 
-:root[data-theme="dark"] .foods-favorite-toggle.is-active,
 :root[data-theme="dark"] .routine-checkbox:checked + .routine-check-ui,
 :root[data-theme="dark"] .weekday-choice:has(input:checked) {
   background: linear-gradient(135deg, oklch(0.8 0.132 82 / 0.3), oklch(0.8 0.132 82 / 0.16));
@@ -8326,25 +7509,9 @@ body.app-header-hidden .workspace-header {
   -webkit-overflow-scrolling: touch;
 }
 
-.food-editor-dialog .foods-editor-card {
-  background: none;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-  border-radius: 0;
-  overflow: visible;
-}
-
 /* The decorative top stripe belongs on the standalone card; in the dialog
    the card is flattened (no padding) so the stripe fell over the first
    label ("Naziv"). Hide it here. */
-.food-editor-dialog .foods-editor-card::before {
-  display: none;
-}
-
-.food-editor-dialog .foods-editor-intro {
-  display: none;
-}
 
 /* ============================================================
    Orchestrated entrance: a single staggered reveal when a tab
@@ -8590,123 +7757,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* ============================================================
-   Namirnice — dark-aware action buttons + compact food rows on
-   narrow screens (macros were stacking into a tall block).
-   ============================================================ */
-:root[data-theme="dark"] .foods-card-actions .ghost-button {
-  background: var(--button-ghost-bg);
-}
-:root[data-theme="dark"] .foods-card-actions .danger-button {
-  background: var(--button-danger-bg);
-  color: var(--button-danger-text);
-}
-
-/* Below the table breakpoint every row has the SAME shape, regardless of
-   name length: row 1 = star + name/serving + edit/delete; row 2 = one tidy
-   "kcal · P · UH · M" line. (Was a flex-wrap that packed greedily and wrapped
-   differently on every row.) */
-@media (max-width: 1024px) {
-  .foods-list-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "fav main actions"
-      "vals vals vals";
-    align-items: center;
-    column-gap: 12px;
-    row-gap: 10px;
-    min-height: 0;
-    padding: 14px 15px;
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .foods-list-favorite-cell {
-    grid-area: fav;
-    align-self: start;
-    margin: 0;
-    justify-content: center;
-  }
-
-  .foods-list-main {
-    grid-area: main;
-    align-self: center;
-    min-width: 0;
-  }
-
-  .foods-list-actions {
-    grid-area: actions;
-    align-self: start;
-    width: auto;
-    margin: 0;
-    gap: 6px;
-    justify-content: flex-end;
-  }
-
-  /* The four macros sit on one consistent line under the name. */
-  .foods-list-values {
-    grid-area: vals;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 14px;
-    min-width: 0;
-  }
-
-  .foods-list-value-cell {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    width: auto;
-    min-width: 0;
-    padding: 0;
-    border-top: 0;
-    text-align: left;
-    justify-self: auto;
-  }
-
-  .foods-list-value-cell--kcal {
-    flex-direction: row-reverse;
-  }
-
-  .foods-list-mobile-label {
-    display: inline;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: none;
-    letter-spacing: 0;
-  }
-
-  .foods-list-value-cell strong {
-    font-size: 0.875rem;
-    font-weight: 700;
-  }
-
-  /* kcal is the headline number — bring it forward (brand green in light,
-     gold in dark via the data-theme override) and a touch bolder/larger. */
-  .foods-list-value-cell--kcal strong {
-    color: var(--teal);
-    font-weight: 800;
-    font-size: 0.9375rem;
-  }
-
-  .foods-list-actions .button-with-icon {
-    flex: 0 0 auto;
-    padding: 8px 13px;
-  }
-}
-
-/* Food editor top stripe: gold in dark (was green/olive by macro group) */
-:root[data-theme="dark"] .foods-editor-card--proteins::before,
-:root[data-theme="dark"] .foods-editor-card--carbs::before,
-:root[data-theme="dark"] .foods-editor-card--fats::before,
-:root[data-theme="dark"] .foods-editor-card--other::before,
-:root[data-theme="dark"] .foods-editor-card--all::before {
-  background: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.85 0.132 84));
-}
-
-/* ============================================================
    Finesse pass — theme-aware focus, selection, ring glow,
    gentle card hover, active-tab indicator.
    ============================================================ */
@@ -8919,12 +7969,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* Foods table values stay readable in dark (were hardcoded dark olive) */
-:root[data-theme="dark"] .foods-list-value-cell strong {
-  color: var(--ink);
-}
-:root[data-theme="dark"] .foods-list-value-cell--kcal strong {
-  color: var(--accent-strong);
-}
 
 /* ============================================================
    Max-tighten pass — surgical consistency refinements.
@@ -8976,9 +8020,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* 8. Foods kcal unit lowercase like everywhere else */
-.foods-list-value-cell--kcal .foods-list-mobile-label {
-  text-transform: none;
-}
 
 /* 9. NAMIRNICE label sits as a proper divider (more air below) */
 .meal-items-label-row {
@@ -8991,11 +8032,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* 11. Filter count: a quiet number, no parentheses */
-.foods-filter-count {
-  margin-left: 6px;
-  font-weight: 500;
-  opacity: 0.6;
-}
 
 /* 12. Consistent pill weight + meal-header radius */
 .pill {
@@ -9115,9 +8151,6 @@ body.app-header-hidden .workspace-header {
 
 /* ============================================================
    App-wide mobile layout fixes (audit sweep, 2026-06):
-   - Foods rows no longer overflow the card (macro values were
-     clipped off the right edge); name + actions on line 1,
-     macros wrap to line 2.
    - Routine/supplement rows: actions drop to their own full-width
      row instead of crushing the content into a sliver.
    - Weekday multi-select wraps so all 7 days are visible/tappable.
@@ -9128,7 +8161,6 @@ body.app-header-hidden .workspace-header {
      intrinsic content can't blow the section past the viewport.
      (The row's own grid layout is defined in the block above.) */
   .foods-section,
-  .foods-list-table-wrap,
   .food-list,
   .foods-list {
     min-width: 0;
@@ -9136,17 +8168,6 @@ body.app-header-hidden .workspace-header {
 }
 
 @media (max-width: 520px) {
-  /* Foods actions become compact icon buttons on phones (like meal rows)
-     so macros + actions share one line under the name. */
-  .foods-list-actions .button-label--mobile-hidden {
-    display: none;
-  }
-  .foods-list-actions .ghost-button,
-  .foods-list-actions .danger-button {
-    min-width: 40px;
-    padding-inline: 10px;
-  }
-
   /* Routine habits/tasks + supplement cards: the action buttons sit on
      their own full-width row instead of stealing a grid track and
      crushing the content into a narrow sliver. */
@@ -9370,17 +8391,6 @@ body.app-header-hidden .workspace-header {
 .star-icon {
   width: 17px;
   height: 17px;
-}
-
-.foods-favorite-toggle .star-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.foods-list-table-head-favorite .star-icon {
-  width: 13px;
-  height: 13px;
-  opacity: 0.65;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -10215,29 +9225,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* Quiet link to the (hidden) Nutricionista tool from Namirnice. */
-.foods-nutrition-link {
-  margin-top: 8px;
-  min-height: 0;
-  padding: 4px 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  justify-content: flex-start;
-  gap: 6px;
-}
-
-.foods-nutrition-link .button-icon svg {
-  width: 15px;
-  height: 15px;
-}
-
-.foods-nutrition-link:hover {
-  color: var(--accent-strong);
-  background: none;
-}
 
 /* ============================================================
    Plan hero refinements: all 7 days fit evenly (no scroll/cut),
