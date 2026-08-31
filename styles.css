@@ -2682,8 +2682,14 @@ textarea::placeholder {
   .nutrition-recipes-stack,
   .nutrition-foods-stack,
   .nutrition-documents-stack {
+    /* Left-anchored, not centered: the section heading and any day/week
+       picker above these live at the section's natural left edge (they
+       aren't in this list, so they're never capped), so centering just
+       the form/list gave every card 2-3 different left edges. Now that
+       .app-frame itself is capped (see the min-width:900px block far
+       below), there's no longer a huge empty shell to hide that gap in —
+       left-anchoring reads as "one deliberate column," not "off-center." */
     max-width: 640px;
-    margin-inline: auto;
   }
 
   /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
