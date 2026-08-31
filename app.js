@@ -7571,7 +7571,11 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
       </div>
       <ol class="plan-welcome-steps">
         <li class="plan-welcome-step ${hasGoal ? "is-done" : ""}">
-          <span class="plan-welcome-step-num" aria-hidden="true">${hasGoal ? "✓" : "1"}</span>
+          <span class="plan-welcome-step-num" aria-hidden="true">${
+            hasGoal
+              ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`
+              : "1"
+          }</span>
           <div class="plan-welcome-step-body">
             <strong>Postavi dnevni cilj</strong>
             <span>${

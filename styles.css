@@ -9538,3 +9538,9 @@ body.app-header-hidden .workspace-header {
     color: var(--tabbar-active);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .more-sheet-user-chevron {
+    transition: none;
+  }
+}
