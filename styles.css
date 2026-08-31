@@ -1183,6 +1183,13 @@ textarea::placeholder {
   background: linear-gradient(90deg, rgba(47, 128, 118, 0.14), rgba(139, 153, 97, 0.18), rgba(255, 255, 255, 0));
 }
 
+/* No-green-in-dark applies even to a barely-visible decorative fade —
+   swap the teal/olive tint for the single dark-mode gold accent. */
+:root[data-theme="dark"] .plan-summary-section .macro-card::before,
+:root[data-theme="dark"] .plan-secondary-stats .stat-card::before {
+  background: linear-gradient(90deg, oklch(0.8 0.132 82 / 0.22), oklch(0.8 0.132 82 / 0.08), transparent);
+}
+
 .plan-summary-section .macro-card h3 {
   font-size: 1rem;
 }
@@ -1900,19 +1907,10 @@ textarea::placeholder {
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: start;
-  padding: 14px 14px;
-  border-top: 1px solid var(--line);
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 252, 248, 0.88));
-  box-shadow:
-    inset 3px 0 0 rgba(125, 139, 90, 0.22),
-    0 8px 18px rgba(25, 34, 31, 0.025);
 }
 
 .meal-entry:first-of-type {
   border-top: 0;
-  padding-top: 14px;
 }
 
 .meal-entry + .meal-entry {
@@ -4772,6 +4770,20 @@ body.menu-open .menu-fab {
   background: linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
   box-shadow:
     0 16px 28px rgba(23, 53, 43, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* The desktop sidebar's active-tab highlight was still hardcoded green,
+   missed when the dark theme moved to gold-only accents — every other
+   "active" nav indicator (mobile tab bar, more-sheet dot) already goes
+   through --tabbar-active/--accent-strong and flips automatically. Reuse
+   the primary-button tokens here too, which already resolve to the gold
+   gradient in dark. */
+:root[data-theme="dark"] .menu-tab-button.is-active {
+  color: var(--button-primary-text);
+  background: var(--button-primary-bg);
+  box-shadow:
+    0 16px 28px oklch(0.8 0.132 82 / 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
