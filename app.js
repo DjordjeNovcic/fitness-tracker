@@ -8591,7 +8591,7 @@ function renderRecipesTab() {
                           favorite.imageUrl
                             ? `
                               <div class="recipe-library-media">
-                                <img src="${escapeHtml(favorite.imageUrl)}" alt="${escapeHtml(favorite.name)}" />
+                                <img src="${escapeHtml(favorite.imageUrl)}" alt="${escapeHtml(favorite.name)}" loading="lazy" />
                               </div>
                             `
                             : ""

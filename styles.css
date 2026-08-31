@@ -6931,7 +6931,10 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .composer-context,
 :root[data-theme="dark"] .meal-composer-context,
 :root[data-theme="dark"] .meal-summary-macro,
-:root[data-theme="dark"] .suggestion-surface {
+:root[data-theme="dark"] .suggestion-surface,
+:root[data-theme="dark"] .plan-suggestion-card.is-muted,
+:root[data-theme="dark"] .recipe-studio-card,
+:root[data-theme="dark"] .nutrition-food-editor-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--surface-strong);
