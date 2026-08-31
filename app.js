@@ -9037,7 +9037,7 @@ function renderTrainingTab() {
         </div>
         <button class="solid-button secondary-button" type="submit">Sačuvaj belešku</button>
       </form>
-      <div class="stack" style="margin-top:14px;">
+      <div class="stack training-log-stack" style="margin-top:14px;">
         ${
           logs.length
             ? logs
@@ -9944,7 +9944,7 @@ function renderRoutineTab() {
         </div>
       </form>
       </details>
-      <div class="stack" style="margin-top:14px;">
+      <div class="stack routine-habit-stack" style="margin-top:14px;">
         ${
           summary.habits.length
             ? summary.habits
@@ -10105,7 +10105,7 @@ function renderRoutineTab() {
         </div>
       </form>
       </details>
-      <div class="stack" style="margin-top:14px;">
+      <div class="stack routine-task-stack" style="margin-top:14px;">
         ${
           summary.tasks.length
             ? summary.tasks
