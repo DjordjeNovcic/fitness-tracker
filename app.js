@@ -914,20 +914,24 @@ async function resetDemoToFactory() {
   await saveCloudStateNow({ force: true, overwrite: true });
 }
 
-// Potpun reset PRAVOG (ne-demo) naloga na prazno stanje, kao tek registrovan
-// nalog: briše plan, trening, rutinu, dnevnik, istoriju, merenja i slike, čisti
-// profil/ciljeve i vraća na onboarding. Zadržava samo generičku bazu namirnica
-// (isti tretman kao kad se novi pravi nalog prvi put prijavi — vidi
-// hydrateStoreFromCloud). Ne sme se pozvati za demo nalog.
+// Reset PRAVOG (ne-demo) naloga: briše plan, trening, rutinu, dnevnik,
+// istoriju, merenja i slike. NE dira namirnice (tvoja baza, uključujući sve
+// što si sam dodao — ne vraća se na generički seed), profil ni ciljeve
+// (kalorije/makroi/deficit ostaju kako su izračunati), pa se onboarding ne
+// ponavlja. Ne sme se pozvati za demo nalog.
 async function resetRealAccountToBlank() {
   const photoIdsToDelete = (store.progressPhotos || []).map((photo) => photo?.id).filter(Boolean);
+  const keepFoods = store.foods;
+  const keepProfile = store.profile;
+  const keepGoals = store.goals;
   replaceStore({});
-  store.profile = { ...store.profile, name: "", age: null, weightKg: null };
-  store.goals = { ...store.goals, calories: 0, protein: 0, carbs: 0, fat: 0 };
+  store.foods = keepFoods;
+  store.profile = keepProfile;
+  store.goals = keepGoals;
   store.weeklyPlanEntries = [];
   store.favoriteMeals = [];
   store.trainingTemplates = [];
-  store.onboarded = false;
+  store.onboarded = true;
   persistLocal();
   await Promise.all(photoIdsToDelete.map((id) => idbDeletePhoto(id)));
   await saveCloudStateNow({ force: true, overwrite: true });
@@ -11022,7 +11026,7 @@ ${
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Obriši sve podatke</strong>
-              <div class="footer-note">Briše baš sve na ovom nalogu — plan, trening, rutinu, dnevnik, merenja i slike — i vraća app na onboarding, kao nov nalog. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
+              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
             </div>
             <span class="pill strong pill--warning">Trajno</span>
           </div>
@@ -15385,7 +15389,7 @@ async function handleDocumentClick(event) {
       return;
     }
     const confirmed = window.confirm(
-      `Obriši baš sve podatke na nalogu ${state.authUser?.email || ""}?\n\nBriše plan, trening, rutinu, dnevnik, merenja, ciljeve, profil i slike, i vraća app na onboarding. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
+      `Obriši plan, trening, rutinu, dnevnik, merenja i slike na nalogu ${state.authUser?.email || ""}?\n\nNamirnice, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
     );
     if (!confirmed) {
       return;
@@ -15394,7 +15398,7 @@ async function handleDocumentClick(event) {
       await runButtonAction(actionTarget, () => resetRealAccountToBlank(), {
         busyLabel: "Brišem...",
         successTitle: "Podaci su obrisani",
-        successDetail: "Nalog je prazan, kao nov. Prolaziš kroz onboarding ponovo.",
+        successDetail: "Plan, trening, rutina i istorija su obrisani. Namirnice, profil i ciljevi su ostali.",
         errorTitle: "Brisanje nije uspelo",
         errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
       });
