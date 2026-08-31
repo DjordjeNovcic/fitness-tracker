@@ -2685,6 +2685,7 @@ textarea::placeholder {
   .nutrition-foods-stack,
   .nutrition-documents-stack {
     max-width: 640px;
+    margin-inline: auto;
   }
 
   /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
@@ -5737,9 +5738,15 @@ body.menu-open .menu-fab {
     display: grid;
     grid-template-columns: 252px minmax(0, 1fr);
     gap: 28px;
-    max-width: none;
+    /* Caps how wide the whole app gets on a big monitor — past this it just
+       reads as sparse/empty, with narrower content (capped forms, etc.)
+       floating in a huge half-used shell. A no-op below 1600px, same as
+       today. Was 1760px behind a separate min-width:1760px block; lowered
+       and merged here because 1760 rarely triggered in practice (common
+       "wide" windows like a 1728px MacBook are already under it). */
+    max-width: 1600px;
     width: 100%;
-    margin: 0;
+    margin: 0 auto;
     min-height: 100vh;
     padding: 0 24px 0 28px;
     align-items: stretch;
@@ -6403,7 +6410,6 @@ body.menu-open .menu-fab {
 @media (min-width: 1280px) {
   .app-frame {
     grid-template-columns: 264px minmax(0, 1fr);
-    max-width: none;
     gap: 34px;
   }
 
@@ -6448,18 +6454,6 @@ body.menu-open .menu-fab {
     max-width: none;
     margin-left: 0;
     margin-right: 0;
-  }
-}
-
-/* Past ~1280px the frame keeps stretching edge-to-edge with the viewport,
-   which reads as sparse/ugly on large monitors. Cap it and center it once
-   the screen is wide enough that the cap actually kicks in (below this,
-   the unbounded width above is narrower than the cap, so nothing changes
-   on typical laptop screens). */
-@media (min-width: 1760px) {
-  .app-frame {
-    max-width: 1760px;
-    margin: 0 auto;
   }
 }
 
