@@ -3396,13 +3396,20 @@ textarea::placeholder {
    empty gaps. Cap those specific pieces to a comfortable reading width
    instead of the whole section, so the photo/chart grids keep using
    the extra room while forms and lists don't.
-   Same bug, same fix, in Trening (forms + Beleške list) and Rutina
-   (Nedeljne navike + Taskovi forms/lists) — every single-column form
-   or result list that's a direct child of a wide section needs adding
+   Same bug, same fix, in Trening (forms + Beleške list), Rutina
+   (Nedeljne navike + Taskovi + Streakovi forms/lists), Ciljevi/Plan
+   suplementi (.goals-form-layout, shared by #goals-form and
+   #supplement-form), Recepti (#favorite-meal-form) and Trčanje
+   (#run-form + .running-history-stack) — every single-column form or
+   result list that's a direct child of a wide section needs adding
    here explicitly; there's no structural selector for it (a generic
    ".section > form" rule would also catch the intentionally-wide
    multi-column grids elsewhere), so extend this list whenever a new
-   tab/feature adds one of these. */
+   tab/feature adds one of these. Namirnice and Recepti's own library
+   list are deliberately NOT here — they're the primary content of
+   their tabs, not a secondary form/log, so they get a multi-column
+   grid instead (see `.food-list.foods-list` below) rather than being
+   narrowed away. */
 @media (min-width: 900px) {
   #lab-form,
   #measurement-form,
@@ -3420,7 +3427,12 @@ textarea::placeholder {
   #task-form,
   .training-log-stack,
   .routine-habit-stack,
-  .routine-task-stack {
+  .routine-task-stack,
+  .routine-streak-stack,
+  .goals-form-layout,
+  #favorite-meal-form,
+  #run-form,
+  .running-history-stack {
     max-width: 640px;
   }
 
@@ -9062,6 +9074,25 @@ body.app-header-hidden .workspace-header {
 }
 
 /* ============================================================
+   Namirnice list on desktop (2026-08): `.food-row` is a hairline-
+   divided row with an `auto minmax(0,1fr) auto` grid (star | info |
+   menu). Left single-column, once the sidebar layout gives the
+   section 1000-1700px, the info column stretches to fill it — name
+   stays left, the ⋮ menu button ends up stranded far to the right
+   with a huge empty gap between them. Unlike the Trening/Rutina
+   forms above, this is the tab's primary content, so narrowing it to
+   640px would waste the space rather than use it — lay rows out in
+   responsive columns instead so multiple items sit side by side.
+   ============================================================ */
+@media (min-width: 900px) {
+  .food-list.foods-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    column-gap: 28px;
+  }
+}
+
+/* ============================================================
    App-wide mobile layout fixes (audit sweep, 2026-06):
    - Foods rows no longer overflow the card (macro values were
      clipped off the right edge); name + actions on line 1,
@@ -9131,6 +9162,7 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .recipe-draft-method,
 :root[data-theme="dark"] .plan-recipe-method,
 :root[data-theme="dark"] .routine-streak-spotlight,
+:root[data-theme="dark"] .routine-streak-card,
 :root[data-theme="dark"] .routine-streak-meter {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
