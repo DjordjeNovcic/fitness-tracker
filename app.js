@@ -639,11 +639,22 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     weeklyPlanEntries: Array.isArray(rawStore.weeklyPlanEntries)
       ? rawStore.weeklyPlanEntries
       : fallback.weeklyPlanEntries,
-    trainingTemplates: Array.isArray(rawStore.trainingTemplates)
-      ? rawStore.trainingTemplates
-      : fallback.trainingTemplates,
+    // Legacy templates (saved before the two-week track existed) get stamped with
+    // whatever track is live right now, the first time they're loaded after this
+    // shipped — so an existing schedule becomes "Ova nedelja" today rather than
+    // landing on whichever physical track index happens to default to 0.
+    trainingTemplates: (Array.isArray(rawStore.trainingTemplates) ? rawStore.trainingTemplates : fallback.trainingTemplates).map(
+      (template) => ({
+        ...template,
+        weekTrack: template.weekTrack == null ? getCurrentWeekTrack() : normalizeWeekTrack(template.weekTrack),
+      })
+    ),
     habits: Array.isArray(rawStore.habits) ? rawStore.habits : [],
-    dayTasks: Array.isArray(rawStore.dayTasks) ? rawStore.dayTasks : [],
+    // Same one-time stamp as trainingTemplates above, for the same reason.
+    dayTasks: (Array.isArray(rawStore.dayTasks) ? rawStore.dayTasks : []).map((task) => ({
+      ...task,
+      weekTrack: task.weekTrack == null ? getCurrentWeekTrack() : normalizeWeekTrack(task.weekTrack),
+    })),
     favoriteTrainings: Array.isArray(rawStore.favoriteTrainings) ? rawStore.favoriteTrainings : [],
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
@@ -900,6 +911,25 @@ function isDemoAccount() {
 async function resetDemoToFactory() {
   replaceStore(cloneSeed());
   persistLocal();
+  await saveCloudStateNow({ force: true, overwrite: true });
+}
+
+// Potpun reset PRAVOG (ne-demo) naloga na prazno stanje, kao tek registrovan
+// nalog: briše plan, trening, rutinu, dnevnik, istoriju, merenja i slike, čisti
+// profil/ciljeve i vraća na onboarding. Zadržava samo generičku bazu namirnica
+// (isti tretman kao kad se novi pravi nalog prvi put prijavi — vidi
+// hydrateStoreFromCloud). Ne sme se pozvati za demo nalog.
+async function resetRealAccountToBlank() {
+  const photoIdsToDelete = (store.progressPhotos || []).map((photo) => photo?.id).filter(Boolean);
+  replaceStore({});
+  store.profile = { ...store.profile, name: "", age: null, weightKg: null };
+  store.goals = { ...store.goals, calories: 0, protein: 0, carbs: 0, fat: 0 };
+  store.weeklyPlanEntries = [];
+  store.favoriteMeals = [];
+  store.trainingTemplates = [];
+  store.onboarded = false;
+  persistLocal();
+  await Promise.all(photoIdsToDelete.map((id) => idbDeletePhoto(id)));
   await saveCloudStateNow({ force: true, overwrite: true });
 }
 
@@ -4062,8 +4092,10 @@ function getWeeklyOverview(weekTrack = getCurrentWeekTrack()) {
   };
 }
 
-function getTrainingForDay(weekday) {
-  return store.trainingTemplates.filter((template) => template.weekday === weekday);
+function getTrainingForDay(weekday, weekTrack = state.selectedWeekTrack) {
+  return store.trainingTemplates.filter(
+    (template) => template.weekday === weekday && normalizeWeekTrack(template.weekTrack) === weekTrack
+  );
 }
 
 function getTrainingBurnForDay(weekday) {
@@ -4082,9 +4114,9 @@ function getStreakHabits() {
   return getHabits().filter((habit) => habit.trackingMode === "streak");
 }
 
-function getTasksForDay(weekday) {
+function getTasksForDay(weekday, weekTrack = state.selectedWeekTrack) {
   return store.dayTasks
-    .filter((task) => task.weekday === weekday)
+    .filter((task) => task.weekday === weekday && normalizeWeekTrack(task.weekTrack) === weekTrack)
     .sort((a, b) => {
       if (a.done === b.done) {
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
@@ -4250,10 +4282,10 @@ function getHabitStreakSentence(habit) {
   return `${getDayCountLabel(currentStreakDays)} ${normalizedLabel}`;
 }
 
-function getRoutineSummaryForDay(weekday) {
+function getRoutineSummaryForDay(weekday, weekTrack = state.selectedWeekTrack) {
   const habits = getWeeklyHabits();
   const streakHabits = getStreakHabits();
-  const tasks = getTasksForDay(weekday);
+  const tasks = getTasksForDay(weekday, weekTrack);
   const doneHabits = habits.filter((habit) => isHabitDoneForDay(habit, weekday)).length;
   const doneTasks = tasks.filter((task) => task.done).length;
   const totalItems = habits.length + tasks.length;
@@ -4306,6 +4338,14 @@ function getCurrentWeekTrack() {
 
 function normalizeWeekTrack(value) {
   return toNumber(value) === 1 ? 1 : 0;
+}
+
+// UI display order for the two tracks: current week always first, so "Ova
+// nedelja" never appears after "Sledeća nedelja" just because the physical
+// track index happens to be 1 this real week.
+function getWeekTrackDisplayOrder() {
+  const current = getCurrentWeekTrack();
+  return [current, 1 - current];
 }
 
 // "Ova nedelja" / "Sledeća nedelja" — never hardcode which physical track this
@@ -4398,17 +4438,17 @@ function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
   }
 }
 
-function getWeeklyTrainingPlan() {
+function getWeeklyTrainingPlan(weekTrack = state.selectedWeekTrack) {
   return WEEKDAYS.map((weekday) => ({
     weekday,
-    templates: getTrainingForDay(weekday),
+    templates: getTrainingForDay(weekday, weekTrack),
     trainingBurn: getTrainingBurnForDay(weekday),
     progressCount: store.trainingProgressLogs.filter((log) => log.weekday === weekday).length,
-    completedExerciseCount: getTrainingForDay(weekday).reduce(
+    completedExerciseCount: getTrainingForDay(weekday, weekTrack).reduce(
       (count, template) => count + getTrainingTemplateCompletionCount(template, weekday).completedCount,
       0
     ),
-    totalExerciseCount: getTrainingForDay(weekday).reduce(
+    totalExerciseCount: getTrainingForDay(weekday, weekTrack).reduce(
       (count, template) => count + getTrainingTemplateCompletionCount(template, weekday).totalCount,
       0
     ),
@@ -5140,7 +5180,7 @@ function renderRecipeApplyDialog() {
             <label>
               <span>Nedelja</span>
               <select name="weekTrack">
-                ${[0, 1].map((track) => `<option value="${track}" ${track === selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`).join("")}
+                ${getWeekTrackDisplayOrder().map((track) => `<option value="${track}" ${track === selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`).join("")}
               </select>
             </label>
             <label>
@@ -5958,7 +5998,7 @@ function renderHero(entries, totals) {
       <div class="hero-day-picker">
         <span class="hero-day-label">Nedelja</span>
         <div class="chips hero-day-chips">
-        ${[0, 1]
+        ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
               <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
@@ -7432,7 +7472,7 @@ function renderWeekTrackDayPicker({ action, selectedPairs = [], excludePair = nu
   const extraAttrs = Object.entries(dataset)
     .map(([key, value]) => ` data-${escapeHtml(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`))}="${escapeHtml(String(value))}"`)
     .join("");
-  return [0, 1]
+  return getWeekTrackDisplayOrder()
     .map((track) => {
       const chips = WEEKDAYS.map((weekday) => {
         if (excludePair && excludePair.weekday === weekday && excludePair.weekTrack === track) {
@@ -7746,7 +7786,7 @@ function renderPlanTab(entries) {
             <div class="food-card-top plan-quick-card-top">
               <div class="plan-quick-card-copy">
                 <h3>Obriši ceo dan</h3>
-                <p>Isprazni jelovnik za ovaj dan, ili izaberi više dana odjednom.</p>
+                <p>Isprazni jelovnik za ovaj dan, izaberi više dana odjednom, ili obriši sve obroke iz celog plana (obe nedelje).</p>
               </div>
               <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
             </div>
@@ -7756,6 +7796,11 @@ function renderPlanTab(entries) {
               </button>
               <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
                 ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
+              </button>
+              <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${
+                store.weeklyPlanEntries.length ? "" : "disabled"
+              }>
+                ${renderButtonContent("Obriši sve obroke", "delete")}
               </button>
             </div>
             ${
@@ -8674,7 +8719,21 @@ function renderTrainingTab() {
           <p>Brz pregled cele nedelje, da odmah vidiš gde si ubacio trening a gde je odmor.</p>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + procenjena potrošnja kalorija koja ulazi u dnevni bilans). <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + procenjena potrošnja kalorija koja ulazi u dnevni bilans). <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      <div class="hero-day-picker">
+        <span class="hero-day-label">Nedelja</span>
+        <div class="chips hero-day-chips">
+        ${getWeekTrackDisplayOrder()
+          .map(
+            (track) => `
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+                ${getWeekTrackLabel(track).replace(" nedelja", "")}
+              </button>
+            `
+          )
+          .join("")}
+        </div>
+      </div>
       <div class="stats-grid">
         ${weeklyTrainingPlan
           .map(
@@ -8804,7 +8863,7 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema trening šablona za ${weekdayLabel(state.selectedWeekday)}. Dodaj ga ispod.</div>`
+            : `<div class="empty">Još nema trening šablona za ${weekdayLabel(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj ga ispod.</div>`
         }
       </div>
     </section>
@@ -8862,6 +8921,14 @@ function renderTrainingTab() {
                 <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>
               `
             ).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="training-week-track">Nedelja</label>
+          <select id="training-week-track" name="weekTrack" required>
+            ${getWeekTrackDisplayOrder()
+              .map((track) => `<option value="${track}" ${track === state.selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`)
+              .join("")}
           </select>
         </div>
         <div class="field">
@@ -9989,7 +10056,21 @@ function renderRoutineTab() {
       <div class="section-header">
         <div>
           <h2>Taskovi za ${weekdayLabel(state.selectedWeekday)}</h2>
-          <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak.</p>
+          <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak. Ovo je šablon za dve naizmenične nedelje kao trening i jelovnik — nedeljne navike i streakovi ispod ostaju isti svake nedelje.</p>
+        </div>
+      </div>
+      <div class="hero-day-picker" style="margin-bottom:14px;">
+        <span class="hero-day-label">Nedelja</span>
+        <div class="chips hero-day-chips">
+        ${getWeekTrackDisplayOrder()
+          .map(
+            (track) => `
+              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}">
+                ${getWeekTrackLabel(track).replace(" nedelja", "")}
+              </button>
+            `
+          )
+          .join("")}
         </div>
       </div>
       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
@@ -10056,7 +10137,7 @@ function renderRoutineTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Još nema taskova za ${weekdayLabel(state.selectedWeekday)}. Dodaj prvi pa čekiraj kad završiš.</div>`
+            : `<div class="empty">Još nema taskova za ${weekdayLabel(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
         }
       </div>
     </section>
@@ -10952,7 +11033,19 @@ ${
             <button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati na fabrička", "refresh")}</button>
           </div>
         </article>`
-            : ""
+            : `
+        <article class="status-summary-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Obriši sve podatke</strong>
+              <div class="footer-note">Briše baš sve na ovom nalogu — plan, trening, rutinu, dnevnik, merenja i slike — i vraća app na onboarding, kao nov nalog. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
+            </div>
+            <span class="pill strong pill--warning">Trajno</span>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="danger-button button-with-icon" type="button" data-action="delete-all-data">${renderButtonContent("Obriši sve podatke", "delete")}</button>
+          </div>
+        </article>`
         }
       </div>
     </section>
@@ -13376,6 +13469,7 @@ async function handleDocumentClick(event) {
     state.selectedWeekTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
     state.editingMealLabel = "";
     resetPlanDraft();
+    resetRoutineEditing();
     render();
     window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
@@ -13702,7 +13796,9 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "clear-completed-tasks") {
-    const hasCompleted = store.dayTasks.some((task) => task.weekday === state.selectedWeekday && task.done);
+    const hasCompleted = store.dayTasks.some(
+      (task) => task.weekday === state.selectedWeekday && normalizeWeekTrack(task.weekTrack) === state.selectedWeekTrack && task.done
+    );
     if (!hasCompleted) {
       return;
     }
@@ -13710,7 +13806,9 @@ async function handleDocumentClick(event) {
     if (!confirmed) {
       return;
     }
-    store.dayTasks = store.dayTasks.filter((task) => !(task.weekday === state.selectedWeekday && task.done));
+    store.dayTasks = store.dayTasks.filter(
+      (task) => !(task.weekday === state.selectedWeekday && normalizeWeekTrack(task.weekTrack) === state.selectedWeekTrack && task.done)
+    );
     persist();
     render();
     return;
@@ -13730,6 +13828,7 @@ async function handleDocumentClick(event) {
       store.dayTasks.push({
         id: uid("task"),
         weekday: state.selectedWeekday,
+        weekTrack: state.selectedWeekTrack,
         title: task.title,
         note: task.note,
         done: false,
@@ -14895,6 +14994,43 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "delete-all-plan-meals") {
+    if (!store.weeklyPlanEntries.length) {
+      return;
+    }
+    const confirmed = window.confirm("Obriši sve obroke iz celog plana (Ova nedelja i Sledeća nedelja)? Čekirani (pojedeni) obroci ostaju.");
+    if (!confirmed) {
+      return;
+    }
+    const removableIds = new Set(
+      store.weeklyPlanEntries
+        .filter((entry) => !isMealCompletedForWeekday(entry.weekday, entry.mealLabel, normalizeWeekTrack(entry.weekTrack)))
+        .map((entry) => entry.id)
+    );
+    if (!removableIds.size) {
+      showFeedbackToast({ title: "Ništa nije obrisano", detail: "Svi obroci u planu su zaključani (čekirani).", tone: "warning" });
+      return;
+    }
+    const previousEntries = store.weeklyPlanEntries;
+    const removedCount = removableIds.size;
+    const lockedCount = store.weeklyPlanEntries.length - removedCount;
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
+    state.bulkDeletePanelOpen = false;
+    state.bulkDeletePickDays = [];
+    persist();
+    queuePendingUndo(
+      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} iz celog plana.${
+        lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
+      }`,
+      () => {
+        store.weeklyPlanEntries = previousEntries;
+        persist();
+      }
+    );
+    render();
+    return;
+  }
+
   if (action === "undo-pending") {
     if (!state.pendingUndo) {
       return;
@@ -15068,6 +15204,7 @@ async function handleDocumentClick(event) {
     store.trainingTemplates.push({
       id: uid("training"),
       weekday: state.selectedWeekday,
+      weekTrack: state.selectedWeekTrack,
       name: favoriteTraining.name,
       exercises: favoriteTraining.exercises.map((exercise) => ({
         id: uid("exercise"),
@@ -15251,6 +15388,30 @@ async function handleDocumentClick(event) {
         successTitle: "Demo je resetovan",
         successDetail: "Nalog je vraćen na početni plan, namirnice i trening.",
         errorTitle: "Reset nije uspeo",
+        errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
+      });
+    } finally {
+      render();
+    }
+    return;
+  }
+
+  if (action === "delete-all-data") {
+    if (isDemoAccount()) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `Obriši baš sve podatke na nalogu ${state.authUser?.email || ""}?\n\nBriše plan, trening, rutinu, dnevnik, merenja, ciljeve, profil i slike, i vraća app na onboarding. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
+    );
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await runButtonAction(actionTarget, () => resetRealAccountToBlank(), {
+        busyLabel: "Brišem...",
+        successTitle: "Podaci su obrisani",
+        successDetail: "Nalog je prazan, kao nov. Prolaziš kroz onboarding ponovo.",
+        errorTitle: "Brisanje nije uspelo",
         errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
       });
     } finally {
@@ -15657,6 +15818,7 @@ async function handleSubmit(event) {
       store.dayTasks.push({
         id: uid("task"),
         weekday: state.selectedWeekday,
+        weekTrack: state.selectedWeekTrack,
         title,
         note,
         done: false,
@@ -15783,6 +15945,7 @@ async function handleSubmit(event) {
 
   if (event.target.id === "training-form") {
     const weekday = String(formData.get("weekday") || state.selectedWeekday).trim();
+    const weekTrack = normalizeWeekTrack(formData.get("weekTrack") ?? state.selectedWeekTrack);
     const name = String(formData.get("name") || "").trim();
     const lines = String(formData.get("exercises") || "")
       .split("\n")
@@ -15796,6 +15959,7 @@ async function handleSubmit(event) {
     store.trainingTemplates.push({
       id: uid("training"),
       weekday,
+      weekTrack,
       name,
       exercises: lines.map((line) => ({
         id: uid("exercise"),
