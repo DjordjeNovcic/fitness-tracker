@@ -1564,6 +1564,35 @@ textarea::placeholder {
 .foods-chip.is-active .foods-chip-count { background: rgba(255, 255, 255, 0.24); color: inherit; }
 .foods-chip--sub { font-weight: 600; font-size: 0.8rem; padding: 6px 12px; }
 
+/* Quiet re-entry point into the hidden Nutricionista tab: foods imported from
+   a document but still missing kcal/macros are hidden from the list below
+   (shouldHidePendingImportedFood) until reviewed there — without this link
+   they'd be invisible and effectively lost. Only rendered when count > 0. */
+.foods-nutrition-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.foods-nutrition-link svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
 .foods-secondary { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .foods-scan-btn {
   display: inline-flex; align-items: center; gap: 7px;

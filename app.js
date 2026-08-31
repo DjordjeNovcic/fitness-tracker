@@ -8089,6 +8089,11 @@ function renderPlanTab(entries) {
 }
 
 function renderFoodsTab() {
+  // Foods imported from a nutrition-plan document that still need kcal/macro
+  // values are hidden from the selectable list below (shouldHidePendingImportedFood)
+  // until reviewed — without this link, they're invisible and unreachable
+  // except by typing #nutrition in the URL bar.
+  const pendingNutritionReviewCount = getFoods().filter(shouldHidePendingImportedFood).length;
   const selectableFoods = getSelectableFoods();
   const foods = selectableFoods
     .map((food) => ({
@@ -8184,6 +8189,15 @@ function renderFoodsTab() {
       </header>
 
       ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Sve odavde ubacuješ u obroke u Planu.")}
+
+      ${
+        pendingNutritionReviewCount > 0
+          ? `<button class="foods-nutrition-link" type="button" data-action="switch-tab" data-tab="nutrition">
+              <span>${pendingNutritionReviewCount} ${pendingNutritionReviewCount === 1 ? "namirnica" : "namirnice"} iz uvoza čeka vrednosti pre nego što se pojavi ovde</span>
+              ${renderSideChevronIcon(false)}
+            </button>`
+          : ""
+      }
 
       <div class="foods-search">
         <span class="foods-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg></span>
