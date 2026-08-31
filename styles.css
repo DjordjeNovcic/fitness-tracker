@@ -1,3 +1,31 @@
+/* ============================================================
+   Breakpoint legend — there is no shared token/variable for these
+   (media queries can't reference CSS custom properties for their
+   condition), so this is a plain reference list. When adding a new
+   component, check here first instead of picking an ad-hoc value.
+
+   - 899/900px — THE structural app-shell split: bottom tab bar +
+     `.more-sheet` below, persistent `.app-sidebar` at/above. Almost
+     everything that needs a "mobile vs desktop" branch should key
+     off this one (`@media (max-width:899px)` / `(min-width:900px)`).
+   - 520px — small-phone tweaks (compact spacing/sizing, chip/button
+     min-widths) once a device is narrower than a typical phone.
+   - 720/780px — a few components' own narrow-tablet adjustments
+     (workspace header, onboarding, food nutrition filters); not a
+     shared concept, just where those specific components happen to
+     need a tweak.
+   - 1100/1280/1760px — wide-desktop refinements once the sidebar
+     layout has a lot of extra room (form/list width caps, seg-nav
+     un-stretching, training-day-spotlight columns).
+   - 1024px — legacy: styled a table/grid Foods layout
+     (`.foods-list-table-head`, `.foods-list-row`, `.foods-grid-view`,
+     `.foods-card`, `.foods-thumbnail-card`, `.foods-toolbar-view-toggle`)
+     that app.js no longer renders — Foods now uses the simpler
+     `.food-row` list (see `renderFoodsTab`). That CSS is dead; the
+     breakpoint isn't wired to anything live. Safe to delete in a
+     dedicated cleanup pass, but verify no other selector still reads
+     it before removing.
+   ============================================================ */
 :root {
   --bg: #ece2d3;
   --bg-strong: #ddd0bd;
@@ -698,6 +726,10 @@ textarea::placeholder {
 
 .chip {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 9px 14px;
   border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 999px;
@@ -9552,7 +9584,7 @@ body.app-header-hidden .workspace-header {
 .onboarding-chips .chip {
   flex: 1 1 auto;
   justify-content: center;
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .onboarding-preview {
@@ -10170,7 +10202,7 @@ body.app-header-hidden .workspace-header {
 .chips.hero-day-chips .chip {
   flex: none;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 0;
   font-size: 0.8125rem;
   justify-content: center;
