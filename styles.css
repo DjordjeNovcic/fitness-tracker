@@ -4658,6 +4658,20 @@ body.menu-open .menu-fab {
 .app-sidebar-email {
   margin-top: 0;
   font-size: 0.875rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+}
+
+.app-sidebar-email:hover,
+.app-sidebar-email:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .menu-close {
@@ -9332,9 +9346,34 @@ body.app-header-hidden .workspace-header {
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
     padding: 4px 6px 12px;
     margin-bottom: 6px;
+    border: 0;
     border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .more-sheet-user:hover .more-sheet-user-chevron,
+  .more-sheet-user:focus-visible .more-sheet-user-chevron {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+
+  .more-sheet-user-chevron {
+    flex: 0 0 auto;
+    color: var(--muted);
+    opacity: 0.6;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .more-sheet-user-chevron svg {
+    width: 16px;
+    height: 16px;
   }
 
   .more-sheet-user-avatar {

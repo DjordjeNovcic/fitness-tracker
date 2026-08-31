@@ -245,13 +245,14 @@ function renderMoreSheet() {
     <div class="more-sheet ${state.navMenuOpen ? "is-open" : ""}" role="menu" aria-label="Više">
       ${
         userEmail || profileName
-          ? `<div class="more-sheet-user">
+          ? `<button class="more-sheet-user" type="button" data-action="open-account" aria-label="Nalog i profil">
               <span class="more-sheet-user-avatar" aria-hidden="true">${escapeHtml(userInitial)}</span>
               <div class="more-sheet-user-info">
                 <span class="more-sheet-user-name">${escapeHtml(displayName)}${isDemo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
                 ${userEmail ? `<span class="more-sheet-user-email">${escapeHtml(userEmail)}</span>` : ""}
               </div>
-            </div>`
+              <span class="more-sheet-user-chevron" aria-hidden="true">${renderSideChevronIcon(false)}</span>
+            </button>`
           : ""
       }
       <div class="more-sheet-tabs">
@@ -12887,7 +12888,13 @@ function render() {
           <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
             <strong>Fit tracker</strong>
-            <div class="footer-note app-sidebar-email">${escapeHtml(state.authUser?.email || "")}</div>
+            ${
+              state.authUser?.email
+                ? `<button class="footer-note app-sidebar-email" type="button" data-action="open-account">
+                    ${escapeHtml(state.authUser.email)}
+                  </button>`
+                : ""
+            }
           </div>
           <div class="app-sidebar-top-actions">
             <button class="ghost-button sidebar-toggle" type="button" data-action="toggle-sidebar-collapse" aria-label="${state.sidebarCollapsed ? "Raširi navigaciju" : "Skupi navigaciju"}" aria-pressed="${state.sidebarCollapsed}">
@@ -13194,6 +13201,19 @@ async function handleDocumentClick(event) {
       maybeAutoImportRunFromClipboard();
     }
     window.location.hash = state.activeTab;
+    render();
+    window.requestAnimationFrame(() => scrollPageTop("auto"));
+    return;
+  }
+
+  if (action === "open-account") {
+    if (state.activeTab !== "goals") {
+      state.tabEnter = true;
+    }
+    state.activeTab = "goals";
+    state.goalsView = "nalog";
+    state.navMenuOpen = false;
+    window.location.hash = "goals";
     render();
     window.requestAnimationFrame(() => scrollPageTop("auto"));
     return;
