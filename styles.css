@@ -57,9 +57,9 @@
   --button-ghost-bg: rgba(255, 251, 245, 0.98);
   --button-ghost-text: var(--ink);
   --button-ghost-border: rgba(25, 34, 31, 0.09);
-  --button-danger-bg: linear-gradient(180deg, #f2e7dc, #ebddd0);
-  --button-danger-text: #7a4e38;
-  --button-danger-border: rgba(122, 78, 56, 0.12);
+  --button-danger-bg: linear-gradient(180deg, #fae0d2, #f4c7ac);
+  --button-danger-text: #9c3d1f;
+  --button-danger-border: rgba(156, 61, 31, 0.3);
   --pill-bg: rgba(243, 236, 226, 0.72);
   --pill-border: rgba(24, 33, 30, 0.045);
   --pill-strong-bg: rgba(220, 233, 221, 0.88);
@@ -4707,6 +4707,10 @@ body.menu-open .menu-fab {
   gap: 3px;
 }
 
+.app-sidebar-brand .hero-picker-label {
+  color: var(--muted);
+}
+
 .app-sidebar-email {
   margin-top: 0;
   font-size: 0.875rem;
@@ -6571,7 +6575,7 @@ body.menu-open .menu-fab {
   --shadow-card: 0 14px 28px rgba(0, 0, 0, 0.24);
   --bar-track: oklch(0.92 0.03 80 / 0.09);
   --bar-ok: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.83 0.132 84));
-  --bar-low: linear-gradient(90deg, oklch(0.5 0.07 78), oklch(0.64 0.1 80));
+  --bar-low: linear-gradient(90deg, oklch(0.72 0.06 82), oklch(0.82 0.08 84));
   --bar-near: linear-gradient(90deg, oklch(0.7 0.15 55), oklch(0.78 0.16 50));
   --bar-over: linear-gradient(90deg, oklch(0.6 0.18 28), oklch(0.7 0.19 33));
   --tabbar-bg: oklch(0.165 0.009 64 / 0.82);
