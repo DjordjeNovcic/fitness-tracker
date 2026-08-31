@@ -4430,9 +4430,6 @@ label.is-invalid textarea:focus {
 
 .workspace-header {
   display: none;
-  position: sticky;
-  top: calc(12px + env(safe-area-inset-top));
-  z-index: 18;
   padding: 16px;
   border-radius: 24px;
   background:
@@ -5634,6 +5631,34 @@ body.menu-open .menu-fab {
 @media (max-width: 720px) {
   .workspace-header {
     display: block;
+  }
+
+  /* Collapse the Plan hero's decorative title row (tag + h1 + refresh button)
+     once scrolled past the top, so its two always-usable week/day pickers
+     below don't permanently cost as much sticky vertical space. Toggled by
+     updateHeroScrollState() in app.js via body.plan-compact. */
+  .hero-top {
+    max-height: 64px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 0.22s ease, opacity 0.16s ease;
+  }
+
+  body.plan-compact .hero-top {
+    max-height: 0;
+    opacity: 0;
+  }
+
+  body.plan-compact .hero-refresh {
+    display: none;
+  }
+
+  body.plan-compact .shell-with-menu.is-plan-shell .hero {
+    padding-top: 6px;
+  }
+
+  body.plan-compact .hero-top + .hero-day-picker {
+    margin-top: 0;
   }
 
   .menu-fab {

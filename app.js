@@ -6553,15 +6553,21 @@ function updateHeroScrollState() {
 
   heroScrollFrame = window.requestAnimationFrame(() => {
     heroScrollFrame = 0;
-    if (state.isPlanHeroCompact || document.body.classList.contains("plan-compact")) {
-      state.isPlanHeroCompact = false;
-      document.body.classList.remove("plan-compact");
+    const y = window.scrollY || 0;
+    const body = document.body;
+
+    // The Plan hero's title row (tag + h1 + refresh) collapses once scrolled
+    // away; unlike the workspace header below, its week/day pickers stay put
+    // and usable the whole time.
+    const isPlanCompact = state.activeTab === "plan" && y >= 28;
+    if (isPlanCompact !== state.isPlanHeroCompact) {
+      state.isPlanHeroCompact = isPlanCompact;
+      body.classList.toggle("plan-compact", isPlanCompact);
     }
+
     // The (non-interactive) workspace header shows ONLY at the very top of
     // the page. Once scrolled away it stays hidden — it does not reappear on
     // scroll-up, only when you return to the top.
-    const y = window.scrollY || 0;
-    const body = document.body;
     if (y < 28) {
       body.classList.remove("app-header-hidden");
     } else {
