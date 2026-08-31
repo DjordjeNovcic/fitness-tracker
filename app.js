@@ -7447,7 +7447,7 @@ function renderPlanShoppingSection() {
               ${
                 activeItems.length
                   ? `<div class="stack">${listHtml}</div>`
-                  : `<div class="empty">Sve namirnice su označene kao „imam već".</div>`
+                  : `<div class="empty empty-passive">Sve namirnice su označene kao „imam već".</div>`
               }
               ${stapleHtml}
             `
@@ -8291,7 +8291,7 @@ function renderFoodsTab() {
             `;
                 })
                 .join("")
-            : `<div class="empty">Nema namirnica za ovaj filter.</div>`
+            : `<div class="empty empty-passive">Nema namirnica za ovaj filter.</div>`
         }
         <div class="empty foods-list-empty" hidden>Nema rezultata za pretragu.</div>
       </div>
@@ -8683,7 +8683,7 @@ function renderRecipesTab() {
                 })
                 .join("")
             : favorites.length
-              ? `<div class="empty">Nema recepata za izabrane filtere. Promeni tip obroka ili nutritivni profil.</div>`
+              ? `<div class="empty empty-passive">Nema recepata za izabrane filtere. Promeni tip obroka ili nutritivni profil.</div>`
               : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
         }
       </div>
@@ -10169,7 +10169,7 @@ function renderRoutineTab() {
                 .join("")}
             </div>
           `
-          : `<div class="empty">Kad dodaš nedeljne navike, ovde ćeš videti pregled po danima.</div>`
+          : `<div class="empty empty-passive">Kad dodaš nedeljne navike, ovde ćeš videti pregled po danima.</div>`
       }
     </section>
   `;
@@ -10706,7 +10706,7 @@ function renderNutritionTab() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Kad uvezeš dokumente, ovde će se pojaviti saveti, smernice i napomene nutricioniste.</div>`
+            : `<div class="empty empty-passive">Kad uvezeš dokumente, ovde će se pojaviti saveti, smernice i napomene nutricioniste.</div>`
         }
       </div>
     </section>
@@ -10774,7 +10774,7 @@ function renderNutritionTab() {
                   }
                 )
                 .join("")
-            : `<div class="empty">Ovde ćeš videti recepte koje izvučem iz dokumenata, zajedno sa sastojcima i gramažom.</div>`
+            : `<div class="empty empty-passive">Ovde ćeš videti recepte koje izvučem iz dokumenata, zajedno sa sastojcima i gramažom.</div>`
         }
       </div>
     </section>
@@ -10945,7 +10945,7 @@ function renderNutritionTab() {
                   }
                 )
                 .join("")
-            : `<div class="empty">Review inbox je čist. Kad parser izvuče nove nerešene namirnice, pojaviće se ovde dok ih ne dopuniš ili ukloniš kao duplikat.</div>`
+            : `<div class="empty empty-passive">Review inbox je čist. Kad parser izvuče nove nerešene namirnice, pojaviće se ovde dok ih ne dopuniš ili ukloniš kao duplikat.</div>`
         }
       </div>
     </section>
@@ -11024,7 +11024,7 @@ function renderAccountSection() {
 ${
           isDemoAccount()
             ? `
-        <article class="status-summary-card">
+        <article class="status-summary-card settings-danger-card">
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Demo nalog</strong>
@@ -11037,7 +11037,7 @@ ${
           </div>
         </article>`
             : `
-        <article class="status-summary-card">
+        <article class="status-summary-card settings-danger-card">
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Obriši sve podatke</strong>
