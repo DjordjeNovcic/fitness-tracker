@@ -9869,33 +9869,33 @@ function renderRoutineTab() {
           ).join("")}
         </div>
       </div>
-      <div class="stats-grid routine-summary-grid" style="margin-top:14px;">
-        <article class="stat-card">
-          <strong>Ukupno za danas</strong>
-          <div class="macro-value">${summary.progress}%</div>
-          <div class="footer-note">${summary.doneItems} od ${summary.totalItems || 0} čekirano</div>
-        </article>
-        <article class="stat-card">
-          <strong>Nedeljne navike</strong>
-          <div class="macro-value">${summary.doneHabits}/${summary.habits.length}</div>
-          <div class="footer-note">Završeno za ${weekdayLabel(state.selectedWeekday)}</div>
-        </article>
-        <article class="stat-card">
-          <strong>Taskovi</strong>
-          <div class="macro-value">${summary.doneTasks}/${summary.tasks.length}</div>
-          <div class="footer-note">Dnevne obaveze</div>
-        </article>
-        <article class="stat-card">
-          <strong>Dugoročni streakovi</strong>
-          <div class="macro-value">${summary.streakHabits.length}</div>
-          <div class="footer-note">
-            ${
-              summary.longestStreakDays
-                ? `Najduži aktivni ${getDayCountLabel(summary.longestStreakDays)}`
-                : "Dodaj prvi streak i kreni da brojiš"
-            }
-          </div>
-        </article>
+      <div class="stat-hero" style="margin-top:14px;">
+        <span class="hero-day-label">Ukupno za danas</span>
+        <div class="stat-hero-value"><strong>${summary.progress}%</strong></div>
+        <div class="footer-note">${summary.doneItems} od ${summary.totalItems || 0} čekirano</div>
+      </div>
+      <div class="plan-net-row">
+        <div class="plan-net-item">
+          <span class="plan-net-label">Navike</span>
+          <strong>${summary.doneHabits}/${summary.habits.length}</strong>
+        </div>
+        <div class="plan-net-item">
+          <span class="plan-net-label">Taskovi</span>
+          <strong>${summary.doneTasks}/${summary.tasks.length}</strong>
+        </div>
+        <div class="plan-net-item">
+          <span class="plan-net-label">Streakovi</span>
+          <strong>${summary.streakHabits.length}</strong>
+        </div>
+      </div>
+      <div class="footer-note plan-net-note">
+        ${
+          summary.streakHabits.length
+            ? summary.longestStreakDays
+              ? `Najduži aktivni streak: ${getDayCountLabel(summary.longestStreakDays)}`
+              : "Streakovi su dodati, još nema aktivnog niza"
+            : "Dodaj prvi streak ispod i kreni da brojiš"
+        }
       </div>
     </section>
 
@@ -10319,33 +10319,43 @@ function renderGoalsTab() {
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
       ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
-      <div class="stats-grid goals-insight-grid">
-        <article class="stat-card">
-          <strong>Bazalni metabolizam</strong>
-          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.bmr} kcal` : "—"}</div>
-          <div class="footer-note">${goalRecommendation ? "Telo troši i u mirovanju" : "Unesi pol, godine, visinu i težinu"}</div>
-        </article>
-        <article class="stat-card">
-          <strong>Održavanje</strong>
-          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.maintenance} kcal` : "—"}</div>
-          <div class="footer-note">${goalRecommendation ? goalRecommendation.activity.label : "Treba i nivo aktivnosti"}</div>
-        </article>
-        <article class="stat-card">
-          <strong>Cilj</strong>
-          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.targetCalories} kcal` : "—"}</div>
-          <div class="footer-note">${
-            goalRecommendation
-              ? goalRecommendation.rateKgPerWeek
-                ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned`
-                : goalRecommendation.goalMode.label
-              : "Izaberi cilj"
-          }</div>
-        </article>
-        <article class="stat-card">
-          <strong>Preporučeni makroi</strong>
-          <div class="macro-value">${goalRecommendation ? `${goalRecommendation.protein} / ${goalRecommendation.carbs} / ${goalRecommendation.fat}` : "—"}</div>
-          <div class="footer-note">P / UH / Masti</div>
-        </article>
+      <div class="stat-hero">
+        <span class="hero-day-label">Dnevni cilj</span>
+        <div class="stat-hero-value">
+          ${goalRecommendation ? `<strong>${goalRecommendation.targetCalories}</strong> kcal` : `<strong>—</strong>`}
+        </div>
+        <div class="footer-note">${
+          goalRecommendation
+            ? goalRecommendation.rateKgPerWeek
+              ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned`
+              : goalRecommendation.goalMode.label
+            : "Popuni profil i izaberi cilj ispod"
+        }</div>
+      </div>
+      <div class="plan-net-row goals-calc-row">
+        <div class="plan-net-item">
+          <span class="plan-net-label">BMR</span>
+          <strong>${goalRecommendation ? goalRecommendation.bmr : "—"}</strong>
+        </div>
+        <span class="plan-net-op">→</span>
+        <div class="plan-net-item">
+          <span class="plan-net-label">Održavanje</span>
+          <strong>${goalRecommendation ? goalRecommendation.maintenance : "—"}</strong>
+        </div>
+      </div>
+      <div class="plan-net-row goals-macro-row">
+        <div class="plan-net-item">
+          <span class="plan-net-label">Proteini</span>
+          <strong>${goalRecommendation ? `${goalRecommendation.protein} g` : "—"}</strong>
+        </div>
+        <div class="plan-net-item">
+          <span class="plan-net-label">UH</span>
+          <strong>${goalRecommendation ? `${goalRecommendation.carbs} g` : "—"}</strong>
+        </div>
+        <div class="plan-net-item">
+          <span class="plan-net-label">Masti</span>
+          <strong>${goalRecommendation ? `${goalRecommendation.fat} g` : "—"}</strong>
+        </div>
       </div>
       ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">

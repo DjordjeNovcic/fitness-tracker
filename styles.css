@@ -3187,6 +3187,32 @@ label.is-invalid textarea:focus {
   margin-top: 8px;
 }
 
+/* Shared "one stated result, then a hairline breakdown" pattern
+   (2026-08 redesign) — replaces the "4 identical stat-cards" layout
+   on Ciljevi's Cilj view and Rutina's daily overview, where the
+   number the screen exists to produce read as no more important than
+   the trivia feeding it. .stat-hero is the single result (reuses
+   Plan's Fraunces-headline treatment); the supporting numbers go in a
+   .plan-net-row below (reusing Plan's Uneto/Sagorelo/Neto pattern). */
+.stat-hero {
+  text-align: center;
+  padding: 4px 0 2px;
+}
+
+.stat-hero-value {
+  margin-top: 4px;
+  color: var(--accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-hero-value strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.65rem, 2.5vw, 2.35rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-right: 4px;
+}
+
 .plan-activity-metrics {
   margin-top: 4px;
 }
@@ -3512,10 +3538,6 @@ label.is-invalid textarea:focus {
 
 .routine-day-picker .hero-picker-label {
   color: var(--muted);
-}
-
-.routine-summary-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .routine-overview-section,
@@ -4321,7 +4343,6 @@ label.is-invalid textarea:focus {
   grid-column: 1 / -1;
 }
 
-.goals-insight-grid,
 .plan-supplement-summary {
   gap: 12px;
 }
@@ -5262,10 +5283,6 @@ body.menu-open .menu-fab {
     padding: 14px 14px 30px;
   }
 
-  .routine-summary-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
   .routine-row {
     grid-template-columns: auto 1fr;
   }
@@ -5884,10 +5901,6 @@ body.menu-open .menu-fab {
     gap: 16px;
   }
 
-  .routine-summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .food-list,
   .training-list,
   .stack {
@@ -6271,10 +6284,6 @@ body.menu-open .menu-fab {
     gap: 10px;
   }
 
-  .goals-insight-grid {
-    margin-bottom: 14px;
-  }
-
   .settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
@@ -6441,10 +6450,6 @@ body.menu-open .menu-fab {
   .chart-grid,
   .photo-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .routine-summary-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 
   .plan-preview-section .stack {
