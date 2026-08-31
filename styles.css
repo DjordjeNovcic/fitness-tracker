@@ -3399,9 +3399,11 @@ textarea::placeholder {
    Same bug, same fix, in Trening (forms + Beleške list), Rutina
    (Nedeljne navike + Taskovi + Streakovi forms/lists), Ciljevi/Plan
    suplementi (.goals-form-layout, shared by #goals-form and
-   #supplement-form), Recepti (#favorite-meal-form) and Trčanje
-   (#run-form + .running-history-stack) — every single-column form or
-   result list that's a direct child of a wide section needs adding
+   #supplement-form, plus both supplement lists), Recepti
+   (#favorite-meal-form), Trčanje (#run-form + .running-history-stack)
+   and the hidden Nutricionista route (#nutrition-food-form + its
+   4 result stacks) — every single-column form or result list that's
+   a direct child of a wide section needs adding
    here explicitly; there's no structural selector for it (a generic
    ".section > form" rule would also catch the intentionally-wide
    multi-column grids elsewhere), so extend this list whenever a new
@@ -3432,7 +3434,15 @@ textarea::placeholder {
   .goals-form-layout,
   #favorite-meal-form,
   #run-form,
-  .running-history-stack {
+  .running-history-stack,
+  .plan-supplement-stack,
+  .plan-supplement-manage-stack,
+  #nutrition-food-form,
+  .nutrition-plan-meals,
+  .nutrition-recommendations-stack,
+  .nutrition-recipes-stack,
+  .nutrition-foods-stack,
+  .nutrition-documents-stack {
     max-width: 640px;
   }
 
@@ -4450,6 +4460,17 @@ label.is-invalid textarea:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
+}
+
+/* A third column once there's genuinely room for it (verified via a
+   static harness against the real CSS, incl. a mix of collapsed +
+   one expanded card) — `.recipe-library-card:not(.is-collapsed)`
+   already spans the full grid width, so an expanded card mid-list
+   still reads correctly here, same as it does at 2 columns. */
+@media (min-width: 1400px) {
+  .recipes-library-stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .recipe-filter-stack {

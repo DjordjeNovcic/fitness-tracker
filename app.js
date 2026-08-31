@@ -6988,7 +6988,7 @@ function renderPlanSupplementsSection() {
           <div class="footer-note">Čekirano za ${weekdayLabel(state.selectedWeekday)}</div>
         </article>
       </div>
-      <div class="stack" style="margin-top:14px;">
+      <div class="stack plan-supplement-stack" style="margin-top:14px;">
         ${
           supplements.length
             ? supplements
@@ -7064,7 +7064,7 @@ function renderPlanSupplementsSection() {
             ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
           </div>
         </form>
-        <div class="stack" style="margin-top:14px;">
+        <div class="stack plan-supplement-manage-stack" style="margin-top:14px;">
           ${
             allSupplements.length
               ? allSupplements
