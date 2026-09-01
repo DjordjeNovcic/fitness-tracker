@@ -7918,7 +7918,10 @@ function renderPlanTab(entries) {
                   const mealParts = getMealDisplayParts(mealLabel);
                   const isEditingMeal = state.editingMealLabel === mealLabel;
                   const isMealDone = mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
-                  const isMealCollapsed = isMealCollapsedForWeekday(state.selectedWeekday, mealLabel);
+                  // Empty meals have no checkbox/chevron to expand them (those only render
+                  // once there are entries), so never collapse an empty meal - otherwise
+                  // "Dodaj namirnicu" is stuck hidden with no way to reveal it.
+                  const isMealCollapsed = mealEntries.length > 0 && isMealCollapsedForWeekday(state.selectedWeekday, mealLabel);
                   const mealTotals = getDayTotals(mealEntries);
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
