@@ -2692,6 +2692,26 @@ textarea::placeholder {
     max-width: 640px;
   }
 
+  /* Ciljevi's "Cilj" summary (stat-hero + BMR/macro pills) and Rutina's daily
+     summary sit above a capped form/list like the ones above, but weren't in
+     that list themselves: the hero centered its text across the whole wide
+     section instead of the 640px column, and the pill rows kept their
+     mobile auto-centering, so they floated as a small island with dead
+     space on both sides instead of lining up with the capped column below. */
+  .goals-profile-section .stat-hero,
+  .goals-profile-section .goal-eta,
+  .routine-overview-section .stat-hero,
+  .routine-overview-section .hero-day-picker {
+    max-width: 640px;
+  }
+
+  .goals-profile-section .plan-net-row,
+  .routine-overview-section .plan-net-row {
+    max-width: 640px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
   /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
      on phones it should fill the width like a tab bar, but stretched
      across a 1000px+ section it turns into a handful of giant pills
