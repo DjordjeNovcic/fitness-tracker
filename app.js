@@ -10328,6 +10328,8 @@ function renderGoalsTab() {
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
       ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
+      <div class="goals-cilj-layout">
+      <div class="goals-cilj-main">
       <div class="stat-hero">
         <span class="hero-day-label">Dnevni cilj</span>
         <div class="stat-hero-value">
@@ -10435,6 +10437,11 @@ function renderGoalsTab() {
           <button class="solid-button" type="submit">Sačuvaj ciljeve</button>
         </div>
       </form>
+      </div>
+      <div class="goals-cilj-chart">
+        ${renderTrendCard(measurementFields.find((field) => field.id === "weightKg"))}
+      </div>
+      </div>
     </section>
     ` : ""}
 

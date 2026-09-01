@@ -2711,7 +2711,27 @@ textarea::placeholder {
     margin-left: 0;
     margin-right: 0;
   }
+}
 
+/* Ciljevi's weight-trend chart sits idle in the markup below the form on
+   narrower screens (nothing needed here, it just stacks). Once there's
+   genuinely enough room beside the capped 640px column, put it there
+   instead of leaving that space empty. */
+@media (min-width: 1280px) {
+  .goals-cilj-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 640px) minmax(280px, 1fr);
+    align-items: start;
+    gap: 28px;
+  }
+
+  .goals-cilj-chart {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (min-width: 900px) {
   /* Segmented sub-nav (Pregled/Merenja/Zdravlje/Slike, Ciljevi tabs):
      on phones it should fill the width like a tab bar, but stretched
      across a 1000px+ section it turns into a handful of giant pills
