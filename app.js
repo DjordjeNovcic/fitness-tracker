@@ -221,6 +221,19 @@ const WEEK_TRACK_CYCLE = [0, 1].flatMap((weekTrack) => WEEKDAYS.map((weekday) =>
 function weekdayLabel(weekday) {
   return weekday === "Cetvrtak" ? "Četvrtak" : weekday;
 }
+// Accusative, lowercase — for "za <dan>" phrases ("Obroci za sredu", not "za Sreda").
+const WEEKDAY_ACCUSATIVE = {
+  Ponedeljak: "ponedeljak",
+  Utorak: "utorak",
+  Sreda: "sredu",
+  Cetvrtak: "četvrtak",
+  Petak: "petak",
+  Subota: "subotu",
+  Nedelja: "nedelju",
+};
+function weekdayAccusative(weekday) {
+  return WEEKDAY_ACCUSATIVE[weekday] || weekdayLabel(weekday).toLowerCase();
+}
 const TABS = [
   { id: "plan", label: "Plan", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
@@ -4558,11 +4571,9 @@ function formatDateValueLabel(dateValue) {
     return "";
   }
 
-  return parsedDate.toLocaleDateString("sr-RS", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  // Manual Latin months: toLocaleDateString("sr-RS", { month: "long" }) returns
+  // Cyrillic ("септембар") in V8/ICU, clashing with the app's Latin script.
+  return `${parsedDate.getDate()}. ${SR_MONTHS_LATIN[parsedDate.getMonth()]} ${parsedDate.getFullYear()}.`;
 }
 
 function getHabitStreakSentence(habit) {
@@ -6255,7 +6266,7 @@ function renderMetricsGrid(metrics) {
               <header>
                 <h3>${metric.label}</h3>
               </header>
-              <div class="macro-value">${metric.value}<span class="macro-goal">/ ${roundValue(metric.goal, 1)}</span><span class="macro-unit">${metric.unit}</span></div>
+              <div class="macro-value">${roundValue(metric.value, 0)}<span class="macro-goal">/ ${roundValue(metric.goal, 0)}</span><span class="macro-unit">${metric.unit}</span></div>
               ${renderProgress(metric.value, metric.goal, metric.kind)}
               ${metric.note ? `<div class="footer-note">${escapeHtml(metric.note)}</div>` : ""}
             </article>
@@ -6293,27 +6304,23 @@ function renderHero(entries, totals) {
       <div class="hero-top" data-role="hero-top">
         <span class="hero-tag">Plan</span>
         <h1 class="hero-title">Nedeljni jelovnik</h1>
-        <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
-          ${renderActionIcon("refresh")}
-        </button>
-      </div>
-      <div class="hero-day-picker">
-        <span class="hero-day-label">Nedelja</span>
-        <div class="chips hero-day-chips">
+        <div class="hero-week-toggle" role="group" aria-label="Nedelja">
         ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
+              <button class="chip hero-week-chip ${track === state.selectedWeekTrack ? "is-active" : ""}" type="button" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}" title="${getWeekTrackLabel(track)}">
                 ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
           )
           .join("")}
         </div>
+        <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
+          ${renderActionIcon("refresh")}
+        </button>
       </div>
       <div class="hero-day-picker">
-        <span class="hero-day-label">Izaberi dan</span>
-        <div class="chips hero-day-chips">
+        <div class="chips hero-day-chips" role="group" aria-label="Izaberi dan">
         ${WEEKDAYS.map(
           (weekday) => `
             <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
@@ -7278,7 +7285,7 @@ function renderPlanSupplementsSection() {
       >
         <div class="section-disclosure-copy">
           <h2>Vitamini i suplementi</h2>
-          <p>${doneCount}/${supplements.length || 0} označeno za ${weekdayLabel(state.selectedWeekday)}.</p>
+          <p>${doneCount}/${supplements.length || 0} označeno za ${weekdayAccusative(state.selectedWeekday)}.</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${supplements.length} stavki</span>
@@ -7295,7 +7302,7 @@ function renderPlanSupplementsSection() {
         <article class="stat-card">
           <strong>Označeno</strong>
           <div class="macro-value">${doneCount}/${supplements.length || 0}</div>
-          <div class="footer-note">Čekirano za ${weekdayLabel(state.selectedWeekday)}</div>
+          <div class="footer-note">Čekirano za ${weekdayAccusative(state.selectedWeekday)}</div>
         </article>
       </div>
       <div class="stack plan-supplement-stack" style="margin-top:14px;">
@@ -7319,7 +7326,7 @@ function renderPlanSupplementsSection() {
                         </label>
                         <div class="routine-content">
                           <strong>${escapeHtml(supplement.name)}</strong>
-                          <div class="footer-note">${escapeHtml(supplement.note || "Bez dodatne napomene")}</div>
+                          ${supplement.note ? `<div class="footer-note">${escapeHtml(supplement.note)}</div>` : ""}
                           <div class="pill-row">
                             <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
                             <span class="pill ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "pill--success" : "pill--info"}">
@@ -7384,15 +7391,15 @@ function renderPlanSupplementsSection() {
                         <div class="routine-row">
                           <div class="routine-content">
                             <strong>${escapeHtml(supplement.name)}</strong>
-                            <div class="footer-note">${escapeHtml(supplement.note || "Bez dodatne napomene")}</div>
+                            ${supplement.note ? `<div class="footer-note">${escapeHtml(supplement.note)}</div>` : ""}
                             <div class="pill-row">
                               <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
                               <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
                             </div>
                           </div>
                           <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                            <button class="ghost-button" data-action="edit-supplement" data-supplement-id="${supplement.id}">Izmeni</button>
-                            <button class="danger-button" data-action="delete-supplement" data-supplement-id="${supplement.id}">Obriši</button>
+                            <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-supplement" data-supplement-id="${supplement.id}" aria-label="Izmeni suplement" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
+                            <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-supplement" data-supplement-id="${supplement.id}" aria-label="Obriši suplement" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                           </div>
                         </div>
                       </article>
@@ -7603,14 +7610,13 @@ function renderTodayRemindersBanner() {
   }
   return `
     <section class="section today-reminders">
-      <div class="section-header">
+      <div class="section-header today-reminders-head">
         <div class="section-copy">
           <h2>Danas te čeka</h2>
-          <p>Kratak podsetnik za današnji dan.</p>
         </div>
-        <button class="ghost-button" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas">✕</button>
+        <button class="ghost-button button-with-icon icon-only-action today-reminders-close" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas" title="Sakrij za danas">${renderButtonContent("Sakrij", "close")}</button>
       </div>
-      <div class="pill-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+      <div class="pill-row today-reminders-pills">
         ${reminders.map((text) => `<span class="pill strong pill--info">${text}</span>`).join("")}
       </div>
     </section>`;
@@ -7911,7 +7917,7 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
           <span class="plan-welcome-step-num" aria-hidden="true">2</span>
           <div class="plan-welcome-step-body">
             <strong>Sastavi prvi dan</strong>
-            <span>Dodaj obroke za ${weekdayLabel(state.selectedWeekday)} ispod — makroi se računaju sami.${
+            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod — makroi se računaju sami.${
               canApplySuggestion ? " Ili odmah primeni gotov predlog celog dana." : ""
             }</span>
             ${
@@ -7935,6 +7941,27 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
       </ol>
     </section>
   `;
+}
+
+// The collapsed daily-overview row on phones. The remaining-calories glance is
+// the reason people open the app mid-day; hiding it behind a tap (a text line
+// with eaten totals) buried the one number that matters.
+function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState) {
+  const radius = 15;
+  const circumference = 2 * Math.PI * radius;
+  const fraction = calorieGoal > 0 ? Math.min(1, Math.max(0, toNumber(totals.kcal) / calorieGoal)) : 0;
+  const offset = circumference * (1 - fraction);
+  return `
+    <div class="plan-summary-compact" data-state="${calorieState}">
+      <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
+        <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
+      </svg>
+      <div class="plan-summary-compact-copy">
+        <strong class="plan-summary-compact-value">${Math.abs(remainingCalories)}<span> kcal ${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span></strong>
+        <span class="plan-summary-compact-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</span>
+      </div>
+    </div>`;
 }
 
 function renderPlanTab(entries) {
@@ -7967,8 +7994,6 @@ function renderPlanTab(entries) {
   const isDaySuggestionHidden = Boolean(store.ui?.plan?.hideDaySuggestion);
 
   return `
-    ${renderTodayRemindersBanner()}
-
     ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal, daySuggestion) : ""}
 
     <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
@@ -7980,7 +8005,11 @@ function renderPlanTab(entries) {
       >
         <div class="section-disclosure-copy">
           <h2>Dnevni pregled</h2>
-          <p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>
+          ${
+            !state.planSummaryExpanded && calorieGoal
+              ? renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState)
+              : `<p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>`
+          }
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSummaryExpanded)}</span>
@@ -8035,7 +8064,7 @@ function renderPlanTab(entries) {
           <strong>${netCalories}</strong>
         </div>
       </div>
-      <div class="footer-note plan-net-note">kcal · sagorelo (sa sata) se oduzima od unetog</div>
+      <div class="footer-note plan-net-note">Neto = uneto − sagorelo (sa sata)</div>
       `
           : ""
       }
@@ -8044,6 +8073,8 @@ function renderPlanTab(entries) {
       </div>
       </div>
     </section>
+
+    ${renderTodayRemindersBanner()}
 
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
@@ -8216,7 +8247,7 @@ function renderPlanTab(entries) {
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
-          <h2>Obroci za ${weekdayLabel(state.selectedWeekday)}${
+          <h2>Obroci za ${weekdayAccusative(state.selectedWeekday)}${
             state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}`
           }</h2>
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
@@ -8279,7 +8310,6 @@ function renderPlanTab(entries) {
                             ? `
                               <div class="meal-card-summary">
                                 <div class="meal-card-summary-kcal">
-                                  <span class="meal-summary-label">Ukupno</span>
                                   <strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>
                                 </div>
                                 <div class="meal-card-summary-macros" aria-label="Makroi obroka">
@@ -8398,7 +8428,7 @@ function renderPlanTab(entries) {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi obrok za ${weekdayLabel(state.selectedWeekday)} i aplikacija će odmah sabirati makroe.</div>`
+            : `<div class="empty">Dodaj prvi obrok za ${weekdayAccusative(state.selectedWeekday)} i aplikacija će odmah sabirati makroe.</div>`
         }
       </div>
     </section>
@@ -8958,7 +8988,7 @@ function renderRecipesTab() {
                           <div class="recipe-library-stats">
                             <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal <span class="recipe-library-stat-sub">po porciji</span></span>
                             <span class="recipe-library-stat-macros">P ${roundValue(favorite.perServingTotals.protein, 1)} · UH ${roundValue(favorite.perServingTotals.carbs, 1)} · M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
-                            <span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>
+                            ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>
                           ${
                             isExpanded
@@ -9068,17 +9098,27 @@ function renderTrainingTab() {
         ${weeklyTrainingPlan
           .map(
             (day) => `
-              <article class="stat-card training-weekday-card ${day.weekday === state.selectedWeekday ? "is-active" : ""}">
-                <strong>${day.weekday}</strong>
+              <article class="stat-card training-weekday-card ${day.weekday === state.selectedWeekday ? "is-active" : ""} ${day.templates.length ? "" : "is-rest"}">
+                <strong>${weekdayLabel(day.weekday)}</strong>
                 <div class="footer-note">
-                  ${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : "Odmor / nije uneto"}
+                  ${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : "Odmor"}
                 </div>
-                <div class="pill-row">
-                  <span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vežbi</span>
-                  <span class="pill note">${day.completedExerciseCount}/${day.totalExerciseCount} odrađeno</span>
-                  <span class="pill">${roundValue(day.trainingBurn, 0)} kcal</span>
-                  <span class="pill">${day.progressCount} logova</span>
-                </div>
+                ${(() => {
+                  // Only pills that carry information — a wall of "0 kcal · 0 logova"
+                  // on rest days said nothing seven times over.
+                  const pills = [];
+                  if (day.templates.length) {
+                    pills.push(`<span class="pill">${day.templates.reduce((count, template) => count + template.exercises.length, 0)} vežbi</span>`);
+                    pills.push(`<span class="pill note">${day.completedExerciseCount}/${day.totalExerciseCount} odrađeno</span>`);
+                  }
+                  if (day.trainingBurn > 0) {
+                    pills.push(`<span class="pill">${roundValue(day.trainingBurn, 0)} kcal</span>`);
+                  }
+                  if (day.progressCount > 0) {
+                    pills.push(`<span class="pill">${day.progressCount} ${day.progressCount === 1 ? "log" : "logova"}</span>`);
+                  }
+                  return pills.length ? `<div class="pill-row">${pills.join("")}</div>` : "";
+                })()}
               </article>
             `
           )
@@ -9089,7 +9129,7 @@ function renderTrainingTab() {
     <section class="section routine-habits-section">
       <div class="section-header">
         <div>
-          <h2>Trening za ${weekdayLabel(state.selectedWeekday)}</h2>
+          <h2>Trening za ${weekdayAccusative(state.selectedWeekday)}</h2>
           <p>Današnji trening, progres i unos potrošnje na jednom mestu.</p>
         </div>
       </div>
@@ -9099,28 +9139,25 @@ function renderTrainingTab() {
             <div>
               <h3>Fokus dana</h3>
               <div class="footer-note">
-                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening šablon" : "trening šablona"} za ${weekdayLabel(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayLabel(state.selectedWeekday)}.`}
+                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening šablon" : "trening šablona"} za ${weekdayAccusative(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayAccusative(state.selectedWeekday)}.`}
               </div>
             </div>
             <span class="pill strong">${todayExerciseCompleted}/${todayExerciseTotal || 0}</span>
           </div>
-          <div class="stats-grid training-day-summary-grid">
-            <article class="stat-card">
-              <strong>Vežbe</strong>
-              <div class="macro-value">${todayExerciseTotal}</div>
-              <div class="footer-note">Ukupno za danas</div>
-            </article>
-            <article class="stat-card">
-              <strong>Odrađeno</strong>
-              <div class="macro-value">${todayExerciseCompleted}/${todayExerciseTotal || 0}</div>
-              <div class="footer-note">Čekirano po vežbi</div>
-            </article>
-            <article class="stat-card">
-              <strong>Apple Watch</strong>
-              <div class="macro-value">${roundValue(trainingBurn, 0)} kcal</div>
-              <div class="footer-note">Potrošnja za dan</div>
-            </article>
-          </div>
+          <dl class="glance-list training-day-glance">
+            <div class="glance-item">
+              <dt>Vežbe</dt>
+              <dd>${todayExerciseTotal}</dd>
+            </div>
+            <div class="glance-item">
+              <dt>Odrađeno</dt>
+              <dd>${todayExerciseCompleted}/${todayExerciseTotal || 0}</dd>
+            </div>
+            <div class="glance-item">
+              <dt>Apple Watch</dt>
+              <dd>${trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : `<span class="glance-sub">nije uneto</span>`}</dd>
+            </div>
+          </dl>
         </article>
 
         <article class="food-card suggestion-surface training-burn-card">
@@ -9193,7 +9230,7 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema trening šablona za ${weekdayLabel(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj ga ispod.</div>`
+            : `<div class="empty">Još nema trening šablona za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj ga ispod.</div>`
         }
       </div>
     </section>
@@ -9345,7 +9382,7 @@ function renderTrainingTab() {
                         <span class="pill">${log.weekday}</span>
                         ${log.reps ? `<span class="pill">${escapeHtml(log.reps)}</span>` : ""}
                       </div>
-                      <div class="footer-note">${escapeHtml(log.note || "Bez napomene")}</div>
+                      ${log.note ? `<div class="footer-note">${escapeHtml(log.note)}</div>` : ""}
                     </article>
                   `
                 )
@@ -9978,7 +10015,7 @@ async function maybeAutoImportRunFromClipboard() {
 
 function renderRunCard(run) {
   const derived = getRunDerived(run);
-  const dateLabel = new Date(run.date).toLocaleDateString("sr-RS", { day: "numeric", month: "long", year: "numeric" });
+  const dateLabel = formatDateValueLabel(run.date) || String(run.date || "");
   const pills = [
     { text: `${roundValue(derived.distanceKm, 2)} km`, strong: true },
     { text: formatRunDuration(derived.durationSec) },
@@ -10043,28 +10080,24 @@ function renderRunningTab() {
       ${
         hasRuns
           ? `
-            <div class="stats-grid running-summary-grid">
-              <article class="stat-card">
-                <strong>Trčanja</strong>
-                <div class="macro-value">${stats.weekCount}</div>
-                <div class="footer-note">Poslednjih 7 dana</div>
-              </article>
-              <article class="stat-card">
-                <strong>Kilometri</strong>
-                <div class="macro-value">${roundValue(stats.weekKm, 1)} <small>km</small></div>
-                <div class="footer-note">Ukupno ove nedelje</div>
-              </article>
-              <article class="stat-card">
-                <strong>Vreme</strong>
-                <div class="macro-value">${stats.weekSec ? formatRunDuration(stats.weekSec) : "0:00"}</div>
-                <div class="footer-note">Provedeno u trčanju</div>
-              </article>
-              <article class="stat-card">
-                <strong>Prosečan tempo</strong>
-                <div class="macro-value">${formatRunPace(weekPaceSec)} <small>/km</small></div>
-                <div class="footer-note">Nedeljni prosek</div>
-              </article>
-            </div>
+            <dl class="glance-list running-week-glance">
+              <div class="glance-item">
+                <dt>Trčanja</dt>
+                <dd>${stats.weekCount}</dd>
+              </div>
+              <div class="glance-item">
+                <dt>Kilometri</dt>
+                <dd>${roundValue(stats.weekKm, 1)} <span class="glance-sub">km</span></dd>
+              </div>
+              <div class="glance-item">
+                <dt>Vreme</dt>
+                <dd>${stats.weekSec ? formatRunDuration(stats.weekSec) : "0:00"}</dd>
+              </div>
+              <div class="glance-item">
+                <dt>Prosečan tempo</dt>
+                <dd>${formatRunPace(weekPaceSec)} <span class="glance-sub">/km</span></dd>
+              </div>
+            </dl>
           `
           : `<div class="empty">Još nema trčanja ove nedelje. Dodaj prvo ispod i ovde se pojavljuje nedeljni zbir.</div>`
       }
@@ -10194,7 +10227,7 @@ function renderRoutineTab() {
     <section class="section routine-overview-section">
       <div class="section-header">
         <div>
-          <h2>Rutina za ${weekdayLabel(state.selectedWeekday)}</h2>
+          <h2>Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
           <p>Velike navike, sitni taskovi i dugoročni streakovi, sve na jednom mestu.</p>
         </div>
       </div>
@@ -10315,15 +10348,15 @@ function renderRoutineTab() {
                         </label>
                         <div class="routine-content">
                           <strong>${escapeHtml(habit.name)}</strong>
-                          <div class="footer-note">${escapeHtml(habit.note || "Bez dodatne napomene")}</div>
+                          ${habit.note ? `<div class="footer-note">${escapeHtml(habit.note)}</div>` : ""}
                           <div class="pill-row">
                             <span class="pill">${getHabitWeeklyCount(habit)}/7 dana</span>
                             <span class="pill note">${isHabitDoneForDay(habit, state.selectedWeekday) ? "Označeno danas" : "Čeka za danas"}</span>
                           </div>
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button" data-action="edit-habit" data-habit-id="${habit.id}">Izmeni</button>
-                          <button class="danger-button" data-action="delete-habit" data-habit-id="${habit.id}">Obriši</button>
+                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
+                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                         </div>
                       </div>
                     </article>
@@ -10389,8 +10422,8 @@ function renderRoutineTab() {
                         </div>
                         <div class="entry-actions routine-streak-actions" style="justify-content:flex-start; margin-top:0;">
                           <button class="ghost-button" data-action="reset-habit-streak" data-habit-id="${habit.id}">Resetuj</button>
-                          <button class="ghost-button" data-action="edit-habit" data-habit-id="${habit.id}">Izmeni</button>
-                          <button class="danger-button" data-action="delete-habit" data-habit-id="${habit.id}">Obriši</button>
+                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
+                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                         </div>
                       </div>
                     </article>
@@ -10405,7 +10438,7 @@ function renderRoutineTab() {
     <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
-          <h2>Taskovi za ${weekdayLabel(state.selectedWeekday)}</h2>
+          <h2>Taskovi za ${weekdayAccusative(state.selectedWeekday)}</h2>
           <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak. Ovo je šablon za dve naizmenične nedelje kao trening i jelovnik — nedeljne navike i streakovi ispod ostaju isti svake nedelje.</p>
         </div>
       </div>
@@ -10476,18 +10509,18 @@ function renderRoutineTab() {
                         </label>
                         <div class="routine-content">
                           <strong>${escapeHtml(task.title)}</strong>
-                          <div class="footer-note">${escapeHtml(task.note || "Bez dodatne napomene")}</div>
+                          ${task.note ? `<div class="footer-note">${escapeHtml(task.note)}</div>` : ""}
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button" data-action="edit-task" data-task-id="${task.id}">Izmeni</button>
-                          <button class="danger-button" data-action="delete-task" data-task-id="${task.id}">Obriši</button>
+                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-task" data-task-id="${task.id}" aria-label="Izmeni task" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
+                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-task" data-task-id="${task.id}" aria-label="Obriši task" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                         </div>
                       </div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Još nema taskova za ${weekdayLabel(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
+            : `<div class="empty">Još nema taskova za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
         }
       </div>
     </section>
@@ -10664,7 +10697,7 @@ function renderGoalsTab() {
     ${renderAdaptiveGoalNudge()}
 
     <section class="section goals-profile-section">
-      ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj sada možeš da računaš iz profila i izabranog cilja.", { eyebrow: "Metabolizam" })}
+      ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj računamo iz profila i izabranog cilja.")}
       ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
       <div class="goals-cilj-layout">
       <div class="goals-cilj-main">
@@ -11708,31 +11741,25 @@ function getProgressSummary(history, photos) {
 function renderProgressSummary(summary) {
   return `
     <section class="section progress-overview-section">
-      ${renderSectionLead("Napredak na prvi pogled", "Brz pregled koliko često meriš napredak i da li već imaš dovoljno materijala za pravo poređenje.", {
-        eyebrow: "Napredak",
-      })}
-      <div class="stats-grid progress-summary-grid">
-        <article class="stat-card progress-insight-card">
-          <strong>Poslednje merenje</strong>
-          <div class="macro-value">${summary.latestMeasurement ? new Date(summary.latestMeasurement.date).toLocaleDateString("sr-RS") : "-"}</div>
-          <div class="footer-note">${summary.latestMeasurement ? "Najnoviji check-in je sačuvan." : "Dodaj prvo merenje da krene istorija."}</div>
-        </article>
-        <article class="stat-card progress-insight-card">
-          <strong>Ukupno merenja</strong>
-          <div class="macro-value">${summary.measurementCount}</div>
-          <div class="footer-note">${summary.measurementCount ? "Svaki unos ulazi u trend kartice i istoriju." : "Trend kartice će se popuniti čim dodaš prvi unos."}</div>
-        </article>
-        <article class="stat-card progress-insight-card">
-          <strong>Progress slike</strong>
-          <div class="macro-value">${summary.photoCount}</div>
-          <div class="footer-note">${summary.latestPhoto ? `Poslednja slika je dodata ${new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}.` : "Još nema slika za vizuelno praćenje forme."}</div>
-        </article>
-        <article class="stat-card progress-insight-card">
-          <strong>Uporedo</strong>
-          <div class="macro-value">${summary.compareReadyTags.length ? `${summary.compareReadyTags.length} taga` : "Nije spremno"}</div>
-          <div class="footer-note">${summary.compareReadyTags.length ? `Možeš već da porediš: ${summary.compareReadyTags.join(", ")}.` : "Potrebne su bar dve slike sa istim tagom, npr. front i front."}</div>
-        </article>
-      </div>
+      ${renderSectionLead("Napredak na prvi pogled", "Koliko često meriš i da li već imaš materijal za poređenje slika.")}
+      <dl class="glance-list progress-glance">
+        <div class="glance-item">
+          <dt>Poslednje merenje</dt>
+          <dd>${summary.latestMeasurement ? formatDateValueLabel(summary.latestMeasurement.date) || new Date(summary.latestMeasurement.date).toLocaleDateString("sr-RS") : "još nema"}</dd>
+        </div>
+        <div class="glance-item">
+          <dt>Merenja</dt>
+          <dd>${summary.measurementCount}</dd>
+        </div>
+        <div class="glance-item">
+          <dt>Progress slike</dt>
+          <dd>${summary.photoCount}${summary.latestPhoto ? ` <span class="glance-sub">poslednja ${formatDateValueLabel(summary.latestPhoto.date) || new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}</span>` : ""}</dd>
+        </div>
+        <div class="glance-item">
+          <dt>Poređenje</dt>
+          <dd>${summary.compareReadyTags.length ? `spremno (${summary.compareReadyTags.join(", ")})` : `<span class="glance-sub">treba još slika sa istim tagom</span>`}</dd>
+        </div>
+      </dl>
       ${
         getShareProgressData().hasData
           ? `<button class="solid-button secondary-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli napredak", "share")}</button>`
@@ -12068,7 +12095,7 @@ function renderWeeklyReportSection() {
   const onTargetDelta = r.onTarget - r.onTargetLast;
   const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
   const deltaTag = (value, unit) =>
-    value ? `<span class="footer-note">${value > 0 ? "▲" : "▼"} ${Math.abs(value)}${unit} vs prošle</span>` : "";
+    value ? `<span class="footer-note">${value > 0 ? "▲" : "▼"} ${Math.abs(value)}${unit} od prošle nedelje</span>` : "";
   return `
     <section class="section weekly-report-section">
       <div class="section-header">
@@ -12540,7 +12567,7 @@ function renderInsightsSection() {
 
   let headline = `Pregled za poslednjih ${period} dana.`;
   if (ins.weightChange != null && ins.weightChange !== 0) {
-    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${Math.abs(ins.weightChange)} kg</strong>${ins.weightRate ? ` (${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
+    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${Math.abs(ins.weightChange)} kg</strong>${ins.weightRate ? ` (${ins.weightRate < 0 ? "−" : "+"}${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
   } else if (ins.loggedCount) {
     headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
   }
@@ -12553,7 +12580,7 @@ function renderInsightsSection() {
   if (ins.fatChange != null) cards.push(card("Mast", `${signed(ins.fatChange)} %`, "telesna mast"));
   if (ins.muscleChange != null) cards.push(card("Mišić", `${signed(ins.muscleChange)} kg`, "mišićna masa"));
   if (ins.avgKcal) cards.push(card("Kalorije", `${ins.avgKcal}`, `prosek/dan · cilj ${ins.kcalOnTargetPct}% dana`));
-  if (ins.avgProtein) cards.push(card("Protein", `${ins.avgProtein} g`, ins.proteinHitPct != null ? `cilj ${ins.proteinHitPct}% dana` : "prosek/dan"));
+  if (ins.avgProtein) cards.push(card("Protein", `${ins.avgProtein} g`, ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · ${ins.proteinHitPct}% dana` : "prosek/dan"));
   if (ins.trainingSessions) cards.push(card("Trening", `${ins.trainingSessions}`, "zabeleženih"));
   if (ins.avgWater) cards.push(card("Voda", `${(ins.avgWater / 1000).toFixed(1)} L`, "prosek/dan"));
 
@@ -13014,7 +13041,7 @@ function renderProgressTab() {
                           <div class="pill-row">
                             <span class="pill strong">${escapeHtml(compare.leftPhoto.tag || "bez taga")}</span>
                           </div>
-                          <div class="footer-note">${escapeHtml(compare.leftPhoto.note || "Bez napomene")}</div>
+                          ${compare.leftPhoto.note ? `<div class="footer-note">${escapeHtml(compare.leftPhoto.note)}</div>` : ""}
                         </div>
                       </article>
                       <article class="photo-card compare-card">
@@ -13024,7 +13051,7 @@ function renderProgressTab() {
                           <div class="pill-row">
                             <span class="pill strong">${escapeHtml(compare.rightPhoto.tag || "bez taga")}</span>
                           </div>
-                          <div class="footer-note">${escapeHtml(compare.rightPhoto.note || "Bez napomene")}</div>
+                          ${compare.rightPhoto.note ? `<div class="footer-note">${escapeHtml(compare.rightPhoto.note)}</div>` : ""}
                         </div>
                       </article>
                     </div>
@@ -13051,7 +13078,7 @@ function renderProgressTab() {
                         <div class="pill-row">
                           <span class="pill strong">${escapeHtml(photo.tag || "bez taga")}</span>
                         </div>
-                        <div class="footer-note">${escapeHtml(photo.note || "Bez napomene")}</div>
+                        ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
                       </div>
                     </article>
                   `
@@ -13276,7 +13303,7 @@ function render() {
         <div class="mobile-menu-top">
           <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
-            <strong>Fit tracker</strong>
+            <strong>Fit Tracker</strong>
             ${
               state.authUser?.email
                 ? `<button class="footer-note app-sidebar-email" type="button" data-action="open-account">
@@ -14216,7 +14243,7 @@ async function handleDocumentClick(event) {
     if (!hasCompleted) {
       return;
     }
-    const confirmed = window.confirm(`Obriši sve završene taskove za ${weekdayLabel(state.selectedWeekday)}?`);
+    const confirmed = window.confirm(`Obriši sve završene taskove za ${weekdayAccusative(state.selectedWeekday)}?`);
     if (!confirmed) {
       return;
     }
@@ -15339,7 +15366,7 @@ async function handleDocumentClick(event) {
     store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
     persist();
     queuePendingUndo(
-      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} za ${weekdayLabel(weekday)}.${
+      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} za ${weekdayAccusative(weekday)}.${
         lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
       }`,
       () => {
@@ -16028,7 +16055,7 @@ async function handleSubmit(event) {
     );
     if (mode === "replace" && targetHasEntries) {
       const confirmed = window.confirm(
-        `Da li želiš da zameniš sve stavke za ${weekdayLabel(targetWeekday)} (${getWeekTrackLabel(targetWeekTrack).toLowerCase()})?`
+        `Da li želiš da zameniš sve stavke za ${weekdayAccusative(targetWeekday)} (${getWeekTrackLabel(targetWeekTrack).toLowerCase()})?`
       );
       if (!confirmed) {
         return;
@@ -16477,7 +16504,7 @@ async function handleSubmit(event) {
       {
         busyLabel: "Čuvam...",
         successTitle: "Potrošnja je sačuvana",
-        successDetail: `Apple Watch unos za ${weekdayLabel(state.selectedWeekday)} je ažuriran.`,
+        successDetail: `Apple Watch unos za ${weekdayAccusative(state.selectedWeekday)} je ažuriran.`,
       }
     );
     return;

@@ -44,14 +44,14 @@
   --accent: #173b2f;
   --accent-strong: #10271f;
   --accent-soft: #dce9dd;
-  --secondary: #8b9961;
+  --secondary: #66733f;
   --secondary-soft: #e8edd8;
   --teal: #2f8076;
   --clay: #efe2d6;
   --button-primary-bg: linear-gradient(180deg, #20493b, #173b2f);
   --button-primary-text: #fbf8ef;
   --button-primary-border: rgba(10, 24, 19, 0.18);
-  --button-secondary-bg: linear-gradient(180deg, #98a66c, #849259);
+  --button-secondary-bg: linear-gradient(180deg, #74834c, #62703d);
   --button-secondary-text: #fbf8ef;
   --button-secondary-border: rgba(91, 104, 58, 0.16);
   --button-ghost-bg: rgba(255, 251, 245, 0.98);
@@ -230,7 +230,7 @@ textarea::placeholder {
   background: var(--accent-soft);
   border: 0;
   color: var(--accent);
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -259,7 +259,7 @@ textarea::placeholder {
 }
 
 .hero-day-label {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -300,7 +300,7 @@ textarea::placeholder {
 }
 
 .hero-picker-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1174,21 +1174,16 @@ textarea::placeholder {
     var(--surface-strong);
 }
 
+/* The decorative 3px tinted stripe these cards used to carry is gone: colour
+   here is semantic only (the bar below already tells the ok/near/over story). */
 .plan-summary-section .macro-card::before,
 .plan-secondary-stats .stat-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, rgba(47, 128, 118, 0.14), rgba(139, 153, 97, 0.18), rgba(255, 255, 255, 0));
+  content: none;
 }
 
 /* No-green-in-dark applies even to a barely-visible decorative fade —
    swap the teal/olive tint for the single dark-mode gold accent. */
-:root[data-theme="dark"] .plan-summary-section .macro-card::before,
-:root[data-theme="dark"] .plan-secondary-stats .stat-card::before {
-  background: linear-gradient(90deg, oklch(0.8 0.132 82 / 0.22), oklch(0.8 0.132 82 / 0.08), transparent);
-}
+
 
 .plan-summary-section .macro-card h3 {
   font-size: 1rem;
@@ -2420,7 +2415,7 @@ textarea::placeholder {
 .lab-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lab-name { font-weight: 700; color: var(--ink); }
 .lab-status {
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2553,7 +2548,7 @@ textarea::placeholder {
   gap: 4px;
 }
 .insights-callout strong {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -3199,7 +3194,7 @@ label.is-invalid textarea:focus {
 }
 
 .plan-net-label {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -3315,7 +3310,7 @@ label.is-invalid textarea:focus {
   align-items: center;
   padding: 4px 11px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -5397,7 +5392,7 @@ body.menu-open .menu-fab {
   }
 
   .hero-picker-label {
-    font-size: 0.6875rem;
+    font-size: 0.72rem;
   }
 
   .chips.hero-day-chips {
@@ -6803,7 +6798,7 @@ body.menu-open .tab-bar {
 }
 
 .tab-bar-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.005em;
   max-width: 100%;
@@ -7542,7 +7537,7 @@ body.menu-open .tab-bar {
 
 /* Macro label fits a line; headers align across the row */
 .macro-card header h3 {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   letter-spacing: 0.04em;
 }
 
@@ -7741,7 +7736,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .cal-ring-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -7809,7 +7804,7 @@ body.app-header-hidden .workspace-header {
   margin: 14px 0 4px;
 }
 .meal-items-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8140,7 +8135,7 @@ body.app-header-hidden .workspace-header {
   gap: 6px;
 }
 .meal-card-summary-kcal .meal-summary-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   opacity: 0.8;
 }
 
@@ -8803,7 +8798,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .onboarding-preview-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -8911,7 +8906,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .meal-composer-eyebrow {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -9183,7 +9178,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .meal-composer-suggestions-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -9224,7 +9219,7 @@ body.app-header-hidden .workspace-header {
 /* Quick add — one-tap re-add of recently used foods */
 .quick-add { display: grid; gap: 6px; }
 .quick-add-label {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -9543,7 +9538,7 @@ body.app-header-hidden .workspace-header {
 
   .more-sheet-user-badge {
     flex: 0 0 auto;
-    font-size: 0.62rem;
+    font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.06em;
     background: var(--secondary-soft);
@@ -9633,4 +9628,345 @@ body.app-header-hidden .workspace-header {
   .more-sheet-user-chevron {
     transition: none;
   }
+}
+
+
+/* ============================================================
+   Polish pass 2026-09-02 — tightening the daily surfaces.
+   ============================================================ */
+
+/* Collapsed "Dnevni pregled" on phones: hero number + mini ring inline. */
+.plan-summary-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  min-width: 0;
+}
+.plan-mini-ring {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  transform: rotate(-90deg);
+}
+.plan-summary-compact .cal-ring-track {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 3.5;
+}
+.plan-summary-compact .cal-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.plan-summary-compact[data-state="near"] .cal-ring-fill {
+  stroke: var(--status-warning-text);
+}
+.plan-summary-compact[data-state="over"] .cal-ring-fill {
+  stroke: var(--status-error-text);
+}
+.plan-summary-compact-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.plan-summary-compact-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plan-summary-compact-value span {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.plan-summary-compact[data-state="over"] .plan-summary-compact-value {
+  color: var(--status-error-text);
+}
+.plan-summary-compact-meta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-summary-section.is-collapsed .section-disclosure {
+  align-items: center;
+}
+
+/* Reminders banner: one row, no restated subtitle. */
+.today-reminders .today-reminders-head {
+  align-items: center;
+  margin-bottom: 0;
+}
+.today-reminders .today-reminders-head h2 {
+  font-size: 1.1rem;
+}
+.today-reminders-close {
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+}
+.today-reminders-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Glance rows: label-over-value pairs divided by hairlines — replaces the
+   "four identical stat cards with filler captions" pattern (Progress summary,
+   Training focus-of-the-day). */
+.glance-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 6px 0 0;
+  border-top: 1px solid var(--line);
+}
+.glance-item {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px 12px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.glance-list dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.glance-list dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.glance-sub {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+.training-day-glance {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.training-day-glance .glance-item {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+@media (min-width: 900px) {
+  .progress-glance {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .progress-glance .glance-item {
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+    padding: 14px 18px 4px;
+  }
+  .progress-glance .glance-item:first-child {
+    padding-left: 0;
+  }
+  .progress-glance .glance-item:last-child {
+    border-right: 0;
+  }
+}
+
+/* Training weekly overview: rest days recede. */
+.training-weekday-card.is-rest {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed var(--line-strong);
+}
+.training-weekday-card.is-rest .footer-note {
+  margin-top: 2px;
+}
+
+/* Routine rows: icon actions stay inline (they no longer need their own row). */
+.routine-row > .entry-actions {
+  gap: 6px;
+}
+@media (max-width: 520px) {
+  .routine-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .routine-row > .routine-content {
+    grid-column: 2;
+  }
+  .routine-row > .entry-actions {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 0;
+    justify-content: flex-end;
+  }
+  .routine-row > .entry-actions .icon-only-action {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+/* Collapsed "add" forms read as an action, not as a section heading with
+   the list underneath belonging to it. Open → back to the heading size. */
+.form-collapse:not([open]) > summary .form-collapse-title {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+/* Compact tab header on phones: eyebrow + icon + title; the one-line
+   description (identical every day) only shows on wide screens. */
+@media (max-width: 720px) {
+  .workspace-header {
+    padding: 12px 14px;
+    border-radius: 20px;
+  }
+  .workspace-header-copy {
+    gap: 8px;
+  }
+  .workspace-header-title-row {
+    align-items: center;
+  }
+  .workspace-header-icon {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+  .workspace-header h1 {
+    font-size: 1.35rem;
+  }
+  .workspace-header p {
+    display: none;
+  }
+}
+
+/* Desktop sidebar: flat rows, the active tab is the only filled item. */
+@media (min-width: 900px) {
+  .menu-tab-button {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .menu-tab-button:not(.is-active):hover {
+    background: rgba(255, 255, 255, 0.62);
+  }
+  :root[data-theme="dark"] .menu-tab-button {
+    background: transparent;
+    border-color: transparent;
+  }
+  :root[data-theme="dark"] .menu-tab-button:not(.is-active):hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  :root[data-theme="dark"] .app-frame.is-sidebar-collapsed .menu-tab-button.is-active {
+    box-shadow:
+      0 14px 26px oklch(0.8 0.132 82 / 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+}
+
+
+/* Supporting numbers never shout: 600, not 700/800 (the ring keeps display weight). */
+.macro-value {
+  font-weight: 600;
+}
+
+/* Plan hero: title row carries the week toggle; day chips stand alone. */
+.hero-top {
+  flex-wrap: wrap;
+}
+.hero-top .hero-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.hero-week-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-strong);
+  flex: 0 0 auto;
+}
+.hero-week-toggle .hero-week-chip {
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.hero-week-toggle .hero-week-chip.is-active {
+  background: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .hero-week-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .hero-week-toggle .hero-week-chip.is-active {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+@media (max-width: 720px) {
+  .hero-tag {
+    display: none;
+  }
+  .hero-top .hero-title {
+    font-size: 1.25rem;
+  }
+  .hero-day-picker {
+    margin-top: 10px;
+  }
+}
+
+/* Meal card header: no box inside the box — a hairline under the title row. */
+.meal-card-header,
+:root[data-theme="dark"] .meal-card-header {
+  padding: 2px 2px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.meal-card-summary-kcal strong {
+  font-size: 1.3rem;
+}
+
+/* Dark theme: chips were hardcoded translucent white; the streak spotlight
+   label was teal. Route both through tokens (gold accent, muted text). */
+:root[data-theme="dark"] .chip {
+  background: var(--pill-bg);
+  border-color: var(--pill-border);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .chip.is-active {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--button-primary-text);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .hero-day-chips .chip.is-active {
+  color: var(--button-primary-text);
+}
+:root[data-theme="dark"] .routine-streak-spotlight-label {
+  color: var(--muted);
 }
