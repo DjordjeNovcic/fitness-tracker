@@ -8131,16 +8131,16 @@ function getTodayReminders() {
     return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
   }).length;
   if (mealLabels.length > 0 && mealsDone < mealLabels.length) {
-    reminders.push(`🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`);
+    reminders.push({ text: `🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`, action: "jump-next-meal", hint: "Otvori sledeći" });
   }
   const water = getTodayWaterMl();
   const waterTarget = Math.round(toNumber(store.goals?.waterMl) || 2500);
   if (waterTarget > 0 && water < waterTarget) {
-    reminders.push(`💧 Voda: ${(water / 1000).toFixed(1)} / ${(waterTarget / 1000).toFixed(1)} L`);
+    reminders.push({ text: `💧 Voda: ${(water / 1000).toFixed(1)} / ${(waterTarget / 1000).toFixed(1)} L`, action: "add-water", ml: 250, hint: "+250 ml" });
   }
   const measurements = store.measurements || [];
   if (!measurements.length) {
-    reminders.push("⚖️ Dodaj prvo merenje");
+    reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "jump-measurement", hint: "Unesi" });
   } else {
     const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
     // Compare local calendar days (both at noon), not raw ms: `new Date("YYYY-MM-DD")`
@@ -8149,7 +8149,7 @@ function getTodayReminders() {
     const todayDay = getDateValueAsLocalDate(getTodayDateValue());
     const days = latestDay && todayDay ? Math.round((todayDay.getTime() - latestDay.getTime()) / DAY_IN_MS) : 0;
     if (days >= 7) {
-      reminders.push(`⚖️ Merenje: poslednje pre ${days} dana`);
+      reminders.push({ text: `⚖️ Merenje: poslednje pre ${days} dana`, action: "jump-measurement", hint: "Unesi" });
     }
   }
   return reminders;
@@ -8172,7 +8172,11 @@ function renderTodayRemindersBanner() {
         <button class="ghost-button button-with-icon icon-only-action today-reminders-close" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas" title="Sakrij za danas">${renderButtonContent("Sakrij", "close")}</button>
       </div>
       <div class="pill-row today-reminders-pills">
-        ${reminders.map((text) => `<span class="pill strong pill--info">${text}</span>`).join("")}
+        ${reminders
+          .map(
+            (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${escapeHtml(reminder.text)}${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
+          )
+          .join("")}
       </div>
     </section>`;
 }
@@ -9004,7 +9008,15 @@ function renderPlanTab(entries) {
                                   `
                                 )
                                 .join("")
-                            : `<div class="empty" style="margin-top:12px;">Još nema stavki u ovom obroku.</div>`
+                            : (() => {
+                                const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
+                                const previousEntries = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
+                                return `<div class="empty meal-empty" style="margin-top:12px;">Još nema stavki u ovom obroku.${
+                                  previousEntries.length && !isMealDone
+                                    ? `<div class="meal-empty-actions"><button class="ghost-button button-with-icon" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">${renderButtonContent(`Kopiraj od juče (${previousEntries.length})`, "copy")}</button></div>`
+                                    : ""
+                                }</div>`;
+                              })()
                         }
                       </div>
                     </article>
@@ -9256,6 +9268,15 @@ function renderFoodsTab() {
 // (not inside the foods .section) because the section's backdrop-filter would
 // otherwise become the containing block for position:fixed and pin the button
 // to the (short) section instead of the viewport.
+// "Yesterday" in a two-week template: the previous weekday; Monday → the other track's Sunday.
+function getPreviousPlanDay(weekday, weekTrack) {
+  const index = WEEKDAYS.indexOf(weekday);
+  if (index > 0) {
+    return { weekday: WEEKDAYS[index - 1], weekTrack: normalizeWeekTrack(weekTrack) };
+  }
+  return { weekday: WEEKDAYS[WEEKDAYS.length - 1], weekTrack: normalizeWeekTrack(weekTrack) === 1 ? 0 : 1 };
+}
+
 // First meal of the selected day that isn't checked off yet — where a quick
 // "log what I'm eating" most likely belongs.
 function getNextOpenMealLabel() {
@@ -9266,7 +9287,7 @@ function getNextOpenMealLabel() {
 // Phone-only shortcut on Plan: opens the composer for the next open meal in one
 // tap (the same start-add-to-meal path as the button inside the meal card).
 function renderPlanAddFab() {
-  if (state.editingMealLabel || state.foodEditorOpen || state.scannerOpen) {
+  if (state.editingMealLabel || state.foodEditorOpen || state.scannerOpen || state.pendingUndo) {
     return "";
   }
   const mealLabel = getNextOpenMealLabel();
@@ -16631,6 +16652,71 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "jump-next-meal") {
+    state.selectedWeekday = getTodayWeekday();
+    state.selectedWeekTrack = getCurrentWeekTrack();
+    const mealLabel = getNextOpenMealLabel();
+    if (mealLabel) {
+      expandMealForWeekday(state.selectedWeekday, mealLabel);
+    }
+    render();
+    window.requestAnimationFrame(() => {
+      const toggle = mealLabel ? document.querySelector(`[data-action="toggle-plan-meal-collapse"][data-meal-label="${CSS.escape(mealLabel)}"]`) : null;
+      (toggle?.closest(".meal-card") || document.querySelector(".plan-meals-section"))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return;
+  }
+
+  if (action === "jump-measurement") {
+    state.activeTab = "progress";
+    state.progressView = "merenja";
+    state.lastTabInGroup = state.lastTabInGroup || {};
+    state.lastTabInGroup.progress = "progress";
+    state.navMenuOpen = false;
+    window.location.hash = "progress";
+    render();
+    window.requestAnimationFrame(() => {
+      const form = document.querySelector("#measurement-form");
+      const details = form?.closest("details");
+      if (details) {
+        details.open = true;
+      }
+      form?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#progress-weight")?.focus();
+    });
+    return;
+  }
+
+  if (action === "copy-meal-from-previous-day") {
+    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || ""));
+    const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
+    const source = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
+    if (!mealLabel || !source.length || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+      return;
+    }
+    const copiedIds = [];
+    source.forEach((entry) => {
+      const id = uid("plan");
+      copiedIds.push(id);
+      store.weeklyPlanEntries.push({
+        ...entry,
+        id,
+        weekday: state.selectedWeekday,
+        weekTrack: state.selectedWeekTrack,
+        mealLabel,
+        done: false,
+      });
+    });
+    expandMealForWeekday(state.selectedWeekday, mealLabel);
+    persist();
+    queuePendingUndo(`Kopirano od juče u ${getMealDisplayParts(mealLabel).title || mealLabel}: ${copiedIds.length} ${copiedIds.length === 1 ? "stavka" : "stavki"}.`, () => {
+      store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !copiedIds.includes(entry.id));
+      persist();
+    });
+    render();
+    return;
+  }
+
   if (action === "pick-plan-food") {
     const food = getFoodById(String(actionTarget.dataset.foodId || ""));
     const input = document.querySelector("#food-search-input");
@@ -17642,7 +17728,7 @@ function handleInput(event) {
     }
 
     if (selectedFood && !state.planDraft.grams) {
-      state.planDraft.grams = String(getFoodServingBaseValue(selectedFood));
+      state.planDraft.grams = String(quickAddGramsFor(selectedFood, store.foodUsage && store.foodUsage[selectedFood.id]));
     }
 
     // Piece vs. gram-based foods (and the spoon toggle, which only applies

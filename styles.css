@@ -10743,3 +10743,27 @@ body.menu-open .plan-add-fab {
 .app-sidebar-account-dot.is-error {
   background: var(--status-error-text);
 }
+
+
+/* Reminder pills are actions: tap adds water / opens the next meal / jumps to the scale. */
+.reminder-chip {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 700;
+}
+.reminder-chip-hint {
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+  opacity: 0.75;
+  font-weight: 800;
+  font-size: 0.78em;
+  letter-spacing: 0.02em;
+}
+.meal-empty-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
