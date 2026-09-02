@@ -1207,23 +1207,12 @@ function uid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// Derived from getDay() (Sunday=0) rather than Intl: `sr-RS` formats weekdays
+// in Cyrillic ("\u0441\u0440\u0435\u0434\u0430"), so a Latin lookup table never matched and every day
+// silently resolved to the "Ponedeljak" fallback \u2014 the app opened on Monday,
+// today's history snapshot recorded Monday's meals, etc.
 function getTodayWeekday() {
-  const weekday = new Intl.DateTimeFormat("sr-RS", { weekday: "long" }).format(new Date());
-  const normalized = weekday
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-    .toLowerCase();
-  const fallback = {
-    ponedeljak: "Ponedeljak",
-    utorak: "Utorak",
-    sreda: "Sreda",
-    cetvrtak: "Cetvrtak",
-    petak: "Petak",
-    subota: "Subota",
-    nedelja: "Nedelja",
-  };
-  return fallback[normalized] || "Ponedeljak";
+  return WEEKDAYS[(new Date().getDay() + 6) % 7];
 }
 
 function getInitialTab() {
@@ -4256,7 +4245,9 @@ function getHabitCurrentStreakDays(habit, referenceDateValue = getTodayDateValue
     return 0;
   }
 
-  const diffInDays = Math.floor((referenceDate.getTime() - startDate.getTime()) / DAY_IN_MS);
+  // Both dates are local noon; round (not floor) so the 23h/25h day around a
+  // DST switch doesn't shave a day off the streak until the clocks change back.
+  const diffInDays = Math.round((referenceDate.getTime() - startDate.getTime()) / DAY_IN_MS);
   return Math.max(1, diffInDays + 1);
 }
 
@@ -7274,7 +7265,11 @@ function getTodayReminders() {
     reminders.push("⚖️ Dodaj prvo merenje");
   } else {
     const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
-    const days = Math.floor((Date.now() - new Date(latest.date).getTime()) / 86400000);
+    // Compare local calendar days (both at noon), not raw ms: `new Date("YYYY-MM-DD")`
+    // is UTC midnight, which lagged the count by up to 2h and delayed the reminder.
+    const latestDay = getDateValueAsLocalDate(normalizeDateValue(latest.date));
+    const todayDay = getDateValueAsLocalDate(getTodayDateValue());
+    const days = latestDay && todayDay ? Math.round((todayDay.getTime() - latestDay.getTime()) / DAY_IN_MS) : 0;
     if (days >= 7) {
       reminders.push(`⚖️ Merenje: poslednje pre ${days} dana`);
     }
@@ -9146,8 +9141,9 @@ function getSortedRuns() {
 function getRunStats() {
   const runs = store.runs || [];
   const now = new Date();
-  const todayMidday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0).getTime();
-  const weekStart = todayMidday - 6 * 86400000; // poslednjih 7 dana, uključujući danas
+  // Lokalna ponoć pre 6 dana (ne "podne − 6×24h": posle promene sata to padne
+  // na 13:00 i izbaci trčanje od tog dana, jer su trčanja upisana u podne).
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0).getTime(); // poslednjih 7 dana, uključujući danas
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0).getTime();
 
   const stats = {
@@ -9260,12 +9256,31 @@ function parseRunDurationValue(value) {
   if (raw.includes(":")) {
     return parseRunTimeToSeconds(raw);
   }
-  const decimal = Number(raw.replace(",", ".").replace(/[^0-9.\-]/g, ""));
-  if (/m(in|inut)/.test(raw)) {
-    return Number.isFinite(decimal) ? Math.max(0, Math.round(decimal * 60)) : 0;
-  }
-  if (/(^|\d)\s*(h|hr|hour|sat|cas|čas)/.test(raw)) {
-    return Number.isFinite(decimal) ? Math.max(0, Math.round(decimal * 3600)) : 0;
+  // Svaka jedinica se čita zasebno pa se sabira, da "1h 30min" bude 5400 s
+  // (ranije su se sve cifre spajale u "130" pa množile jednom jedinicom → 7800).
+  const toDecimal = (text) => Number(String(text).replace(",", "."));
+  const hourMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*(?:h|hr|hrs|hour|hours|sat|sata|sati|cas|casa|časa|čas)(?![a-zčšž])/);
+  const minMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*(?:min|mins|minut|minuta|minute|minutes|minuti)(?![a-zčšž])/);
+  const secMatch = raw.match(/(\d+(?:[.,]\d+)?)\s*(?:s|sec|secs|sek|sekund|sekunda|sekunde|sekundi|seconds)(?![a-zčšž])/);
+  if (hourMatch || minMatch || secMatch) {
+    let total = 0;
+    if (hourMatch) {
+      total += toDecimal(hourMatch[1]) * 3600;
+      // "1h30" — sati pa goli broj = minuti.
+      if (!minMatch && !secMatch) {
+        const trailing = raw.slice(hourMatch.index + hourMatch[0].length).match(/^\s*(\d+)\s*$/);
+        if (trailing) {
+          total += Number(trailing[1]) * 60;
+        }
+      }
+    }
+    if (minMatch) {
+      total += toDecimal(minMatch[1]) * 60;
+    }
+    if (secMatch) {
+      total += toDecimal(secMatch[1]);
+    }
+    return Number.isFinite(total) ? Math.max(0, Math.round(total)) : 0;
   }
   const seconds = Number(raw.replace(/[^0-9]/g, ""));
   return Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
@@ -11581,7 +11596,9 @@ function isHistoryDayOnTarget(snap) {
 }
 
 function getHistoryStats() {
-  const days = getHistoryDays(30);
+  // A year back so the streak isn't silently capped at the window size (it used
+  // to freeze at "30 dana u nizu" forever); averages still use the last 7 days.
+  const days = getHistoryDays(366);
   const avgOver = (windowDays, key) => {
     const xs = windowDays.map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
     return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
@@ -16631,11 +16648,29 @@ document.addEventListener("change", handleValidationInteraction, true);
 document.addEventListener("invalid", handleInvalidField, true);
 document.addEventListener("change", handleImport);
 
-// If the app was left open across a week boundary, roll the week over (clear
-// last week's completion marks) the next time it returns to the foreground.
+// If the app was left open across a day/week boundary (installed PWAs stay
+// resident for days), re-point the selected day + week track at today and roll
+// the week over (clear last week's completion marks) the next time it returns
+// to the foreground. Without the re-point, a Sunday-night → Monday-morning
+// return left the user checking off "sledeća nedelja" until a reload.
+let lastForegroundDateValue = getTodayDateValue();
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && state.authUser && state.authReady && ensureCurrentWeek()) {
+  if (document.visibilityState !== "visible" || !state.authUser || !state.authReady) {
+    return;
+  }
+  let changed = false;
+  const today = getTodayDateValue();
+  if (today !== lastForegroundDateValue) {
+    lastForegroundDateValue = today;
+    state.selectedWeekday = getTodayWeekday();
+    state.selectedWeekTrack = getCurrentWeekTrack();
+    changed = true;
+  }
+  if (ensureCurrentWeek()) {
     persist();
+    changed = true;
+  }
+  if (changed) {
     render();
   }
 });
