@@ -7143,21 +7143,50 @@ function filterFoodsListInline(query) {
   if (!list) {
     return;
   }
-  const tokens = normalizeLookupValue(query || "")
-    .split(" ")
-    .filter(Boolean);
-  const rows = list.querySelectorAll(".food-row");
+  const normalizedQuery = normalizeLookupValue(query || "");
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  const rows = [...list.querySelectorAll(".food-row")];
+  // Remember the rendered (alphabetical) order once so clearing the query
+  // restores it after rows have been re-ranked.
+  rows.forEach((row, index) => {
+    if (!row.dataset.index) {
+      row.dataset.index = String(index);
+    }
+  });
+  const ranked = [];
   let visible = 0;
   rows.forEach((row) => {
     const haystack = row.dataset.search || "";
+    const name = row.dataset.name || haystack;
     const match = tokens.every((token) => haystack.includes(token));
     row.style.display = match ? "" : "none";
-    if (match) {
-      visible += 1;
+    if (!match) {
+      return;
     }
+    visible += 1;
+    // Best matches first: the exact name, then names starting with the
+    // query, then a word starting with it, then any substring, then hits
+    // that only came from category/group text.
+    let score = 4;
+    if (!tokens.length) {
+      score = 0;
+    } else if (name === normalizedQuery) {
+      score = 0;
+    } else if (name.startsWith(normalizedQuery)) {
+      score = 1;
+    } else if (name.split(" ").some((word) => word.startsWith(tokens[0]))) {
+      score = 2;
+    } else if (tokens.every((token) => name.includes(token))) {
+      score = 3;
+    }
+    ranked.push({ row, score, index: Number(row.dataset.index) });
   });
+  ranked.sort((a, b) => a.score - b.score || a.index - b.index);
+  const hiddenRows = rows.filter((row) => row.style.display === "none").sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
   const empty = list.querySelector(".foods-list-empty");
+  [...ranked.map((entry) => entry.row), ...hiddenRows].forEach((row) => list.appendChild(row));
   if (empty) {
+    list.appendChild(empty);
     empty.hidden = !(tokens.length > 0 && rows.length > 0 && visible === 0);
   }
 }
@@ -8829,7 +8858,10 @@ function renderFoodsTab() {
 
       <div class="foods-search">
         <span class="foods-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg></span>
-        <input id="food-search" type="search" value="${escapeHtml(state.foodSearch)}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" />
+        <input id="food-search" type="search" value="${escapeHtml(state.foodSearch)}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" autocomplete="off" />
+        <button class="foods-search-clear ${state.foodSearch ? "" : "is-hidden"}" type="button" data-action="clear-food-search" aria-label="Obriši pretragu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
         <button class="foods-filter-toggle ${state.foodFiltersOpen ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>
         </button>
@@ -8883,7 +8915,7 @@ function renderFoodsTab() {
                   );
                   const menuOpen = state.foodMenuOpenId === food.id;
                   return `
-              <article class="food-row ${menuOpen ? "is-menu-open" : ""}" data-search="${escapeHtml(searchText)}">
+              <article class="food-row ${menuOpen ? "is-menu-open" : ""}" data-search="${escapeHtml(searchText)}" data-name="${escapeHtml(normalizeLookupValue(food.name))}">
                 <button
                   class="food-row-star ${isFavoriteFood ? "is-active" : ""}"
                   type="button"
@@ -11093,9 +11125,11 @@ function renderGoalsTab() {
         </div>
       </form>
       </div>
-      <div class="goals-cilj-chart">
-        ${renderTrendCard(measurementFields.find((field) => field.id === "weightKg"))}
-      </div>
+      ${
+        getMeasurementSeries("weightKg").length
+          ? `<div class="goals-cilj-chart">${renderTrendCard(measurementFields.find((field) => field.id === "weightKg"))}</div>`
+          : ""
+      }
       </div>
     </section>
     ` : ""}
@@ -13648,7 +13682,7 @@ function render() {
         </div>
       </aside>
 
-      <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""} ${state.tabEnter ? "is-entering" : ""}">
+      <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""} ${state.activeTab === "foods" ? "is-foods-shell" : ""} ${state.tabEnter ? "is-entering" : ""}">
         ${workspaceHeaderMarkup}
         ${heroMarkup}
         ${activeSection}
@@ -16248,6 +16282,13 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "clear-food-search") {
+    state.foodSearch = "";
+    render();
+    window.requestAnimationFrame(() => document.querySelector("#food-search")?.focus());
+    return;
+  }
+
   if (action === "add-catalog-food") {
     const food = restoreCatalogFood(String(actionTarget.dataset.catalogId || ""));
     if (!food) {
@@ -17069,6 +17110,7 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
+    target.parentElement?.querySelector(".foods-search-clear")?.classList.toggle("is-hidden", !target.value);
     filterFoodsListInline(target.value);
     updateExternalFoodResults(target.value);
     return;

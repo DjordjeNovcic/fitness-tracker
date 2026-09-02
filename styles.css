@@ -10278,3 +10278,60 @@ body.menu-open .plan-add-fab {
     padding: 10px 14px;
   }
 }
+
+
+/* ============================================================
+   Fixes from live screenshots: [hidden] must win, Ciljevi chart only on wide
+   desktop and only with data, Namirnice search (clear, sticky, ranked).
+   ============================================================ */
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 1279px) {
+  .goals-cilj-chart {
+    display: none;
+  }
+}
+.goals-cilj-main .goals-form-layout .meta-row,
+.goals-cilj-main form > .meta-row {
+  margin-top: 18px;
+}
+
+.foods-search-clear {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  cursor: pointer;
+}
+.foods-search-clear svg {
+  width: 16px;
+  height: 16px;
+}
+.foods-search-clear.is-hidden {
+  display: none;
+}
+.foods-search input#food-search::-webkit-search-cancel-button {
+  display: none;
+}
+@media (max-width: 899px) {
+  .foods-search {
+    position: sticky;
+    top: 8px;
+    z-index: 6;
+    box-shadow: 0 10px 24px rgba(25, 34, 31, 0.1);
+  }
+  :root[data-theme="dark"] .foods-search {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+  .shell-with-menu.is-foods-shell {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+}
