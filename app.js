@@ -235,7 +235,7 @@ function weekdayAccusative(weekday) {
   return WEEKDAY_ACCUSATIVE[weekday] || weekdayLabel(weekday).toLowerCase();
 }
 const TABS = [
-  { id: "plan", label: "Plan", icon: "🍽" },
+  { id: "plan", label: "Danas", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
   { id: "foods", label: "Namirnice", icon: "🥚" },
   { id: "training", label: "Trening", icon: "🏋️" },
@@ -286,22 +286,57 @@ function renderTabIcon(id) {
 
 // Primary destinations for the iOS-style bottom tab bar (phones).
 // Everything else lives behind "Više", which opens the full sidebar.
-const PRIMARY_TABS = ["plan", "foods", "training", "routine"];
+// Navigation is six groups over the eight routes: Hrana = Namirnice | Recepti,
+// Trening = Trening | Trčanje (switched with a segmented control inside the
+// group). Tab ids stay the routes (#foods, #recipes...), so links keep working.
+const NAV_GROUPS = [
+  { id: "plan", label: "Danas", icon: "plan", tabs: ["plan"] },
+  { id: "food", label: "Hrana", icon: "foods", tabs: ["foods", "recipes", "nutrition"], navTabs: [["foods", "Namirnice"], ["recipes", "Recepti"]] },
+  { id: "training", label: "Trening", icon: "training", tabs: ["training", "running"], navTabs: [["training", "Trening"], ["running", "Trčanje"]] },
+  { id: "progress", label: "Napredak", icon: "progress", tabs: ["progress"] },
+  { id: "routine", label: "Rutina", icon: "routine", tabs: ["routine"] },
+  { id: "goals", label: "Ciljevi", icon: "goals", tabs: ["goals"] },
+];
+const PRIMARY_GROUPS = ["plan", "food", "training", "routine"];
+
+function getNavGroupForTab(tabId) {
+  return NAV_GROUPS.find((group) => group.tabs.includes(tabId)) || NAV_GROUPS[0];
+}
+
+// Tapping a group reopens the sub-tab you last used in it.
+function getGroupTargetTab(group) {
+  const remembered = state.lastTabInGroup && state.lastTabInGroup[group.id];
+  return group.tabs.includes(remembered) ? remembered : group.tabs[0];
+}
+
+function renderGroupSegNav() {
+  const group = getNavGroupForTab(state.activeTab);
+  if (!group.navTabs) {
+    return "";
+  }
+  return `<div class="seg-nav group-seg-nav" role="tablist" aria-label="${group.label}">${group.navTabs
+    .map(
+      ([id, label]) =>
+        `<button type="button" class="seg-nav-btn ${id === state.activeTab ? "is-active" : ""}" role="tab" aria-selected="${id === state.activeTab}" data-action="switch-tab" data-tab="${id}">${label}</button>`
+    )
+    .join("")}</div>`;
+}
 
 function renderTabBar() {
-  const items = PRIMARY_TABS.map((id) => {
-    const tab = TABS.find((entry) => entry.id === id);
-    if (!tab) return "";
-    const isActive = state.activeTab === id;
+  const activeGroup = getNavGroupForTab(state.activeTab);
+  const items = PRIMARY_GROUPS.map((groupId) => {
+    const group = NAV_GROUPS.find((entry) => entry.id === groupId);
+    if (!group) return "";
+    const isActive = activeGroup.id === group.id;
     return `
-      <button class="tab-bar-item ${isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${id}" aria-label="${tab.label}" aria-current="${isActive ? "page" : "false"}">
-        <span class="tab-bar-icon">${renderTabIcon(id)}</span>
-        <span class="tab-bar-label">${tab.label}</span>
+      <button class="tab-bar-item ${isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${getGroupTargetTab(group)}" aria-label="${group.label}" aria-current="${isActive ? "page" : "false"}">
+        <span class="tab-bar-icon">${renderTabIcon(group.icon)}</span>
+        <span class="tab-bar-label">${group.label}</span>
       </button>
     `;
   }).join("");
 
-  const isMoreActive = !PRIMARY_TABS.includes(state.activeTab);
+  const isMoreActive = !PRIMARY_GROUPS.includes(activeGroup.id);
   return `
     <nav class="tab-bar" aria-label="Glavna navigacija">
       <div class="tab-bar-inner">
@@ -318,7 +353,13 @@ function renderTabBar() {
 // Compact "Više" popover for mobile — the few secondary destinations + quick
 // toggles, popping up above the tab bar instead of a full-screen slide-out.
 function renderMoreSheet() {
-  const moreTabs = TABS.filter((tab) => !PRIMARY_TABS.includes(tab.id));
+  const activeGroup = getNavGroupForTab(state.activeTab);
+  const moreTabs = NAV_GROUPS.filter((group) => !PRIMARY_GROUPS.includes(group.id)).map((group) => ({
+    id: getGroupTargetTab(group),
+    label: group.label,
+    icon: group.icon,
+    isActive: activeGroup.id === group.id,
+  }));
   const userEmail = String(state.authUser?.email || "").trim();
   const isDemo = isDemoAccount();
   const profileName = String(store.profile?.name || "").trim();
@@ -342,10 +383,10 @@ function renderMoreSheet() {
         ${moreTabs
           .map(
             (tab) => `
-              <button class="more-sheet-item ${tab.id === state.activeTab ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${tab.id}" role="menuitem">
-                <span class="more-sheet-icon">${renderTabIcon(tab.id)}</span>
+              <button class="more-sheet-item ${tab.isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${tab.id}" role="menuitem">
+                <span class="more-sheet-icon">${renderTabIcon(tab.icon)}</span>
                 <span class="more-sheet-label">${tab.label}</span>
-                ${tab.id === state.activeTab ? `<span class="more-sheet-dot" aria-hidden="true"></span>` : ""}
+                ${tab.isActive ? `<span class="more-sheet-dot" aria-hidden="true"></span>` : ""}
               </button>
             `
           )
@@ -553,6 +594,7 @@ const MEAL_LABEL_MAP = {
 
 const state = {
   activeTab: getInitialTab(),
+  lastTabInGroup: {},
   onboarding: null,
   lastAddedEntryId: "",
   selectedWeekday: getTodayWeekday(),
@@ -6777,6 +6819,8 @@ function renderHero(entries, totals) {
 function renderWorkspaceHeader() {
   const activeTab = ALL_TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
   const tabMeta = TAB_META[state.activeTab] || TAB_META.plan;
+  const navGroup = getNavGroupForTab(state.activeTab);
+  const headerTitle = navGroup.navTabs && state.activeTab !== "nutrition" ? navGroup.label : activeTab.label;
 
   return `
     <section class="workspace-header section">
@@ -6786,7 +6830,7 @@ function renderWorkspaceHeader() {
           <div class="workspace-header-title-row">
             <span class="workspace-header-icon" aria-hidden="true">${renderTabIcon(activeTab.id)}</span>
             <div>
-              <h1>${activeTab.label}</h1>
+              <h1>${headerTitle}</h1>
               <p>${tabMeta.description}</p>
             </div>
           </div>
@@ -13818,7 +13862,8 @@ function render() {
   const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
   // Plan and Foods bring their own compact in-tab header, so skip the global
   // workspace hero for them (the floating menu-fab provides the nav menu).
-  const workspaceHeaderMarkup = state.activeTab === "plan" || state.activeTab === "foods" ? "" : renderWorkspaceHeader();
+  const workspaceHeaderMarkup = state.activeTab === "plan" ? "" : renderWorkspaceHeader();
+  const groupSegNavMarkup = renderGroupSegNav();
   // Only the active tab is ever inserted into the DOM, so build just that one
   // instead of rebuilding all 8 sections (charts, food lists, etc.) on every
   // tap/keystroke. The render*Tab fns are pure (no state side effects).
@@ -13892,11 +13937,11 @@ function render() {
           </div>
         </div>
         <div class="mobile-menu-list">
-          ${TABS.map(
-            (tab) => `
-              <button class="menu-tab-button ${tab.id === state.activeTab ? "is-active" : ""}" data-action="switch-tab" data-tab="${tab.id}" title="${tab.label}" aria-label="${tab.label}">
-                <span class="icon">${renderTabIcon(tab.id)}</span>
-                <span class="menu-tab-label">${tab.label}</span>
+          ${NAV_GROUPS.map(
+            (group) => `
+              <button class="menu-tab-button ${group.tabs.includes(state.activeTab) ? "is-active" : ""}" data-action="switch-tab" data-tab="${getGroupTargetTab(group)}" title="${group.label}" aria-label="${group.label}">
+                <span class="icon">${renderTabIcon(group.icon)}</span>
+                <span class="menu-tab-label">${group.label}</span>
               </button>
             `
           ).join("")}
@@ -13922,6 +13967,7 @@ function render() {
 
       <main class="shell shell-with-menu app-main ${state.activeTab === "plan" ? "is-plan-shell" : ""} ${state.activeTab === "foods" ? "is-foods-shell" : ""} ${state.tabEnter ? "is-entering" : ""}">
         ${workspaceHeaderMarkup}
+        ${groupSegNavMarkup}
         ${heroMarkup}
         ${activeSection}
       </main>
@@ -14180,6 +14226,8 @@ async function handleDocumentClick(event) {
       state.tabEnter = true;
     }
     state.activeTab = nextTab;
+    state.lastTabInGroup = state.lastTabInGroup || {};
+    state.lastTabInGroup[getNavGroupForTab(nextTab).id] = nextTab;
     state.editingMealLabel = "";
     state.navMenuOpen = false;
     // Reset transient Namirnice UI so returning to it always starts clean —

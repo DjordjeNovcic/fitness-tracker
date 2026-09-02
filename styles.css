@@ -10526,3 +10526,14 @@ body.menu-open .plan-add-fab {
   min-width: 0;
   max-width: 100%;
 }
+
+
+/* Group sub-navigation (Hrana: Namirnice | Recepti, Trening: Trening | Trčanje). */
+.group-seg-nav {
+  margin: 0 0 14px;
+}
+@media (max-width: 720px) {
+  .workspace-header + .group-seg-nav {
+    margin-top: 10px;
+  }
+}
