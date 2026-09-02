@@ -576,7 +576,9 @@ const state = {
   scannerTorchSupported: false,
   scannedFood: null,
   scannedBarcode: "",
+  scannerReturnTo: "",
   recipeMealFilter: "Sve",
+  recipeSearch: "",
   recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
@@ -6196,6 +6198,30 @@ async function handleScannedBarcode(barcode) {
   }
 
   const hasData = product && (product.name || product.kcal != null);
+
+  if (state.scannerReturnTo === "composer" && state.editingMealLabel) {
+    // Already in the user's database? Select it in the composer and skip the editor.
+    const known =
+      (store.foods || []).find((food) => String(food.barcode || "") === code) ||
+      (product && product.name ? findFoodByExactName(product.name) : null);
+    if (known) {
+      state.scannerReturnTo = "";
+      state.planDraft.foodId = known.id;
+      state.planDraft.amountUnit = "g";
+      state.planDraft.grams = String(getFoodServingBaseValue(known));
+      render();
+      showFeedbackToast({ title: "Izabrano iz tvoje baze", detail: known.name, tone: "success" });
+      window.requestAnimationFrame(() => {
+        const amount = document.querySelector("#amount-input") || document.querySelector("#grams");
+        if (amount instanceof HTMLInputElement && amount.type !== "hidden") {
+          amount.focus();
+          amount.select();
+        }
+      });
+      return;
+    }
+  }
+
   state.scannedFood = {
     name: (product && product.name) || "",
     kcal: (product && product.kcal) ?? null,
@@ -6727,7 +6753,7 @@ function renderHero(entries, totals) {
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
         <span class="hero-tag">Plan</span>
-        <h1 class="hero-title">Nedeljni jelovnik</h1>
+        <h1 class="hero-title">${state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "Danas" : weekdayLabel(state.selectedWeekday)}</h1>
         ${renderWeekTrackToggle()}
         <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
           ${renderActionIcon("refresh")}
@@ -7308,6 +7334,39 @@ function updateHeroScrollState() {
 // Live food search: filter the already-rendered rows in the DOM instead of
 // re-rendering the whole app on every keystroke (which made typing stutter
 // and dropped focus). Each row carries its searchable text in data-search.
+// Same inline ranking for the recipe library (name, meal, description, ingredients).
+function filterRecipeCardsInline(query) {
+  const list = document.querySelector(".recipes-library-stack");
+  if (!list) {
+    return;
+  }
+  const normalizedQuery = normalizeLookupValue(query || "");
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  const cards = [...list.querySelectorAll(".recipe-library-card")];
+  cards.forEach((card, index) => {
+    if (!card.dataset.index) {
+      card.dataset.index = String(index);
+    }
+  });
+  const ranked = [];
+  cards.forEach((card) => {
+    const haystack = card.dataset.search || "";
+    const name = card.dataset.name || haystack;
+    const score = tokens.length ? scoreNameForQuery(name, haystack, normalizedQuery, tokens) : 0;
+    card.style.display = score === null ? "none" : "";
+    if (score !== null) {
+      ranked.push({ card, score, index: Number(card.dataset.index) });
+    }
+  });
+  ranked.sort((a, b) => a.score - b.score || a.index - b.index);
+  const hidden = cards.filter((card) => card.style.display === "none").sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+  [...ranked.map((entry) => entry.card), ...hidden].forEach((card) => list.appendChild(card));
+  const empty = document.querySelector(".recipe-list-empty");
+  if (empty) {
+    empty.hidden = !(tokens.length > 0 && cards.length > 0 && ranked.length === 0);
+  }
+}
+
 function filterFoodsListInline(query) {
   const list = document.querySelector(".foods-list");
   if (!list) {
@@ -7466,8 +7525,11 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
           <span class="food-form-step-num">1</span>
           <label class="food-form-step-title" for="food-search-input">Koju namirnicu?</label>
         </div>
-        <div class="food-search-control">
+        <div class="food-search-control has-scan">
           <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
+          <button class="food-search-scan" type="button" data-action="open-scanner" data-scan-return="composer" aria-label="Skeniraj barkod proizvoda" title="Skeniraj barkod">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/><path d="M18 8v8"/></svg>
+          </button>
           <input id="food-search-input" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-controls="food-suggest" aria-expanded="false" required />
         </div>
         <input id="foodId" name="foodId" type="hidden" value="${state.planDraft.foodId}" />
@@ -8723,6 +8785,7 @@ function renderPlanTab(entries) {
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
                     <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
+                      <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
                       <div class="meal-card-header">
                         <div class="meal-card-topline">
                           ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
@@ -9389,6 +9452,13 @@ function renderRecipesTab() {
         favorites.length
           ? `
             <div class="stack recipe-filter-stack" style="margin-bottom:14px;">
+              <div class="foods-search recipe-search">
+                <span class="foods-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg></span>
+                <input id="recipe-search" type="search" value="${escapeHtml(state.recipeSearch)}" placeholder="Pretraži recepte ili sastojke…" aria-label="Pretraga recepata" autocomplete="off" />
+                <button class="foods-search-clear ${state.recipeSearch ? "" : "is-hidden"}" type="button" data-action="clear-recipe-search" aria-label="Obriši pretragu">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
+              </div>
               <div>
                 <div class="footer-note" style="margin-bottom:8px;">Filtriraj po tipu obroka</div>
                 <div class="chips recipe-filter-bar">
@@ -9435,8 +9505,13 @@ function renderRecipesTab() {
             ? filteredFavorites
                 .map((favorite) => {
                   const isExpanded = isRecipeExpanded(favorite.id);
+                  const recipeSearchText = normalizeLookupValue(
+                    [favorite.name, favorite.mealLabel, favorite.description, ...(favorite.items || []).map((item) => item.displayName || item.foodName || "")]
+                      .filter(Boolean)
+                      .join(" ")
+                  );
                   return `
-                    <article class="food-card recipe-library-card ${isExpanded ? "" : "is-collapsed"}">
+                    <article class="food-card recipe-library-card ${isExpanded ? "" : "is-collapsed"}" data-search="${escapeHtml(recipeSearchText)}" data-name="${escapeHtml(normalizeLookupValue(favorite.name))}">
                       <div class="recipe-library-shell ${favorite.imageUrl ? "has-media" : "no-media"}">
                         ${
                           favorite.imageUrl
@@ -9538,6 +9613,7 @@ function renderRecipesTab() {
               : `<div class="empty">Napravi prvi recept ovde, pa ćeš ga posle dodavati u plan jednim tapom.</div>`
         }
       </div>
+      <div class="empty recipe-list-empty" hidden>Nema recepata za ovu pretragu.</div>
     </section>
   `;
 }
@@ -13962,6 +14038,9 @@ function render() {
     filterFoodsListInline(state.foodSearch);
     updateExternalFoodResults(state.foodSearch);
   }
+  if (state.activeTab === "recipes" && state.recipeSearch) {
+    filterRecipeCardsInline(state.recipeSearch);
+  }
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
   state.lastAddedEntryId = "";
@@ -14471,6 +14550,7 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "open-scanner") {
+    state.scannerReturnTo = String(actionTarget.dataset.scanReturn || "");
     state.scannerOpen = true;
     state.scannerStatus = "Tražim kameru…";
     render();
@@ -14483,6 +14563,7 @@ async function handleDocumentClick(event) {
   if (action === "close-scanner") {
     stopBarcodeScan();
     state.scannerOpen = false;
+    state.scannerReturnTo = "";
     render();
     return;
   }
@@ -16466,6 +16547,13 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "clear-recipe-search") {
+    state.recipeSearch = "";
+    render();
+    window.requestAnimationFrame(() => document.querySelector("#recipe-search")?.focus());
+    return;
+  }
+
   if (action === "clear-food-search") {
     state.foodSearch = "";
     render();
@@ -16673,11 +16761,19 @@ async function handleSubmit(event) {
       syncFoodNameAcrossStore(state.editingFoodId, nextFood.name);
       resetFoodEditing();
     } else {
-      store.foods.push({
+      const createdFood = {
         id: uid("food"),
         ...nextFood,
-      });
+      };
+      store.foods.push(createdFood);
+      // Scanned from the Plan composer: the new product becomes the composer's food.
+      if (state.scannerReturnTo === "composer" && state.editingMealLabel) {
+        state.planDraft.foodId = createdFood.id;
+        state.planDraft.amountUnit = "g";
+        state.planDraft.grams = String(getFoodServingBaseValue(createdFood));
+      }
     }
+    state.scannerReturnTo = "";
 
     if (scannedBarcode && servingUnit === "grams") {
       saveSharedFood(scannedBarcode, nextFood);
@@ -17292,6 +17388,13 @@ async function handleSubmit(event) {
 function handleInput(event) {
   const target = event.target;
 
+  if (target instanceof HTMLInputElement && target.id === "recipe-search") {
+    state.recipeSearch = target.value;
+    target.parentElement?.querySelector(".foods-search-clear")?.classList.toggle("is-hidden", !target.value);
+    filterRecipeCardsInline(target.value);
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
     target.parentElement?.querySelector(".foods-search-clear")?.classList.toggle("is-hidden", !target.value);
@@ -17645,6 +17748,102 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("pagehide", flushPendingCloudSave);
+
+// Swipe right on a meal card's header (touch devices) to toggle "pojedeno" —
+// the same checkbox the tap uses, so all bookkeeping stays in one place.
+(() => {
+  if (typeof window === "undefined" || !("ontouchstart" in window)) {
+    return;
+  }
+  const SWIPE_ENGAGE = 12;
+  const SWIPE_COMMIT = 72;
+  const SWIPE_MAX = 96;
+  let swipe = null;
+  const clear = (animate) => {
+    if (!swipe) {
+      return;
+    }
+    const { card, header } = swipe;
+    card.classList.remove("is-swiping");
+    header.style.transform = "";
+    card.style.setProperty("--swipe-x", "0px");
+    card.style.setProperty("--swipe-o", "0");
+    if (!animate) {
+      card.classList.add("is-swipe-reset");
+      window.requestAnimationFrame(() => card.classList.remove("is-swipe-reset"));
+    }
+    swipe = null;
+  };
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      if (event.touches.length !== 1) {
+        return;
+      }
+      const header = event.target instanceof Element ? event.target.closest(".meal-card-header") : null;
+      const card = header?.closest(".meal-card");
+      const checkbox = card?.querySelector(".meal-toggle-checkbox");
+      if (!header || !card || !(checkbox instanceof HTMLInputElement) || card.classList.contains("is-editing")) {
+        return;
+      }
+      if (event.target instanceof Element && event.target.closest("button, input, label, a")) {
+        return;
+      }
+      const touch = event.touches[0];
+      swipe = { card, header, checkbox, startX: touch.clientX, startY: touch.clientY, engaged: false, cancelled: false, dx: 0 };
+      const reveal = card.querySelector(".meal-swipe-reveal");
+      if (reveal) {
+        reveal.style.height = `${header.offsetHeight}px`;
+        reveal.textContent = checkbox.checked ? "Vrati" : "Pojedeno";
+      }
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!swipe || swipe.cancelled) {
+        return;
+      }
+      const touch = event.touches[0];
+      const dx = touch.clientX - swipe.startX;
+      const dy = touch.clientY - swipe.startY;
+      if (!swipe.engaged) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+          swipe.cancelled = true;
+          return;
+        }
+        if (dx > SWIPE_ENGAGE && Math.abs(dx) > Math.abs(dy)) {
+          swipe.engaged = true;
+          swipe.card.classList.add("is-swiping");
+        } else {
+          return;
+        }
+      }
+      const shift = Math.max(0, Math.min(SWIPE_MAX, dx));
+      swipe.dx = shift;
+      swipe.header.style.transform = `translateX(${shift}px)`;
+      swipe.card.style.setProperty("--swipe-x", `${shift}px`);
+      swipe.card.style.setProperty("--swipe-o", String(Math.min(1, shift / SWIPE_COMMIT)));
+      swipe.card.classList.toggle("is-swipe-ready", shift >= SWIPE_COMMIT);
+    },
+    { passive: true }
+  );
+  const finish = () => {
+    if (!swipe) {
+      return;
+    }
+    const commit = swipe.engaged && swipe.dx >= SWIPE_COMMIT;
+    const { checkbox, card } = swipe;
+    card.classList.remove("is-swipe-ready");
+    clear(true);
+    if (commit) {
+      checkbox.click();
+    }
+  };
+  document.addEventListener("touchend", finish, { passive: true });
+  document.addEventListener("touchcancel", () => clear(false), { passive: true });
+})();
 
 // Plan composer suggestions: arrows move, Enter picks, Escape closes; the list
 // hides when focus leaves the field (a tap on an item keeps the field focused).

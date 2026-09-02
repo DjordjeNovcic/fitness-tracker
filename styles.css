@@ -1535,7 +1535,8 @@ textarea::placeholder {
 }
 .foods-search-icon { display: inline-flex; color: var(--muted); flex: 0 0 auto; }
 .foods-search-icon svg { width: 18px; height: 18px; }
-.foods-search input#food-search {
+.foods-search input#food-search,
+.foods-search input#recipe-search {
   flex: 1 1 auto; min-width: 0;
   border: 0; background: transparent; outline: none;
   font: inherit; color: var(--ink); padding: 10px 0; min-height: 0;
@@ -10318,7 +10319,8 @@ body.menu-open .plan-add-fab {
 .foods-search-clear.is-hidden {
   display: none;
 }
-.foods-search input#food-search::-webkit-search-cancel-button {
+.foods-search input#food-search::-webkit-search-cancel-button,
+.foods-search input#recipe-search::-webkit-search-cancel-button {
   display: none;
 }
 @media (max-width: 899px) {
@@ -10420,4 +10422,107 @@ body.menu-open .plan-add-fab {
 :root[data-theme="dark"] .food-row-add {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
+}
+
+
+/* ============================================================
+   Recipe search, scanner in the composer, swipe-to-eat.
+   ============================================================ */
+.recipe-search {
+  margin-bottom: 4px;
+}
+
+.food-search-control.has-scan input {
+  padding-right: 52px;
+}
+.food-search-scan {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.food-search-scan:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.food-search-scan svg {
+  width: 20px;
+  height: 20px;
+}
+:root[data-theme="dark"] .food-search-scan:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.meal-card {
+  position: relative;
+}
+.meal-card-header {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.meal-card.is-swiping .meal-card-header,
+.meal-card.is-swipe-reset .meal-card-header {
+  transition: none;
+}
+.meal-swipe-reveal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--swipe-x, 0px);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--status-success-text);
+  font-weight: 800;
+  font-size: 0.9rem;
+  opacity: var(--swipe-o, 0);
+  pointer-events: none;
+}
+.meal-card.is-swipe-ready .meal-swipe-reveal {
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .meal-card-header {
+    transition: none;
+  }
+}
+
+/* Search fields: the input takes the remaining width, never its own 100%. */
+.foods-search input#food-search,
+.foods-search input#recipe-search {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+.recipe-search {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Recipe filter stack: the grid track must not grow to the chip rows'
+   max-content width (it pushed the search field and chips past the card). */
+.recipe-filter-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+.recipe-filter-stack > * {
+  min-width: 0;
+}
+.recipe-filter-bar {
+  min-width: 0;
+  max-width: 100%;
 }
