@@ -3611,6 +3611,7 @@ function closeFoodEditorDialog() {
 function resetRoutineEditing() {
   state.editingHabitId = "";
   state.editingTaskId = "";
+  state.editingSupplementId = "";
 }
 
 function syncFoodNameAcrossStore(foodId, foodName) {
@@ -5611,7 +5612,8 @@ function renderFoodEditorDialog() {
             <div class="food-form-grid">
               <div class="field">
                 <label for="food-category">Kategorija</label>
-                <input id="food-category" name="category" placeholder="Proteini, voće..." value="${editingFood?.category || ""}" />
+                <input id="food-category" name="category" value="${escapeHtml(editingFood?.category || "")}" placeholder="Automatski po makroima" readonly aria-describedby="food-category-hint" />
+                <div id="food-category-hint" class="footer-note">Određuje se automatski po dominantnom makrou (Proteini / UH / Masti / Ostalo).</div>
               </div>
               <div class="field">
                 <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
@@ -8265,7 +8267,7 @@ function renderFoodsTab() {
 
       <div class="foods-search">
         <span class="foods-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg></span>
-        <input id="food-search" type="search" value="${state.foodSearch}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" />
+        <input id="food-search" type="search" value="${escapeHtml(state.foodSearch)}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" />
         <button class="foods-filter-toggle ${state.foodFiltersOpen ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>
         </button>
@@ -8472,7 +8474,7 @@ function renderRecipesTab() {
           </div>
           <div class="field">
             <label for="favorite-food-search">Sastojak</label>
-            <input id="favorite-food-search" name="foodSearch" list="recipe-food-options" placeholder="Počni da kucaš namirnicu" value="${favoriteFoodSearchValue}" autocomplete="off" required />
+            <input id="favorite-food-search" name="foodSearch" list="recipe-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(favoriteFoodSearchValue)}" autocomplete="off" required />
             <input id="favorite-food-id" name="foodId" type="hidden" value="${state.favoriteDraft.foodId}" />
             <datalist id="recipe-food-options">
               ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
@@ -11848,7 +11850,7 @@ function renderProgressPhotoImg(photo, alt) {
   if (!photo || !photo.previewUrl) {
     return `<div class="photo-loading">Učitavanje…</div>`;
   }
-  return `<img src="${photo.previewUrl}" alt="${alt}" loading="lazy" />`;
+  return `<img src="${escapeHtml(photo.previewUrl)}" alt="${escapeHtml(alt)}" loading="lazy" />`;
 }
 
 function getLabStatus(value, low, high) {
@@ -13811,6 +13813,9 @@ async function handleDocumentClick(event) {
       return;
     }
     store.habits = store.habits.filter((entry) => entry.id !== habitId);
+    if (state.editingHabitId === habitId) {
+      state.editingHabitId = "";
+    }
     persist();
     queuePendingUndo("Navika obrisana.", () => {
       store.habits = prevHabits;
@@ -13888,6 +13893,9 @@ async function handleDocumentClick(event) {
     }
 
     store.dayTasks = store.dayTasks.filter((entry) => entry.id !== actionTarget.dataset.taskId);
+    if (state.editingTaskId === actionTarget.dataset.taskId) {
+      state.editingTaskId = "";
+    }
     persist();
     render();
     return;
@@ -13924,6 +13932,9 @@ async function handleDocumentClick(event) {
     }
 
     store.supplements = store.supplements.filter((entry) => entry.id !== actionTarget.dataset.supplementId);
+    if (state.editingSupplementId === actionTarget.dataset.supplementId) {
+      state.editingSupplementId = "";
+    }
     persist();
     render();
     return;
@@ -13943,6 +13954,9 @@ async function handleDocumentClick(event) {
     store.dayTasks = store.dayTasks.filter(
       (task) => !(task.weekday === state.selectedWeekday && normalizeWeekTrack(task.weekTrack) === state.selectedWeekTrack && task.done)
     );
+    if (state.editingTaskId && !store.dayTasks.some((task) => task.id === state.editingTaskId)) {
+      state.editingTaskId = "";
+    }
     persist();
     render();
     return;
@@ -15916,6 +15930,9 @@ async function handleSubmit(event) {
       return;
     }
 
+    if (state.editingHabitId && !store.habits.some((habit) => habit.id === state.editingHabitId)) {
+      state.editingHabitId = "";
+    }
     if (state.editingHabitId) {
       store.habits = store.habits.map((habit) =>
         habit.id === state.editingHabitId
@@ -15971,6 +15988,9 @@ async function handleSubmit(event) {
       return;
     }
 
+    if (state.editingTaskId && !store.dayTasks.some((task) => task.id === state.editingTaskId)) {
+      state.editingTaskId = "";
+    }
     if (state.editingTaskId) {
       store.dayTasks = store.dayTasks.map((task) =>
         task.id === state.editingTaskId
@@ -16019,6 +16039,9 @@ async function handleSubmit(event) {
       weekdays: weekdays.length ? weekdays : [...WEEKDAYS],
     };
 
+    if (state.editingSupplementId && !store.supplements.some((supplement) => supplement.id === state.editingSupplementId)) {
+      state.editingSupplementId = "";
+    }
     if (state.editingSupplementId) {
       store.supplements = store.supplements.map((supplement) =>
         supplement.id === state.editingSupplementId
@@ -16772,6 +16795,10 @@ window.addEventListener("hashchange", () => {
   }
   const nextTab = getInitialTab();
   if (nextTab !== state.activeTab) {
+    if (state.scannerOpen) {
+      stopBarcodeScan();
+      state.scannerOpen = false;
+    }
     state.activeTab = nextTab;
     state.navMenuOpen = false;
     resetFoodEditing();
