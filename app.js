@@ -6558,17 +6558,7 @@ function renderHero(entries, totals) {
       <div class="hero-top" data-role="hero-top">
         <span class="hero-tag">Plan</span>
         <h1 class="hero-title">Nedeljni jelovnik</h1>
-        <div class="hero-week-toggle" role="group" aria-label="Nedelja">
-        ${getWeekTrackDisplayOrder()
-          .map(
-            (track) => `
-              <button class="chip hero-week-chip ${track === state.selectedWeekTrack ? "is-active" : ""}" type="button" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}" title="${getWeekTrackLabel(track)}">
-                ${getWeekTrackLabel(track).replace(" nedelja", "")}
-              </button>
-            `
-          )
-          .join("")}
-        </div>
+        ${renderWeekTrackToggle()}
         <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
           ${renderActionIcon("refresh")}
         </button>
@@ -8197,6 +8187,33 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
   `;
 }
 
+// Segmented "Ova / Sledeća" week-track control, shared by the Plan hero and the
+// Training / Routine sections. (The old `.chips.hero-day-chips` version inside
+// a section collapsed to ~40px per chip on phones — flex-basis 0 in a
+// shrink-to-fit container — so "Sledeća" overflowed its pill.)
+function renderWeekTrackToggle() {
+  return `
+      <div class="hero-week-toggle" role="group" aria-label="Nedelja">
+        ${getWeekTrackDisplayOrder()
+          .map(
+            (track) => `
+              <button class="chip hero-week-chip ${track === state.selectedWeekTrack ? "is-active" : ""}" type="button" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}" title="${getWeekTrackLabel(track)}">
+                ${getWeekTrackLabel(track).replace(" nedelja", "")}
+              </button>
+            `
+          )
+          .join("")}
+      </div>`;
+}
+
+function renderWeekTrackRow() {
+  return `
+      <div class="week-track-row">
+        <span class="hero-day-label">Nedelja</span>
+        ${renderWeekTrackToggle()}
+      </div>`;
+}
+
 // The collapsed daily-overview row on phones. The remaining-calories glance is
 // the reason people open the app mid-day; hiding it behind a tap (a text line
 // with eaten totals) buried the one number that matters.
@@ -9363,20 +9380,7 @@ function renderTrainingTab() {
         </div>
       </div>
       ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + procenjena potrošnja kalorija koja ulazi u dnevni bilans). <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
-      <div class="hero-day-picker">
-        <span class="hero-day-label">Nedelja</span>
-        <div class="chips hero-day-chips">
-        ${getWeekTrackDisplayOrder()
-          .map(
-            (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
-                ${getWeekTrackLabel(track).replace(" nedelja", "")}
-              </button>
-            `
-          )
-          .join("")}
-        </div>
-      </div>
+      ${renderWeekTrackRow()}
       <div class="stats-grid">
         ${weeklyTrainingPlan
           .map(
@@ -10725,20 +10729,7 @@ function renderRoutineTab() {
           <p>Sitne dnevne obaveze, tipa raspremi krevet ili spremi ručak. Ovo je šablon za dve naizmenične nedelje kao trening i jelovnik — nedeljne navike i streakovi ispod ostaju isti svake nedelje.</p>
         </div>
       </div>
-      <div class="hero-day-picker" style="margin-bottom:14px;">
-        <span class="hero-day-label">Nedelja</span>
-        <div class="chips hero-day-chips">
-        ${getWeekTrackDisplayOrder()
-          .map(
-            (track) => `
-              <button class="chip ${track === state.selectedWeekTrack ? "is-active" : ""}" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}">
-                ${getWeekTrackLabel(track).replace(" nedelja", "")}
-              </button>
-            `
-          )
-          .join("")}
-        </div>
-      </div>
+      ${renderWeekTrackRow()}
       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         ${
           previousWeekday && previousDayTaskCount

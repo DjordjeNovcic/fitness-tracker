@@ -10106,3 +10106,12 @@ body.menu-open .plan-add-fab {
     padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* Week-track row inside Training / Routine sections: label + segmented toggle. */
+.week-track-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 14px;
+}
