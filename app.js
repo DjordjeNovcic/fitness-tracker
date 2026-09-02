@@ -10,6 +10,63 @@ import {
 import { doc, getDoc, getFirestore, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
+// Local copies are kept PER ACCOUNT (`${STORAGE_KEY}:${uid}`) so one person's
+// data never leaks into the next account that signs in on the same device — the
+// public demo → "register my own account" flow used to inherit the demo's
+// measurements, logs and photos. The bare key above is the pre-account blob; it
+// is only read to migrate a device's single copy into the account that owned it.
+const LAST_UID_KEY = "fitness-tracker-last-uid";
+// Per-account sync bookkeeping: { rev, dirty }. `rev` is the cloud rev this
+// device last loaded/wrote; `dirty` means local edits exist that never reached
+// the cloud (offline, backgrounded before the debounce fired, write failed).
+const SYNC_META_KEY_PREFIX = "fitness-tracker-sync-v1";
+
+// localStorage can throw (Safari "block all cookies", sandboxed webviews, quota)
+// — never let that take the whole app down at module evaluation.
+function safeLocalGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+function safeLocalSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+function safeLocalRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    // ignore
+  }
+}
+
+let activeStorageUid = safeLocalGet(LAST_UID_KEY) || null;
+function getStoreStorageKey(uid = activeStorageUid) {
+  return uid ? `${STORAGE_KEY}:${uid}` : STORAGE_KEY;
+}
+function readSyncMeta(uid) {
+  if (!uid) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(safeLocalGet(`${SYNC_META_KEY_PREFIX}:${uid}`) || "null");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+function writeSyncMeta(uid, patch) {
+  if (!uid) {
+    return;
+  }
+  safeLocalSet(`${SYNC_META_KEY_PREFIX}:${uid}`, JSON.stringify({ ...readSyncMeta(uid), ...patch }));
+}
 // Progress-photo blobs (base64 JPEGs) live in IndexedDB, not in the localStorage
 // state blob — base64 photos quickly blow the ~5MB localStorage quota, which used
 // to break ALL saves (plan, foods, measurements) once a user had ~15+ photos.
@@ -21,6 +78,19 @@ const STORAGE_KEY = "fitness-tracker-state-v1";
 // the legacy behavior of keeping blobs in localStorage.
 const PHOTO_DB_NAME = "fit-tracker-photos";
 const PHOTO_DB_STORE = "photos";
+// Recipe photos (base64 JPEGs on favoriteMeals[].imageUrl) share the same
+// IndexedDB store under a prefixed id. They used to ride along inside the cloud
+// doc: 2-4 phone photos pushed it past Firestore's 1 MiB document limit, every
+// save then failed silently, and the next launch's hydrate rolled the account
+// back to the last good cloud copy. Like progress photos they now stay on the
+// device (stitched back in by reconcilePhotos) and never enter the cloud doc.
+const RECIPE_IMAGE_KEY_PREFIX = "recipe-image:";
+function getRecipeImageKey(favoriteId) {
+  return `${RECIPE_IMAGE_KEY_PREFIX}${favoriteId}`;
+}
+function isInlineImageData(url) {
+  return typeof url === "string" && url.startsWith("data:");
+}
 const photoIdsInIdb = new Set();
 let photoDbPromise = null;
 
@@ -576,6 +646,14 @@ let isHydratingCloudState = false;
 // device wrote in the meantime and we must not silently overwrite (conflict).
 // null = baseline not established yet (before first hydrate/save).
 let knownRev = null;
+// True once this session has loaded (or created) the cloud doc, i.e. knownRev is
+// a real baseline. While false (offline start, read error) we don't auto-write:
+// a blind write could stomp another device's newer data. Edits are kept locally
+// with the per-account `dirty` flag and reconciled on the next hydrate.
+let cloudBaselineReady = false;
+// Bumped by persist(); a save only clears `dirty` if nothing changed in flight.
+let localMutationCounter = 0;
+let cloudSyncRetryInFlight = false;
 let serviceWorkerRegistration = null;
 let appUpdateReloading = false;
 
@@ -755,11 +833,15 @@ function normalizeHabitRecord(habit = {}) {
   };
 }
 
-function readLocalSnapshot() {
+// `allowLegacy` lets the first sign-in after the per-account split adopt the
+// device's old single blob; a *different* account must not (it isn't theirs).
+function readLocalSnapshot({ uid = activeStorageUid, allowLegacy = true } = {}) {
   const seed = cloneSeed();
-  const storedRaw = localStorage.getItem(STORAGE_KEY);
+  let storedRaw = safeLocalGet(getStoreStorageKey(uid));
+  if (!storedRaw && uid && allowLegacy) {
+    storedRaw = safeLocalGet(STORAGE_KEY);
+  }
   if (!storedRaw) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
     return seed;
   }
 
@@ -767,7 +849,6 @@ function readLocalSnapshot() {
     return normalizeStoreSnapshot(JSON.parse(storedRaw), seed);
   } catch (error) {
     console.error("State hydration failed", error);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
     return seed;
   }
 }
@@ -890,11 +971,14 @@ function normalizeFoodCategoriesAcrossStore(targetStore) {
 }
 
 function replaceStore(nextStore) {
+  // Normalize first: if the input is unusable this throws and the live store is
+  // untouched (it used to be emptied before normalization ran).
+  const normalized = normalizeStoreSnapshot(nextStore);
+  ensureStoreCollections(normalized);
   Object.keys(store).forEach((key) => {
     delete store[key];
   });
-  Object.assign(store, normalizeStoreSnapshot(nextStore));
-  ensureStoreCollections(store);
+  Object.assign(store, normalized);
 }
 
 function getSerializableStoreSnapshot(source = store) {
@@ -904,6 +988,11 @@ function getSerializableStoreSnapshot(source = store) {
 function getCloudStoreSnapshot(source = store) {
   const snapshot = getSerializableStoreSnapshot(source);
   delete snapshot.progressPhotos;
+  if (Array.isArray(snapshot.favoriteMeals)) {
+    snapshot.favoriteMeals = snapshot.favoriteMeals.map((favorite) =>
+      favorite && isInlineImageData(favorite.imageUrl) ? { ...favorite, imageUrl: "" } : favorite
+    );
+  }
   return snapshot;
 }
 
@@ -912,6 +1001,15 @@ function getCloudStoreSnapshot(source = store) {
 // good local data once normalized, so we reject it and keep working locally.
 function isValidCloudState(data) {
   return Boolean(data) && typeof data === "object" && !Array.isArray(data);
+}
+
+// A backup is whatever exportData() wrote: the store itself. Require a couple of
+// its top-level collections so a random JSON (package.json, another app's
+// export) can't replace the whole store with seed + junk and get pushed to
+// the cloud with a "success" toast.
+const BACKUP_MARKER_KEYS = ["foods", "weeklyPlanEntries", "goals", "profile", "measurements", "trainingTemplates", "favoriteMeals", "habits", "trainingLogs"];
+function looksLikeBackupSnapshot(parsed) {
+  return isValidCloudState(parsed) && BACKUP_MARKER_KEYS.filter((key) => key in parsed).length >= 2;
 }
 
 function getUserStateRef(uid) {
@@ -928,7 +1026,10 @@ function isDemoAccount() {
 async function resetDemoToFactory() {
   replaceStore(cloneSeed());
   persistLocal();
-  await saveCloudStateNow({ force: true, overwrite: true });
+  const saved = await saveCloudStateNow({ force: true, overwrite: true });
+  if (!saved) {
+    throw new Error("cloud-save-failed");
+  }
 }
 
 // Reset PRAVOG (ne-demo) naloga: briše plan, trening, rutinu, dnevnik,
@@ -952,7 +1053,13 @@ async function resetRealAccountToBlank() {
   store.onboarded = true;
   persistLocal();
   await Promise.all(photoIdsToDelete.map((id) => idbDeletePhoto(id)));
-  await saveCloudStateNow({ force: true, overwrite: true });
+  // saveCloudStateNow resolves false (not throws) on failure; surface it so the
+  // button shows the error toast instead of "Podaci su obrisani". The local
+  // reset is already done and flagged dirty, so the next hydrate completes it.
+  const saved = await saveCloudStateNow({ force: true, overwrite: true });
+  if (!saved) {
+    throw new Error("cloud-save-failed");
+  }
 }
 
 function getAuthErrorMessage(error) {
@@ -984,7 +1091,10 @@ async function saveCloudStateNow(options = {}) {
     cloudSaveTimer = null;
   }
 
-  const ref = getUserStateRef(state.authUser.uid);
+  const uid = state.authUser.uid;
+  const ref = getUserStateRef(uid);
+  const mutationAtStart = localMutationCounter;
+  writeSyncMeta(uid, { dirty: true });
   try {
     // Read-before-write in a transaction so two devices can't silently clobber
     // each other: if the remote rev moved past what we last synced and we aren't
@@ -1002,23 +1112,24 @@ async function saveCloudStateNow(options = {}) {
       }
 
       const rev = remoteRev + 1;
-      tx.set(
-        ref,
-        {
-          schemaVersion: CLOUD_SCHEMA_VERSION,
-          updatedAt: serverTimestamp(),
-          rev,
-          state: getCloudStoreSnapshot(),
-        },
-        // Reset/keep-local paths pass overwrite:true to fully replace the doc (no
-        // merge), so stale nested map keys (training completions/burns, collapsed
-        // meal UI) are actually wiped instead of deep-merged.
-        options.overwrite ? {} : { merge: true }
-      );
+      // Always replace the whole doc. `set(..., { merge: true })` only wrote the
+      // keys present locally, so a map key deleted here (an un-checked exercise,
+      // an un-ticked shopping item, a removed staple) survived in the cloud and
+      // came back on the next launch / never reached the other device.
+      tx.set(ref, {
+        schemaVersion: CLOUD_SCHEMA_VERSION,
+        updatedAt: serverTimestamp(),
+        rev,
+        state: getCloudStoreSnapshot(),
+      });
       return rev;
     });
 
     knownRev = nextRev;
+    cloudBaselineReady = true;
+    // Only mark clean if nothing changed while the write was in flight — the
+    // pending debounce will save (and clear) the newer edit.
+    writeSyncMeta(uid, { rev: nextRev, dirty: localMutationCounter !== mutationAtStart });
     state.syncStatus = "Sync je uključen";
     state.syncConflict = null;
     if (options.renderAfterSave) {
@@ -1034,7 +1145,11 @@ async function saveCloudStateNow(options = {}) {
       return false;
     }
     console.error("Cloud persist failed", error);
-    state.syncStatus = "Cloud sync nije uspeo";
+    // Edits are safe locally and flagged dirty; they're retried when we're back
+    // online/visible and reconciled on the next hydrate.
+    state.syncStatus = isCloudPayloadTooLarge(error)
+      ? "Podaci su preveliki za cloud — ukloni slike recepata"
+      : "Sačuvano lokalno · čeka sync";
     if (options.renderAfterSave) {
       render();
     }
@@ -1042,8 +1157,57 @@ async function saveCloudStateNow(options = {}) {
   }
 }
 
+// Firestore rejects documents over 1 MiB with invalid-argument.
+function isCloudPayloadTooLarge(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return error?.code === "invalid-argument" && /exceeds|maximum size|too large|1048576/.test(message);
+}
+
+// Fire a debounced save immediately (page going to background / being closed).
+// Mobile OSes suspend timers, so a save scheduled 650 ms ago may never run.
+function flushPendingCloudSave() {
+  if (!cloudSaveTimer || !state.authUser || !cloudBaselineReady || state.syncConflict) {
+    return;
+  }
+  saveCloudStateNow();
+}
+
+// After a failed hydrate (offline start) or a failed save, pick sync back up as
+// soon as we're online/visible again instead of waiting for the next edit.
+async function retryCloudSync() {
+  if (!state.authUser || !state.authReady || isHydratingCloudState || cloudSyncRetryInFlight || state.syncConflict) {
+    return;
+  }
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return;
+  }
+  const uid = state.authUser.uid;
+  cloudSyncRetryInFlight = true;
+  try {
+    if (!cloudBaselineReady) {
+      await hydrateStoreFromCloud(state.authUser);
+      await reconcilePhotos();
+      render();
+    } else if (readSyncMeta(uid).dirty && !cloudSaveTimer) {
+      await saveCloudStateNow({ renderAfterSave: true });
+    }
+  } finally {
+    cloudSyncRetryInFlight = false;
+  }
+}
+
 function scheduleCloudPersist() {
   if (!state.authUser || isHydratingCloudState) {
+    return;
+  }
+
+  writeSyncMeta(state.authUser.uid, { dirty: true });
+  if (state.syncConflict) {
+    // Auto-sync is paused until the user picks a side in the conflict banner.
+    return;
+  }
+  if (!cloudBaselineReady) {
+    state.syncStatus = "Sačuvano lokalno · čeka sync";
     return;
   }
 
@@ -1059,31 +1223,76 @@ function scheduleCloudPersist() {
 
 async function hydrateStoreFromCloud(user) {
   isHydratingCloudState = true;
+  cloudBaselineReady = false;
   state.syncStatus = "Učitavam podatke iz clouda...";
   render();
 
+  // Switch the local copy to this account. The device's pre-account blob is
+  // adopted only if it belonged to this account (or predates the split) — a
+  // different account must never inherit it.
+  const previousUid = safeLocalGet(LAST_UID_KEY);
+  const isSameDeviceUser = !previousUid || previousUid === user.uid;
+  const legacyAdopted = isSameDeviceUser && !safeLocalGet(getStoreStorageKey(user.uid)) && Boolean(safeLocalGet(STORAGE_KEY));
+  activeStorageUid = user.uid;
+  safeLocalSet(LAST_UID_KEY, user.uid);
+  let persistedToAccountKey = false;
+  const persistAccountCopy = () => {
+    persistedToAccountKey = persistLocal() || persistedToAccountKey;
+  };
+
+  const localSnapshot = readLocalSnapshot({ uid: user.uid, allowLegacy: isSameDeviceUser });
+  const localPhotos = Array.isArray(localSnapshot.progressPhotos) ? localSnapshot.progressPhotos : [];
+
   try {
-    const localSnapshot = readLocalSnapshot();
-    const localPhotos = Array.isArray(localSnapshot.progressPhotos) ? localSnapshot.progressPhotos : [];
+    const syncMeta = readSyncMeta(user.uid);
+    const hasUnsyncedLocalEdits = Boolean(syncMeta.dirty);
     const snapshot = await getDoc(getUserStateRef(user.uid));
 
     if (snapshot.exists()) {
       const docData = snapshot.data() || {};
       const cloudData = docData.state;
-      // Track the rev we loaded so conflict detection has a baseline.
-      knownRev = typeof docData.rev === "number" ? docData.rev : 0;
+      const remoteRev = typeof docData.rev === "number" ? docData.rev : 0;
 
       if (isValidCloudState(cloudData)) {
+        if (hasUnsyncedLocalEdits && syncMeta.rev === remoteRev) {
+          // Local edits never reached the cloud (offline, killed mid-debounce)
+          // and nobody else wrote since — push them instead of discarding them.
+          knownRev = remoteRev;
+          replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
+          persistAccountCopy();
+          cloudBaselineReady = true;
+          const saved = await saveCloudStateNow({ force: true, overwrite: true });
+          state.syncStatus = saved ? "Sync je uključen" : "Sačuvano lokalno · čeka sync";
+          return;
+        }
+
+        if (hasUnsyncedLocalEdits) {
+          // Both sides changed since our last sync — keep the local copy on
+          // screen and let the user pick (same banner as a live conflict).
+          knownRev = typeof syncMeta.rev === "number" ? syncMeta.rev : remoteRev;
+          replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
+          persistAccountCopy();
+          cloudBaselineReady = true;
+          state.syncStatus = "Izmene sa drugog uređaja";
+          state.syncConflict = { remoteRev };
+          return;
+        }
+
+        knownRev = remoteRev;
         replaceStore({ ...cloudData, progressPhotos: localPhotos });
-        persistLocal();
+        persistAccountCopy();
+        writeSyncMeta(user.uid, { rev: remoteRev, dirty: false });
+        cloudBaselineReady = true;
         state.syncStatus = "Sync je uključen";
         return;
       }
 
       // Doc exists but its state is corrupt/unexpected — keep the (good) local
       // data rather than wiping it; the next edit's save will repair the cloud.
+      knownRev = remoteRev;
       replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
-      persistLocal();
+      persistAccountCopy();
+      cloudBaselineReady = true;
       state.syncStatus = "Cloud podaci su neispravni — radiš lokalno";
       return;
     }
@@ -1092,8 +1301,8 @@ async function hydrateStoreFromCloud(user) {
     // factory plan (the creator's seed) as a template; a real new user keeps the
     // generic food database but starts WITHOUT the creator's identity, goals,
     // plan, recipes or training, so onboarding runs and they start clean.
-    // (The app is gated behind the login screen, so nothing real could have been
-    // entered before this point — localSnapshot here is only the untouched seed.)
+    // localSnapshot here is either this account's own copy or the untouched seed
+    // (another account's local copy is never adopted — see readLocalSnapshot).
     replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
     if (!isDemoAccount()) {
       store.profile = { ...store.profile, name: "", age: null, weightKg: null };
@@ -1103,14 +1312,27 @@ async function hydrateStoreFromCloud(user) {
       store.trainingTemplates = [];
       store.onboarded = false;
     }
-    persistLocal();
-    await saveCloudStateNow({ force: true });
-    state.syncStatus = "Prvi sync je završen";
+    persistAccountCopy();
+    cloudBaselineReady = true;
+    const saved = await saveCloudStateNow({ force: true });
+    state.syncStatus = saved ? "Prvi sync je završen" : "Sačuvano lokalno · čeka sync";
   } catch (error) {
     console.error("Cloud hydration failed", error);
+    cloudBaselineReady = false;
+    // Work offline on THIS account's local copy (boot may have loaded the
+    // previous account's). Edits are flagged dirty and pushed on the next hydrate.
+    try {
+      replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
+    } catch (replaceError) {
+      console.error("Local fallback failed", replaceError);
+    }
     state.syncStatus = "Cloud nije dostupan, radiš lokalno";
   } finally {
     isHydratingCloudState = false;
+    if (legacyAdopted && persistedToAccountKey) {
+      // The blob now lives under the account key — free the duplicate.
+      safeLocalRemove(STORAGE_KEY);
+    }
   }
 }
 
@@ -1118,24 +1340,32 @@ async function hydrateStoreFromCloud(user) {
 // in IndexedDB (see photoIdsInIdb). Photos not yet confirmed in IDB keep their
 // blob here so they survive a reload even if the IDB write hasn't landed.
 function getLocalStoreSnapshot() {
-  if (!photoIdsInIdb.size || !Array.isArray(store.progressPhotos)) {
+  if (!photoIdsInIdb.size) {
     return store;
   }
-  return {
-    ...store,
-    progressPhotos: store.progressPhotos.map((photo) => {
+  const snapshot = { ...store };
+  if (Array.isArray(store.progressPhotos)) {
+    snapshot.progressPhotos = store.progressPhotos.map((photo) => {
       if (photo && photoIdsInIdb.has(photo.id)) {
         const { previewUrl, ...meta } = photo;
         return meta;
       }
       return photo;
-    }),
-  };
+    });
+  }
+  if (Array.isArray(store.favoriteMeals)) {
+    snapshot.favoriteMeals = store.favoriteMeals.map((favorite) =>
+      favorite && isInlineImageData(favorite.imageUrl) && photoIdsInIdb.has(getRecipeImageKey(favorite.id))
+        ? { ...favorite, imageUrl: "" }
+        : favorite
+    );
+  }
+  return snapshot;
 }
 
 function persistLocal(rollback) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(getLocalStoreSnapshot()));
+    localStorage.setItem(getStoreStorageKey(), JSON.stringify(getLocalStoreSnapshot()));
     return true;
   } catch (error) {
     if (typeof rollback === "function") {
@@ -1148,6 +1378,7 @@ function persistLocal(rollback) {
 }
 
 function persist(rollback) {
+  localMutationCounter += 1;
   try {
     recordTodaySnapshot();
   } catch (error) {
@@ -1183,6 +1414,24 @@ async function reconcilePhotos() {
       }
     } else if (idbMap.has(photo.id)) {
       photo.previewUrl = idbMap.get(photo.id);
+      stitched += 1;
+    }
+  });
+
+  // Recipe photos: same migrate/stitch dance. Content is compared (not just the
+  // id) so a replaced photo overwrites the stored one instead of resurrecting
+  // the old image on the next load.
+  (store.favoriteMeals || []).forEach((favorite) => {
+    if (!favorite || !favorite.id) {
+      return;
+    }
+    const key = getRecipeImageKey(favorite.id);
+    if (isInlineImageData(favorite.imageUrl)) {
+      if (idbMap.get(key) !== favorite.imageUrl) {
+        toMigrate.push({ id: key, previewUrl: favorite.imageUrl });
+      }
+    } else if (!favorite.imageUrl && idbMap.has(key)) {
+      favorite.imageUrl = idbMap.get(key);
       stitched += 1;
     }
   });
@@ -4937,9 +5186,16 @@ function saveFavoriteMealMetadata(payload = {}) {
     : getFavoriteMealByName(normalizedFavoriteName);
 
   if (existingFavorite) {
+    const imageChanged = existingFavorite.imageUrl !== normalizedImageUrl;
     Object.assign(existingFavorite, recipeDetails);
     if (!Array.isArray(existingFavorite.items)) {
       existingFavorite.items = [];
+    }
+    if (imageChanged) {
+      // Keep the new base64 in localStorage until reconcilePhotos has written
+      // it to IndexedDB (the stored id would otherwise strip it prematurely).
+      photoIdsInIdb.delete(getRecipeImageKey(existingFavorite.id));
+      reconcilePhotos();
     }
     return existingFavorite;
   }
@@ -4951,6 +5207,9 @@ function saveFavoriteMealMetadata(payload = {}) {
     items: [],
   };
   store.favoriteMeals.unshift(nextFavorite);
+  if (isInlineImageData(nextFavorite.imageUrl)) {
+    reconcilePhotos();
+  }
   return nextFavorite;
 }
 
@@ -6458,14 +6717,16 @@ function renderActionIcon(kind) {
 function getSyncStatusTone(status = state.syncStatus) {
   const value = `${status || ""}`.toLowerCase();
   if (!value) return "info";
-  if (value.includes("uspeo")) return "error";
+  if (value.includes("uspeo") || value.includes("preveliki")) return "error";
   if (
     value.includes("nije dostupan") ||
     value.includes("radiš lokalno") ||
     value.includes("radis lokalno") ||
     value.includes("drugog uređaja") ||
     value.includes("drugog uredjaja") ||
-    value.includes("neispravni")
+    value.includes("neispravni") ||
+    value.includes("čeka sync") ||
+    value.includes("ceka sync")
   ) {
     return "warning";
   }
@@ -13196,6 +13457,13 @@ async function exportData() {
         : photo
     );
   }
+  if (idbMap && Array.isArray(snapshot.favoriteMeals)) {
+    snapshot.favoriteMeals = snapshot.favoriteMeals.map((favorite) =>
+      favorite && !favorite.imageUrl && idbMap.has(getRecipeImageKey(favorite.id))
+        ? { ...favorite, imageUrl: idbMap.get(getRecipeImageKey(favorite.id)) }
+        : favorite
+    );
+  }
   const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -13424,6 +13692,7 @@ async function handleDocumentClick(event) {
     if (mode === "use-cloud") {
       // Discard local pending edits and reload the other device's version.
       if (state.authUser) {
+        writeSyncMeta(state.authUser.uid, { dirty: false });
         await hydrateStoreFromCloud(state.authUser);
         await reconcilePhotos();
       }
@@ -15012,6 +15281,9 @@ async function handleDocumentClick(event) {
     if (state.editingFavoriteItem.favoriteId === favoriteId) {
       resetFavoriteDraft();
     }
+    // The in-memory record (kept for undo) still carries its base64, so an undo
+    // re-persists it to localStorage and the next reconcile re-migrates it.
+    idbDeletePhoto(getRecipeImageKey(favoriteId));
     persist();
     queuePendingUndo("Recept obrisan.", () => {
       store.favoriteMeals = prevFavoriteMeals;
@@ -16651,8 +16923,26 @@ async function handleImport(event) {
   }
 
   if (target.id === "import-json") {
+    const file = target.files[0];
     try {
-      const parsed = JSON.parse(await target.files[0].text());
+      const parsed = JSON.parse(await file.text());
+      if (!looksLikeBackupSnapshot(parsed)) {
+        showFeedbackToast({
+          title: "Ovo nije Fit Tracker backup",
+          detail: "Fajl je JSON, ali nema podatke koje app izvozi (namirnice, plan, ciljeve...). Ništa nije promenjeno.",
+          tone: "error",
+          duration: 4200,
+        });
+        target.value = "";
+        return;
+      }
+      const confirmed = window.confirm(
+        `Uvezi backup "${file.name}"?\n\nOvo ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} sadržajem fajla i upisuje ih u cloud. Ne može da se poništi — ako nisi siguran, otkaži pa prvo izvezi trenutni backup.`
+      );
+      if (!confirmed) {
+        target.value = "";
+        return;
+      }
       replaceStore(parsed);
       // Move any imported photo blobs into IndexedDB before persist, so they
       // don't bloat (or overflow) the localStorage snapshot.
@@ -16742,9 +17032,14 @@ document.addEventListener("change", handleImport);
 // return left the user checking off "sledeća nedelja" until a reload.
 let lastForegroundDateValue = getTodayDateValue();
 document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    flushPendingCloudSave();
+    return;
+  }
   if (document.visibilityState !== "visible" || !state.authUser || !state.authReady) {
     return;
   }
+  retryCloudSync();
   let changed = false;
   const today = getTodayDateValue();
   if (today !== lastForegroundDateValue) {
@@ -16761,6 +17056,7 @@ document.addEventListener("visibilitychange", () => {
     render();
   }
 });
+window.addEventListener("pagehide", flushPendingCloudSave);
 
 // Escape closes the top-most open overlay, reusing its existing close handler
 // (so e.g. the scanner camera is properly stopped).
@@ -16814,6 +17110,9 @@ function handleConnectionChange() {
   if (online !== state.isOnline) {
     state.isOnline = online;
     render();
+  }
+  if (online) {
+    retryCloudSync();
   }
 }
 window.addEventListener("online", handleConnectionChange);
