@@ -1231,73 +1231,17 @@ function updateExternalFoodResults(queryText) {
     const current = document.querySelector("#food-search");
     return current instanceof HTMLInputElement && current.value.trim() === text;
   };
-  const countVisibleOwnRows = () => [...document.querySelectorAll(".foods-list .food-row")].filter((row) => row.style.display !== "none").length;
-  const paintOff = (rows) => {
-    const target = document.querySelector('[data-role="foods-external"]');
-    if (!target || !rows) {
-      return;
-    }
-    target.querySelector(".foods-external-group--off")?.remove();
-    const ownBarcodes = new Set((store.foods || []).map((food) => String(food.barcode || "")).filter(Boolean));
-    const fresh = rows.filter((row) => !row.code || !ownBarcodes.has(row.code)).slice(0, 6);
-    if (!fresh.length) {
-      return;
-    }
-    const meta = (item) =>
-      `100 g · <b>${roundValue(toNumber(item.kcal), 0)} kcal</b> · P ${roundValue(toNumber(item.protein), 1)} · UH ${roundValue(toNumber(item.carbs), 1)} · M ${roundValue(toNumber(item.fat), 1)} g`;
-    const group = document.createElement("div");
-    group.className = "foods-external-group foods-external-group--off";
-    group.innerHTML = `
-      <div class="foods-external-label">Open Food Facts <span class="foods-external-hint">javna baza proizvoda · na 100 g</span></div>
-      ${fresh
-        .map(
-          (item, index) => `
-          <div class="foods-external-row">
-            <div class="foods-external-copy">
-              <strong>${escapeHtml(item.name)}</strong>
-              <span class="foods-external-meta">${meta(item)}</span>
-            </div>
-            <button class="ghost-button button-with-icon foods-external-add" type="button" data-action="add-off-food" data-off-index="${index}" aria-label="Dodaj ${escapeHtml(item.name)} u moje namirnice">
-              ${renderButtonContent("Dodaj", "add")}
-            </button>
-          </div>`
-        )
-        .join("")}`;
-    group.dataset.offRows = JSON.stringify(fresh);
-    target.appendChild(group);
-  };
   window.clearTimeout(externalFoodResultsTimer);
   externalFoodResultsTimer = window.setTimeout(async () => {
-    let sharedRows = sharedFoodsIndex || [];
-    if (isSharedFoodsEnabled() && state.authUser) {
-      sharedRows = await loadSharedFoodsIndex();
-      if (!isCurrentQuery()) {
-        return;
-      }
+    if (!isSharedFoodsEnabled() || !state.authUser) {
+      return;
+    }
+    const sharedRows = await loadSharedFoodsIndex();
+    // Query may have changed while the index was loading.
+    if (isCurrentQuery()) {
       paint(sharedRows);
     }
-    // Only ask Open Food Facts when what we have locally is thin.
-    const localHits = countVisibleOwnRows() + searchCatalogFoods(text).length + searchSharedFoods(sharedRows, text).length;
-    if (text.length < 3 || localHits >= 3 || (typeof navigator !== "undefined" && navigator.onLine === false)) {
-      return;
-    }
-    const target = document.querySelector('[data-role="foods-external"]');
-    if (target && !target.querySelector(".foods-external-group--off")) {
-      const loading = document.createElement("div");
-      loading.className = "foods-external-group foods-external-group--off";
-      loading.innerHTML = `<div class="foods-external-label">Open Food Facts <span class="foods-external-hint">tražim…</span></div>`;
-      target.appendChild(loading);
-    }
-    const rows = await searchOpenFoodFacts(text);
-    if (!isCurrentQuery()) {
-      return;
-    }
-    if (rows && !rows.length) {
-      document.querySelector('[data-role="foods-external"] .foods-external-group--off')?.remove();
-      return;
-    }
-    paintOff(rows);
-  }, 260);
+  }, 220);
 }
 
 // A gram-based food with a 1 g basis is nonsense (100 g of it computes as
@@ -6206,10 +6150,13 @@ function mapOpenFoodFactsProduct(product) {
   if (kcal == null && nutriments["energy_100g"] != null) {
     kcal = Number(nutriments["energy_100g"]) / 4.184;
   }
-  const name = [product.brands, product.product_name_sr || product.product_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  // Search-a-licious returns `brands` as an array; the product API as a string.
+  const brands = Array.isArray(product.brands) ? product.brands.filter(Boolean).join(", ") : String(product.brands || "");
+  const productName = product.product_name_sr || product.product_name;
+  const cleanName = typeof productName === "string" ? productName.trim() : "";
+  // Don't print the brand twice ("Nutella Nutella") when the name already starts with it.
+  const brandPrefix = brands && cleanName && !normalizeLookupValue(cleanName).startsWith(normalizeLookupValue(brands.split(",")[0])) ? brands : "";
+  const name = [brandPrefix, cleanName].filter(Boolean).join(" ").trim();
   if (!name) {
     return null;
   }
@@ -6242,52 +6189,6 @@ async function fetchOpenFoodFacts(barcode) {
   }
 }
 
-// Free-text product search on Open Food Facts — the safety net when the user's
-// database, the catalog and the shared products have nothing for a query.
-// Cached per query; a newer query aborts the in-flight request.
-const offSearchCache = new Map();
-let offSearchController = null;
-async function searchOpenFoodFacts(queryText) {
-  const key = normalizeLookupValue(queryText || "");
-  if (key.length < 3) {
-    return [];
-  }
-  if (offSearchCache.has(key)) {
-    return offSearchCache.get(key);
-  }
-  if (offSearchController) {
-    offSearchController.abort();
-  }
-  offSearchController = typeof AbortController !== "undefined" ? new AbortController() : null;
-  // OFF can be slow; give up after 8 s so the "tražim…" line never sticks.
-  let timedOut = false;
-  const timeoutId = offSearchController ? window.setTimeout(() => { timedOut = true; offSearchController.abort(); }, 8000) : null;
-  try {
-    const url =
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(queryText.trim())}` +
-      `&search_simple=1&action=process&json=1&page_size=8&fields=code,product_name,product_name_sr,brands,nutriments`;
-    const response = await fetch(url, offSearchController ? { signal: offSearchController.signal } : undefined);
-    if (!response.ok) {
-      return [];
-    }
-    const data = await response.json();
-    const rows = (Array.isArray(data.products) ? data.products : [])
-      .map(mapOpenFoodFactsProduct)
-      .filter((row) => row && row.kcal != null && row.kcal >= 0);
-    offSearchCache.set(key, rows);
-    return rows;
-  } catch (error) {
-    if (error && error.name === "AbortError" && !timedOut) {
-      return null; // superseded by a newer query
-    }
-    console.warn("Open Food Facts search failed", error);
-    return [];
-  } finally {
-    if (timeoutId) {
-      window.clearTimeout(timeoutId);
-    }
-  }
-}
 
 function sharedFoodRef(barcode) {
   return doc(firebaseDb, "sharedFoods", String(barcode));
@@ -16787,29 +16688,6 @@ async function handleDocumentClick(event) {
     persist();
     render();
     showFeedbackToast({ title: "Dodato u tvoje namirnice", detail: `"${food.name}" (na 100 g) je sada u tvojoj bazi.` });
-    return;
-  }
-
-  if (action === "add-off-food") {
-    const group = actionTarget.closest(".foods-external-group--off");
-    let rows = [];
-    try {
-      rows = JSON.parse(group?.dataset.offRows || "[]");
-    } catch (error) {
-      rows = [];
-    }
-    const row = rows[Number(actionTarget.dataset.offIndex)];
-    const food = addSharedFoodToStore(row ? { ...row, barcode: row.code } : null);
-    if (!food) {
-      return;
-    }
-    food.source = "openfoodfacts";
-    if (row.code) {
-      saveSharedFood(row.code, food);
-    }
-    persist();
-    render();
-    showFeedbackToast({ title: "Dodato u tvoje namirnice", detail: `${food.name} (na 100 g)`, tone: "success" });
     return;
   }
 
