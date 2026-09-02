@@ -11993,20 +11993,48 @@ function renderAccountSection() {
 
   return `
     <section class="section settings-account-section">
-      ${renderSectionLead("Nalog i sync", "Ovde su prijava, cloud status i sigurnosne opcije za podatke iz app-a.", { eyebrow: "Podešavanja" })}
+      ${(() => {
+        const email = String(state.authUser?.email || "").trim();
+        const demo = isDemoAccount();
+        const name = demo ? "Demo nalog" : String(store.profile?.name || "").trim() || (email ? email.split("@")[0] : "Nalog");
+        const initial = (name || email || "?").charAt(0).toUpperCase();
+        const facts = [];
+        if (toNumber(store.profile?.age) > 0) facts.push(["Godine", `${roundValue(toNumber(store.profile.age), 0)}`]);
+        if (toNumber(store.profile?.heightCm) > 0) facts.push(["Visina", `${roundValue(toNumber(store.profile.heightCm), 0)} cm`]);
+        if (toNumber(store.profile?.weightKg) > 0) facts.push(["Težina", `${roundValue(toNumber(store.profile.weightKg), 1)} kg`]);
+        if (toNumber(store.goals?.calories) > 0) facts.push(["Dnevni cilj", `${roundValue(toNumber(store.goals.calories), 0)} kcal`]);
+        return `
+          <div class="profile-hero">
+            <span class="profile-hero-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+            <div class="profile-hero-copy">
+              <h2 class="profile-hero-name">${escapeHtml(name)}${demo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</h2>
+              ${email ? `<div class="profile-hero-email">${escapeHtml(email)}</div>` : ""}
+              <div class="pill-row profile-hero-pills">
+                <span class="pill strong pill--${syncStatusTone}">${state.syncStatus}</span>
+              </div>
+            </div>
+          </div>
+          ${
+            facts.length
+              ? `<dl class="glance-list profile-facts">${facts
+                  .map(([label, value]) => `<div class="glance-item"><dt>${label}</dt><dd>${value}</dd></div>`)
+                  .join("")}</dl>`
+              : ""
+          }`;
+      })()}
       <div class="settings-grid">
-        ${renderStatusSummaryCard({
-          title: state.authUser?.email || "Nema prijavljenog naloga",
-          detail: "Cloud sync radi za plan, obroke, trening, rutinu i ciljeve. Progress slike za sada ostaju lokalno na uređaju.",
-          statusLabel: state.syncStatus,
-          tone: syncStatusTone,
-          pills: [
-            { label: "Firebase sync", strong: true, tone: syncStatusTone },
-            { label: "Slike: lokalno", tone: "info" },
-          ],
-          actions: `<button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
-            <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>`,
-        })}
+        <article class="status-summary-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Nalog</strong>
+              <div class="footer-note">Cloud sync čuva plan, obroke, trening, rutinu, merenja i ciljeve. Slike ostaju na ovom uređaju.</div>
+            </div>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
+            <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
+          </div>
+        </article>
 
         <article class="status-summary-card">
           <div class="status-summary-top">
@@ -13948,8 +13976,8 @@ function render() {
             const name = demo ? "Demo nalog" : String(store.profile?.name || "").trim() || email.split("@")[0];
             const initial = (name || email).charAt(0).toUpperCase();
             return `
-              <button class="app-sidebar-account ${state.activeTab === "goals" && state.goalsView === "nalog" ? "is-active" : ""}" type="button" data-action="open-account" aria-label="Nalog i podešavanja" title="Nalog">
-                <span class="app-sidebar-account-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+              <button class="app-sidebar-account ${state.activeTab === "goals" && state.goalsView === "nalog" ? "is-active" : ""}" type="button" data-action="open-account" aria-label="Nalog i podešavanja · ${escapeHtml(state.syncStatus)}" title="Nalog · ${escapeHtml(state.syncStatus)}">
+                <span class="app-sidebar-account-avatar" aria-hidden="true">${escapeHtml(initial)}<span class="app-sidebar-account-dot is-${getSyncStatusTone()}"></span></span>
                 <span class="app-sidebar-account-copy">
                   <span class="app-sidebar-account-name">${escapeHtml(name)}${demo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
                   <span class="app-sidebar-account-email">${escapeHtml(email)}</span>
@@ -13957,9 +13985,6 @@ function render() {
                 <span class="app-sidebar-account-chevron" aria-hidden="true">${renderSideChevronIcon(false)}</span>
               </button>`;
           })()}
-          <div class="pill-row app-sidebar-status-row">
-            <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
-          </div>
           <button class="ghost-button theme-toggle button-with-icon" type="button" data-action="toggle-theme" aria-label="Promeni temu">
             <span class="theme-toggle-face to-dark">
               <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
