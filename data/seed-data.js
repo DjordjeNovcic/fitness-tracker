@@ -427,6 +427,7 @@ window.SEED_DATA = {
     {
       "id": "food-41",
       "name": "Espreso sa mlekom",
+      "servingUnit": "piece",
       "servingBaseGrams": 1.0,
       "kcal": 35.0,
       "protein": 1.0,

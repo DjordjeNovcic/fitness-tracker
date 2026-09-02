@@ -848,6 +848,22 @@ function ensureStoreCollections(targetStore) {
   cleanupNutritionImportedFoods(targetStore);
   normalizeFoodNamesAcrossStore(targetStore);
   normalizeFoodCategoriesAcrossStore(targetStore);
+  normalizeFoodServingUnitsAcrossStore(targetStore);
+}
+
+// A gram-based food with a 1 g basis is nonsense (100 g of it computes as
+// 100× the listed macros — the seed's "Espreso sa mlekom" came out at 3500 kcal
+// per 100 g). The food form always stores 100 for gram foods, so a basis of 1
+// can only mean the record is really a per-piece item — mark it as one.
+function normalizeFoodServingUnitsAcrossStore(targetStore) {
+  (targetStore.foods || []).forEach((food) => {
+    if (!food || getFoodServingUnit(food) === "piece") {
+      return;
+    }
+    if (toNumber(food.servingBaseGrams) === 1) {
+      food.servingUnit = "piece";
+    }
+  });
 }
 
 function normalizeFoodNamesAcrossStore(targetStore) {
@@ -1833,15 +1849,35 @@ function getNutritionPlanById(planId) {
   return getNutritionPlans().find((plan) => plan.id === planId) || null;
 }
 
+// Recipe items are stored for the whole batch; one serving's worth is applied.
+function scaleItemsToOneServing(items, servings) {
+  const divisor = Math.max(1, toNumber(servings) || 1);
+  return (items || [])
+    .filter((item) => item.foodId)
+    .map((item) => ({ ...item, grams: Math.max(0.1, roundValue(toNumber(item.grams) / divisor, 1)) }));
+}
+
 function getNutritionPlanMealApplyItems(meal) {
   if (Array.isArray(meal.items) && meal.items.length) {
-    return meal.items.filter((item) => item.foodId);
+    const items = meal.items.filter((item) => item.foodId);
+    // Plans saved before per-serving scaling carried whole-batch recipe grams
+    // next to per-serving totals; detect that (items ≈ servings × totals) and
+    // scale down so "Primeni" adds what the card shows, not the whole batch.
+    const servings = toNumber(meal.servings);
+    const shownKcal = toNumber(meal.totals?.kcal);
+    if (meal.linkedRecipeId && servings > 1 && shownKcal > 0) {
+      const itemsKcal = getDayTotals(items).kcal;
+      if (Math.abs(itemsKcal / shownKcal - servings) < 0.05 * servings) {
+        return scaleItemsToOneServing(items, servings);
+      }
+    }
+    return items;
   }
 
   if (meal.linkedRecipeId) {
     const linkedRecipe = getFavoriteMealsDetailed().find((recipe) => recipe.id === meal.linkedRecipeId);
     if (linkedRecipe) {
-      return (linkedRecipe.items || []).filter((item) => item.foodId);
+      return scaleItemsToOneServing(linkedRecipe.items, getRecipeServingCount(linkedRecipe));
     }
   }
 
@@ -2537,7 +2573,11 @@ function buildNutritionPlanMeal(mealTitle, mealText) {
           foodId: item.foodId || "",
         }))
       : [];
-  const rawItems = parsedItems.length ? parsedItems : recipeItems;
+  // A linked recipe's items are whole-batch grams while the card shows one
+  // serving — scale them down here so items, totals and "Primeni" all agree.
+  const rawItems = parsedItems.length
+    ? parsedItems
+    : recipeItems.map((item) => ({ ...item, grams: toNumber(item.grams) / getRecipeServingCount(linkedRecipe || {}) }));
   const items = rawItems.map((item) => {
     const itemName = item.displayName || item.name || "";
     const exactFood = item.foodId ? getFoodById(item.foodId) : null;
@@ -2565,7 +2605,7 @@ function buildNutritionPlanMeal(mealTitle, mealText) {
     instructions: linkedRecipe?.instructions || "",
     servings: linkedRecipe?.servings || 0,
     items,
-    totals: linkedRecipe && !parsedItems.length ? linkedRecipe.perServingTotals : getDayTotals(items),
+    totals: getDayTotals(items),
   };
 }
 
@@ -4183,9 +4223,14 @@ function getGoalRecommendation(profile = store.profile, goals = store.goals) {
   }
   const floorCalories = Math.max(1200, roundValue(bmr, 0));
   let targetCalories = roundValue(maintenance + (rateKgPerWeek * KCAL_PER_KG) / 7, 0);
+  const requestedRateKgPerWeek = rateKgPerWeek;
   if (rateKgPerWeek < 0) {
     targetCalories = Math.max(targetCalories, floorCalories);
+    // The floor caps the real deficit, so report the pace that deficit actually
+    // buys — ETA, the chart projection and the hero label all read this value.
+    rateKgPerWeek = roundValue(((targetCalories - maintenance) * 7) / KCAL_PER_KG, 2);
   }
+  const paceLimited = Math.abs(rateKgPerWeek - requestedRateKgPerWeek) > 0.01;
   const protein = roundValue(weightKg * goalMode.proteinFactor, 1);
   const fat = roundValue(weightKg * goalMode.fatFactor, 1);
   const remainingCalories = Math.max(0, targetCalories - protein * 4 - fat * 9);
@@ -4202,6 +4247,8 @@ function getGoalRecommendation(profile = store.profile, goals = store.goals) {
     goalMode,
     pace,
     rateKgPerWeek,
+    requestedRateKgPerWeek,
+    paceLimited,
   };
 }
 
@@ -4439,7 +4486,7 @@ function getWeeklyTrainingPlan(weekTrack = state.selectedWeekTrack) {
   return WEEKDAYS.map((weekday) => ({
     weekday,
     templates: getTrainingForDay(weekday, weekTrack),
-    trainingBurn: getTrainingBurnForDay(weekday),
+    trainingBurn: weekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(weekday) : 0,
     progressCount: store.trainingProgressLogs.filter((log) => log.weekday === weekday).length,
     completedExerciseCount: getTrainingForDay(weekday, weekTrack).reduce(
       (count, template) => count + getTrainingTemplateCompletionCount(template, weekday).completedCount,
@@ -5728,7 +5775,13 @@ function calculateGramsForTarget(food, macroKey, targetValue, fallbackGrams = 10
   if (baseMacro <= 0) {
     return fallbackGrams;
   }
-  return roundValue(clamp((targetValue / baseMacro) * 100, min, max), 0);
+  // Scale by the food's own basis (100 g, or 1 piece) — a hard-coded 100 turned
+  // a 6 g-protein egg into "633 kom" for a 40 g protein target.
+  const amount = (targetValue / baseMacro) * getFoodServingBaseValue(food);
+  if (getFoodServingUnit(food) === "piece") {
+    return Math.max(1, Math.min(6, Math.round(amount)));
+  }
+  return roundValue(clamp(amount, min, max), 0);
 }
 
 function generateDaySuggestion() {
@@ -6086,7 +6139,7 @@ function renderOnboardingPreview() {
   return `
     <div class="onboarding-preview-label">Tvoj dnevni cilj</div>
     <div class="onboarding-preview-kcal"><strong>${rec.targetCalories}</strong> kcal</div>
-    ${rec.rateKgPerWeek ? `<div class="footer-note">${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/nedeljno</div>` : ""}
+    ${rec.rateKgPerWeek ? `<div class="footer-note">${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/nedeljno${rec.paceLimited ? " · ograničeno bezbednim minimumom kalorija" : ""}</div>` : ""}
     <div class="onboarding-preview-macros">
       <span>P <strong>${rec.protein}</strong> g</span>
       <span>UH <strong>${rec.carbs}</strong> g</span>
@@ -7624,7 +7677,9 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   const totals = getDayTotals(entries);
-  const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
+  // Burn is logged per weekday for the current week only (it isn't a template),
+  // so the other track has nothing to show — don't mirror this week's numbers.
+  const trainingBurn = state.selectedWeekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(state.selectedWeekday) : 0;
   const netCalories = roundValue(totals.kcal - trainingBurn, 0);
   const calorieGoal = roundValue(store.goals.calories, 0);
   const remainingCalories = roundValue(calorieGoal - totals.kcal, 0);
@@ -10256,7 +10311,10 @@ function getGoalEta() {
     return { status: "reached", target, current };
   }
   const rec = getGoalRecommendation();
-  const rate = rec ? rec.rateKgPerWeek : 0; // kg/week, negative = loss
+  if (!rec) {
+    return { status: "no-profile", target, current, remaining };
+  }
+  const rate = rec.rateKgPerWeek; // kg/week, negative = loss
   if (!rate) {
     return { status: "no-rate", target, current, remaining };
   }
@@ -10286,6 +10344,8 @@ function renderGoalEtaCard() {
   if (eta.status === "reached") {
     tone = "good";
     body = `Stigao si do cilja od <strong>${eta.target} kg</strong> 🎉`;
+  } else if (eta.status === "no-profile") {
+    body = `Cilj: <strong>${eta.target} kg</strong> (još ${Math.abs(eta.remaining)} kg). Popuni profil (pol, godine, visina, težina) pa procenim datum.`;
   } else if (eta.status === "no-rate") {
     body = `Cilj: <strong>${eta.target} kg</strong> (još ${Math.abs(eta.remaining)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
   } else if (eta.status === "wrong-direction") {
@@ -10353,7 +10413,9 @@ function renderGoalsTab() {
         <div class="footer-note">${
           goalRecommendation
             ? goalRecommendation.rateKgPerWeek
-              ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned`
+              ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned${
+                  goalRecommendation.paceLimited ? " (tempo ograničen bezbednim minimumom kalorija)" : ""
+                }`
               : goalRecommendation.goalMode.label
             : "Popuni profil i izaberi cilj ispod"
         }</div>
@@ -11257,6 +11319,8 @@ function renderTrendCard(field) {
       etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
     } else if (eta.status === "reached") {
       etaCaption = `<div class="chart-eta">🎯 cilj dostignut!</div>`;
+    } else if (eta.status === "no-profile") {
+      etaCaption = `<div class="chart-eta">Popuni profil (pol, godine, visina, težina) da procenim datum.</div>`;
     } else if (eta.status === "no-rate") {
       etaCaption = `<div class="chart-eta">Izaberi tempo (ne „održavanje“) da procenim datum.</div>`;
     } else if (eta.status === "wrong-direction") {
