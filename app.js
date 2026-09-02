@@ -403,8 +403,6 @@ function renderMoreSheet() {
             <span class="button-label">Svetla tema</span>
           </span>
         </button>
-        <button class="ghost-button button-with-icon" type="button" data-action="force-refresh">${renderButtonContent("Osveži", "refresh")}</button>
-        <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
       </div>
     </div>
   `;
@@ -12006,7 +12004,8 @@ function renderAccountSection() {
             { label: "Firebase sync", strong: true, tone: syncStatusTone },
             { label: "Slike: lokalno", tone: "info" },
           ],
-          actions: `<button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>`,
+          actions: `<button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
+            <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>`,
         })}
 
         <article class="status-summary-card">
@@ -13919,13 +13918,6 @@ function render() {
           <div class="app-sidebar-brand">
             <div class="hero-picker-label">Navigacija</div>
             <strong>Fit Tracker</strong>
-            ${
-              state.authUser?.email
-                ? `<button class="footer-note app-sidebar-email" type="button" data-action="open-account">
-                    ${escapeHtml(state.authUser.email)}
-                  </button>`
-                : ""
-            }
           </div>
           <div class="app-sidebar-top-actions">
             <button class="ghost-button sidebar-toggle" type="button" data-action="toggle-sidebar-collapse" aria-label="${state.sidebarCollapsed ? "Raširi navigaciju" : "Skupi navigaciju"}" aria-pressed="${state.sidebarCollapsed}">
@@ -13947,6 +13939,24 @@ function render() {
           ).join("")}
         </div>
         <div class="mobile-menu-footer">
+          ${(() => {
+            const email = String(state.authUser?.email || "").trim();
+            if (!email) {
+              return "";
+            }
+            const demo = isDemoAccount();
+            const name = demo ? "Demo nalog" : String(store.profile?.name || "").trim() || email.split("@")[0];
+            const initial = (name || email).charAt(0).toUpperCase();
+            return `
+              <button class="app-sidebar-account ${state.activeTab === "goals" && state.goalsView === "nalog" ? "is-active" : ""}" type="button" data-action="open-account" aria-label="Nalog i podešavanja" title="Nalog">
+                <span class="app-sidebar-account-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+                <span class="app-sidebar-account-copy">
+                  <span class="app-sidebar-account-name">${escapeHtml(name)}${demo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
+                  <span class="app-sidebar-account-email">${escapeHtml(email)}</span>
+                </span>
+                <span class="app-sidebar-account-chevron" aria-hidden="true">${renderSideChevronIcon(false)}</span>
+              </button>`;
+          })()}
           <div class="pill-row app-sidebar-status-row">
             <span class="pill strong pill--${getSyncStatusTone()}">${state.syncStatus}</span>
           </div>
@@ -13960,8 +13970,6 @@ function render() {
               <span class="button-label">Svetla tema</span>
             </span>
           </button>
-          <button class="ghost-button button-with-icon" type="button" data-action="force-refresh">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
-          <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
         </div>
       </aside>
 
