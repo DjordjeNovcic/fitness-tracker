@@ -10335,3 +10335,89 @@ body.menu-open .plan-add-fab {
     padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* ============================================================
+   Search that feels finished: composer suggestions, one-tap add from
+   Namirnice, highlighted matches.
+   ============================================================ */
+.food-suggest {
+  margin-top: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface-elevated, #fff);
+  box-shadow: 0 16px 34px rgba(25, 34, 31, 0.1);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .food-suggest {
+  background: var(--surface-strong);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4);
+}
+.food-suggest-item {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.food-suggest-item:last-child {
+  border-bottom: 0;
+}
+.food-suggest-item.is-active,
+.food-suggest-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.food-suggest-name {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+.food-suggest-name mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 800;
+}
+:root[data-theme="dark"] .food-suggest-name mark {
+  color: var(--accent);
+}
+.food-suggest-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.food-suggest-meta em {
+  font-style: normal;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.food-row {
+  grid-template-columns: auto 1fr auto auto;
+}
+.food-row-add {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 0;
+  cursor: pointer;
+}
+.food-row-add svg {
+  width: 18px;
+  height: 18px;
+}
+:root[data-theme="dark"] .food-row-add {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}

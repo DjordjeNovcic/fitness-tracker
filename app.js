@@ -4520,6 +4520,176 @@ function convertGramsToAmountUnit(grams, unit) {
   return roundValue(toNumber(grams) / factor, unit === "g" ? 0 : 2);
 }
 
+// ---------------------------------------------------------------------------
+// Food search ranking shared by the Namirnice list and the Plan composer.
+// Lower score = better: exact name, name starts with the query, a word starts
+// with it, all tokens somewhere in the name, one-typo match, category-only hit.
+// Ties break on how recently the food was logged, then alphabetically.
+// ---------------------------------------------------------------------------
+function isWithinOneEdit(a, b) {
+  if (a === b) {
+    return true;
+  }
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) {
+    return false;
+  }
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) {
+    i += 1;
+  }
+  if (i === la || i === lb) {
+    return true;
+  }
+  if (la === lb) {
+    if (a.slice(i + 1) === b.slice(i + 1)) {
+      return true;
+    }
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2);
+  }
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+// "piletna" → "piletina", "jogrut" → "jogurt": the token may differ from the
+// word's prefix by one insertion, deletion, substitution or swap.
+function wordMatchesFuzzy(token, word) {
+  if (token.length < 4) {
+    return false;
+  }
+  return (
+    isWithinOneEdit(token, word.slice(0, token.length)) ||
+    isWithinOneEdit(token, word.slice(0, token.length + 1)) ||
+    isWithinOneEdit(token, word.slice(0, token.length - 1))
+  );
+}
+
+function scoreNameForQuery(name, haystack, normalizedQuery, tokens) {
+  if (!tokens.length) {
+    return 0;
+  }
+  if (name === normalizedQuery) {
+    return 0;
+  }
+  if (name.startsWith(normalizedQuery)) {
+    return 1;
+  }
+  const words = name.split(" ").filter(Boolean);
+  const allInName = tokens.every((token) => name.includes(token));
+  if (allInName) {
+    return words.some((word) => word.startsWith(tokens[0])) ? 2 : 3;
+  }
+  if (tokens.every((token) => haystack.includes(token) || words.some((word) => wordMatchesFuzzy(token, word)))) {
+    return tokens.every((token) => haystack.includes(token)) ? 5 : 4;
+  }
+  return null;
+}
+
+function rankFoodsForQuery(query, foods = getSelectableFoods(), limit = 8) {
+  const normalizedQuery = normalizeLookupValue(query || "");
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  if (!tokens.length) {
+    return [];
+  }
+  const usage = store.foodUsage || {};
+  const now = Date.now();
+  return foods
+    .map((food) => {
+      const name = normalizeLookupValue(food.name);
+      const haystack = normalizeLookupValue([food.name, canonicalizeImportedFoodName(food.name), food.category].filter(Boolean).join(" "));
+      const score = scoreNameForQuery(name, haystack, normalizedQuery, tokens);
+      if (score === null) {
+        return null;
+      }
+      const lastAt = toNumber(usage[food.id]?.lastAt) || 0;
+      return { food, score, lastAt, recent: lastAt > 0 && now - lastAt < 14 * DAY_IN_MS };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || b.lastAt - a.lastAt || String(a.food.name).localeCompare(String(b.food.name), "sr"))
+    .slice(0, limit);
+}
+
+// Wraps the parts of `text` that match any token in <mark>, matching without
+// case or diacritics but highlighting the original characters.
+function highlightMatch(text, tokens) {
+  const source = String(text || "");
+  const chunks = [...source].map((ch) => normalizeLookupValue(ch) || (/\s/.test(ch) ? " " : ""));
+  const normalized = chunks.join("");
+  const offsets = [];
+  let cursor = 0;
+  chunks.forEach((chunk) => {
+    offsets.push(cursor);
+    cursor += chunk.length;
+  });
+  const marked = new Array(source.length).fill(false);
+  tokens.forEach((token) => {
+    if (!token) {
+      return;
+    }
+    let from = 0;
+    let hit = normalized.indexOf(token, from);
+    while (hit !== -1) {
+      const end = hit + token.length;
+      offsets.forEach((offset, index) => {
+        const chunkEnd = offset + chunks[index].length;
+        if (chunks[index] && offset < end && chunkEnd > hit) {
+          marked[index] = true;
+        }
+      });
+      from = end;
+      hit = normalized.indexOf(token, from);
+    }
+  });
+  let html = "";
+  let open = false;
+  [...source].forEach((ch, index) => {
+    if (marked[index] && !open) {
+      html += "<mark>";
+      open = true;
+    } else if (!marked[index] && open) {
+      html += "</mark>";
+      open = false;
+    }
+    html += escapeHtml(ch);
+  });
+  if (open) {
+    html += "</mark>";
+  }
+  return html;
+}
+
+// Suggestion list under the Plan composer's food field (replaces the native
+// <datalist>: ranked, shows kcal, keyboard-navigable, typo tolerant).
+function updateFoodSuggestions(query, selectedFood = null) {
+  const list = document.querySelector("#food-suggest");
+  if (!list) {
+    return;
+  }
+  const normalizedQuery = normalizeLookupValue(query || "");
+  if (normalizedQuery.length < 2 || (selectedFood && normalizeLookupValue(selectedFood.name) === normalizedQuery)) {
+    list.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  const ranked = rankFoodsForQuery(query, getSelectableFoods(), 6);
+  if (!ranked.length) {
+    list.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  list.innerHTML = ranked
+    .map(
+      (entry, index) => `
+        <button type="button" class="food-suggest-item ${index === 0 ? "is-active" : ""}" role="option" aria-selected="${index === 0}" data-action="pick-plan-food" data-food-id="${entry.food.id}">
+          <span class="food-suggest-name">${highlightMatch(entry.food.name, tokens)}</span>
+          <span class="food-suggest-meta">${getFoodNutritionBasisLabel(entry.food)} · ${roundValue(entry.food.kcal, 0)} kcal${entry.recent ? ` · <em>nedavno</em>` : ""}</span>
+        </button>`
+    )
+    .join("");
+  list.hidden = false;
+}
+
 function resolveFoodFromQuery(query) {
   const normalizedQuery = String(query || "").trim();
   if (!normalizedQuery) {
@@ -6157,19 +6327,19 @@ function renderFoodEditorDialog() {
             <div class="food-form-grid">
               <div class="field">
                 <label for="food-kcal">Kalorije</label>
-                <input id="food-kcal" name="kcal" type="number" step="0.1" min="0" value="${prefill && prefill.kcal != null ? roundValue(prefill.kcal, 1) : ""}" required />
+                <input id="food-kcal" name="kcal" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.kcal != null ? roundValue(prefill.kcal, 1) : ""}" required />
               </div>
               <div class="field">
                 <label for="food-protein">Proteini</label>
-                <input id="food-protein" name="protein" type="number" step="0.1" min="0" value="${prefill && prefill.protein != null ? roundValue(prefill.protein, 1) : ""}" required />
+                <input id="food-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.protein != null ? roundValue(prefill.protein, 1) : ""}" required />
               </div>
               <div class="field">
                 <label for="food-carbs">Ugljeni hidrati</label>
-                <input id="food-carbs" name="carbs" type="number" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />
+                <input id="food-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />
               </div>
               <div class="field">
                 <label for="food-fat">Masti</label>
-                <input id="food-fat" name="fat" type="number" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />
+                <input id="food-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />
               </div>
             </div>
           </section>
@@ -7158,28 +7328,13 @@ function filterFoodsListInline(query) {
   rows.forEach((row) => {
     const haystack = row.dataset.search || "";
     const name = row.dataset.name || haystack;
-    const match = tokens.every((token) => haystack.includes(token));
+    const match = !tokens.length || scoreNameForQuery(name, haystack, normalizedQuery, tokens) !== null;
     row.style.display = match ? "" : "none";
     if (!match) {
       return;
     }
     visible += 1;
-    // Best matches first: the exact name, then names starting with the
-    // query, then a word starting with it, then any substring, then hits
-    // that only came from category/group text.
-    let score = 4;
-    if (!tokens.length) {
-      score = 0;
-    } else if (name === normalizedQuery) {
-      score = 0;
-    } else if (name.startsWith(normalizedQuery)) {
-      score = 1;
-    } else if (name.split(" ").some((word) => word.startsWith(tokens[0]))) {
-      score = 2;
-    } else if (tokens.every((token) => name.includes(token))) {
-      score = 3;
-    }
-    ranked.push({ row, score, index: Number(row.dataset.index) });
+    ranked.push({ row, score: scoreNameForQuery(name, haystack, normalizedQuery, tokens) ?? 4, index: Number(row.dataset.index) });
   });
   ranked.sort((a, b) => a.score - b.score || a.index - b.index);
   const hiddenRows = rows.filter((row) => row.style.display === "none").sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
@@ -7245,8 +7400,8 @@ function commitPlanDraftEntry(food, grams, mealLabelOverride) {
   expandMealForWeekday(state.selectedWeekday, mealLabel);
   persist();
   showFeedbackToast({
-    title: "Dodato u obrok",
-    detail: `${food.name} · ${formatFoodAmount(food, grams)}`,
+    title: `Dodato u ${getMealDisplayParts(mealLabel).title || mealLabel}`,
+    detail: `${food.name} · ${formatFoodAmount(food, grams)} · ${weekdayLabel(state.selectedWeekday).toLowerCase()}`,
     tone: "success",
   });
   return true;
@@ -7313,12 +7468,10 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
         </div>
         <div class="food-search-control">
           <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
-          <input id="food-search-input" name="foodSearch" list="plan-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" required />
+          <input id="food-search-input" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-controls="food-suggest" aria-expanded="false" required />
         </div>
         <input id="foodId" name="foodId" type="hidden" value="${state.planDraft.foodId}" />
-        <datalist id="plan-food-options">
-          ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
-        </datalist>
+        <div class="food-suggest" id="food-suggest" role="listbox" aria-label="Predlozi namirnica" hidden></div>
         <div class="food-match" id="food-match">${renderFoodMatchInner(draftFood)}</div>
       </div>
       <div class="field meal-composer-field" id="amount-field">${renderAmountFieldInner(draftFood)}</div>
@@ -7432,9 +7585,9 @@ function renderAmountFieldInner(food) {
     `;
 
   const amountInputMarkup = isPiece
-    ? `<input id="grams" name="grams" type="number" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.planDraft.grams}" required />`
+    ? `<input id="grams" name="grams" type="number" inputmode="decimal" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.planDraft.grams}" required />`
     : `
-      <input id="amount-input" type="number" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
+      <input id="amount-input" type="number" inputmode="decimal" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
       <input id="grams" name="grams" type="hidden" value="${state.planDraft.grams}" />
     `;
 
@@ -7483,9 +7636,9 @@ function renderFavoriteAmountFieldInner(food) {
     `;
 
   const inputMarkup = isPiece
-    ? `<input id="favorite-grams" name="grams" type="number" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.favoriteDraft.grams}" required />`
+    ? `<input id="favorite-grams" name="grams" type="number" inputmode="decimal" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.favoriteDraft.grams}" required />`
     : `
-      <input id="favorite-amount-input" type="number" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
+      <input id="favorite-amount-input" type="number" inputmode="decimal" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
       <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
     `;
 
@@ -8746,6 +8899,8 @@ function renderPlanTab(entries) {
 }
 
 function renderFoodsTab() {
+  const nextOpenMealLabel = getNextOpenMealLabel();
+  const nextOpenMealTitle = nextOpenMealLabel ? getMealDisplayParts(nextOpenMealLabel).title || nextOpenMealLabel : "";
   // Foods imported from a nutrition-plan document that still need kcal/macro
   // values are hidden from the selectable list below (shouldHidePendingImportedFood)
   // until reviewed — without this link, they're invisible and unreachable
@@ -8929,6 +9084,13 @@ function renderFoodsTab() {
                   <div class="food-row-qty">${getFoodNutritionBasisLabel(food)}</div>
                   <div class="food-row-nutri"><span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span> · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</div>
                 </div>
+                ${
+                  nextOpenMealLabel
+                    ? `<button class="food-row-add" type="button" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(nextOpenMealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)} u ${escapeHtml(nextOpenMealTitle)}" title="Dodaj u ${escapeHtml(nextOpenMealTitle)}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                      </button>`
+                    : ""
+                }
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
                   type="button"
@@ -9084,11 +9246,11 @@ function renderRecipesTab() {
           </div>
           <div class="field">
             <label for="favorite-servings">Broj porcija</label>
-            <input id="favorite-servings" name="servings" type="number" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
+            <input id="favorite-servings" name="servings" type="number" inputmode="decimal" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
           </div>
           <div class="field">
             <label for="favorite-prep-time">Vreme pripreme</label>
-            <input id="favorite-prep-time" name="prepTimeMinutes" type="number" min="1" step="1" placeholder="15" value="${state.favoriteDraft.prepTimeMinutes}" />
+            <input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" placeholder="15" value="${state.favoriteDraft.prepTimeMinutes}" />
           </div>
           <div class="field recipe-builder-field-wide">
             <label for="favorite-instructions">Priprema</label>
@@ -9179,7 +9341,7 @@ function renderRecipesTab() {
                                   </select>
                                 `
                             }
-                            <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
+                            <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" inputmode="decimal" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
                             ${
                               item.isPending
                                 ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
@@ -9670,7 +9832,7 @@ function renderTrainingTab() {
         </div>
         <div class="field">
           <label for="progress-weight">Kilaža</label>
-          <input id="progress-weight" name="weightKg" type="number" step="0.5" min="0" placeholder="npr. 80" required />
+          <input id="progress-weight" name="weightKg" type="number" inputmode="decimal" step="0.5" min="0" placeholder="npr. 80" required />
         </div>
         <div class="field">
           <label for="progress-reps">Serije / ponavljanja</label>
@@ -11071,15 +11233,15 @@ function renderGoalsTab() {
         </div>
         <div class="field">
           <label for="profile-age">Godine</label>
-          <input id="profile-age" name="age" type="number" min="0" value="${store.profile.age || ""}" />
+          <input id="profile-age" name="age" type="number" inputmode="decimal" min="0" value="${store.profile.age || ""}" />
         </div>
         <div class="field">
           <label for="profile-weight">Težina (kg)</label>
-          <input id="profile-weight" name="weightKg" type="number" step="0.1" min="0" value="${store.profile.weightKg || ""}" />
+          <input id="profile-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.profile.weightKg || ""}" />
         </div>
         <div class="field">
           <label for="profile-height">Visina (cm)</label>
-          <input id="profile-height" name="heightCm" type="number" step="1" min="0" value="${store.profile.heightCm || ""}" />
+          <input id="profile-height" name="heightCm" type="number" inputmode="decimal" step="1" min="0" value="${store.profile.heightCm || ""}" />
         </div>
         <div class="field">
           <label for="profile-activity">Aktivnost</label>
@@ -11101,23 +11263,23 @@ function renderGoalsTab() {
         </div>
         <div class="field">
           <label for="goal-target-weight">Ciljna težina (kg)</label>
-          <input id="goal-target-weight" name="targetWeightKg" type="number" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />
+          <input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />
         </div>
         <div class="field">
           <label for="goal-calories">Dnevni cilj kcal</label>
-          <input id="goal-calories" name="calories" type="number" step="1" min="0" value="${store.goals.calories || ""}" />
+          <input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />
         </div>
         <div class="field">
           <label for="goal-protein">Proteini</label>
-          <input id="goal-protein" name="protein" type="number" step="0.1" min="0" value="${store.goals.protein || ""}" />
+          <input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />
         </div>
         <div class="field">
           <label for="goal-carbs">Ugljeni hidrati</label>
-          <input id="goal-carbs" name="carbs" type="number" step="0.1" min="0" value="${store.goals.carbs || ""}" />
+          <input id="goal-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.carbs || ""}" />
         </div>
         <div class="field">
           <label for="goal-fat">Masti</label>
-          <input id="goal-fat" name="fat" type="number" step="0.1" min="0" value="${store.goals.fat || ""}" />
+          <input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
@@ -11551,7 +11713,7 @@ function renderNutritionTab() {
                     <input
                       id="nutrition-food-kcal"
                       name="kcal"
-                      type="number"
+                      type="number" inputmode="decimal"
                       step="0.1"
                       min="0"
                       value="${toNumber(nutritionEditingFood.kcal) > 0 ? roundValue(nutritionEditingFood.kcal, 1) : ""}"
@@ -11564,15 +11726,15 @@ function renderNutritionTab() {
                   </div>
                   <div class="field">
                     <label for="nutrition-food-protein">Proteini na 100 g</label>
-                    <input id="nutrition-food-protein" name="protein" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.protein) > 0 ? roundValue(nutritionEditingFood.protein, 1) : ""}" />
+                    <input id="nutrition-food-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${toNumber(nutritionEditingFood.protein) > 0 ? roundValue(nutritionEditingFood.protein, 1) : ""}" />
                   </div>
                   <div class="field">
                     <label for="nutrition-food-carbs">Ugljeni hidrati na 100 g</label>
-                    <input id="nutrition-food-carbs" name="carbs" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.carbs) > 0 ? roundValue(nutritionEditingFood.carbs, 1) : ""}" />
+                    <input id="nutrition-food-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${toNumber(nutritionEditingFood.carbs) > 0 ? roundValue(nutritionEditingFood.carbs, 1) : ""}" />
                   </div>
                   <div class="field">
                     <label for="nutrition-food-fat">Masti na 100 g</label>
-                    <input id="nutrition-food-fat" name="fat" type="number" step="0.1" min="0" value="${toNumber(nutritionEditingFood.fat) > 0 ? roundValue(nutritionEditingFood.fat, 1) : ""}" />
+                    <input id="nutrition-food-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${toNumber(nutritionEditingFood.fat) > 0 ? roundValue(nutritionEditingFood.fat, 1) : ""}" />
                   </div>
                   <div class="field" style="grid-column:1 / -1;">
                     <label for="nutrition-food-source">Izvor</label>
@@ -12555,7 +12717,7 @@ function renderLabSection() {
           </div>
           <div class="field">
             <label for="lab-value">Vrednost</label>
-            <input id="lab-value" name="value" type="number" step="0.01" min="0" placeholder="npr. 34" required />
+            <input id="lab-value" name="value" type="number" inputmode="decimal" step="0.01" min="0" placeholder="npr. 34" required />
           </div>
           <div class="field">
             <label for="lab-date">Datum</label>
@@ -16282,6 +16444,28 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "pick-plan-food") {
+    const food = getFoodById(String(actionTarget.dataset.foodId || ""));
+    const input = document.querySelector("#food-search-input");
+    if (!food || !(input instanceof HTMLInputElement)) {
+      return;
+    }
+    input.value = food.name;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const list = document.querySelector("#food-suggest");
+    if (list) {
+      list.hidden = true;
+    }
+    window.requestAnimationFrame(() => {
+      const amount = document.querySelector("#amount-input") || document.querySelector("#grams");
+      if (amount instanceof HTMLInputElement && amount.type !== "hidden") {
+        amount.focus();
+        amount.select();
+      }
+    });
+    return;
+  }
+
   if (action === "clear-food-search") {
     state.foodSearch = "";
     render();
@@ -17230,6 +17414,7 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "food-search-input") {
     const previousFoodId = state.planDraft.foodId;
     const selectedFood = resolveFoodFromQuery(target.value);
+    updateFoodSuggestions(target.value, selectedFood);
     state.planDraft.foodId = selectedFood?.id || "";
     if (state.planDraft.foodId !== previousFoodId) {
       // Switching food resets the unit — a spoon choice made for honey
@@ -17460,6 +17645,65 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("pagehide", flushPendingCloudSave);
+
+// Plan composer suggestions: arrows move, Enter picks, Escape closes; the list
+// hides when focus leaves the field (a tap on an item keeps the field focused).
+document.addEventListener("keydown", (event) => {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement) || input.id !== "food-search-input") {
+    return;
+  }
+  const list = document.querySelector("#food-suggest");
+  if (!list || list.hidden) {
+    return;
+  }
+  const items = [...list.querySelectorAll(".food-suggest-item")];
+  if (!items.length) {
+    return;
+  }
+  const activeIndex = items.findIndex((item) => item.classList.contains("is-active"));
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const next = event.key === "ArrowDown" ? Math.min(items.length - 1, activeIndex + 1) : Math.max(0, activeIndex - 1);
+    items.forEach((item, index) => {
+      item.classList.toggle("is-active", index === next);
+      item.setAttribute("aria-selected", String(index === next));
+    });
+    return;
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    (items[activeIndex] || items[0]).click();
+    return;
+  }
+  if (event.key === "Escape") {
+    event.stopImmediatePropagation();
+    list.hidden = true;
+  }
+});
+document.addEventListener("mousedown", (event) => {
+  if (event.target instanceof Element && event.target.closest(".food-suggest-item")) {
+    event.preventDefault();
+  }
+});
+document.addEventListener("focusin", (event) => {
+  const input = event.target;
+  if (input instanceof HTMLInputElement && input.id === "food-search-input" && input.value) {
+    updateFoodSuggestions(input.value, resolveFoodFromQuery(input.value));
+  }
+});
+document.addEventListener("focusout", (event) => {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement) || input.id !== "food-search-input") {
+    return;
+  }
+  window.setTimeout(() => {
+    const list = document.querySelector("#food-suggest");
+    if (list && !list.contains(document.activeElement) && document.activeElement !== input) {
+      list.hidden = true;
+    }
+  }, 120);
+});
 
 // Escape closes the top-most open overlay, reusing its existing close handler
 // (so e.g. the scanner camera is properly stopped).
