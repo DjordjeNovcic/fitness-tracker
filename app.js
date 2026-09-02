@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { doc, getDoc, getFirestore, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, getFirestore, limit, query, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
 // Local copies are kept PER ACCOUNT (`${STORAGE_KEY}:${uid}`) so one person's
@@ -897,6 +897,11 @@ function ensureStoreCollections(targetStore) {
   targetStore.shortcutNames.run = String(targetStore.shortcutNames.run || "");
   targetStore.shortcutNames.activity = String(targetStore.shortcutNames.activity || "");
   targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
+  targetStore.preferences = targetStore.preferences && typeof targetStore.preferences === "object" ? targetStore.preferences : {};
+  if (typeof targetStore.preferences.sharedFoods !== "boolean") {
+    targetStore.preferences.sharedFoods = true;
+  }
+  targetStore.hiddenCatalogIds = Array.isArray(targetStore.hiddenCatalogIds) ? targetStore.hiddenCatalogIds.filter(Boolean) : [];
   targetStore.favoriteMeals = targetStore.favoriteMeals || [];
   targetStore.favoriteFoods = targetStore.favoriteFoods || [];
   targetStore.nutritionLibrary = targetStore.nutritionLibrary || {};
@@ -943,6 +948,255 @@ function ensureStoreCollections(targetStore) {
   normalizeFoodNamesAcrossStore(targetStore);
   normalizeFoodCategoriesAcrossStore(targetStore);
   normalizeFoodServingUnitsAcrossStore(targetStore);
+  syncCatalogFoods(targetStore);
+}
+
+// ---------------------------------------------------------------------------
+// Food catalog. The bundled seed (data/seed-data.js) is the app's official
+// catalog. Every account keeps its OWN copy of each food (offline-first, one
+// cloud doc), so the catalog only ever ADDS: a food that appears in a newer
+// seed lands in the account on the next load; a catalog food the user deleted
+// is remembered in `hiddenCatalogIds` and never comes back on its own (it stays
+// reachable via "Iz kataloga" in the Namirnice search). Existing records are
+// never overwritten — a user's edits to a catalog food are theirs.
+// ---------------------------------------------------------------------------
+function getCatalogFoods() {
+  const seedFoods = Array.isArray(window.SEED_DATA?.foods) ? window.SEED_DATA.foods : [];
+  return seedFoods.filter((food) => food && food.id && food.name);
+}
+
+function isCatalogFoodId(foodId) {
+  return getCatalogFoods().some((food) => food.id === foodId);
+}
+
+function syncCatalogFoods(targetStore) {
+  const catalog = getCatalogFoods();
+  if (!catalog.length) {
+    return;
+  }
+  targetStore.meta = targetStore.meta || {};
+  const ownIds = new Set((targetStore.foods || []).map((food) => food.id));
+  const hidden = new Set(targetStore.hiddenCatalogIds || []);
+  if (!targetStore.meta.catalogSynced) {
+    // First run with the catalog: whatever seed foods this account is missing
+    // were deleted on purpose — remember that instead of re-adding them.
+    catalog.forEach((food) => {
+      if (!ownIds.has(food.id)) {
+        hidden.add(food.id);
+      }
+    });
+    targetStore.hiddenCatalogIds = [...hidden];
+    targetStore.meta.catalogSynced = true;
+    return;
+  }
+  catalog.forEach((food) => {
+    if (!ownIds.has(food.id) && !hidden.has(food.id)) {
+      targetStore.foods.push(JSON.parse(JSON.stringify(food)));
+    }
+  });
+}
+
+function hideCatalogFood(foodId) {
+  if (!isCatalogFoodId(foodId)) {
+    return;
+  }
+  store.hiddenCatalogIds = Array.isArray(store.hiddenCatalogIds) ? store.hiddenCatalogIds : [];
+  if (!store.hiddenCatalogIds.includes(foodId)) {
+    store.hiddenCatalogIds.push(foodId);
+  }
+}
+
+// Catalog foods not currently in the account (deleted or never added) that
+// match the query — offered under "Iz kataloga" in the Namirnice search.
+function searchCatalogFoods(queryText, max = 6) {
+  const tokens = normalizeLookupValue(queryText || "").split(" ").filter(Boolean);
+  if (!tokens.length) {
+    return [];
+  }
+  const ownIds = new Set((store.foods || []).map((food) => food.id));
+  return getCatalogFoods()
+    .filter((food) => !ownIds.has(food.id))
+    .filter((food) => {
+      const haystack = normalizeLookupValue(food.name);
+      return tokens.every((token) => haystack.includes(token));
+    })
+    .slice(0, max);
+}
+
+function restoreCatalogFood(catalogId) {
+  const catalogFood = getCatalogFoods().find((food) => food.id === catalogId);
+  if (!catalogFood || (store.foods || []).some((food) => food.id === catalogId)) {
+    return null;
+  }
+  const food = JSON.parse(JSON.stringify(catalogFood));
+  store.foods.push(food);
+  store.hiddenCatalogIds = (store.hiddenCatalogIds || []).filter((id) => id !== catalogId);
+  return food;
+}
+
+// ---------------------------------------------------------------------------
+// Shared products (sharedFoods/{barcode}). Written whenever anyone saves a
+// scanned product (per 100 g), readable by every signed-in account. Besides the
+// scan-time lookup they're searchable by name here: the collection is small
+// (one doc per distinct barcode ever scanned), so it's fetched once per session
+// and filtered locally — no extra index, no rule change. Governed by
+// store.preferences.sharedFoods ("Deljeni proizvodi" in Nalog).
+// ---------------------------------------------------------------------------
+let sharedFoodsIndex = null;
+let sharedFoodsIndexLoadedAt = 0;
+let sharedFoodsIndexPromise = null;
+const SHARED_FOODS_INDEX_TTL_MS = 10 * 60 * 1000;
+
+function isSharedFoodsEnabled() {
+  return store.preferences?.sharedFoods !== false;
+}
+
+async function loadSharedFoodsIndex() {
+  if (!state.authUser || !isSharedFoodsEnabled()) {
+    return [];
+  }
+  if (sharedFoodsIndex && Date.now() - sharedFoodsIndexLoadedAt < SHARED_FOODS_INDEX_TTL_MS) {
+    return sharedFoodsIndex;
+  }
+  if (sharedFoodsIndexPromise) {
+    return sharedFoodsIndexPromise;
+  }
+  sharedFoodsIndexPromise = (async () => {
+    try {
+      const snapshot = await getDocs(query(collection(firebaseDb, "sharedFoods"), limit(500)));
+      const rows = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        const name = String(data.name || "").trim();
+        if (!name) {
+          return;
+        }
+        rows.push({
+          barcode: String(data.barcode || docSnap.id),
+          name,
+          kcal: nutNumber(data.kcal),
+          protein: nutNumber(data.protein),
+          carbs: nutNumber(data.carbs),
+          fat: nutNumber(data.fat),
+        });
+      });
+      sharedFoodsIndex = rows;
+      sharedFoodsIndexLoadedAt = Date.now();
+      return rows;
+    } catch (error) {
+      console.warn("Shared foods index failed", error);
+      return sharedFoodsIndex || [];
+    } finally {
+      sharedFoodsIndexPromise = null;
+    }
+  })();
+  return sharedFoodsIndexPromise;
+}
+
+function searchSharedFoods(rows, queryText, max = 6) {
+  const tokens = normalizeLookupValue(queryText || "").split(" ").filter(Boolean);
+  if (!tokens.length) {
+    return [];
+  }
+  const ownBarcodes = new Set((store.foods || []).map((food) => String(food.barcode || "")).filter(Boolean));
+  const ownNames = new Set((store.foods || []).map((food) => normalizeLookupValue(food.name)));
+  return rows
+    .filter((row) => !ownBarcodes.has(row.barcode) && !ownNames.has(normalizeLookupValue(row.name)))
+    .filter((row) => {
+      const haystack = normalizeLookupValue(row.name);
+      return tokens.every((token) => haystack.includes(token));
+    })
+    .slice(0, max);
+}
+
+function addSharedFoodToStore(row) {
+  if (!row || !row.name) {
+    return null;
+  }
+  const base = {
+    name: row.name,
+    servingUnit: "grams",
+    servingBaseGrams: 100,
+    kcal: toNumber(row.kcal),
+    protein: toNumber(row.protein),
+    carbs: toNumber(row.carbs),
+    fat: toNumber(row.fat),
+  };
+  const food = {
+    id: uid("food"),
+    ...base,
+    barcode: row.barcode || "",
+    category: getRecommendedFoodCategory(base),
+    source: "shared",
+  };
+  store.foods.push(food);
+  return food;
+}
+
+// Renders the "Iz kataloga" / "Deljeni proizvodi" groups under the Namirnice
+// list for the current search. Catalog matches are instant; shared matches
+// arrive when the index loads (first call per session hits the network).
+let externalFoodResultsTimer = null;
+function updateExternalFoodResults(queryText) {
+  const container = document.querySelector('[data-role="foods-external"]');
+  if (!container) {
+    return;
+  }
+  const text = String(queryText || "").trim();
+  if (text.length < 2) {
+    container.innerHTML = "";
+    return;
+  }
+  const paint = (sharedRows) => {
+    const catalogMatches = searchCatalogFoods(text);
+    const sharedMatches = searchSharedFoods(sharedRows || [], text);
+    if (!catalogMatches.length && !sharedMatches.length) {
+      container.innerHTML = "";
+      return;
+    }
+    const row = (item, action, idAttr, idValue, meta) => `
+      <div class="foods-external-row">
+        <div class="foods-external-copy">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="foods-external-meta">${meta}</span>
+        </div>
+        <button class="ghost-button button-with-icon foods-external-add" type="button" data-action="${action}" ${idAttr}="${escapeHtml(String(idValue))}" aria-label="Dodaj ${escapeHtml(item.name)} u moje namirnice">
+          ${renderButtonContent("Dodaj", "add")}
+        </button>
+      </div>`;
+    const macroMeta = (item) =>
+      `${getFoodNutritionBasisLabel(item)} · <b>${roundValue(toNumber(item.kcal), 0)} kcal</b> · P ${roundValue(toNumber(item.protein), 1)} · UH ${roundValue(toNumber(item.carbs), 1)} · M ${roundValue(toNumber(item.fat), 1)} g`;
+    container.innerHTML = `
+      ${
+        catalogMatches.length
+          ? `<div class="foods-external-group">
+              <div class="foods-external-label">Iz kataloga</div>
+              ${catalogMatches.map((item) => row(item, "add-catalog-food", "data-catalog-id", item.id, macroMeta(item))).join("")}
+            </div>`
+          : ""
+      }
+      ${
+        sharedMatches.length
+          ? `<div class="foods-external-group">
+              <div class="foods-external-label">Deljeni proizvodi <span class="foods-external-hint">skenirali drugi korisnici · na 100 g</span></div>
+              ${sharedMatches.map((item) => row(item, "add-shared-food", "data-barcode", item.barcode, macroMeta({ ...item, servingUnit: "grams", servingBaseGrams: 100 }))).join("")}
+            </div>`
+          : ""
+      }`;
+  };
+  paint(sharedFoodsIndex || []);
+  if (isSharedFoodsEnabled() && state.authUser) {
+    window.clearTimeout(externalFoodResultsTimer);
+    externalFoodResultsTimer = window.setTimeout(() => {
+      loadSharedFoodsIndex().then((rows) => {
+        // Query may have changed while the index was loading.
+        const current = document.querySelector("#food-search");
+        if (current instanceof HTMLInputElement && current.value.trim() === text) {
+          paint(rows);
+        }
+      });
+    }, 220);
+  }
 }
 
 // A gram-based food with a 1 g basis is nonsense (100 g of it computes as
@@ -8545,7 +8799,7 @@ function renderFoodsTab() {
         <p class="foods-head-sub">Pretraži, filtriraj i dodaj nove unose.</p>
       </header>
 
-      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Sve odavde ubacuješ u obroke u Planu.")}
+      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
 
       ${
         pendingNutritionReviewCount > 0
@@ -8650,8 +8904,9 @@ function renderFoodsTab() {
                 .join("")
             : `<div class="empty empty-passive">Nema namirnica za ovaj filter.</div>`
         }
-        <div class="empty foods-list-empty" hidden>Nema rezultata za pretragu.</div>
+        <div class="empty foods-list-empty" hidden>Nema u tvojim namirnicama.</div>
       </div>
+      <div class="foods-external" data-role="foods-external"></div>
     </section>
   `;
 }
@@ -8660,6 +8915,32 @@ function renderFoodsTab() {
 // (not inside the foods .section) because the section's backdrop-filter would
 // otherwise become the containing block for position:fixed and pin the button
 // to the (short) section instead of the viewport.
+// First meal of the selected day that isn't checked off yet — where a quick
+// "log what I'm eating" most likely belongs.
+function getNextOpenMealLabel() {
+  const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
+  return meals.find((label) => !isMealCompletedForWeekday(state.selectedWeekday, label)) || "";
+}
+
+// Phone-only shortcut on Plan: opens the composer for the next open meal in one
+// tap (the same start-add-to-meal path as the button inside the meal card).
+function renderPlanAddFab() {
+  if (state.editingMealLabel || state.foodEditorOpen || state.scannerOpen) {
+    return "";
+  }
+  const mealLabel = getNextOpenMealLabel();
+  if (!mealLabel) {
+    return "";
+  }
+  const title = getMealDisplayParts(mealLabel).title || mealLabel;
+  return `
+    <button class="plan-add-fab" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Dodaj namirnicu u obrok: ${escapeHtml(title)}" title="Dodaj namirnicu u obrok: ${escapeHtml(title)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span>${escapeHtml(title)}</span>
+    </button>
+  `;
+}
+
 function renderFoodsAddFab() {
   return `
     <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog">
@@ -8698,8 +8979,6 @@ function renderRecipesTab() {
   });
 
   return `
-    ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom — bez ponovnog kucanja svake namirnice.")}
-
     <section class="section recipes-builder-section ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
       <button class="section-disclosure" type="button" data-action="toggle-recipes-builder" aria-expanded="${state.recipesBuilderExpanded}">
         <div class="section-disclosure-copy">
@@ -8736,7 +9015,10 @@ function renderRecipesTab() {
           </div>
           <div class="field recipe-builder-field-wide">
             <label for="favorite-image">Slika obroka</label>
-            <input id="favorite-image" name="image" type="file" accept="image/*" />
+            <div class="recipe-image-pick">
+              <label class="ghost-button button-with-icon" for="favorite-image">${renderButtonContent(state.favoriteDraft.imageUrl ? "Promeni sliku" : "Izaberi sliku", "open")}</label>
+              <input id="favorite-image" name="image" type="file" accept="image/*" hidden />
+            </div>
             <div class="footer-note">Opcionalno. Dodaj jednu fotku obroka i recept kartica će odmah izgledati bogatije.</div>
             ${
               state.favoriteDraft.imageUrl
@@ -8891,6 +9173,7 @@ function renderRecipesTab() {
           <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih recepata.` : "Još nema sačuvanih recepata."}</p>
         </div>
       </div>
+      ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom — bez ponovnog kucanja svake namirnice.")}
       ${
         favorites.length
           ? `
@@ -11414,6 +11697,21 @@ function renderAccountSection() {
         <article class="status-summary-card">
           <div class="status-summary-top">
             <div class="status-summary-copy">
+              <strong>Deljeni proizvodi</strong>
+              <div class="footer-note">Proizvodi koje su drugi korisnici skenirali (barkod, vrednosti na 100 g) pojavljuju se u pretrazi namirnica pod „Deljeni proizvodi“. Tvoje namirnice ostaju samo tvoje.</div>
+            </div>
+            <span class="pill strong ${isSharedFoodsEnabled() ? "pill--success" : "pill--info"}">${isSharedFoodsEnabled() ? "Uključeno" : "Isključeno"}</span>
+          </div>
+          <label class="settings-toggle">
+            <input type="checkbox" class="routine-checkbox" data-action="toggle-shared-foods" ${isSharedFoodsEnabled() ? "checked" : ""} />
+            <span class="routine-check-ui" aria-hidden="true"></span>
+            <span class="settings-toggle-label">Prikaži deljene proizvode u pretrazi</span>
+          </label>
+        </article>
+
+        <article class="status-summary-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
               <strong>Backup i oporavak</strong>
               <div class="footer-note">JSON backup je dodatna sigurnost. Ako ga uvezeš dok si prijavljen, izmene će se upisati i u cloud.</div>
             </div>
@@ -13293,6 +13591,7 @@ function render() {
       </button>
 
       ${state.activeTab === "foods" ? renderFoodsAddFab() : ""}
+      ${state.activeTab === "plan" ? renderPlanAddFab() : ""}
 
       ${renderTabBar()}
       ${renderMoreSheet()}
@@ -13466,6 +13765,7 @@ function render() {
   syncEntryPreview();
   if (state.activeTab === "foods" && state.foodSearch) {
     filterFoodsListInline(state.foodSearch);
+    updateExternalFoodResults(state.foodSearch);
   }
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
@@ -14420,6 +14720,7 @@ async function handleDocumentClick(event) {
     };
 
     const result = deleteFoodFromCollections(store, foodId);
+    hideCatalogFood(foodId);
     if (state.editingFoodId === foodId) {
       resetFoodEditing();
     }
@@ -15948,6 +16249,38 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "add-catalog-food") {
+    const food = restoreCatalogFood(String(actionTarget.dataset.catalogId || ""));
+    if (!food) {
+      return;
+    }
+    persist();
+    render();
+    showFeedbackToast({ title: "Dodato u tvoje namirnice", detail: `"${food.name}" je sada u tvojoj bazi.` });
+    return;
+  }
+
+  if (action === "add-shared-food") {
+    const barcode = String(actionTarget.dataset.barcode || "");
+    const row = (sharedFoodsIndex || []).find((item) => item.barcode === barcode);
+    const food = addSharedFoodToStore(row);
+    if (!food) {
+      return;
+    }
+    persist();
+    render();
+    showFeedbackToast({ title: "Dodato u tvoje namirnice", detail: `"${food.name}" (na 100 g) je sada u tvojoj bazi.` });
+    return;
+  }
+
+  if (action === "toggle-shared-foods") {
+    store.preferences = store.preferences && typeof store.preferences === "object" ? store.preferences : {};
+    store.preferences.sharedFoods = actionTarget instanceof HTMLInputElement ? actionTarget.checked : !store.preferences.sharedFoods;
+    persist();
+    render();
+    return;
+  }
+
   if (action === "sign-out") {
     state.navMenuOpen = false;
     signOut(firebaseAuth).catch((error) => {
@@ -16101,6 +16434,7 @@ async function handleSubmit(event) {
     const nextFood = {
       ...nextFoodBase,
       category: getRecommendedFoodCategory(nextFoodBase),
+      ...(scannedBarcode ? { barcode: String(scannedBarcode) } : {}),
     };
 
     if (state.editingFoodId) {
@@ -16737,6 +17071,7 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "food-search") {
     state.foodSearch = target.value;
     filterFoodsListInline(target.value);
+    updateExternalFoodResults(target.value);
     return;
   }
 
