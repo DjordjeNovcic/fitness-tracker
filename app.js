@@ -593,6 +593,7 @@ const MEAL_LABEL_MAP = {
 const state = {
   activeTab: getInitialTab(),
   lastTabInGroup: {},
+  quickWeightOpen: false,
   onboarding: null,
   lastAddedEntryId: "",
   selectedWeekday: getTodayWeekday(),
@@ -1767,9 +1768,9 @@ function clearPendingUndo() {
 
 // Generic "soft delete with undo": stash a restore() closure and show an undo
 // banner for a few seconds instead of a blocking confirm() dialog.
-function queuePendingUndo(message, restore) {
+function queuePendingUndo(message, restore, extra = null) {
   clearPendingUndo();
-  state.pendingUndo = { message, restore };
+  state.pendingUndo = { message, restore, extra };
   pendingUndoTimer = window.setTimeout(() => {
     state.pendingUndo = null;
     pendingUndoTimer = null;
@@ -7528,7 +7529,9 @@ function commitPlanDraftEntry(food, grams, mealLabelOverride) {
         state.lastAddedEntryId = "";
       }
       persist();
-    }
+    },
+    // Log-and-eat in one motion: the banner can also check the meal off.
+    { label: "Pojedeno", icon: "apply", action: "mark-meal-done-from-banner", mealLabel, weekday: addedWeekday }
   );
   return true;
 }
@@ -8140,7 +8143,7 @@ function getTodayReminders() {
   }
   const measurements = store.measurements || [];
   if (!measurements.length) {
-    reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "jump-measurement", hint: "Unesi" });
+    reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "toggle-quick-weight", hint: "Unesi težinu" });
   } else {
     const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
     // Compare local calendar days (both at noon), not raw ms: `new Date("YYYY-MM-DD")`
@@ -8149,7 +8152,7 @@ function getTodayReminders() {
     const todayDay = getDateValueAsLocalDate(getTodayDateValue());
     const days = latestDay && todayDay ? Math.round((todayDay.getTime() - latestDay.getTime()) / DAY_IN_MS) : 0;
     if (days >= 7) {
-      reminders.push({ text: `⚖️ Merenje: poslednje pre ${days} dana`, action: "jump-measurement", hint: "Unesi" });
+      reminders.push({ text: `⚖️ Merenje: poslednje pre ${days} dana`, action: "toggle-quick-weight", hint: "Unesi težinu" });
     }
   }
   return reminders;
@@ -8171,6 +8174,20 @@ function renderTodayRemindersBanner() {
         </div>
         <button class="ghost-button button-with-icon icon-only-action today-reminders-close" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas" title="Sakrij za danas">${renderButtonContent("Sakrij", "close")}</button>
       </div>
+      ${
+        state.quickWeightOpen
+          ? `
+          <form id="quick-weight-form" class="quick-weight-form">
+            <label for="quick-weight" class="quick-weight-label">Težina danas</label>
+            <div class="quick-weight-controls">
+              <input id="quick-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="npr. 84,5" required />
+              <span class="quick-weight-unit">kg</span>
+              <button class="solid-button button-with-icon" type="submit">${renderButtonContent("Sačuvaj", "save")}</button>
+              <button class="ghost-button" type="button" data-action="jump-measurement">Više mera</button>
+            </div>
+          </form>`
+          : ""
+      }
       <div class="pill-row today-reminders-pills">
         ${reminders
           .map(
@@ -14059,7 +14076,14 @@ function render() {
                 <strong>${escapeHtml(state.pendingUndo.message)}</strong>
                 <div class="footer-note" style="margin-top:4px;">Jedan tap da poništiš.</div>
               </div>
-              <button class="solid-button secondary-button button-with-icon" data-action="undo-pending">${renderButtonContent("Vrati", "undo")}</button>
+              <div class="undo-banner-actions">
+                ${
+                  state.pendingUndo.extra
+                    ? `<button class="solid-button button-with-icon" data-action="${state.pendingUndo.extra.action}" data-meal-label="${escapeHtml(state.pendingUndo.extra.mealLabel || "")}" data-weekday="${escapeHtml(state.pendingUndo.extra.weekday || "")}">${renderButtonContent(state.pendingUndo.extra.label, state.pendingUndo.extra.icon || "apply")}</button>`
+                    : ""
+                }
+                <button class="ghost-button button-with-icon" data-action="undo-pending">${renderButtonContent("Vrati", "undo")}</button>
+              </div>
             </div>
           `
           : ""
@@ -16652,6 +16676,37 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "mark-meal-done-from-banner") {
+    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || ""));
+    const weekday = String(actionTarget.dataset.weekday || state.selectedWeekday);
+    const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
+    clearPendingUndo();
+    if (!mealEntries.length) {
+      render();
+      return;
+    }
+    mealEntries.forEach((entry) => {
+      entry.done = true;
+    });
+    if (normalizeMealLabel(state.editingMealLabel) === mealLabel) {
+      state.editingMealLabel = "";
+      resetPlanDraft();
+    }
+    persist();
+    render();
+    showFeedbackToast({ title: `${getMealDisplayParts(mealLabel).title || mealLabel} · pojedeno`, detail: "Ušlo je u dnevni zbir.", tone: "success" });
+    return;
+  }
+
+  if (action === "toggle-quick-weight") {
+    state.quickWeightOpen = !state.quickWeightOpen;
+    render();
+    if (state.quickWeightOpen) {
+      window.requestAnimationFrame(() => document.querySelector("#quick-weight")?.focus());
+    }
+    return;
+  }
+
   if (action === "jump-next-meal") {
     state.selectedWeekday = getTodayWeekday();
     state.selectedWeekTrack = getCurrentWeekTrack();
@@ -17403,6 +17458,24 @@ async function handleSubmit(event) {
     state.runImportDraft = null;
     persist();
     event.target.reset();
+    render();
+    return;
+  }
+
+  if (event.target.id === "quick-weight-form") {
+    const weightKg = toNumber(String(formData.get("weightKg") || "").replace(",", "."));
+    if (!(weightKg > 0)) {
+      return;
+    }
+    store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
+    const measurement = { id: uid("measurement"), date: getTodayDateValue(), weightKg: roundValue(weightKg, 1) };
+    store.measurements.push(measurement);
+    state.quickWeightOpen = false;
+    persist();
+    queuePendingUndo(`Težina sačuvana: ${roundValue(weightKg, 1)} kg (danas).`, () => {
+      store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
+      persist();
+    });
     render();
     return;
   }

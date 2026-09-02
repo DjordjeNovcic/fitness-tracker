@@ -10767,3 +10767,50 @@ body.menu-open .plan-add-fab {
   display: flex;
   justify-content: center;
 }
+
+/* Undo banner with an optional second action (e.g. "Pojedeno" after an add). */
+.undo-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+@media (max-width: 520px) {
+  .undo-banner {
+    flex-wrap: wrap;
+  }
+  .undo-banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Quick weight entry inside the reminders banner. */
+.quick-weight-form {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 4px;
+  padding: 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid var(--line);
+}
+.quick-weight-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.quick-weight-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.quick-weight-controls input#quick-weight {
+  flex: 0 1 120px;
+  min-width: 96px;
+}
+.quick-weight-unit {
+  color: var(--muted);
+  font-weight: 700;
+}
