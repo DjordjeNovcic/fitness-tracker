@@ -9781,17 +9781,6 @@ body.app-header-hidden .workspace-header {
   }
 }
 
-/* Training weekly overview: rest days recede. */
-.training-weekday-card.is-rest {
-  padding-top: 12px;
-  padding-bottom: 12px;
-  background: transparent;
-  box-shadow: none;
-  border: 1px dashed var(--line-strong);
-}
-.training-weekday-card.is-rest .footer-note {
-  margin-top: 2px;
-}
 
 /* Routine rows: icon actions stay inline (they no longer need their own row). */
 .routine-row > .entry-actions {
@@ -10114,4 +10103,178 @@ body.menu-open .plan-add-fab {
   align-items: center;
   gap: 12px;
   margin: 4px 0 14px;
+}
+
+
+/* ============================================================
+   Preglednost pass: glance-style stat grids, training week strip,
+   flatter routine overview, quieter mobile header.
+   ============================================================ */
+.stats-grid.stats-grid--glance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.stats-grid--glance > .stat-card,
+:root[data-theme="dark"] .stats-grid--glance > .stat-card {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  padding: 12px 14px 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.stats-grid--glance > .stat-card > strong {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.stats-grid--glance > .stat-card .macro-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stats-grid--glance > .stat-card .macro-value small {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.stats-grid--glance > .stat-card .footer-note {
+  font-size: 0.8rem;
+}
+@media (min-width: 900px) {
+  .stats-grid.stats-grid--glance {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .stats-grid--glance > .stat-card {
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+    padding: 14px 18px 6px;
+  }
+  .stats-grid--glance > .stat-card:first-child {
+    padding-left: 0;
+  }
+  .stats-grid--glance > .stat-card:last-child {
+    border-right: 0;
+  }
+}
+
+.training-week-strip {
+  display: flex;
+  gap: 7px;
+}
+.training-week-strip .training-day-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 50px;
+  padding: 7px 2px 6px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  border-radius: 13px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: none;
+}
+.training-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+.training-day-chip.has-plan .training-day-dot {
+  opacity: 0.85;
+}
+.training-week-strip .training-day-chip.is-today:not(.is-active) {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  color: var(--accent);
+}
+.training-week-strip .training-day-chip.is-active {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--button-primary-text);
+}
+:root[data-theme="dark"] .training-week-strip .training-day-chip.is-active {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+.training-week-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.training-week-item-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.training-week-item-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.training-week-item-main strong {
+  font-size: 0.98rem;
+}
+.training-week-item-name {
+  color: var(--muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.training-week-item.is-active .training-week-item-main strong {
+  color: var(--accent);
+}
+.training-week-item-meta {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.training-week-empty {
+  margin-top: 12px;
+}
+
+.routine-overview-section .routine-day-picker,
+:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  .workspace-header-eyebrow {
+    display: none;
+  }
+  .workspace-header-copy {
+    gap: 0;
+  }
+  .workspace-header {
+    padding: 10px 14px;
+  }
 }
