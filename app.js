@@ -7558,20 +7558,9 @@ function commitPlanDraftEntry(food, grams, mealLabelOverride) {
   recordFoodUsage(food.id, grams);
   expandMealForWeekday(state.selectedWeekday, mealLabel);
   persist();
-  // One tap to take it back (same banner as deletes) instead of a plain toast.
-  const addedWeekday = state.selectedWeekday;
-  queuePendingUndo(
-    `Dodato u ${getMealDisplayParts(mealLabel).title || mealLabel}: ${food.name} · ${formatFoodAmount(food, grams)} (${weekdayLabel(addedWeekday).toLowerCase()}).`,
-    () => {
-      store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => entry.id !== newEntryId);
-      if (state.lastAddedEntryId === newEntryId) {
-        state.lastAddedEntryId = "";
-      }
-      persist();
-    },
-    // Log-and-eat in one motion: the banner can also check the meal off.
-    { label: "Pojedeno", icon: "apply", action: "mark-meal-done-from-banner", mealLabel, weekday: addedWeekday }
-  );
+  // No banner here: the new row lights up in the meal (`.meal-entry.is-new`)
+  // and removing it is one tap on its trash icon. The undo banner stays for
+  // deletes, where it actually protects something.
   return true;
 }
 
@@ -7587,29 +7576,6 @@ function getQuickAddFoods(limit = 8) {
 
 function quickAddGramsFor(food, usage) {
   return toNumber(usage && usage.lastGrams) || roundValue(food.servingBaseGrams || 100, 0);
-}
-
-function renderQuickAddRow(activeMealLabel) {
-  const items = getQuickAddFoods(8);
-  if (!items.length) {
-    return "";
-  }
-  return `
-    <div class="quick-add">
-      <div class="quick-add-label">Brzi unos — dodaj u jedan tap</div>
-      <div class="quick-add-row">
-        ${items
-          .map(({ food, usage }) => {
-            const grams = quickAddGramsFor(food, usage);
-            const totals = calculateEntry(food, grams);
-            return `<button type="button" class="quick-add-chip" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(activeMealLabel)}" title="${escapeHtml(food.name)} · ${formatFoodAmount(food, grams)}">
-              <span class="quick-add-name">${escapeHtml(food.name)}</span>
-              <span class="quick-add-meta">${formatFoodAmount(food, grams)} · ${roundValue(totals.kcal, 0)} kcal</span>
-            </button>`;
-          })
-          .join("")}
-      </div>
-    </div>`;
 }
 
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
@@ -16685,28 +16651,6 @@ async function handleDocumentClick(event) {
     actionTarget.innerHTML = renderPasswordToggleIcon(nextVisible);
     actionTarget.setAttribute("aria-label", nextVisible ? "Sakrij lozinku" : "Prikaži lozinku");
     actionTarget.setAttribute("aria-pressed", String(nextVisible));
-    return;
-  }
-
-  if (action === "mark-meal-done-from-banner") {
-    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || ""));
-    const weekday = String(actionTarget.dataset.weekday || state.selectedWeekday);
-    const mealEntries = getMealEntriesForWeekday(weekday, mealLabel);
-    clearPendingUndo();
-    if (!mealEntries.length) {
-      render();
-      return;
-    }
-    mealEntries.forEach((entry) => {
-      entry.done = true;
-    });
-    if (normalizeMealLabel(state.editingMealLabel) === mealLabel) {
-      state.editingMealLabel = "";
-      resetPlanDraft();
-    }
-    persist();
-    render();
-    showFeedbackToast({ title: `${getMealDisplayParts(mealLabel).title || mealLabel} · pojedeno`, detail: "Ušlo je u dnevni zbir.", tone: "success" });
     return;
   }
 
