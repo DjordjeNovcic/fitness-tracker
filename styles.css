@@ -10037,49 +10037,6 @@ body.app-header-hidden .workspace-header {
   font-weight: 600;
 }
 
-/* Plan: phone-only "add to next meal" shortcut above the tab bar. */
-.plan-add-fab {
-  position: fixed;
-  right: 16px;
-  bottom: calc(84px + env(safe-area-inset-bottom));
-  z-index: 45;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 18px 0 14px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--button-primary-bg);
-  color: var(--button-primary-text);
-  font-weight: 800;
-  font-size: 0.95rem;
-  box-shadow: 0 14px 28px rgba(23, 59, 47, 0.26);
-  cursor: pointer;
-  max-width: calc(100vw - 32px);
-}
-.plan-add-fab svg {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-}
-.plan-add-fab span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-body.menu-open .plan-add-fab {
-  display: none;
-}
-:root[data-theme="dark"] .plan-add-fab {
-  box-shadow: 0 14px 28px oklch(0.8 0.132 82 / 0.22);
-}
-@media (min-width: 900px) {
-  .plan-add-fab {
-    display: none;
-  }
-}
-
 /* Recipes: collapsed builder is just its header; image picker is a button. */
 .recipes-builder-section.is-collapsed .plan-section-body {
   display: none;
@@ -10090,12 +10047,6 @@ body.menu-open .plan-add-fab {
   gap: 10px;
 }
 
-/* Room under the last meal card for the phone-only Plan FAB. */
-@media (max-width: 899px) {
-  .shell-with-menu.is-plan-shell {
-    padding-bottom: calc(150px + env(safe-area-inset-bottom));
-  }
-}
 
 
 /* Week-track row inside Training / Routine sections: label + segmented toggle. */

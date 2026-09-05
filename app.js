@@ -9324,25 +9324,6 @@ function getNextOpenMealLabel() {
   return meals.find((label) => !isMealCompletedForWeekday(state.selectedWeekday, label)) || "";
 }
 
-// Phone-only shortcut on Plan: opens the composer for the next open meal in one
-// tap (the same start-add-to-meal path as the button inside the meal card).
-function renderPlanAddFab() {
-  if (state.editingMealLabel || state.foodEditorOpen || state.scannerOpen || state.pendingUndo) {
-    return "";
-  }
-  const mealLabel = getNextOpenMealLabel();
-  if (!mealLabel) {
-    return "";
-  }
-  const title = getMealDisplayParts(mealLabel).title || mealLabel;
-  return `
-    <button class="plan-add-fab" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Dodaj namirnicu u obrok: ${escapeHtml(title)}" title="Dodaj namirnicu u obrok: ${escapeHtml(title)}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      <span>${escapeHtml(title)}</span>
-    </button>
-  `;
-}
-
 function renderFoodsAddFab() {
   return `
     <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog">
@@ -14020,7 +14001,6 @@ function render() {
       </button>
 
       ${state.activeTab === "foods" ? renderFoodsAddFab() : ""}
-      ${state.activeTab === "plan" ? renderPlanAddFab() : ""}
 
       ${renderTabBar()}
       ${renderMoreSheet()}
