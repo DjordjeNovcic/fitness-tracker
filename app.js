@@ -8029,11 +8029,6 @@ function renderPlanStepsSection() {
         <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${current || ""}" aria-label="Koraci danas" />
         <button class="solid-button secondary-button button-with-icon" type="button" data-action="set-steps">${renderButtonContent("Sačuvaj", "save")}</button>
       </div>
-      <div class="meta-row meta-row--compact" style="margin-top:8px;">
-        <button class="ghost-button" type="button" data-action="add-steps" data-steps="1000">+1000</button>
-        <button class="ghost-button" type="button" data-action="add-steps" data-steps="2000">+2000</button>
-        ${current > 0 ? `<button class="ghost-button" type="button" data-action="add-steps" data-steps="-1000">−1000</button>` : ""}
-      </div>
     </section>
   `;
 }
@@ -8058,17 +8053,17 @@ function renderPlanActivitySection() {
   }
 
   return `
-    <section class="section plan-activity-section">
-      <div class="section-header">
-        <div class="section-copy">
-          <h2>Aktivnost danas (sa sata)</h2>
-          <p>${
-            hasActivity
-              ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans."
-              : "Povuci dnevni pregled sa Apple Watch-a: kalorije, vežbanje, stajanje, koraci, distanca."
-          }</p>
-        </div>
-      </div>
+    <details class="section form-collapse plan-activity-section" ${hasActivity ? "open" : ""}>
+      <summary>
+        <span class="form-collapse-title">Aktivnost sa sata</span>
+        ${hasActivity && activity.moveKcal != null ? `<span class="pill strong">${activity.moveKcal} kcal</span>` : ""}
+        <span class="form-collapse-icon" aria-hidden="true">+</span>
+      </summary>
+      <p class="footer-note plan-activity-intro">${
+        hasActivity
+          ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans."
+          : "Povuci dnevni pregled sa Apple Watch-a: kalorije, vežbanje, stajanje, koraci, distanca."
+      }</p>
       <div class="run-import-bar ${hasActivity ? "is-loaded" : ""}">
         <button class="solid-button button-with-icon run-import-button" type="button" data-action="launch-activity-shortcut">
           ${renderButtonContent("Sa sata", "open")}
@@ -8089,7 +8084,8 @@ function renderPlanActivitySection() {
       }
       ${renderHelpNote(
         `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
-        "Kako da povučem dnevnu aktivnost?"
+        "Kako da povučem dnevnu aktivnost?",
+        true
       )}
       ${
         hasActivity
@@ -8108,7 +8104,7 @@ function renderPlanActivitySection() {
             }`
           : `<div class="empty">Još nema podataka za danas. Tapni „Sa sata” da pokreneš prečicu, ili „Iz clipboard-a” ako si već kopirao/la podatke.</div>`
       }
-    </section>
+    </details>
   `;
 }
 
@@ -8869,10 +8865,8 @@ function renderPlanTab(entries) {
       >
         <div class="plan-quick-toggle-copy">
           <div class="plan-quick-toggle-title-row">
-            <h2>Brze akcije</h2>
-            <span class="pill note plan-quick-toggle-badge">4 alata</span>
+            <h2>Alati za plan</h2>
           </div>
-          <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
         </div>
         <span class="plan-quick-toggle-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
       </button>
@@ -8881,14 +8875,8 @@ function renderPlanTab(entries) {
           <article class="food-card plan-quick-card plan-quick-card--primary">
             <div class="food-card-top plan-quick-card-top">
               <div class="plan-quick-card-copy">
-                <h3>Kopiraj plan dana</h3>
-                <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
+                <h3>Kopiraj ${weekdayAccusative(state.selectedWeekday)} na drugi dan</h3>
               </div>
-              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
-            </div>
-            <div class="plan-quick-card-source">
-              <span class="footer-note">Izvor dana</span>
-              <strong>${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</strong>
             </div>
             <form id="duplicate-day-form" class="form-grid split plan-quick-form">
               <div class="field">
@@ -8920,10 +8908,8 @@ function renderPlanTab(entries) {
           <article class="food-card plan-quick-card plan-quick-card--secondary">
             <div class="food-card-top plan-quick-card-top">
               <div class="plan-quick-card-copy">
-                <h3>Obriši ceo dan</h3>
-                <p>Isprazni jelovnik za ovaj dan, izaberi više dana odjednom, ili obriši sve obroke iz celog plana (obe nedelje).</p>
+                <h3>Obriši obroke</h3>
               </div>
-              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
             </div>
             <div class="entry-actions entry-actions--start plan-inline-actions">
               <button class="danger-button button-with-icon" type="button" data-action="delete-day-plan" ${entries.length ? "" : "disabled"}>
@@ -8953,32 +8939,6 @@ function renderPlanTab(entries) {
               </div>
             `
                 : ""
-            }
-          </article>
-          <article class="food-card plan-quick-card plan-quick-card--secondary">
-            <div class="food-card-top plan-quick-card-top">
-              <div class="plan-quick-card-copy">
-                <h3>Omiljene namirnice</h3>
-                <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
-              </div>
-              <span class="pill strong">${favoriteFoods.length}</span>
-            </div>
-            ${
-              favoriteFoods.length
-                ? `
-                  <div class="chips plan-favorite-chips">
-                    ${favoriteFoods
-                      .map(
-                        (food) => `
-                          <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
-                            ${escapeHtml(food.name)}
-                          </button>
-                        `
-                      )
-                      .join("")}
-                  </div>
-                `
-                : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
             }
           </article>
 
@@ -9530,6 +9490,9 @@ function renderRecipesTab() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
                 </button>
               </div>
+              ${
+                favorites.length >= 6
+                  ? `
               <div>
                 <div class="footer-note" style="margin-bottom:8px;">Filtriraj po tipu obroka</div>
                 <div class="chips recipe-filter-bar">
@@ -9566,6 +9529,9 @@ function renderRecipesTab() {
                     .join("")}
                 </div>
               </div>
+                  `
+                  : ""
+              }
             </div>
           `
           : ""
@@ -9774,6 +9740,9 @@ function renderTrainingTab() {
         </div>
       </div>
       <div class="training-day-spotlight">
+        ${
+          templates.length
+            ? `
         <article class="food-card suggestion-surface training-day-summary-card">
           <div class="training-day-summary-top">
             <div>
@@ -9800,6 +9769,9 @@ function renderTrainingTab() {
           </dl>
         </article>
 
+            `
+            : ""
+        }
         <article class="food-card suggestion-surface training-burn-card">
           <div class="food-card-top training-burn-top">
             <div class="training-burn-copy">
@@ -9870,11 +9842,14 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema trening šablona za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj ga ispod.</div>`
+            : `<div class="empty">Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}. Dodaj šablon ispod${favoriteTrainings.length ? " ili ubaci omiljeni trening" : ""}.</div>`
         }
       </div>
     </section>
 
+    ${
+      favoriteTrainings.length
+        ? `
     <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
@@ -9913,6 +9888,9 @@ function renderTrainingTab() {
         }
       </div>
     </section>
+        `
+        : ""
+    }
 
     <details class="section routine-weekly-section form-collapse">
       <summary>
@@ -13116,9 +13094,9 @@ function renderBodyCompositionSection() {
 
 // Collapsed-by-default "how this works" note. Native <details> so it needs no
 // state/JS; experienced users never see it, new users get one tap of context.
-function renderHelpNote(body, label = "Kako ovo radi?") {
+function renderHelpNote(body, label = "Kako ovo radi?", inline = false) {
   return `
-    <details class="help-note">
+    <details class="help-note ${inline ? "help-note--inline" : ""}">
       <summary><span class="help-note-icon" aria-hidden="true">ⓘ</span> ${label}</summary>
       <div class="help-note-body">${body}</div>
     </details>`;

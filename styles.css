@@ -11719,3 +11719,67 @@ body {
   height: 34px;
   min-width: 34px;
 }
+
+/* ============================================================
+   2026-09-05 — Simplification round 2.
+   "Kako ovo radi?" stops costing a line on every section: the summary
+   becomes a small ⓘ in the section's top-right corner; the explanation
+   still drops in below the header when tapped. Sections that need the
+   note inline (inside a collapsible) opt in with .help-note--inline.
+   ============================================================ */
+.section {
+  position: relative;
+}
+.help-note:not(.help-note--inline) {
+  margin: 0;
+}
+.help-note:not(.help-note--inline) > summary {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0;
+}
+.help-note:not(.help-note--inline) > summary .help-note-icon {
+  font-size: 1rem;
+  color: inherit;
+}
+.help-note:not(.help-note--inline) > summary:hover,
+.help-note:not(.help-note--inline)[open] > summary {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.help-note:not(.help-note--inline)[open] > .help-note-body {
+  margin: 0 0 14px;
+}
+/* The meals block is transparent with no padding: pin to the heading line. */
+.plan-meals-section .help-note:not(.help-note--inline) > summary {
+  top: 2px;
+  right: 0;
+}
+/* Namirnice header has its own layout; give the title room for the icon. */
+.foods-head h2,
+.section-header h2 {
+  padding-right: 40px;
+}
+.plan-meals-section .section-header h2 {
+  padding-right: 40px;
+}
+.help-note--inline > summary {
+  font-size: 0.78rem;
+}
+.plan-activity-intro {
+  margin: 0 0 12px;
+}
+.form-collapse > summary .pill {
+  margin-left: auto;
+  margin-right: 10px;
+}
