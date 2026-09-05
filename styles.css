@@ -11403,3 +11403,245 @@ body.app-header-hidden .workspace-header {
   align-self: start;
   margin-top: 2px;
 }
+
+/* ============================================================
+   2026-09-05 — "Dodaj namirnicu" in three taps. The expanded meal is:
+   foods → one "+ Dodaj namirnicu" row → quiet secondary links. The
+   composer is a single search field; recent foods appear on focus with a
+   one-tap "+" at the amount used last time; amount + add show only once
+   a food is picked. "Uredi" and the "NAMIRNICE U OBROKU" label are gone.
+   ============================================================ */
+.meal-card:not(.is-editing) .meal-card-header:has(.meal-collapse-toggle) {
+  cursor: pointer;
+}
+.plan-meals-section .meal-card-content {
+  gap: 0;
+}
+.meal-add-row,
+:root[data-theme="dark"] .meal-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.meal-add-row svg {
+  width: 18px;
+  height: 18px;
+}
+.meal-add-row:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.meal-empty + .meal-add-row {
+  margin-top: 10px;
+}
+.meal-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 10px;
+  padding: 0 2px;
+}
+.meal-secondary-action,
+:root[data-theme="dark"] .meal-secondary-action {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+.meal-secondary-action:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+/* Composer: a search line first; the rest appears with a picked food. */
+.meal-composer,
+:root[data-theme="dark"] .meal-composer {
+  margin-top: 10px;
+  padding: 12px;
+  gap: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
+}
+.meal-composer:not(.has-food) .meal-composer-when-food {
+  display: none;
+}
+.meal-composer-when-food {
+  display: grid;
+  gap: 10px;
+}
+.meal-composer .food-match:empty {
+  display: none;
+}
+.meal-composer:not(.has-food) .food-match {
+  display: none;
+}
+.amount-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.amount-unit-select,
+.amount-unit-static {
+  flex: 0 0 auto;
+  min-width: 0;
+  width: auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.amount-unit-select {
+  padding-right: 28px;
+}
+.amount-unit-static {
+  color: var(--muted);
+}
+.meal-composer-preview,
+:root[data-theme="dark"] .meal-composer-preview {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.meal-composer-preview:empty {
+  display: none;
+}
+.meal-composer-preview-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.meal-composer-preview-line strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.meal-composer-actions {
+  margin-top: 0;
+}
+.meal-composer-suggestions:empty {
+  display: none;
+}
+
+/* Suggestion rows: pick on the row, one-tap add on the "+". */
+.food-suggest-heading {
+  padding: 8px 14px 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.food-suggest-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+.food-suggest-row:last-child {
+  border-bottom: 0;
+}
+.food-suggest-row .food-suggest-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-bottom: 0;
+}
+.food-suggest-add,
+:root[data-theme="dark"] .food-suggest-add {
+  flex: 0 0 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.food-suggest-add svg {
+  width: 18px;
+  height: 18px;
+}
+.food-suggest-add:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Stepper row: the input flexes, the unit select stays compact (the generic
+   `.field select { width:100% }` was stretching it across the card). */
+.field .amount-stepper input,
+.field .amount-stepper input[type="number"] {
+  flex: 1 1 60px;
+  width: auto;
+  min-width: 0;
+}
+.field .amount-stepper .amount-unit-select {
+  flex: 0 0 auto;
+  width: 96px;
+  min-width: 0;
+  padding: 0 30px 0 12px;
+  background-position: 0 0, right 10px center;
+  font-weight: 700;
+}
+/* "Zatvori" is an escape hatch, not a second CTA. */
+.meal-composer-actions {
+  justify-items: end;
+}
+.meal-composer-actions .ghost-button,
+:root[data-theme="dark"] .meal-composer-actions .ghost-button {
+  width: auto;
+  min-height: 0;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+/* The composer is a grid; auto tracks size to the number input's intrinsic
+   width and push the whole card past the viewport. Pin the tracks. */
+.meal-composer,
+.meal-composer-when-food,
+.meal-composer .field,
+.plan-meals-section .meal-card-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+.meal-composer > *,
+.meal-composer-when-food > *,
+.meal-composer .field > *,
+.plan-meals-section .meal-card-content > * {
+  min-width: 0;
+}
+.field .amount-stepper input,
+.field .amount-stepper input[type="number"] {
+  width: 60px;
+}

@@ -4712,6 +4712,43 @@ function updateFoodSuggestions(query, selectedFood = null) {
     return;
   }
   const normalizedQuery = normalizeLookupValue(query || "");
+  const mealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
+  const usage = store.foodUsage || {};
+  const row = (food, tokens, meta) => {
+    const grams = quickAddGramsFor(food, usage[food.id]);
+    const kcal = roundValue(calculateEntry(food, grams).kcal, 0);
+    return `
+      <div class="food-suggest-row">
+        <button type="button" class="food-suggest-item" role="option" aria-selected="false" data-action="pick-plan-food" data-food-id="${food.id}">
+          <span class="food-suggest-name">${tokens ? highlightMatch(food.name, tokens) : escapeHtml(food.name)}</span>
+          <span class="food-suggest-meta">${meta}</span>
+        </button>
+        <button type="button" class="food-suggest-add" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)}, ${formatFoodAmount(food, grams)}" title="Dodaj ${formatFoodAmount(food, grams)} · ${kcal} kcal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>`;
+  };
+  // Empty field: what you logged recently, at the amount you used last time —
+  // the common case ("same breakfast as yesterday") is one tap on "+".
+  if (!normalizedQuery && !selectedFood && !state.editingEntryId) {
+    const recent = getQuickAddFoods(6);
+    if (!recent.length) {
+      list.hidden = true;
+      list.innerHTML = "";
+      return;
+    }
+    list.innerHTML =
+      `<div class="food-suggest-heading">Nedavno</div>` +
+      recent
+        .map(({ food, usage: foodUsage }) => {
+          const grams = quickAddGramsFor(food, foodUsage);
+          return row(food, null, `${formatFoodAmount(food, grams)} · ${roundValue(calculateEntry(food, grams).kcal, 0)} kcal`);
+        })
+        .join("");
+    list.hidden = false;
+    markActiveSuggestion(list, 0);
+    return;
+  }
   if (normalizedQuery.length < 2 || (selectedFood && normalizeLookupValue(selectedFood.name) === normalizedQuery)) {
     list.hidden = true;
     list.innerHTML = "";
@@ -4725,15 +4762,17 @@ function updateFoodSuggestions(query, selectedFood = null) {
   }
   const tokens = normalizedQuery.split(" ").filter(Boolean);
   list.innerHTML = ranked
-    .map(
-      (entry, index) => `
-        <button type="button" class="food-suggest-item ${index === 0 ? "is-active" : ""}" role="option" aria-selected="${index === 0}" data-action="pick-plan-food" data-food-id="${entry.food.id}">
-          <span class="food-suggest-name">${highlightMatch(entry.food.name, tokens)}</span>
-          <span class="food-suggest-meta">${getFoodNutritionBasisLabel(entry.food)} · ${roundValue(entry.food.kcal, 0)} kcal${entry.recent ? ` · <em>nedavno</em>` : ""}</span>
-        </button>`
-    )
+    .map((entry) => row(entry.food, tokens, `${getFoodNutritionBasisLabel(entry.food)} · ${roundValue(entry.food.kcal, 0)} kcal${entry.recent ? ` · <em>nedavno</em>` : ""}`))
     .join("");
   list.hidden = false;
+  markActiveSuggestion(list, 0);
+}
+
+function markActiveSuggestion(list, activeIndex) {
+  [...list.querySelectorAll(".food-suggest-item")].forEach((item, index) => {
+    item.classList.toggle("is-active", index === activeIndex);
+    item.setAttribute("aria-selected", String(index === activeIndex));
+  });
 }
 
 function resolveFoodFromQuery(query) {
@@ -7575,41 +7614,36 @@ function renderQuickAddRow(activeMealLabel) {
 
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
-  const mealParts = getMealDisplayParts(activeMealLabel);
-  const selectableFoods = getSelectableFoods();
   const planFoodSearchValue = draftFood?.name || "";
 
   const isEditing = Boolean(state.editingEntryId);
   const draftGrams = toNumber(state.planDraft.grams);
 
+  // One field to start: the search. Amount + add only show up once a food is
+  // picked (`.has-food`, kept in sync by handleInput), so an empty composer
+  // is a single line instead of a two-step form.
   return `
-    <form id="plan-entry-form" class="meal-composer">
+    <form id="plan-entry-form" class="meal-composer ${draftFood ? "has-food" : ""} ${isEditing ? "is-editing-entry" : ""}">
       <input id="mealLabel" name="mealLabel" type="hidden" value="${escapeHtml(activeMealLabel)}" />
-      <div class="meal-composer-head">
-        <span class="meal-composer-eyebrow">${isEditing ? "Izmena stavke" : "Nova stavka"}</span>
-        <h4>${isEditing ? "Izmeni stavku" : `Dodaj u ${escapeHtml(mealParts.title || activeMealLabel)}`}</h4>
-      </div>
-      ${isEditing ? "" : renderQuickAddRow(activeMealLabel)}
+      ${isEditing ? `<div class="meal-composer-head"><span class="meal-composer-eyebrow">Izmena stavke</span></div>` : ""}
       <div class="field meal-composer-field">
-        <div class="food-form-step">
-          <span class="food-form-step-num">1</span>
-          <label class="food-form-step-title" for="food-search-input">Koju namirnicu?</label>
-        </div>
         <div class="food-search-control has-scan">
           <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
           <button class="food-search-scan" type="button" data-action="open-scanner" data-scan-return="composer" aria-label="Skeniraj barkod proizvoda" title="Skeniraj barkod">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/><path d="M18 8v8"/></svg>
           </button>
-          <input id="food-search-input" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-controls="food-suggest" aria-expanded="false" required />
+          <input id="food-search-input" name="foodSearch" placeholder="Koju namirnicu dodaješ?" value="${escapeHtml(planFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-controls="food-suggest" aria-expanded="false" aria-label="Pretraga namirnica" required />
         </div>
         <input id="foodId" name="foodId" type="hidden" value="${state.planDraft.foodId}" />
         <div class="food-suggest" id="food-suggest" role="listbox" aria-label="Predlozi namirnica" hidden></div>
         <div class="food-match" id="food-match">${renderFoodMatchInner(draftFood)}</div>
       </div>
-      <div class="field meal-composer-field" id="amount-field">${renderAmountFieldInner(draftFood)}</div>
-      <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
+      <div class="meal-composer-when-food">
+        <div class="field meal-composer-field" id="amount-field">${renderAmountFieldInner(draftFood)}</div>
+        <div class="meal-composer-preview" id="entry-preview">${renderEntryPreviewInner(draftFood, draftGrams)}</div>
+        <button class="solid-button button-with-icon meal-composer-submit" type="submit">${renderButtonContent(isEditing ? "Sačuvaj izmene" : "Dodaj", isEditing ? "save" : "add")}</button>
+      </div>
       <div class="meal-composer-actions">
-        <button class="solid-button button-with-icon meal-composer-submit" type="submit">${renderButtonContent(isEditing ? "Sačuvaj izmene" : "Dodaj namirnicu", isEditing ? "save" : "add")}</button>
         ${
           isEditing
             ? `<button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
@@ -7625,14 +7659,13 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
 // syncEntryPreview as you pick a food / type the amount.
 function renderEntryPreviewInner(food, grams) {
   if (!food || !grams) {
-    return `<div class="meal-composer-preview-empty">Izaberi namirnicu i količinu — odmah ti pokažem kalorije i makroe.</div>`;
+    return "";
   }
   const totals = calculateEntry(food, grams);
   return `
-    <div class="meal-composer-preview-label">${escapeHtml(food.name)} · ${formatFoodAmount(food, grams)}</div>
-    <div class="meal-composer-preview-result">
-      <span class="meal-composer-preview-kcal"><strong>${roundValue(totals.kcal, 0)}</strong> kcal</span>
-      <span class="meal-composer-preview-macros">P <strong>${totals.protein}</strong> · UH <strong>${totals.carbs}</strong> · M <strong>${totals.fat}</strong> g</span>
+    <div class="meal-composer-preview-line">
+      <strong>${roundValue(totals.kcal, 0)} kcal</strong>
+      <span>P ${totals.protein} · UH ${totals.carbs} · M ${totals.fat} g</span>
     </div>`;
 }
 
@@ -7703,18 +7736,11 @@ function renderAmountFieldInner(food) {
         ? "Broj kašika"
         : "Količina u gramima";
 
-  const unitToggleMarkup = isPiece
-    ? ""
-    : `
-      <div class="amount-unit-toggle">
-        ${["g", "tsp", "tbsp"]
-          .map(
-            (u) =>
-              `<button type="button" class="amount-unit-chip ${u === unit ? "is-active" : ""}" data-action="set-plan-amount-unit" data-unit="${u}">${amountUnitLabel(u)}</button>`
-          )
-          .join("")}
-      </div>
-    `;
+  const unitSelectMarkup = isPiece
+    ? `<span class="amount-unit-static">kom</span>`
+    : `<select id="amount-unit-select" class="amount-unit-select" aria-label="Jedinica">${["g", "tsp", "tbsp"]
+        .map((u) => `<option value="${u}" ${u === unit ? "selected" : ""}>${amountUnitLabel(u)}</option>`)
+        .join("")}</select>`;
 
   const amountInputMarkup = isPiece
     ? `<input id="grams" name="grams" type="number" inputmode="decimal" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.planDraft.grams}" required />`
@@ -7724,14 +7750,11 @@ function renderAmountFieldInner(food) {
     `;
 
   return `
-    <div class="food-form-step">
-      <span class="food-form-step-num">2</span>
-      <label class="food-form-step-title" for="${visibleInputId}">${labelText}</label>
-    </div>
-    ${unitToggleMarkup}
+    <label class="amount-label" for="${visibleInputId}">${labelText}</label>
     <div class="amount-stepper">
       <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="-1" aria-label="Smanji količinu">${renderActionIcon("minus")}</button>
       ${amountInputMarkup}
+      ${unitSelectMarkup}
       <button type="button" class="amount-stepper-btn" data-action="nudge-plan-draft-grams" data-direction="1" aria-label="Povećaj količinu">${renderActionIcon("add")}</button>
     </div>
     <div class="amount-presets" id="amount-presets">${renderAmountPresetChipsInner(food)}</div>
@@ -8789,51 +8812,6 @@ function renderPlanTab(entries) {
                         }
                       </div>
                       <div class="meal-card-content ${isMealCollapsed ? "is-hidden" : ""}">
-                        <div class="meal-card-toolbar ${mealEntries.length ? "has-summary" : ""} ${!isMealDone ? "has-actions" : ""}">
-                          ${
-                            !isMealDone
-                              ? `
-                                <div class="entry-actions meal-card-actions">
-                                  <button class="solid-button secondary-button button-with-icon" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}">
-                                    ${renderButtonContent("Dodaj namirnicu", "add")}
-                                  </button>
-                                  <button class="ghost-button button-with-icon" data-action="${isEditingMeal ? "finish-edit-meal" : "edit-meal"}" data-meal-label="${escapeHtml(mealLabel)}">
-                                    ${renderButtonContent(isEditingMeal ? "Završi uređivanje" : "Uredi", "edit")}
-                                  </button>
-                                  ${
-                                    mealEntries.length
-                                      ? `
-                                        <button class="ghost-button button-with-icon" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">
-                                          ${renderButtonContent("Pripremi za više dana", "copy")}
-                                        </button>
-                                      `
-                                      : ""
-                                  }
-                                  ${
-                                    isEditingMeal && mealEntries.length
-                                      ? `
-                                        <button class="ghost-button button-with-icon" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">
-                                          ${renderButtonContent("Sačuvaj kao recept", "save")}
-                                        </button>
-                                      `
-                                      : ""
-                                  }
-                                </div>
-                              `
-                              : ""
-                          }
-                        </div>
-                        ${state.prepMealLabel === mealLabel && !isMealDone ? renderMealPrepPanel(mealLabel) : ""}
-                        ${
-                          mealEntries.length
-                            ? `
-                              <div class="meal-items-label-row">
-                                <span class="meal-items-label">Namirnice u obroku</span>
-                                <span class="meal-items-count">${mealEntries.length} ${mealEntries.length === 1 ? "stavka" : mealEntries.length < 5 ? "stavke" : "stavki"}</span>
-                              </div>
-                            `
-                            : ""
-                        }
                         ${
                           isMealDone
                             ? `
@@ -8843,7 +8821,7 @@ function renderPlanTab(entries) {
                             `
                             : ""
                         }
-                        ${isEditingMeal && !isMealDone ? renderPlanEntryComposer(meals, companionSuggestions, draftFood) : ""}
+                        ${state.prepMealLabel === mealLabel && !isMealDone ? renderMealPrepPanel(mealLabel) : ""}
                         ${
                           mealEntries.length
                             ? mealEntries
@@ -8881,12 +8859,30 @@ function renderPlanTab(entries) {
                             : (() => {
                                 const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
                                 const previousEntries = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
-                                return `<div class="empty meal-empty" style="margin-top:12px;">Još nema stavki u ovom obroku.${
+                                return `<div class="empty meal-empty">Još nema stavki u ovom obroku.${
                                   previousEntries.length && !isMealDone
                                     ? `<div class="meal-empty-actions"><button class="ghost-button button-with-icon" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">${renderButtonContent(`Kopiraj od juče (${previousEntries.length})`, "copy")}</button></div>`
                                     : ""
                                 }</div>`;
                               })()
+                        }
+                        ${
+                          !isMealDone
+                            ? isEditingMeal
+                              ? renderPlanEntryComposer(meals, companionSuggestions, draftFood)
+                              : `<button class="meal-add-row" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                  <span>Dodaj namirnicu</span>
+                                </button>`
+                            : ""
+                        }
+                        ${
+                          !isMealDone && mealEntries.length && !isEditingMeal
+                            ? `<div class="meal-secondary-actions">
+                                <button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
+                                <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>
+                              </div>`
+                            : ""
                         }
                       </div>
                     </article>
@@ -14321,6 +14317,13 @@ function syncEntryPreview() {
 async function handleDocumentClick(event) {
   const actionTarget = event.target.closest("[data-action]");
   if (!actionTarget) {
+    // The whole meal header is the disclosure, not just the chevron.
+    const header = event.target instanceof Element ? event.target.closest(".meal-card-header") : null;
+    const card = header?.closest(".meal-card");
+    const toggle = card?.querySelector(".meal-collapse-toggle");
+    if (header && card && toggle instanceof HTMLElement && !card.classList.contains("is-editing") && !event.target.closest("button, input, label, a")) {
+      toggle.click();
+    }
     return;
   }
 
@@ -15684,10 +15687,16 @@ async function handleDocumentClick(event) {
     const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
     const food = getFoodById(foodId);
     const grams = quickAddGramsFor(food, store.foodUsage && store.foodUsage[foodId]);
+    const fromComposer = Boolean(actionTarget.closest("#plan-entry-form"));
     if (!commitPlanDraftEntry(food, grams, mealLabel)) {
       return;
     }
     render();
+    if (fromComposer) {
+      window.requestAnimationFrame(() => {
+        document.querySelector("#food-search-input")?.focus();
+      });
+    }
     return;
   }
 
@@ -17782,9 +17791,27 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLSelectElement && target.id === "amount-unit-select") {
+    const unit = String(target.value || "g");
+    if (!AMOUNT_UNIT_FACTORS[unit] || unit === state.planDraft.amountUnit) {
+      return;
+    }
+    state.planDraft.amountUnit = unit;
+    const amountField = document.querySelector("#amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderAmountFieldInner(getFoodById(state.planDraft.foodId));
+    }
+    syncEntryPreview();
+    syncCompanionSuggestions();
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "food-search-input") {
     const previousFoodId = state.planDraft.foodId;
-    const selectedFood = resolveFoodFromQuery(target.value);
+    // While typing, only an exact name counts as "picked" — picking from the
+    // list (or Enter) fills the exact name. A fuzzy best-guess here made the
+    // amount block pop in and out mid-word and could disagree with the list.
+    const selectedFood = findFoodByExactName(target.value) || null;
     updateFoodSuggestions(target.value, selectedFood);
     state.planDraft.foodId = selectedFood?.id || "";
     if (state.planDraft.foodId !== previousFoodId) {
@@ -17802,6 +17829,7 @@ function handleInput(event) {
     if (matchContainer) {
       matchContainer.innerHTML = renderFoodMatchInner(selectedFood);
     }
+    target.form?.classList.toggle("has-food", Boolean(selectedFood));
 
     if (selectedFood && !state.planDraft.grams) {
       state.planDraft.grams = String(quickAddGramsFor(selectedFood, store.foodUsage && store.foodUsage[selectedFood.id]));
@@ -18149,14 +18177,14 @@ document.addEventListener("keydown", (event) => {
   }
 });
 document.addEventListener("mousedown", (event) => {
-  if (event.target instanceof Element && event.target.closest(".food-suggest-item")) {
+  if (event.target instanceof Element && event.target.closest(".food-suggest-item, .food-suggest-add")) {
     event.preventDefault();
   }
 });
 document.addEventListener("focusin", (event) => {
   const input = event.target;
-  if (input instanceof HTMLInputElement && input.id === "food-search-input" && input.value) {
-    updateFoodSuggestions(input.value, resolveFoodFromQuery(input.value));
+  if (input instanceof HTMLInputElement && input.id === "food-search-input") {
+    updateFoodSuggestions(input.value, input.value ? resolveFoodFromQuery(input.value) : null);
   }
 });
 document.addEventListener("focusout", (event) => {
