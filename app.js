@@ -12542,10 +12542,10 @@ function renderMeasurementCard(field) {
     <article class="stat-card">
       <strong>${field.label}</strong>
       <div class="macro-value">
-        ${latestValue !== null ? `${latestValue}${field.unit ? ` ${field.unit}` : ""}` : "-"}
+        ${latestValue !== null ? `${latestValue}${field.unit ? ` ${field.unit}` : ""}` : "–"}
       </div>
       <div class="stat-card-meta">
-        <span class="footer-note">${latest ? `Poslednje: ${new Date(latest.date).toLocaleDateString("sr-RS")}` : "Još nema unosa"}</span>
+        <span class="footer-note">${latest && latestValue !== null ? `Poslednje: ${formatDateValueLabel(latest.date)}` : "Još nema unosa"}</span>
         ${renderMeasurementDelta(delta, field.unit)}
       </div>
     </article>
@@ -13583,7 +13583,7 @@ function renderProgressTab() {
           <h2>Ostale mere</h2>
         </div>
       </div>
-      <div class="stats-grid">
+      <div class="stats-grid stats-grid--glance">
         ${measurementFields
           .filter((field) => !["trainingType", "weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id))
           .map((field) => renderMeasurementCard(field))

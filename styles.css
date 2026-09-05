@@ -11648,3 +11648,74 @@ body.app-header-hidden .workspace-header {
 .field .amount-stepper input[type="number"] {
   width: 60px;
 }
+
+/* ============================================================
+   2026-09-05 — DOM audit fixes (390px, both themes).
+   ============================================================ */
+/* Muted text was 3.97:1 on the page background and 4.2:1 on the seg-nav
+   (day chips, sub-tabs, "Kako ovo radi?", empty hints). One shade darker
+   clears 4.5:1 everywhere it appears in light; dark keeps its own token. */
+:root {
+  --muted: #586460;
+}
+/* Hero bleed matched the 16px shell padding but the plan shell pads 14px on
+   phones (≤720px), so the hero overhung by 2px per side and the whole page
+   scrolled sideways. */
+@media (max-width: 720px) {
+  .app-main.shell.is-plan-shell {
+    --plan-hero-bleed-left: 14px;
+    --plan-hero-bleed-right: 14px;
+  }
+}
+html,
+body {
+  overflow-x: clip;
+}
+/* Tap targets under 32px: favorite star, week toggle, reminders close,
+   quiet text actions, the collapsed-summary header, lab-row delete. */
+.food-row-star {
+  width: 32px;
+  height: 40px;
+  margin-left: -8px;
+}
+.hero-week-toggle .hero-week-chip {
+  min-height: 34px;
+  padding: 6px 12px;
+}
+.today-reminders-close {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+.meal-secondary-action,
+:root[data-theme="dark"] .meal-secondary-action {
+  min-height: 36px;
+  padding: 8px 0;
+}
+.meal-composer-actions .ghost-button,
+:root[data-theme="dark"] .meal-composer-actions .ghost-button {
+  min-height: 36px;
+  padding: 8px 6px;
+}
+.section-disclosure {
+  min-height: 40px;
+}
+.lab-row-del,
+.bc-session-row .lab-row-del {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+}
+/* Desktop: .app-frame stretches <main> to the sidebar's height, and the
+   shell grid then distributed that free space into its auto rows — every
+   card on a short page (Merenja, Zdravlje…) grew ~35px of empty bottom. */
+@media (min-width: 900px) {
+  .app-main.shell {
+    align-content: start;
+  }
+}
+.food-match-chip-clear {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+}
