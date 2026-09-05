@@ -10814,3 +10814,641 @@ body.menu-open .plan-add-fab {
   color: var(--muted);
   font-weight: 700;
 }
+
+
+/* ============================================================
+   2026-09-05 — Hierarchy pass. Every screen had the same weight
+   everywhere (same cream cards, same serif h2), so nothing led.
+   Now: one hero per screen (Danas = the remaining-kcal ring),
+   meal cards are list rows not billboards, tab tops lose their
+   card chrome, and the last card-in-card nests (Trening, Rutina)
+   are flattened into hairline rows. Tokens only → both themes.
+   Appended last to win the cascade.
+   ============================================================ */
+
+/* ---- Danas: the collapsed "Dnevni pregled" IS the hero ------------------ */
+.plan-summary-section.is-collapsed .section-disclosure {
+  align-items: flex-start;
+}
+.plan-summary-section.is-collapsed .section-disclosure-copy {
+  flex: 1 1 auto;
+  gap: 10px;
+}
+/* The section title steps back to an eyebrow so the number is the headline. */
+.plan-summary-section.is-collapsed .section-disclosure-copy h2 {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--muted);
+}
+.plan-summary-compact {
+  display: grid;
+  gap: 14px;
+  margin-top: 0;
+}
+.plan-summary-compact-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.plan-mini-ring {
+  width: 74px;
+  height: 74px;
+}
+.plan-summary-compact .cal-ring-track,
+.plan-summary-compact .cal-ring-fill {
+  stroke-width: 3.2;
+}
+.plan-summary-compact-copy {
+  gap: 4px;
+}
+.plan-summary-compact-value {
+  font-size: 2.75rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
+.plan-summary-compact-value span {
+  display: block;
+  margin-top: 6px;
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.plan-summary-compact-meta {
+  font-size: 0.8125rem;
+  white-space: normal;
+}
+.plan-summary-compact-macros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.plan-summary-compact-macro {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.plan-summary-compact-macro-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-summary-compact-macro-long {
+  display: none;
+}
+.plan-summary-compact-macro-value {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.plan-summary-compact-macro-value span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.plan-summary-compact .progress {
+  height: 5px;
+  margin: 0;
+}
+@media (min-width: 560px) {
+  .plan-summary-compact-macro-short {
+    display: none;
+  }
+  .plan-summary-compact-macro-long {
+    display: inline;
+  }
+}
+
+/* Day strip under the title: quiet text chips, only the selected day is filled. */
+@media (max-width: 899px) {
+  .hero--plan .hero-day-chips {
+    gap: 4px;
+  }
+  .hero--plan .hero-day-chips .chip {
+    padding: 8px 2px;
+    border-radius: 11px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .hero--plan .hero-day-chips .chip.is-today:not(.is-active) {
+    border-color: transparent;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .hero--plan .hero-day-chips .chip.is-active,
+  :root[data-theme="dark"] .hero--plan .hero-day-chips .chip.is-active {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--button-primary-text);
+    font-weight: 700;
+    box-shadow: none;
+  }
+}
+
+/* ---- Reminders: a quiet utility strip with tappable actions ------------- */
+.today-reminders,
+:root[data-theme="dark"] .today-reminders {
+  padding: 14px 16px;
+}
+.today-reminders .today-reminders-head h2 {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.today-reminders-close {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 10px;
+}
+.today-reminders-pills {
+  gap: 8px;
+  margin-top: 10px;
+}
+.pill.strong.reminder-chip,
+:root[data-theme="dark"] .pill.strong.reminder-chip {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: 0.875rem;
+  box-shadow: none;
+}
+.pill.strong.reminder-chip .reminder-chip-hint,
+:root[data-theme="dark"] .pill.strong.reminder-chip .reminder-chip-hint {
+  border-left-color: var(--line-strong);
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* ---- Meal cards: list rows, not billboards ------------------------------ */
+.plan-meals-section .stack {
+  gap: 10px;
+}
+.plan-meals-section .meal-card,
+:root[data-theme="dark"] .plan-meals-section .meal-card {
+  --meal-order-size: 32px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  box-shadow: none;
+}
+.plan-meals-section .meal-card.is-collapsed,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-collapsed {
+  padding-block: 12px;
+}
+.plan-meals-section .meal-card.is-done,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-done {
+  opacity: 1;
+  background: var(--surface);
+  border-color: var(--line);
+}
+.plan-meals-section .meal-card.is-done .meal-title {
+  color: var(--muted);
+}
+.plan-meals-section .meal-card-header,
+:root[data-theme="dark"] .plan-meals-section .meal-card-header {
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  box-shadow: none;
+}
+.plan-meals-section .meal-card.is-collapsed .meal-card-header,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-collapsed .meal-card-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.plan-meals-section .meal-card-topline {
+  gap: 10px;
+  align-items: center;
+}
+.plan-meals-section .meal-order,
+:root[data-theme="dark"] .plan-meals-section .meal-order {
+  width: var(--meal-order-size);
+  min-width: var(--meal-order-size);
+  height: var(--meal-order-size);
+  padding: 0;
+  border: 1.5px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: none;
+  filter: none;
+}
+.plan-meals-section .meal-card.is-done .meal-order,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-done .meal-order {
+  border-color: transparent;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+.plan-meals-section .meal-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.plan-meals-section .meal-card-heading .meal-prep-badge {
+  margin-top: 4px;
+}
+/* Summary line: macros under the title, the meal total right-aligned. */
+.plan-meals-section .meal-card-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+  padding-left: calc(var(--meal-order-size) + 10px);
+}
+.plan-meals-section .meal-card-summary-kcal {
+  order: 2;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.plan-meals-section .meal-card-summary-kcal strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plan-meals-section .meal-card-summary-macros {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+.plan-meals-section .meal-summary-macro strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.plan-meals-section .meal-collapse-toggle,
+:root[data-theme="dark"] .plan-meals-section .meal-collapse-toggle {
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 11px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ---- Tab tops: title, not a card of a title ----------------------------- */
+@media (max-width: 720px) {
+  .workspace-header,
+  :root[data-theme="dark"] .workspace-header {
+    padding: 8px 4px 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .workspace-header-icon,
+  :root[data-theme="dark"] .workspace-header-icon {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--accent);
+  }
+  .workspace-header h1 {
+    font-size: 1.65rem;
+  }
+  .workspace-header + .group-seg-nav {
+    margin-top: 12px;
+  }
+  .seg-nav,
+  :root[data-theme="dark"] .seg-nav {
+    padding: 0;
+    gap: 8px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .seg-nav-btn {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--pill-border);
+    background: var(--pill-bg);
+    color: var(--muted);
+  }
+  .seg-nav-btn.is-active {
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--button-primary-text);
+    box-shadow: none;
+  }
+}
+
+/* ---- Namirnice: less intro, cleaner rows -------------------------------- */
+.foods-head {
+  gap: 0;
+  margin-bottom: 12px;
+}
+.foods-head-sub {
+  display: none;
+}
+.foods-head-count {
+  margin-top: 2px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.food-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: 8px;
+  padding: 10px 0;
+}
+.food-row-star {
+  width: 26px;
+  margin-left: -4px;
+}
+.food-row-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.food-row-line .food-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.food-row-line .food-row-kcal {
+  flex: 0 0 auto;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.food-row-nutri {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Trening: "Fokus dana" + Apple Watch are blocks in the section, not
+        cards in the card ----------------------------------------------- */
+.training-day-spotlight {
+  gap: 16px;
+}
+.training-day-spotlight .food-card.suggestion-surface,
+:root[data-theme="dark"] .training-day-spotlight .food-card.suggestion-surface {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.training-day-spotlight .training-burn-card,
+:root[data-theme="dark"] .training-day-spotlight .training-burn-card {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.training-day-spotlight .training-burn-form {
+  margin-top: 10px;
+}
+@media (min-width: 900px) {
+  .training-day-spotlight .training-burn-card,
+  :root[data-theme="dark"] .training-day-spotlight .training-burn-card {
+    padding-top: 0;
+    padding-left: 22px;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+}
+
+/* ---- Rutina: habit / task / streak rows are hairline rows -------------- */
+.routine-habit-stack,
+.routine-task-stack,
+.routine-streak-stack {
+  gap: 0;
+}
+.routine-habit-stack > .food-card.routine-card,
+.routine-task-stack > .food-card.routine-card,
+.routine-streak-stack > .food-card.routine-card,
+:root[data-theme="dark"] .routine-habit-stack > .food-card.routine-card,
+:root[data-theme="dark"] .routine-task-stack > .food-card.routine-card,
+:root[data-theme="dark"] .routine-streak-stack > .food-card.routine-card {
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  box-shadow: none;
+}
+.routine-habit-stack > .food-card.routine-card:last-child,
+.routine-task-stack > .food-card.routine-card:last-child,
+.routine-streak-stack > .food-card.routine-card:last-child {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+.routine-streak-card-layout {
+  gap: 14px;
+}
+.routine-streak-meter,
+:root[data-theme="dark"] .routine-streak-meter {
+  min-width: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  justify-items: start;
+}
+.routine-streak-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  color: var(--accent);
+}
+.routine-streak-unit,
+:root[data-theme="dark"] .routine-streak-unit {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+/* ---- Empty states: a hint, not a billboard ------------------------------ */
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide):not(.empty-passive) {
+  gap: 8px;
+  padding-block: 18px;
+}
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide):not(.empty-passive)::before {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---- Round 2: one day-strip language on every tab, flatter Rutina hero,
+        row metadata as text instead of pill piles, quieter Danas hero box. */
+@media (max-width: 899px) {
+  .hero--plan,
+  :root[data-theme="dark"] .hero--plan {
+    box-shadow: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-day-chips {
+    gap: 4px;
+  }
+  .hero-day-chips .chip,
+  :root[data-theme="dark"] .hero-day-chips .chip {
+    padding: 8px 2px;
+    border-radius: 11px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .hero-day-chips .chip.is-today:not(.is-active),
+  :root[data-theme="dark"] .hero-day-chips .chip.is-today:not(.is-active) {
+    border-color: transparent;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .hero-day-chips .chip.is-active,
+  :root[data-theme="dark"] .hero-day-chips .chip.is-active {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--button-primary-text);
+    font-weight: 700;
+    box-shadow: none;
+  }
+  /* Trening's strip is its own component but the same idea. */
+  .training-week-strip .training-day-chip,
+  :root[data-theme="dark"] .training-week-strip .training-day-chip {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .training-week-strip .training-day-chip.is-today:not(.is-active) {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .training-week-strip .training-day-chip.is-active,
+  :root[data-theme="dark"] .training-week-strip .training-day-chip.is-active {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--button-primary-text);
+    font-weight: 700;
+  }
+}
+
+/* Rutina hero: the day picker and the totals are part of the card, not
+   tinted boxes inside it. */
+.routine-overview-section .routine-day-picker,
+:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.routine-overview-section .plan-net-row,
+:root[data-theme="dark"] .routine-overview-section .plan-net-row {
+  margin-top: 14px;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  justify-content: space-between;
+  max-width: none;
+}
+.routine-overview-section .plan-net-row .plan-net-item {
+  justify-items: start;
+}
+.routine-overview-section .stat-hero {
+  text-align: left;
+}
+.routine-overview-section .plan-net-note {
+  text-align: left;
+}
+
+/* Row metadata (habits, streaks, tasks): "1/7 dana · Čeka za danas" as one
+   quiet line instead of a pile of pills. */
+.routine-row .pill-row,
+.routine-streak-content .pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 4px;
+}
+.routine-row .pill-row .pill,
+.routine-streak-content .pill-row .pill,
+:root[data-theme="dark"] .routine-row .pill-row .pill,
+:root[data-theme="dark"] .routine-streak-content .pill-row .pill {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.routine-row .pill-row .pill.strong,
+.routine-streak-content .pill-row .pill.strong,
+:root[data-theme="dark"] .routine-row .pill-row .pill.strong,
+:root[data-theme="dark"] .routine-streak-content .pill-row .pill.strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.routine-row .pill-row .pill,
+.routine-streak-content .pill-row .pill {
+  white-space: nowrap;
+}
+@media (min-width: 900px) {
+  .routine-overview-section .plan-net-row,
+  :root[data-theme="dark"] .routine-overview-section .plan-net-row {
+    justify-content: flex-start;
+    gap: 56px;
+  }
+}
+.routine-row .routine-check {
+  align-self: start;
+  margin-top: 2px;
+}

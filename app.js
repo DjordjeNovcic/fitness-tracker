@@ -8554,15 +8554,36 @@ function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calori
   const circumference = 2 * Math.PI * radius;
   const fraction = calorieGoal > 0 ? Math.min(1, Math.max(0, toNumber(totals.kcal) / calorieGoal)) : 0;
   const offset = circumference * (1 - fraction);
+  // The three macros as slim bars under the headline — same ok/near/over
+  // semantics as the expanded macro cards (renderProgress), just quieter.
+  const macros = [
+    { short: "P", label: "Proteini", value: totals.protein, goal: store.goals.protein, kind: "target" },
+    { short: "UH", label: "Ugljeni hidrati", value: totals.carbs, goal: store.goals.carbs, kind: "limit" },
+    { short: "M", label: "Masti", value: totals.fat, goal: store.goals.fat, kind: "limit" },
+  ];
   return `
     <div class="plan-summary-compact" data-state="${calorieState}">
-      <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
-        <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
-        <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
-      </svg>
-      <div class="plan-summary-compact-copy">
-        <strong class="plan-summary-compact-value">${Math.abs(remainingCalories)}<span> kcal ${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span></strong>
-        <span class="plan-summary-compact-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</span>
+      <div class="plan-summary-compact-main">
+        <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
+          <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
+        </svg>
+        <div class="plan-summary-compact-copy">
+          <strong class="plan-summary-compact-value">${Math.abs(remainingCalories)}<span>kcal ${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span></strong>
+          <span class="plan-summary-compact-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal uneto</span>
+        </div>
+      </div>
+      <div class="plan-summary-compact-macros" aria-label="Makroi danas">
+        ${macros
+          .map(
+            (macro) => `
+          <div class="plan-summary-compact-macro">
+            <span class="plan-summary-compact-macro-label"><span class="plan-summary-compact-macro-short">${macro.short}</span><span class="plan-summary-compact-macro-long">${macro.label}</span></span>
+            <span class="plan-summary-compact-macro-value">${roundValue(macro.value, 0)}<span>${macro.goal ? ` / ${roundValue(macro.goal, 0)}` : ""} g</span></span>
+            ${renderProgress(toNumber(macro.value), toNumber(macro.goal), macro.kind)}
+          </div>`
+          )
+          .join("")}
       </div>
     </div>`;
 }
@@ -8678,174 +8699,6 @@ function renderPlanTab(entries) {
     </section>
 
     ${renderTodayRemindersBanner()}
-
-    <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
-      <button
-        class="plan-quick-toggle"
-        type="button"
-        data-action="toggle-plan-quick"
-        aria-expanded="${state.planQuickExpanded}"
-      >
-        <div class="plan-quick-toggle-copy">
-          <div class="plan-quick-toggle-title-row">
-            <h2>Brze akcije</h2>
-            <span class="pill note plan-quick-toggle-badge">4 alata</span>
-          </div>
-          <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
-        </div>
-        <span class="plan-quick-toggle-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
-      </button>
-      <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
-        <div class="plan-quick-main">
-          <article class="food-card plan-quick-card plan-quick-card--primary">
-            <div class="food-card-top plan-quick-card-top">
-              <div class="plan-quick-card-copy">
-                <h3>Kopiraj plan dana</h3>
-                <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
-              </div>
-              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
-            </div>
-            <div class="plan-quick-card-source">
-              <span class="footer-note">Izvor dana</span>
-              <strong>${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</strong>
-            </div>
-            <form id="duplicate-day-form" class="form-grid split plan-quick-form">
-              <div class="field">
-                <label for="duplicate-target-weekday">Ciljni dan</label>
-                <select id="duplicate-target-weekday" name="targetWeekday" required>
-                  <option value="">Izaberi dan</option>
-                  ${WEEKDAYS.map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`).join("")}
-                </select>
-              </div>
-              <div class="field">
-                <label for="duplicate-target-week-track">Ciljna nedelja</label>
-                <select id="duplicate-target-week-track" name="targetWeekTrack">
-                  <option value="${state.selectedWeekTrack}">${getWeekTrackLabel(state.selectedWeekTrack)}</option>
-                  <option value="${state.selectedWeekTrack === 1 ? 0 : 1}">${getWeekTrackLabel(state.selectedWeekTrack === 1 ? 0 : 1)}</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="duplicate-mode">Način kopiranja</label>
-                <select id="duplicate-mode" name="mode">
-                  <option value="append">Dodaj u plan</option>
-                  <option value="replace">Prepiši dan</option>
-                </select>
-              </div>
-              <button class="solid-button button-with-icon plan-quick-submit" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
-            </form>
-          </article>
-        </div>
-        <div class="plan-quick-aside">
-          <article class="food-card plan-quick-card plan-quick-card--secondary">
-            <div class="food-card-top plan-quick-card-top">
-              <div class="plan-quick-card-copy">
-                <h3>Obriši ceo dan</h3>
-                <p>Isprazni jelovnik za ovaj dan, izaberi više dana odjednom, ili obriši sve obroke iz celog plana (obe nedelje).</p>
-              </div>
-              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
-            </div>
-            <div class="entry-actions entry-actions--start plan-inline-actions">
-              <button class="danger-button button-with-icon" type="button" data-action="delete-day-plan" ${entries.length ? "" : "disabled"}>
-                ${renderButtonContent(`Obriši ${weekdayLabel(state.selectedWeekday)}`, "delete")}
-              </button>
-              <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
-                ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
-              </button>
-              <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${
-                store.weeklyPlanEntries.length ? "" : "disabled"
-              }>
-                ${renderButtonContent("Obriši sve obroke", "delete")}
-              </button>
-            </div>
-            ${
-              state.bulkDeletePanelOpen
-                ? `
-              <div class="meal-prep-panel bulk-delete-panel">
-                ${renderWeekTrackDayPicker({ action: "toggle-bulk-delete-day", selectedPairs: state.bulkDeletePickDays || [] })}
-                <div class="entry-actions prep-actions">
-                  <button class="danger-button button-with-icon" type="button" data-action="confirm-bulk-delete-days" ${
-                    (state.bulkDeletePickDays || []).length ? "" : "disabled"
-                  }>
-                    ${renderButtonContent(`Obriši izabrane dane (${(state.bulkDeletePickDays || []).length})`, "delete")}
-                  </button>
-                </div>
-              </div>
-            `
-                : ""
-            }
-          </article>
-          <article class="food-card plan-quick-card plan-quick-card--secondary">
-            <div class="food-card-top plan-quick-card-top">
-              <div class="plan-quick-card-copy">
-                <h3>Omiljene namirnice</h3>
-                <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
-              </div>
-              <span class="pill strong">${favoriteFoods.length}</span>
-            </div>
-            ${
-              favoriteFoods.length
-                ? `
-                  <div class="chips plan-favorite-chips">
-                    ${favoriteFoods
-                      .map(
-                        (food) => `
-                          <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
-                            ${escapeHtml(food.name)}
-                          </button>
-                        `
-                      )
-                      .join("")}
-                  </div>
-                `
-                : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
-            }
-          </article>
-
-          ${
-            isDaySuggestionHidden
-              ? `
-                <article class="food-card plan-quick-card plan-quick-card--secondary plan-suggestion-card is-muted">
-                  <div class="food-card-top">
-                    <h3>Predlog dana</h3>
-                    <span class="pill">pauzirano</span>
-                  </div>
-                  <div class="footer-note">Sklonio si predlog sa ekrana. Možeš da ga vratiš kad ti zatreba.</div>
-                  <div class="entry-actions entry-actions--start" style="margin-top:12px;">
-                    <button class="ghost-button button-with-icon" data-action="show-day-suggestion">${renderButtonContent("Prikaži opet", "refresh")}</button>
-                  </div>
-                </article>
-              `
-              : `
-                <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
-                  <div class="food-card-top">
-                    <h3>Predlog celog dana</h3>
-                    <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Sakrij</button>
-                  </div>
-                  <div class="pill-row">
-                    <span class="pill note">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
-                    <span class="pill">P ${roundValue(daySuggestion.totals.protein, 1)} g</span>
-                    <span class="pill">UH ${roundValue(daySuggestion.totals.carbs, 1)} g</span>
-                    <span class="pill">M ${roundValue(daySuggestion.totals.fat, 1)} g</span>
-                  </div>
-                  <div class="footer-note">
-                    ${daySuggestion.meals
-                      .map((meal) => `${escapeHtml(meal.mealLabel)}: ${meal.items.map((item) => `${escapeHtml(item.food.name)} ${roundValue(item.grams, 0)}g`).join(", ")}`)
-                      .join(" | ")}
-                  </div>
-                  <div class="entry-actions entry-actions--start plan-inline-actions">
-                    <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
-                      ${renderButtonContent("Primeni na dan", "apply")}
-                    </button>
-                    <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
-                      ${renderButtonContent("Dodaj u plan", "add")}
-                    </button>
-                  </div>
-                </article>
-              `
-          }
-        </div>
-      </div>
-    </section>
 
     <section class="section plan-meals-section">
       <div class="section-header">
@@ -9045,6 +8898,174 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
+    <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
+      <button
+        class="plan-quick-toggle"
+        type="button"
+        data-action="toggle-plan-quick"
+        aria-expanded="${state.planQuickExpanded}"
+      >
+        <div class="plan-quick-toggle-copy">
+          <div class="plan-quick-toggle-title-row">
+            <h2>Brze akcije</h2>
+            <span class="pill note plan-quick-toggle-badge">4 alata</span>
+          </div>
+          <p>Kopiraj dan, koristi favorite i otvori predloge samo kad ti trebaju.</p>
+        </div>
+        <span class="plan-quick-toggle-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
+      </button>
+      <div class="stack plan-quick-stack ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
+        <div class="plan-quick-main">
+          <article class="food-card plan-quick-card plan-quick-card--primary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Kopiraj plan dana</h3>
+                <p>Prebaci isti raspored u drugi dan bez ponovnog unosa svih obroka.</p>
+              </div>
+              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
+            </div>
+            <div class="plan-quick-card-source">
+              <span class="footer-note">Izvor dana</span>
+              <strong>${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</strong>
+            </div>
+            <form id="duplicate-day-form" class="form-grid split plan-quick-form">
+              <div class="field">
+                <label for="duplicate-target-weekday">Ciljni dan</label>
+                <select id="duplicate-target-weekday" name="targetWeekday" required>
+                  <option value="">Izaberi dan</option>
+                  ${WEEKDAYS.map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label for="duplicate-target-week-track">Ciljna nedelja</label>
+                <select id="duplicate-target-week-track" name="targetWeekTrack">
+                  <option value="${state.selectedWeekTrack}">${getWeekTrackLabel(state.selectedWeekTrack)}</option>
+                  <option value="${state.selectedWeekTrack === 1 ? 0 : 1}">${getWeekTrackLabel(state.selectedWeekTrack === 1 ? 0 : 1)}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="duplicate-mode">Način kopiranja</label>
+                <select id="duplicate-mode" name="mode">
+                  <option value="append">Dodaj u plan</option>
+                  <option value="replace">Prepiši dan</option>
+                </select>
+              </div>
+              <button class="solid-button button-with-icon plan-quick-submit" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
+            </form>
+          </article>
+        </div>
+        <div class="plan-quick-aside">
+          <article class="food-card plan-quick-card plan-quick-card--secondary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Obriši ceo dan</h3>
+                <p>Isprazni jelovnik za ovaj dan, izaberi više dana odjednom, ili obriši sve obroke iz celog plana (obe nedelje).</p>
+              </div>
+              <span class="pill strong">${weekdayLabel(state.selectedWeekday)} · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
+            </div>
+            <div class="entry-actions entry-actions--start plan-inline-actions">
+              <button class="danger-button button-with-icon" type="button" data-action="delete-day-plan" ${entries.length ? "" : "disabled"}>
+                ${renderButtonContent(`Obriši ${weekdayLabel(state.selectedWeekday)}`, "delete")}
+              </button>
+              <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
+                ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
+              </button>
+              <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${
+                store.weeklyPlanEntries.length ? "" : "disabled"
+              }>
+                ${renderButtonContent("Obriši sve obroke", "delete")}
+              </button>
+            </div>
+            ${
+              state.bulkDeletePanelOpen
+                ? `
+              <div class="meal-prep-panel bulk-delete-panel">
+                ${renderWeekTrackDayPicker({ action: "toggle-bulk-delete-day", selectedPairs: state.bulkDeletePickDays || [] })}
+                <div class="entry-actions prep-actions">
+                  <button class="danger-button button-with-icon" type="button" data-action="confirm-bulk-delete-days" ${
+                    (state.bulkDeletePickDays || []).length ? "" : "disabled"
+                  }>
+                    ${renderButtonContent(`Obriši izabrane dane (${(state.bulkDeletePickDays || []).length})`, "delete")}
+                  </button>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </article>
+          <article class="food-card plan-quick-card plan-quick-card--secondary">
+            <div class="food-card-top plan-quick-card-top">
+              <div class="plan-quick-card-copy">
+                <h3>Omiljene namirnice</h3>
+                <p>Drži najčešće izbore pri ruci za brz unos u plan.</p>
+              </div>
+              <span class="pill strong">${favoriteFoods.length}</span>
+            </div>
+            ${
+              favoriteFoods.length
+                ? `
+                  <div class="chips plan-favorite-chips">
+                    ${favoriteFoods
+                      .map(
+                        (food) => `
+                          <button class="chip is-light" data-action="use-favorite-food" data-food-id="${food.id}">
+                            ${escapeHtml(food.name)}
+                          </button>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : `<div class="empty">Dodaj omiljene namirnice iz taba Namirnice, pa ćeš ih ovde birati jednim tapom.</div>`
+            }
+          </article>
+
+          ${
+            isDaySuggestionHidden
+              ? `
+                <article class="food-card plan-quick-card plan-quick-card--secondary plan-suggestion-card is-muted">
+                  <div class="food-card-top">
+                    <h3>Predlog dana</h3>
+                    <span class="pill">pauzirano</span>
+                  </div>
+                  <div class="footer-note">Sklonio si predlog sa ekrana. Možeš da ga vratiš kad ti zatreba.</div>
+                  <div class="entry-actions entry-actions--start" style="margin-top:12px;">
+                    <button class="ghost-button button-with-icon" data-action="show-day-suggestion">${renderButtonContent("Prikaži opet", "refresh")}</button>
+                  </div>
+                </article>
+              `
+              : `
+                <article class="food-card suggestion-surface plan-quick-card plan-quick-card--secondary plan-suggestion-card">
+                  <div class="food-card-top">
+                    <h3>Predlog celog dana</h3>
+                    <button class="plan-skip-button" type="button" data-action="hide-day-suggestion">Sakrij</button>
+                  </div>
+                  <div class="pill-row">
+                    <span class="pill note">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
+                    <span class="pill">P ${roundValue(daySuggestion.totals.protein, 1)} g</span>
+                    <span class="pill">UH ${roundValue(daySuggestion.totals.carbs, 1)} g</span>
+                    <span class="pill">M ${roundValue(daySuggestion.totals.fat, 1)} g</span>
+                  </div>
+                  <div class="footer-note">
+                    ${daySuggestion.meals
+                      .map((meal) => `${escapeHtml(meal.mealLabel)}: ${meal.items.map((item) => `${escapeHtml(item.food.name)} ${roundValue(item.grams, 0)}g`).join(", ")}`)
+                      .join(" | ")}
+                  </div>
+                  <div class="entry-actions entry-actions--start plan-inline-actions">
+                    <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
+                      ${renderButtonContent("Primeni na dan", "apply")}
+                    </button>
+                    <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
+                      ${renderButtonContent("Dodaj u plan", "add")}
+                    </button>
+                  </div>
+                </article>
+              `
+          }
+        </div>
+      </div>
+    </section>
+
     ${renderPlanSupplementsSection()}
 
     ${renderPlanWaterSection()}
@@ -9239,9 +9260,11 @@ function renderFoodsTab() {
                   aria-pressed="${isFavoriteFood ? "true" : "false"}"
                 >${renderStarIcon(isFavoriteFood)}</button>
                 <div class="food-row-info">
-                  <div class="food-row-name">${escapeHtml(food.name)}</div>
-                  <div class="food-row-qty">${getFoodNutritionBasisLabel(food)}</div>
-                  <div class="food-row-nutri"><span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span> · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</div>
+                  <div class="food-row-line">
+                    <div class="food-row-name">${escapeHtml(food.name)}</div>
+                    <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
+                  </div>
+                  <div class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</div>
                 </div>
                 ${
                   nextOpenMealLabel
