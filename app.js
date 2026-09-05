@@ -10860,10 +10860,6 @@ function renderRoutineTab() {
           ).join("")}
         </div>
       </div>
-      <div class="stat-hero" style="margin-top:14px;">
-        <span class="hero-day-label">Ukupno za danas</span>
-        <div class="stat-hero-value"><strong>${summary.progress}%</strong></div>
-      </div>
       <div class="plan-net-row">
         <div class="plan-net-item">
           <span class="plan-net-label">Navike</span>
@@ -11298,7 +11294,7 @@ function renderGoalsTab() {
     ${renderAdaptiveGoalNudge()}
 
     <section class="section goals-profile-section">
-      ${renderSectionLead("Profil i ciljevi", "BMR, održavanje i dnevni cilj računamo iz profila i izabranog cilja.")}
+      ${renderSectionLead("Profil i ciljevi", "")}
       ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
       <div class="goals-cilj-layout">
       <div class="goals-cilj-main">
@@ -11344,7 +11340,8 @@ function renderGoalsTab() {
       </div>
       ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">
-        <div class="field">
+        <div class="form-group-label">Profil</div>
+        <div class="field field--full">
           <label for="profile-name">Ime</label>
           <input id="profile-name" name="name" value="${escapeHtml(store.profile.name || "")}" />
         </div>
@@ -11368,12 +11365,13 @@ function renderGoalsTab() {
           <label for="profile-height">Visina (cm)</label>
           <input id="profile-height" name="heightCm" type="number" inputmode="decimal" step="1" min="0" value="${store.profile.heightCm || ""}" />
         </div>
-        <div class="field">
+        <div class="field field--full">
           <label for="profile-activity">Aktivnost</label>
           <select id="profile-activity" name="activityLevel">
             ${ACTIVITY_LEVELS.map((activity) => `<option value="${activity.id}" ${store.profile.activityLevel === activity.id ? "selected" : ""}>${activity.label}</option>`).join("")}
           </select>
         </div>
+        <div class="form-group-label">Cilj</div>
         <div class="field">
           <label for="goal-target-mode">Cilj</label>
           <select id="goal-target-mode" name="targetMode">
@@ -11386,14 +11384,16 @@ function renderGoalsTab() {
             ${PACE_LEVELS.map((level) => `<option value="${level.id}" ${(store.goals.paceLevel || "umereno") === level.id ? "selected" : ""}>${level.label}</option>`).join("")}
           </select>
         </div>
-        <div class="field">
+        <div class="field field--full">
           <label for="goal-target-weight">Ciljna težina (kg)</label>
           <input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />
         </div>
-        <div class="field">
+        <div class="form-group-label">Dnevni unos</div>
+        <div class="field field--full">
           <label for="goal-calories">Dnevni cilj kcal</label>
           <input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />
         </div>
+        <div class="form-grid-3">
         <div class="field">
           <label for="goal-protein">Proteini</label>
           <input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />
@@ -11406,9 +11406,10 @@ function renderGoalsTab() {
           <label for="goal-fat">Masti</label>
           <input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
+        </div>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
-          <button class="solid-button" type="submit">Sačuvaj ciljeve</button>
+          <button class="solid-button" type="submit">Sačuvaj</button>
         </div>
       </form>
       </div>
@@ -12388,7 +12389,7 @@ function getProgressSummary(history, photos) {
 function renderProgressSummary(summary) {
   return `
     <section class="section progress-overview-section">
-      ${renderSectionLead("Napredak na prvi pogled", "Koliko često meriš i da li već imaš materijal za poređenje slika.")}
+      ${renderSectionLead("Napredak na prvi pogled", "")}
       <dl class="glance-list progress-glance">
         <div class="glance-item">
           <dt>Poslednje merenje</dt>

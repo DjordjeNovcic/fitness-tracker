@@ -11783,3 +11783,289 @@ body {
   margin-left: auto;
   margin-right: 10px;
 }
+
+/* ============================================================
+   2026-09-05 — "Da liči na app": one type scale, tighter rhythm,
+   shorter fields, flatter buttons, grouped forms, list-style Nalog.
+   ============================================================ */
+/* Type scale on phones: screen title 1.65rem > section title 1.125rem >
+   row 1rem. Section titles were 1.5rem serif everywhere — every card read
+   like a page heading. */
+@media (max-width: 720px) {
+  .shell,
+  .app-main.shell {
+    gap: 12px;
+  }
+  .section,
+  :root[data-theme="dark"] .section {
+    padding: 16px;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+  .section-header {
+    margin-bottom: 12px;
+  }
+  .section-header h2,
+  .section-disclosure-copy h2,
+  .plan-quick-toggle h2,
+  .foods-head h2,
+  .form-collapse[open] > summary .form-collapse-title {
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+  }
+  .plan-summary-section.is-collapsed .section-disclosure-copy h2 {
+    font-size: 0.72rem;
+  }
+  /* Static descriptions under headings go; data-bearing ones (.section-copy)
+     stay: Voda, Koraci, Uvidi, Nedeljni izveštaj, Ažuriraj cilj. */
+  .section-header > div:not(.section-copy) > p {
+    display: none;
+  }
+  .food-card,
+  .training-card,
+  .macro-card,
+  .stat-card,
+  .plan-quick-card,
+  .plan-summary-section .macro-card,
+  .recipe-library-card {
+    border-radius: 16px;
+  }
+}
+@media (min-width: 721px) {
+  .section-header h2,
+  .section-disclosure-copy h2,
+  .plan-quick-toggle h2 {
+    font-size: 1.35rem;
+  }
+}
+.section-copy p:empty {
+  display: none;
+}
+
+/* Forms: 46px fields, 12px radius, grouped labels, two columns where the
+   values are short. */
+.field {
+  gap: 5px;
+}
+.field label {
+  font-size: 0.78rem;
+}
+.field input,
+.field select,
+.field textarea {
+  min-height: 46px;
+  padding: 11px 14px;
+  border-radius: 12px;
+}
+.field select {
+  padding-right: 40px;
+  background-position: 0 0, right 12px center;
+}
+.form-grid {
+  gap: 10px;
+}
+.form-group-label {
+  grid-column: 1 / -1;
+  margin: 8px 0 -2px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.form-group-label:first-child {
+  margin-top: 0;
+}
+.field--full {
+  grid-column: 1 / -1;
+}
+.form-grid-3 {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.form-grid.goals-form-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.goals-form-layout .meta-row {
+  grid-column: 1 / -1;
+}
+
+/* Buttons: flat, 12px radius — the 12/24px drop shadows made every button
+   float like a card. */
+.ghost-button,
+.danger-button,
+.solid-button,
+:root[data-theme="dark"] .ghost-button,
+:root[data-theme="dark"] .danger-button,
+:root[data-theme="dark"] .solid-button {
+  min-height: 44px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.ghost-button:not(:disabled):hover,
+.danger-button:not(:disabled):hover,
+.solid-button:not(:disabled):hover {
+  box-shadow: none;
+  transform: none;
+}
+.pill {
+  padding: 5px 9px;
+  font-size: 0.78rem;
+}
+
+/* Nalog: four cards in a card → one list of hairline blocks. */
+.settings-grid {
+  gap: 0;
+  margin-top: 6px;
+}
+.settings-grid > .status-summary-card,
+:root[data-theme="dark"] .settings-grid > .status-summary-card {
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.settings-grid > .status-summary-card:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+/* Ciljevi: the BMR → održavanje and P/UH/M summaries are rows, not boxes. */
+.goals-cilj-main .plan-net-row,
+:root[data-theme="dark"] .goals-cilj-main .plan-net-row {
+  max-width: none;
+  margin: 10px 0 0;
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  justify-content: space-between;
+}
+.goals-cilj-main .plan-net-row .plan-net-item {
+  justify-items: start;
+}
+.goals-cilj-main .stat-hero {
+  text-align: left;
+  padding: 0;
+}
+.goals-cilj-main .goals-form-layout {
+  margin-top: 16px;
+}
+
+/* ============================================================
+   2026-09-06 — Colour system, light theme. One green does the talking.
+   Before: dark green (primary), olive (secondary buttons, active chips),
+   teal (bars, arrows, info pills) and clay all competed, on cards that
+   each carried a white→cream gradient, an inset highlight, a drop shadow
+   and a tinted top stripe. Now: primary = dark green fill, secondary =
+   light tint of the same green, danger = quiet red text, bars/arrows/
+   info = one mid green, cards flat cream with a hairline. Dark keeps its
+   own gold tokens (its rules outrank these).
+   ============================================================ */
+:root {
+  --bg: #ebe5d9;
+  --bg-strong: #ddd6c8;
+  --secondary: #2f6b52;
+  --secondary-soft: #e3ece4;
+  --teal: #2f6b52;
+  --accent-soft: #dfe9e0;
+  --button-secondary-bg: #dfe9e0;
+  --button-secondary-text: #173b2f;
+  --button-secondary-border: rgba(23, 59, 47, 0.12);
+  --button-danger-bg: rgba(156, 61, 31, 0.07);
+  --button-danger-text: #9c3d1f;
+  --button-danger-border: rgba(156, 61, 31, 0.22);
+  --pill-bg: rgba(24, 33, 30, 0.05);
+  --pill-border: rgba(24, 33, 30, 0.06);
+  --pill-strong-bg: rgba(23, 59, 47, 0.09);
+  --pill-strong-border: rgba(23, 59, 47, 0.12);
+  --pill-note-bg: rgba(24, 33, 30, 0.05);
+  --pill-note-border: rgba(24, 33, 30, 0.06);
+  --status-info-bg: rgba(23, 59, 47, 0.08);
+  --status-info-border: rgba(23, 59, 47, 0.14);
+  --status-info-text: #245043;
+  --bar-ok: linear-gradient(90deg, #2f6b52 0%, #3f8a63 100%);
+  --bar-low: linear-gradient(90deg, #98ad9f 0%, #aebfb3 100%);
+}
+
+/* Flat surfaces: cream, hairline, no gradient/inset/stripe. */
+.section,
+.plan-summary-section,
+.plan-recipes-section,
+.recipes-builder-section,
+.routine-streak-section,
+.macro-card,
+.stat-card,
+.food-card,
+.training-card,
+.plan-summary-section .macro-card,
+.plan-secondary-stats .stat-card,
+.training-day-summary-card,
+.suggestion-surface,
+.plan-preview-card,
+.routine-streak-card,
+.plan-suggestion-card.is-muted,
+.meal-card.is-done,
+.chip.is-light {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+.plan-summary-section::before,
+.plan-preview-section::before,
+.plan-recipes-section::before,
+.plan-supplements-section::before,
+.plan-quick-section::before,
+.routine-overview-section::before,
+.routine-habits-section::before,
+.routine-streak-section::before,
+.routine-tasks-section::before,
+.routine-weekly-section::before,
+.nutrition-overview-section::before,
+.nutrition-recommendations-section::before,
+.nutrition-recipes-section::before,
+.nutrition-foods-section::before,
+.nutrition-documents-section::before,
+.recipes-builder-section::before,
+.recipes-library-section::before {
+  display: none;
+}
+.training-day-spotlight .food-card.suggestion-surface {
+  background: none;
+  border: 0;
+}
+.plan-meals-section .meal-card.is-done {
+  background: var(--surface);
+}
+
+/* Chips: flat, one active colour. */
+.chip {
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+  color: var(--ink);
+  box-shadow: none;
+}
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: none;
+}
+.chip.is-active:hover {
+  box-shadow: none;
+}
+/* The flat-surface rule above re-boxed the phone tab title; keep it bare. */
+@media (max-width: 720px) {
+  .workspace-header,
+  .workspace-header.section {
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+}

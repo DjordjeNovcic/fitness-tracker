@@ -2,19 +2,19 @@
 name: Fit Tracker
 description: Earthy sage-green nutrition & training PWA that turns gold-luxe graphite at night
 colors:
-  bg: "#ece2d3"
-  bg-strong: "#ddd0bd"
+  bg: "#ebe5d9"
+  bg-strong: "#ddd6c8"
   surface-elevated: "#ffffff"
   ink: "#17201d"
   muted: "#65716c"
   line: "rgba(24, 33, 30, 0.085)"
   accent: "#173b2f"
   accent-strong: "#10271f"
-  accent-soft: "#dce9dd"
-  secondary: "#8b9961"
-  teal: "#2f8076"
+  accent-soft: "#dfe9e0"
+  secondary: "#2f6b52"
+  teal: "#2f6b52"
   clay: "#efe2d6"
-  bar-ok: "linear-gradient(90deg, #2f8076 0%, #6f9e54 100%)"
+  bar-ok: "linear-gradient(90deg, #2f6b52 0%, #3f8a63 100%)"
   bar-near: "linear-gradient(90deg, #e0a83a 0%, #cf8a26 100%)"
   bar-over: "linear-gradient(90deg, #df7a48 0%, #c8442c 100%)"
   status-warning-text: "#72571b"
@@ -53,8 +53,8 @@ components:
     rounded: "{rounded.sm}"
     padding: "10px 16px"
   button-secondary:
-    backgroundColor: "{colors.secondary}"
-    textColor: "#fbf8ef"
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.accent}"
     rounded: "{rounded.sm}"
     padding: "10px 16px"
   button-ghost:
