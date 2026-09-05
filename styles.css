@@ -2167,7 +2167,10 @@ textarea::placeholder {
   color: var(--ink);
 }
 
-.plan-welcome-step-body span {
+/* Direct child only — the button labels inside .plan-welcome-actions are
+   spans too, and this rule was painting them muted-on-olive (invisible in
+   the light theme). */
+.plan-welcome-step-body > span {
   color: var(--muted);
   line-height: 1.45;
   font-size: 0.92rem;
