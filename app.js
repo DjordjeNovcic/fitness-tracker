@@ -609,6 +609,7 @@ const state = {
   foodNutritionFilter: "Sve",
   foodCatalogView: "list",
   foodFiltersOpen: false,
+  stepsEditOpen: false,
   foodMenuOpenId: "",
   foodEditorOpen: false,
   scannerOpen: false,
@@ -6851,11 +6852,15 @@ function renderHero(entries, totals) {
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
         <span class="hero-tag">Plan</span>
-        <h1 class="hero-title">${state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "Danas" : weekdayLabel(state.selectedWeekday)}</h1>
+        <div class="hero-title-wrap">
+          <h1 class="hero-title">${state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "Danas" : weekdayLabel(state.selectedWeekday)}</h1>
+          ${
+            state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack()
+              ? `<span class="hero-date">${weekdayLabel(getTodayWeekday()).toLowerCase()}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "")}</span>`
+              : ""
+          }
+        </div>
         ${renderWeekTrackToggle()}
-        <button class="hero-refresh" type="button" data-action="force-refresh" aria-label="Osveži na najnoviju verziju" title="Osveži na najnoviju verziju">
-          ${renderActionIcon("refresh")}
-        </button>
       </div>
       <div class="hero-day-picker">
         <div class="chips hero-day-chips" role="group" aria-label="Izaberi dan">
@@ -7967,31 +7972,46 @@ function getTodayWaterMl() {
   return Math.max(0, Math.round(toNumber((store.waterByDate || {})[today]) || 0));
 }
 
-function renderPlanWaterSection() {
-  const current = getTodayWaterMl();
-  const target = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
-  const pct = target ? Math.min(100, Math.round((current / target) * 100)) : 0;
-  const reached = target > 0 && current >= target;
+// Water and steps live in the daily overview as two rows (they used to be
+// two cards of their own, two screens below the glance they belong to).
+function renderPlanGlanceRows() {
+  const water = getTodayWaterMl();
+  const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
+  const waterPct = waterTarget ? Math.min(100, Math.round((water / waterTarget) * 100)) : 0;
+  const waterDone = waterTarget > 0 && water >= waterTarget;
   const toL = (ml) => (ml % 1000 === 0 ? String(ml / 1000) : (ml / 1000).toFixed(1));
+  const steps = getTodaySteps();
+  const stepsGoal = Math.max(0, Math.round(toNumber(store.goals?.stepsGoal) || 10000));
+  const stepsPct = stepsGoal ? Math.min(100, Math.round((steps / stepsGoal) * 100)) : 0;
+  const stepsDone = stepsGoal > 0 && steps >= stepsGoal;
+  const fmt = (n) => Math.round(n).toLocaleString("sr-RS");
   return `
-    <section class="section plan-water-section">
-      <div class="section-header">
-        <div class="section-copy">
-          <h2>Voda danas</h2>
-          <p>${toL(current)} / ${toL(target)} L${reached ? " · cilj ispunjen 💧" : ""}</p>
+    <div class="plan-glance-rows">
+      <div class="plan-glance-row ${waterDone ? "is-done" : ""}">
+        <span class="plan-glance-icon" aria-hidden="true">💧</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">Voda</span><span class="plan-glance-value">${toL(water)} / ${toL(waterTarget)} L</span></div>
+          <div class="plan-glance-bar"><span style="width:${waterPct}%"></span></div>
         </div>
-        <span class="pill strong pill--${reached ? "success" : "info"}">${pct}%</span>
+        ${water > 0 ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-water" data-ml="-250" aria-label="Skini 250 ml vode">−</button>` : ""}
+        <button class="plan-glance-btn" type="button" data-action="add-water" data-ml="250" aria-label="Dodaj čašu vode, 250 ml">+250</button>
       </div>
-      <div style="height:12px;border-radius:999px;background:var(--bar-track);overflow:hidden;margin:10px 0 14px;">
-        <div style="height:100%;width:${pct}%;border-radius:999px;background:var(--bar-ok);transition:width 0.3s ease;"></div>
+      <div class="plan-glance-row ${stepsDone ? "is-done" : ""}">
+        <span class="plan-glance-icon" aria-hidden="true">👟</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">Koraci</span><span class="plan-glance-value">${fmt(steps)} / ${fmt(stepsGoal)}</span></div>
+          ${
+            state.stepsEditOpen
+              ? `<div class="plan-glance-edit">
+                  <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${steps || ""}" aria-label="Koraci danas" />
+                  <button class="solid-button" type="button" data-action="set-steps">Sačuvaj</button>
+                </div>`
+              : `<div class="plan-glance-bar"><span style="width:${stepsPct}%"></span></div>`
+          }
+        </div>
+        <button class="plan-glance-btn ${state.stepsEditOpen ? "is-active" : ""}" type="button" data-action="toggle-steps-edit" aria-label="${state.stepsEditOpen ? "Zatvori unos koraka" : "Unesi korake"}">${state.stepsEditOpen ? "Zatvori" : "Unesi"}</button>
       </div>
-      <div class="meta-row meta-row--compact">
-        <button class="solid-button secondary-button button-with-icon" type="button" data-action="add-water" data-ml="250">+ Čaša · 250 ml</button>
-        <button class="ghost-button button-with-icon" type="button" data-action="add-water" data-ml="500">+ 500 ml</button>
-        ${current > 0 ? `<button class="ghost-button" type="button" data-action="add-water" data-ml="-250">−250 ml</button>` : ""}
-      </div>
-    </section>
-  `;
+    </div>`;
 }
 
 function getTodaySteps() {
@@ -8007,31 +8027,6 @@ function estimateStepsKm(steps) {
 // Manual steps for the day — read off your watch/phone and type it in (or use
 // the quick chips). Tracked on its own; NOT folded into calories, because the
 // "Apple Watch potrošnja" you enter already includes walking (would double-count).
-function renderPlanStepsSection() {
-  const current = getTodaySteps();
-  const goal = Math.max(0, Math.round(toNumber(store.goals?.stepsGoal) || 10000));
-  const pct = goal ? Math.min(100, Math.round((current / goal) * 100)) : 0;
-  const reached = goal > 0 && current >= goal;
-  const fmt = (n) => Math.round(n).toLocaleString("sr-RS");
-  return `
-    <section class="section plan-steps-section">
-      <div class="section-header">
-        <div class="section-copy">
-          <h2>Koraci danas</h2>
-          <p>${fmt(current)} / ${fmt(goal)} koraka${current > 0 ? ` · ≈ ${estimateStepsKm(current).toFixed(2)} km` : ""}${reached ? " · cilj ispunjen 👟" : ""}</p>
-        </div>
-        <span class="pill strong pill--${reached ? "success" : "info"}">${pct}%</span>
-      </div>
-      <div style="height:12px;border-radius:999px;background:var(--bar-track);overflow:hidden;margin:10px 0 14px;">
-        <div style="height:100%;width:${pct}%;border-radius:999px;background:var(--bar-ok);transition:width 0.3s ease;"></div>
-      </div>
-      <div class="meta-row meta-row--compact">
-        <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${current || ""}" aria-label="Koraci danas" />
-        <button class="solid-button secondary-button button-with-icon" type="button" data-action="set-steps">${renderButtonContent("Sačuvaj", "save")}</button>
-      </div>
-    </section>
-  `;
-}
 
 // Dnevna aktivnost sa Apple Watch-a (za danas). Move kcal je već upisan u
 // po-dan potrošnju pri uvozu, pa ovde samo prikazujemo pregled. Uvoz ide preko
@@ -8120,11 +8115,6 @@ function getTodayReminders() {
   }).length;
   if (mealLabels.length > 0 && mealsDone < mealLabels.length) {
     reminders.push({ text: `🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`, action: "jump-next-meal", hint: "Otvori sledeći" });
-  }
-  const water = getTodayWaterMl();
-  const waterTarget = Math.round(toNumber(store.goals?.waterMl) || 2500);
-  if (waterTarget > 0 && water < waterTarget) {
-    reminders.push({ text: `💧 Voda: ${(water / 1000).toFixed(1)} / ${(waterTarget / 1000).toFixed(1)} L`, action: "add-water", ml: 250, hint: "+250 ml" });
   }
   const measurements = store.measurements || [];
   if (!measurements.length) {
@@ -8681,6 +8671,7 @@ function renderPlanTab(entries) {
         ${renderMacroCards(totals, { excludeCalories: true })}
       </div>
       </div>
+      ${renderPlanGlanceRows()}
     </section>
 
     ${renderTodayRemindersBanner()}
@@ -8990,9 +8981,7 @@ function renderPlanTab(entries) {
 
     ${renderPlanSupplementsSection()}
 
-    ${renderPlanWaterSection()}
 
-    ${renderPlanStepsSection()}
 
     ${renderPlanActivitySection()}
 
@@ -15480,12 +15469,28 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-steps-edit") {
+    state.stepsEditOpen = !state.stepsEditOpen;
+    render();
+    if (state.stepsEditOpen) {
+      window.requestAnimationFrame(() => {
+        const input = document.querySelector("#steps-input");
+        if (input instanceof HTMLInputElement) {
+          input.focus();
+          input.select();
+        }
+      });
+    }
+    return;
+  }
+
   if (action === "set-steps") {
     const input = document.querySelector("#steps-input");
     const value = Math.max(0, Math.round(toNumber(input?.value)));
     const today = getTodayDateValue();
     store.stepsByDate = store.stepsByDate && typeof store.stepsByDate === "object" ? store.stepsByDate : {};
     store.stepsByDate[today] = value;
+    state.stepsEditOpen = false;
     persist();
     showFeedbackToast({ title: "Koraci sačuvani", detail: `${value.toLocaleString("sr-RS")} koraka za danas.`, tone: "success" });
     render();

@@ -12069,3 +12069,368 @@ body {
     box-shadow: none;
   }
 }
+
+/* ============================================================
+   2026-09-06 — Component pass: one button language, one row
+   language, no boxes inside boxes.
+   ============================================================ */
+/* Row actions (edit / delete / menu) are bare glyphs, 40px hit area. */
+.icon-only-action,
+.meal-entry-actions .ghost-button,
+.meal-entry-actions .danger-button,
+.routine-row > .entry-actions .ghost-button,
+.routine-row > .entry-actions .danger-button,
+.routine-streak-actions .ghost-button.icon-only-action,
+.routine-streak-actions .danger-button,
+.food-row-menu,
+.lab-row-del,
+.hero-refresh,
+:root[data-theme="dark"] .icon-only-action,
+:root[data-theme="dark"] .meal-entry-actions .ghost-button,
+:root[data-theme="dark"] .meal-entry-actions .danger-button,
+:root[data-theme="dark"] .routine-row > .entry-actions .ghost-button,
+:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,
+:root[data-theme="dark"] .routine-streak-actions .danger-button,
+:root[data-theme="dark"] .food-row-menu,
+:root[data-theme="dark"] .hero-refresh {
+  min-height: 40px;
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+.icon-only-action,
+.food-row-menu,
+.lab-row-del,
+.hero-refresh {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+}
+@media (max-width: 899px) {
+  .meal-entry-actions .ghost-button,
+  .meal-entry-actions .danger-button {
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+  }
+}
+.meal-entry-actions .danger-button,
+.routine-row > .entry-actions .danger-button,
+.routine-streak-actions .danger-button,
+.danger-button.icon-only-action,
+:root[data-theme="dark"] .meal-entry-actions .danger-button,
+:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,
+:root[data-theme="dark"] .danger-button.icon-only-action {
+  color: var(--button-danger-text);
+}
+.icon-only-action:hover,
+.meal-entry-actions .ghost-button:hover,
+.meal-entry-actions .danger-button:hover,
+.food-row-menu:hover,
+.hero-refresh:hover {
+  background: var(--pill-bg);
+}
+.entry-actions,
+.meal-entry-actions {
+  gap: 2px;
+}
+
+/* Ghost buttons: outline only, medium weight. */
+.ghost-button,
+:root[data-theme="dark"] .ghost-button {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Lists inside a card are hairline rows, not cards: recipes, training
+   templates and favourites, plan tools, stat tiles, expanded macro cards. */
+.recipes-library-stack > .recipe-library-card,
+.training-template-stack > .training-card,
+.training-favorite-card,
+.plan-quick-stack .food-card.plan-quick-card,
+:root[data-theme="dark"] .recipes-library-stack > .recipe-library-card,
+:root[data-theme="dark"] .training-template-stack > .training-card,
+:root[data-theme="dark"] .training-favorite-card,
+:root[data-theme="dark"] .plan-quick-stack .food-card.plan-quick-card {
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.recipes-library-stack,
+.training-template-stack,
+.plan-quick-stack,
+.plan-quick-main,
+.plan-quick-aside {
+  gap: 0;
+}
+.recipes-library-stack > .recipe-library-card.is-collapsed {
+  padding-block: 14px;
+}
+.recipes-library-stack > .recipe-library-card:first-child,
+.training-template-stack > .training-card:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+.plan-summary-section .macro-card,
+.plan-summary-section .macro-card::before,
+:root[data-theme="dark"] .plan-summary-section .macro-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.plan-summary-section .plan-net-row,
+:root[data-theme="dark"] .plan-summary-section .plan-net-row {
+  max-width: none;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  justify-content: space-around;
+}
+.stats-grid:not(.stats-grid--glance) .stat-card,
+:root[data-theme="dark"] .stats-grid:not(.stats-grid--glance) .stat-card {
+  padding: 12px 14px 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.stats-grid:not(.stats-grid--glance) {
+  gap: 0 14px;
+}
+
+/* Empty states and the add row: soft tint, no dashes. */
+.empty,
+.meal-add-row,
+:root[data-theme="dark"] .empty,
+:root[data-theme="dark"] .meal-add-row {
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.empty {
+  padding: 16px;
+}
+.meal-add-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Chips: 38px, and the Uvidi period picker is a small segmented control. */
+.chip {
+  min-height: 38px;
+  padding: 7px 14px;
+  font-size: 0.875rem;
+}
+.insights-section .chips .chip {
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+}
+
+/* Search fields share the 12px radius of every other field. */
+.foods-search {
+  border-radius: 12px;
+}
+.section-header {
+  align-items: center;
+}
+/* Expanded daily overview: three quiet macro columns, small labels. */
+.plan-summary-layout .macro-grid,
+.plan-summary-section .macro-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.plan-summary-section .macro-card header h3,
+.plan-summary-section .macro-card h3 {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+.plan-summary-section .macro-card header {
+  min-height: 0;
+}
+.plan-summary-section .macro-value,
+.plan-summary-section .macro-card .macro-value {
+  margin-top: 6px;
+  font-size: 1.35rem;
+}
+.plan-summary-section .progress {
+  margin-top: 8px;
+  height: 6px;
+}
+.plan-net-note {
+  margin-bottom: 4px;
+}
+/* Training exercises: hairline rows inside the template, not tiles. */
+.training-exercise-list {
+  gap: 0;
+}
+.training-exercise-row,
+:root[data-theme="dark"] .training-exercise-row {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.training-exercise-row:last-child {
+  border-bottom: 0;
+}
+:root[data-theme="dark"] .training-day-spotlight {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+/* ============================================================
+   2026-09-06 — Danas is a dashboard: water and steps are rows of the
+   daily overview (with their one-tap actions), the hero shows the date.
+   ============================================================ */
+.hero-top .hero-title-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.hero-date {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.plan-glance-rows {
+  display: grid;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.plan-glance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.plan-glance-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+.plan-glance-icon {
+  flex: 0 0 auto;
+  width: 26px;
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.plan-glance-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.plan-glance-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+.plan-glance-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+.plan-glance-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.plan-glance-row.is-done .plan-glance-value {
+  color: var(--status-success-text);
+  font-weight: 700;
+}
+.plan-glance-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bar-track);
+  overflow: hidden;
+}
+.plan-glance-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bar-ok);
+  transition: width 0.3s ease;
+}
+.plan-glance-btn,
+:root[data-theme="dark"] .plan-glance-btn {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.plan-glance-btn--quiet,
+:root[data-theme="dark"] .plan-glance-btn--quiet {
+  padding: 6px 10px;
+  color: var(--muted);
+}
+.plan-glance-btn.is-active,
+:root[data-theme="dark"] .plan-glance-btn.is-active {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--button-primary-text);
+}
+.plan-glance-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plan-glance-edit .steps-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font: inherit;
+}
+.plan-glance-edit .solid-button {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}
+.plan-glance-rows {
+  grid-template-columns: minmax(0, 1fr);
+}
+.plan-glance-row,
+.plan-glance-copy > * {
+  min-width: 0;
+}
+.plan-glance-edit .steps-input {
+  width: 60px;
+}
+.plan-glance-btn--quiet,
+:root[data-theme="dark"] .plan-glance-btn--quiet {
+  min-width: 36px;
+}
