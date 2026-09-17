@@ -8593,11 +8593,35 @@ function renderWeekTrackRow() {
 // The collapsed daily-overview row on phones. The remaining-calories glance is
 // the reason people open the app mid-day; hiding it behind a tap (a text line
 // with eaten totals) buried the one number that matters.
+// Eaten vs planned for the selected day. The plan is the whole day's food; what
+// you've actually checked off is a subset. The ring draws both: strong arc =
+// eaten, faint arc = still planned, so "is my plan inside the budget" and "how
+// far into the day am I" are both readable at a glance.
+function getDayRingFacts(entries, totals, calorieGoal) {
+  const eaten = getDayTotals(entries.filter((entry) => entry.done));
+  const plannedKcal = roundValue(totals.kcal, 0);
+  const eatenKcal = roundValue(eaten.kcal, 0);
+  const allDone = entries.length > 0 && entries.every((entry) => entry.done);
+  const clamp = (value) => (calorieGoal > 0 ? Math.min(1, Math.max(0, value / calorieGoal)) : 0);
+  return {
+    plannedKcal,
+    eatenKcal,
+    allDone,
+    plannedFraction: clamp(plannedKcal),
+    eatenFraction: clamp(eatenKcal),
+    // "1838 / 2061 kcal u planu" while the day is open, "pojedeno" once every
+    // meal is checked; the eaten count sits alongside while it differs.
+    metaLabel: `${plannedKcal} / ${calorieGoal} kcal ${allDone ? "pojedeno" : "u planu"}`,
+    eatenNote: !allDone && eatenKcal > 0 ? `${eatenKcal} pojedeno` : "",
+  };
+}
+
 function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState) {
   const radius = 15;
   const circumference = 2 * Math.PI * radius;
-  const fraction = calorieGoal > 0 ? Math.min(1, Math.max(0, toNumber(totals.kcal) / calorieGoal)) : 0;
-  const offset = circumference * (1 - fraction);
+  const ring = getDayRingFacts(getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack), totals, calorieGoal);
+  const offset = circumference * (1 - ring.eatenFraction);
+  const plannedOffset = circumference * (1 - ring.plannedFraction);
   // The three macros as slim bars under the headline — same ok/near/over
   // semantics as the expanded macro cards (renderProgress), just quieter.
   const macros = [
@@ -8610,11 +8634,12 @@ function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calori
       <div class="plan-summary-compact-main">
         <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
           <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
+          <circle class="cal-ring-planned" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${plannedOffset.toFixed(2)};"></circle>
           <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
         </svg>
         <div class="plan-summary-compact-copy">
           <strong class="plan-summary-compact-value">${Math.abs(remainingCalories)}<span>kcal ${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span></strong>
-          <span class="plan-summary-compact-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal uneto</span>
+          <span class="plan-summary-compact-meta">${ring.metaLabel}${ring.eatenNote ? ` · <span class="plan-summary-compact-eaten">${ring.eatenNote}</span>` : ""}</span>
         </div>
       </div>
       <div class="plan-summary-compact-macros" aria-label="Makroi danas">
@@ -8644,7 +8669,9 @@ function renderPlanTab(entries) {
   const calorieRatio = calorieGoal ? totals.kcal / calorieGoal : 0;
   const calorieState = !calorieGoal ? "neutral" : calorieRatio > 1.1 ? "over" : calorieRatio > 1.0 ? "near" : "ok";
   const ringCircumference = 326.7; // 2π·52
-  const ringOffset = roundValue(ringCircumference * (1 - Math.max(0, Math.min(calorieRatio, 1))), 1);
+  const ringFacts = getDayRingFacts(entries, totals, calorieGoal);
+  const ringOffset = roundValue(ringCircumference * (1 - ringFacts.eatenFraction), 1);
+  const ringPlannedOffset = roundValue(ringCircumference * (1 - ringFacts.plannedFraction), 1);
   const caloriePct = calorieGoal ? Math.round(calorieRatio * 100) : 0;
   const favorites = getFavoriteMealsDetailed();
   const meals = [
@@ -8691,6 +8718,7 @@ function renderPlanTab(entries) {
         <div class="cal-ring-dial">
           <svg class="cal-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
             <circle class="cal-ring-track" cx="60" cy="60" r="52"></circle>
+            <circle class="cal-ring-planned" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringPlannedOffset};"></circle>
             <circle class="cal-ring-fill" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringOffset};"></circle>
           </svg>
           <div class="cal-ring-center">
@@ -8699,7 +8727,7 @@ function renderPlanTab(entries) {
             <span class="cal-ring-unit">kcal</span>
           </div>
         </div>
-        <div class="cal-ring-meta">${roundValue(totals.kcal, 0)} / ${calorieGoal} kcal</div>
+        <div class="cal-ring-meta">${ringFacts.metaLabel}${ringFacts.eatenNote ? ` · <span class="cal-ring-eaten">${ringFacts.eatenNote}</span>` : ""}</div>
       </div>
       `
           : `
@@ -12691,6 +12719,21 @@ function recordTodaySnapshot() {
   };
 }
 
+// A history day is "final" when it's in the past with any intake, or it's today
+// and every planned meal is checked off (an unplanned day counts as soon as
+// something is logged).
+function isHistoryDayFinal(day) {
+  const snap = day && day.snap;
+  if (!snap || !(snap.kcal > 0)) {
+    return false;
+  }
+  if (day.date !== getTodayDateValue()) {
+    return true;
+  }
+  const total = toNumber(snap.mealsTotal);
+  return total <= 0 || toNumber(snap.mealsDone) >= total;
+}
+
 function getHistoryDays(count) {
   const now = new Date();
   const days = [];
@@ -12815,11 +12858,11 @@ function getWeeklyReport() {
   const thisWeek = days.slice(7);
   const lastWeek = days.slice(0, 7);
   const avg = (arr, key) => {
-    const xs = arr.map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
+    const xs = arr.filter((d) => key !== "kcal" || isHistoryDayFinal(d)).map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
     return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
   };
-  const onTarget = (arr) => arr.filter((d) => isHistoryDayOnTarget(d.snap)).length;
-  const loggedDays = thisWeek.filter((d) => d.snap && d.snap.kcal > 0).length;
+  const onTarget = (arr) => arr.filter((d) => isHistoryDayFinal(d) && isHistoryDayOnTarget(d.snap)).length;
+  const loggedDays = thisWeek.filter((d) => isHistoryDayFinal(d)).length;
   const measurements = [...(store.measurements || [])]
     .filter((m) => toNumber(m.weightKg) > 0)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -13232,7 +13275,10 @@ function getInsights(periodDays) {
     return Boolean(d && startDate && d.getTime() >= startDate.getTime());
   };
 
-  const loggedDays = days.filter((d) => d.snap && d.snap.kcal > 0);
+  // A day counts once it's final: any past day with intake, or today only when
+  // every planned meal is checked — a half-logged today (one breakfast) used to
+  // drag the average to 378 kcal/dan and "predict" −2 kg/ned.
+  const loggedDays = days.filter((d) => isHistoryDayFinal(d));
   const loggedCount = loggedDays.length;
   const avgOf = (key) => {
     const xs = loggedDays.map((d) => toNumber(d.snap[key])).filter((v) => v > 0);
@@ -13277,7 +13323,8 @@ function getInsights(periodDays) {
   // rate, then compared to what actually happened on the scale.
   const rec = getGoalRecommendation();
   let energy = null;
-  if (rec && avgKcal > 0) {
+  // An energy → weight projection from fewer than five logged days is noise.
+  if (rec && avgKcal > 0 && loggedCount >= 5) {
     const dailyDelta = avgKcal - rec.maintenance; // negative = deficit
     energy = {
       maintenance: rec.maintenance,
@@ -15784,6 +15831,16 @@ async function handleDocumentClick(event) {
       return;
     }
     render();
+    if (!fromComposer && state.activeTab !== "plan") {
+      // Added from Namirnice: the meal it landed in is on another tab, so the
+      // glowing new row there is invisible — say where it went.
+      const targetLabel = normalizeMealLabel(mealLabel || state.planDraft.mealLabel || defaultMeals[0]);
+      showFeedbackToast({
+        title: `Dodato u ${getMealDisplayParts(targetLabel).title || targetLabel}`,
+        detail: `${food.name} · ${formatFoodAmount(food, grams)} · ${weekdayLabel(state.selectedWeekday)}`,
+        tone: "success",
+      });
+    }
     if (fromComposer) {
       window.requestAnimationFrame(() => {
         document.querySelector("#food-search-input")?.focus();

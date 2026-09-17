@@ -49,10 +49,20 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Web fonts load without blocking first paint (system fallbacks show first,
+         display=swap swaps them in); the noscript copy keeps them for no-JS. -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
     <!-- app.js imports these statically; preloading lets them download alongside
          app.js instead of after it has been parsed (one fewer round trip on a cold start). -->
     <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js" crossorigin />

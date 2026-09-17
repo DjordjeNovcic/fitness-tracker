@@ -12658,3 +12658,45 @@ body {
 .training-burn-intro {
   margin: 0 0 10px;
 }
+
+
+/* Calorie ring, two arcs: eaten (strong) over planned (faint). Checking a meal
+   off used to change nothing on the ring while the copy said "uneto". */
+.cal-ring-planned {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  opacity: 0.28;
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.22, 0.61, 0.36, 1), stroke 0.3s ease;
+}
+.cal-ring[data-state="near"] .cal-ring-planned,
+.plan-summary-compact[data-state="near"] .cal-ring-planned {
+  stroke: var(--status-warning-text);
+}
+.cal-ring[data-state="over"] .cal-ring-planned,
+.plan-summary-compact[data-state="over"] .cal-ring-planned {
+  stroke: var(--status-error-text);
+}
+.plan-summary-compact .cal-ring-planned {
+  stroke-width: 3.2;
+}
+.cal-ring-eaten,
+.plan-summary-compact-eaten {
+  color: var(--ink);
+  font-weight: 700;
+}
+:root[data-theme="dark"] .cal-ring-planned {
+  filter: none;
+}
+
+/* While a toast is up on Namirnice, the add pill steps aside so the message
+   ("Dodato u Prva užina …") isn't half covered. */
+body:has(.feedback-toast.is-visible) .foods-add-fab {
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+}
+.foods-add-fab {
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.22s ease;
+}
