@@ -8814,9 +8814,9 @@ function renderPlanTab(entries) {
       }
       <div class="plan-summary-layout">
         ${renderMacroCards(totals, { excludeCalories: true })}
+        ${renderPlanGlanceRows()}
       </div>
       </div>
-      ${renderPlanGlanceRows()}
     </section>
 
     ${renderTodayRemindersBanner()}
@@ -13130,7 +13130,15 @@ function renderProgressHistorySection() {
     </section>`;
   }
   const stats = getHistoryStats();
-  const toneColor = { none: "var(--bar-track)", low: "rgba(47, 128, 118, 0.32)", ok: "var(--teal)", over: "#df7a48" };
+  // Semantic, token-based and theme-aware: a month of "on target" days used to
+  // paint a solid block of the brand accent (gold in dark). Status colours say
+  // what the day was; the accent stays reserved for active/CTA/progress.
+  const toneColor = {
+    none: "var(--bar-track)",
+    low: "color-mix(in srgb, var(--status-success-text) 26%, transparent)",
+    ok: "var(--status-success-text)",
+    over: "var(--status-error-text)",
+  };
   const cellTone = (snap) => {
     if (!snap || !(snap.kcal > 0)) return "none";
     const goal = snap.calorieGoal;
@@ -13142,7 +13150,7 @@ function renderProgressHistorySection() {
     .map((d) => {
       const tone = cellTone(d.snap);
       const title = d.snap && d.snap.kcal > 0 ? `${d.date}: ${d.snap.kcal} kcal` : `${d.date}: nema unosa`;
-      return `<span title="${title}" style="aspect-ratio:1;border-radius:5px;background:${toneColor[tone]};"></span>`;
+      return `<span class="history-cell" title="${title}" style="background:${toneColor[tone]};"></span>`;
     })
     .join("");
   return `
@@ -13171,7 +13179,7 @@ function renderProgressHistorySection() {
           <div class="footer-note">7 dana</div>
         </article>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">
+      <div class="history-heatmap">
         ${cells}
       </div>
       <div class="meta-row" style="margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap;">

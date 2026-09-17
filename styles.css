@@ -2107,6 +2107,42 @@ textarea::placeholder {
     max-width: 640px;
   }
 
+  /* Lists of repeating records (habits, streaks, tasks, runs, supplements,
+     imported documents) are NOT forms: capping them at 640px inside a
+     1080px section is what made those cards read as "content uses half the
+     card". They get real columns instead — auto-fit, so a single record
+     still fills the row rather than sitting in a half-empty grid. */
+  .routine-habit-stack,
+  .routine-task-stack,
+  .routine-streak-stack,
+  .running-history-stack,
+  .plan-supplement-stack,
+  .nutrition-recommendations-stack,
+  .nutrition-recipes-stack,
+  .nutrition-foods-stack,
+  .nutrition-documents-stack {
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    column-gap: 32px;
+  }
+
+  /* An empty state describes the whole list, so it spans every column and
+     stays proportional to the little it says. */
+  .routine-habit-stack > .empty,
+  .routine-task-stack > .empty,
+  .routine-streak-stack > .empty,
+  .running-history-stack > .empty,
+  .plan-supplement-stack > .empty,
+  .nutrition-recommendations-stack > .empty,
+  .nutrition-recipes-stack > .empty,
+  .nutrition-foods-stack > .empty,
+  .nutrition-documents-stack > .empty {
+    grid-column: 1 / -1;
+    max-width: 640px;
+    padding: 14px 16px;
+  }
+
+
   /* Ciljevi's "Cilj" summary (stat-hero + BMR/macro pills) and Rutina's daily
      summary sit above a capped form/list like the ones above, but weren't in
      that list themselves: the hero centered its text across the whole wide
@@ -5452,12 +5488,9 @@ body.menu-open .menu-fab {
     min-height: 100%;
   }
 
-  /* Third card (demo reset / delete-all) would otherwise sit alone in the
-     2nd row's first column with dead space beside it — let it take the
-     full row instead, which also reads correctly as "the odd one out". */
-  .settings-danger-card {
-    grid-column: 1 / -1;
-  }
+  /* There are two or three of these now (empty the plan, wipe data / demo
+     reset), so they pair up in the grid like every other settings block.
+     Spanning the full row each left a half-empty band per card. */
 
   .supplement-weekdays-field {
     grid-column: 1 / -1;
@@ -11818,4 +11851,69 @@ button.meal-entry-body:focus-visible {
 }
 .bulk-delete-panel {
   margin-top: 2px;
+}
+
+/* ============================================================
+   Desktop composition pass (2026-09-17). Shared patterns only: the design
+   language, spacing scale and components are unchanged — this decides how
+   much width each block is allowed to use.
+   ============================================================ */
+
+/* Dnevnik ishrane heatmap: 35 cells in a 7-column grid across a 1080px
+   section turned every day into a 120px tile. Cells stay calendar-sized. */
+.history-heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  max-width: 320px;
+}
+.history-cell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+}
+
+@media (min-width: 1100px) {
+  /* Danas — the calorie ring and the numbers it explains sit side by side
+     instead of the ring floating alone in a full-width band. */
+  .plan-summary-section .plan-section-body.is-expanded {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 40px;
+  }
+  .plan-summary-section .plan-section-body.is-expanded > .cal-ring,
+  .plan-summary-section .plan-section-body.is-expanded > .plan-summary-headline {
+    grid-row: 1 / -1;
+    margin-bottom: 0;
+  }
+  .plan-summary-section .plan-summary-layout {
+    gap: 18px;
+  }
+  .plan-summary-section .plan-glance-rows {
+    margin-top: 0;
+  }
+
+  /* Rutina — one column per weekday instead of 6 + 1 orphan. */
+  .routine-weekly-section .stats-grid.stats-grid--glance {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  /* Napredak — sharing is a secondary action, not a full-width bar. */
+  .progress-share-button {
+    width: auto;
+    justify-self: start;
+  }
+
+  /* Ciljevi — the weight chart follows the form instead of leaving a long
+     void beside it once the form scrolls past. */
+  .goals-cilj-chart {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .goals-cilj-layout {
+    grid-template-columns: minmax(0, 660px) minmax(300px, 1fr);
+  }
 }
