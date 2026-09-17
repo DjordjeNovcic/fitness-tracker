@@ -7704,7 +7704,8 @@ function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
       <div class="meal-composer-actions">
         ${
           isEditing
-            ? `<button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
+            ? `<button class="ghost-button meal-composer-delete" type="button" data-action="delete-entry" data-entry-id="${escapeHtml(state.editingEntryId)}">${renderButtonContent("Obriši stavku", "delete")}</button>
+               <button class="ghost-button" type="button" data-action="cancel-edit-entry">Odustani</button>`
             : `<button class="ghost-button" type="button" data-action="finish-edit-meal" data-meal-label="${escapeHtml(state.editingMealLabel)}">Zatvori</button>`
         }
       </div>
@@ -8118,7 +8119,28 @@ function estimateStepsKm(steps) {
 // Dnevna aktivnost sa Apple Watch-a (za danas). Move kcal je već upisan u
 // po-dan potrošnju pri uvozu, pa ovde samo prikazujemo pregled. Uvoz ide preko
 // prečice (deep link #import-activity) ili clipboard-a (FITACT) — kao i trčanje.
+// The daily-activity import runs through Apple Shortcuts, so the section is
+// noise on every non-Apple device: show it on iPhone/iPad, or anywhere once a
+// shortcut has been named or a day's activity has ever been imported.
+function isAppleMobileDevice() {
+  const ua = String(navigator.userAgent || "");
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
+}
+
+function shouldShowActivitySection() {
+  if (isAppleMobileDevice()) {
+    return true;
+  }
+  if (getShortcutName("activity")) {
+    return true;
+  }
+  return Object.keys(store.activityByDate || {}).length > 0;
+}
+
 function renderPlanActivitySection() {
+  if (!shouldShowActivitySection()) {
+    return "";
+  }
   const date = getTodayDateValue();
   const activity = getActivityForDate(date);
   const hasActivity = Boolean(activity);
@@ -8800,7 +8822,7 @@ function renderPlanTab(entries) {
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
       </div>
-      ${renderHelpNote("Otvori obrok pa <strong>„Dodaj namirnicu“</strong> (ili tapni nedavnu iz brzog unosa). Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Otvori obrok pa <strong>„Dodaj namirnicu“</strong> (ili tapni nedavnu iz brzog unosa). <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -8895,31 +8917,20 @@ function renderPlanTab(entries) {
                             ? mealEntries
                                 .map(
                                   (entry) => `
-                                    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""}">
-                                      <div class="meal-entry-main">
-                                        <div class="meal-entry-title-group">
-                                          <strong>${escapeHtml(entry.foodName)}</strong>
+                                    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
+                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))} — izmeni ili obriši">`}
+                                        <div class="meal-entry-main">
+                                          <div class="meal-entry-title-group">
+                                            <strong>${escapeHtml(entry.foodName)}</strong>
+                                          </div>
+                                          ${isMealDone ? "" : `<span class="meal-entry-hint" aria-hidden="true">${renderSideChevronIcon(false)}</span>`}
                                         </div>
-                                        ${
-                                          !isMealDone
-                                            ? `
-                                              <div class="entry-actions meal-entry-actions">
-                                                <button class="ghost-button button-with-icon" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni stavku">
-                                                  ${renderButtonContent("Izmeni", "edit", "button-label--mobile-hidden")}
-                                                </button>
-                                                <button class="danger-button button-with-icon" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši stavku">
-                                                  ${renderButtonContent("Obriši", "delete", "button-label--mobile-hidden")}
-                                                </button>
-                                              </div>
-                                            `
-                                            : ""
-                                        }
-                                      </div>
-                                      <div class="meal-entry-stats">
-                                        <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
-                                        <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                        <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
-                                      </div>
+                                        <div class="meal-entry-stats">
+                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
+                                          <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
+                                          <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
+                                        </div>
+                                      ${isMealDone ? `</div>` : `</button>`}
                                     </div>
                                   `
                                 )
@@ -9023,11 +9034,6 @@ function renderPlanTab(entries) {
               </button>
               <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
                 ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
-              </button>
-              <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${
-                store.weeklyPlanEntries.length ? "" : "disabled"
-              }>
-                ${renderButtonContent("Obriši sve obroke", "delete")}
               </button>
             </div>
             ${
@@ -12221,6 +12227,17 @@ function renderAccountSection() {
             <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi backup", "save")}</button>
             <label class="ghost-button button-with-icon" for="import-json">${renderButtonContent("Uvezi backup", "open")}</label>
             <input id="import-json" type="file" accept="application/json" hidden />
+          </div>
+        </article>
+        <article class="status-summary-card settings-danger-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Isprazni plan obroka</strong>
+              <div class="footer-note">Briše sve obroke iz obe nedelje plana. Čekirani (pojedeni) obroci ostaju, namirnice i recepti se ne diraju. Može da se poništi odmah posle brisanja.</div>
+            </div>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${store.weeklyPlanEntries.length ? "" : "disabled"}>${renderButtonContent("Obriši sve obroke", "delete")}</button>
           </div>
         </article>
 ${

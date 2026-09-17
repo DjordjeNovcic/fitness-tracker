@@ -11798,3 +11798,55 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   font-weight: 800;
   opacity: 0.8;
 }
+
+/* Danas refinement: the food row is the control (tap → edit, delete inside
+   the editor). Twenty-six pencil/bin icons per day are gone. */
+.meal-entry-body {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.meal-entry-body {
+  cursor: pointer;
+}
+.meal-entry-hint {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--line-strong);
+  margin-top: 2px;
+}
+.meal-entry-hint svg {
+  width: 14px;
+  height: 14px;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.meal-entry-body:hover {
+    background: var(--pill-bg);
+  }
+  button.meal-entry-body:hover .meal-entry-hint {
+    color: var(--muted);
+  }
+}
+button.meal-entry-body:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.meal-entry.is-editing .meal-entry-body {
+  background: var(--accent-soft);
+}
+.meal-composer-actions .meal-composer-delete,
+:root[data-theme="dark"] .meal-composer-actions .meal-composer-delete {
+  color: var(--button-danger-text);
+}
+.meal-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
