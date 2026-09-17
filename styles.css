@@ -11850,3 +11850,125 @@ button.meal-entry-body:focus-visible {
   justify-content: flex-end;
   gap: 4px;
 }
+
+/* Hierarchy pass (2026-09-17, round 2) ------------------------------------ */
+
+/* Recepti: the title row toggles the recipe; the chevron is a hint, not a
+   44px bordered button floating next to the name. */
+.recipe-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.recipe-library-head h3 {
+  margin: 0;
+  min-width: 0;
+}
+.recipe-library-head-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--muted);
+}
+.recipe-library-head-chevron svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.22s ease;
+}
+.recipe-library-head[aria-expanded="true"] .recipe-library-head-chevron svg {
+  transform: rotate(180deg);
+}
+.recipe-library-head:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .recipe-library-head:hover .recipe-library-head-chevron {
+    color: var(--ink);
+  }
+}
+
+/* Trening: the selected day in the week list is bold ink, not a link colour. */
+.training-week-item.is-active .training-week-item-main strong {
+  color: var(--ink);
+}
+.training-day-glance {
+  margin-top: 0;
+  border-top: 0;
+}
+
+/* Ciljevi → Nedeljno: macro summary is three quiet columns like Danas, not
+   three bordered cards inside the section. */
+.goals-weekly-section .macro-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.goals-weekly-section .macro-card,
+:root[data-theme="dark"] .goals-weekly-section .macro-card {
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.goals-weekly-section .macro-card header {
+  min-height: 0;
+}
+.goals-weekly-section .macro-card header h3 {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.goals-weekly-section .macro-card .macro-value {
+  margin-top: 6px;
+  font-size: 1.375rem;
+}
+@media (max-width: 520px) {
+  .goals-weekly-section .macro-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Recepti, expanded: ingredients are hairline rows, the method is a quiet
+   tinted block — no cards inside the recipe card. */
+.recipe-library-ingredient-card,
+:root[data-theme="dark"] .recipe-library-ingredient-card {
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  gap: 6px;
+}
+.recipe-library-ingredients {
+  gap: 0;
+}
+.recipe-library-ingredient-card:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+.recipe-library-method,
+:root[data-theme="dark"] .recipe-library-method {
+  background: var(--pill-bg);
+  border: 0;
+  box-shadow: none;
+}
+
+/* Rutina: the day picker sits directly under the title. */
+.routine-day-picker .hero-day-chips {
+  margin-top: 0;
+}

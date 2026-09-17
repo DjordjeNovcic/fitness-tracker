@@ -9677,26 +9677,16 @@ function renderRecipesTab() {
                             : ""
                         }
                         <div class="recipe-library-body">
-                          <div class="food-card-top recipe-library-top">
-                            <div class="recipe-library-copy">
+                          <div class="recipe-library-copy">
+                            <button class="recipe-library-head" type="button" data-action="toggle-recipe-expanded" data-favorite-id="${favorite.id}" aria-expanded="${isExpanded}" aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}: ${escapeHtml(favorite.name)}">
                               <h3>${escapeHtml(favorite.name)}</h3>
-                              ${
-                                isExpanded
-                                  ? `<p>${escapeHtml(favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa.")}</p>`
-                                  : ""
-                              }
-                            </div>
-                            <div class="entry-actions" style="gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap;">
-                              <button
-                                class="ghost-button meal-collapse-toggle"
-                                data-action="toggle-recipe-expanded"
-                                data-favorite-id="${favorite.id}"
-                                aria-expanded="${isExpanded}"
-                                aria-label="${isExpanded ? "Skupi recept" : "Raširi recept"}"
-                              >
-                                ${renderChevronIcon(isExpanded)}
-                              </button>
-                            </div>
+                              <span class="recipe-library-head-chevron" aria-hidden="true">${renderChevronIcon(isExpanded)}</span>
+                            </button>
+                            ${
+                              isExpanded
+                                ? `<p>${escapeHtml(favorite.description || favorite.instructions || "Sačuvan recept bez dodatnog opisa.")}</p>`
+                                : ""
+                            }
                           </div>
                           <div class="recipe-library-meta">
                             ${[
@@ -9861,15 +9851,6 @@ function renderTrainingTab() {
           templates.length
             ? `
         <article class="food-card suggestion-surface training-day-summary-card">
-          <div class="training-day-summary-top">
-            <div>
-              <h3>Fokus dana</h3>
-              <div class="footer-note">
-                ${templates.length ? `${templates.length} ${templates.length === 1 ? "trening šablon" : "trening šablona"} za ${weekdayAccusative(state.selectedWeekday)}.` : `Još nema treninga za ${weekdayAccusative(state.selectedWeekday)}.`}
-              </div>
-            </div>
-            <span class="pill strong">${todayExerciseCompleted}/${todayExerciseTotal || 0}</span>
-          </div>
           <dl class="glance-list training-day-glance">
             <div class="glance-item">
               <dt>Vežbe</dt>
@@ -9901,9 +9882,8 @@ function renderTrainingTab() {
                       <div class="training-top">
                         <div>
                           <h3>${escapeHtml(template.name)}</h3>
-                          <div class="footer-note training-template-progress-copy">${completion.completedCount}/${completion.totalCount} vežbi označeno kao odrađeno</div>
                         </div>
-                        <span class="pill strong">${completion.completedCount}/${completion.totalCount}</span>
+                        <span class="pill strong" aria-label="${completion.completedCount} od ${completion.totalCount} vežbi odrađeno">${completion.completedCount}/${completion.totalCount}</span>
                       </div>
                       <div class="training-exercise-list">
                         ${template.exercises
@@ -10966,8 +10946,7 @@ function renderRoutineTab() {
       </div>
       ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Taskovi</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni streakovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule. Taskovi su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i streakovi su isti svake nedelje.")}
       <div class="hero-day-picker routine-day-picker">
-        <div class="hero-picker-label">Dan u nedelji</div>
-        <div class="chips hero-day-chips" style="margin-top:12px;">
+        <div class="chips hero-day-chips">
           ${WEEKDAYS.map(
             (weekday) => `
               <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
@@ -11580,7 +11559,7 @@ function renderGoalsTab() {
 
     ${gView === "nedeljno" ? `
     <section class="section goals-weekly-section">
-      ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.", { eyebrow: "Pregled" })}
+      ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.")}
       <div class="stats-grid stats-grid--glance">
         <article class="stat-card">
           <strong>Uneto kcal</strong>
