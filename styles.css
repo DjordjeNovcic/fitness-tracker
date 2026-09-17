@@ -11758,3 +11758,43 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* Namirnice refinement: the row itself opens the food (its detail/edit view);
+   the "+" is the only add-to-meal control, "Nova namirnica" the only create. */
+.food-row-info {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.food-row-info .food-row-line {
+  display: flex;
+}
+.food-row-info .food-row-nutri {
+  display: block;
+}
+@media (hover: hover) and (pointer: fine) {
+  .food-row-info:hover {
+    background: var(--pill-bg);
+  }
+  .food-row-info:hover .food-row-name {
+    color: var(--accent);
+  }
+}
+.food-row-info:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.foods-chip--applied .foods-chip-x {
+  margin-left: 2px;
+  font-weight: 800;
+  opacity: 0.8;
+}

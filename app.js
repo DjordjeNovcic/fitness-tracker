@@ -6490,8 +6490,8 @@ function renderFoodEditorDialog() {
       <section class="app-dialog food-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="food-editor-title">
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
-            <div class="hero-picker-label">${editingFood ? "Uređivanje" : "Nova namirnica"}</div>
-            <h3 id="food-editor-title">${editingFood ? escapeHtml(editingFood.name) : "Dodaj namirnicu"}</h3>
+            <div class="hero-picker-label">${editingFood ? "Namirnica" : "Baza namirnica"}</div>
+            <h3 id="food-editor-title">${editingFood ? escapeHtml(editingFood.name) : "Nova namirnica"}</h3>
             <p>${editingFood ? `Promeni vrednosti za ${editingFoodBasisLabel.toLowerCase()} i sačuvaj izmenu.` : "Izaberi da li namirnicu vodiš na 100 g ili na 1 komad, pa unesi makroe i kalorije."}</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-food-editor-dialog" aria-label="Zatvori dijalog">
@@ -9202,10 +9202,10 @@ function renderFoodsTab() {
     <section class="section foods-section">
       <header class="foods-head">
         <h2>Namirnice</h2>
-        <p class="foods-head-count">${selectableFoods.length} namirnica u bazi</p>
+        <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} namirnica` : `${selectableFoods.length} namirnica u bazi`}</p>
       </header>
 
-      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
+      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu, a <strong>+</strong> pored nje je ubacuje u sledeći otvoreni obrok. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
 
       ${
         pendingNutritionReviewCount > 0
@@ -9225,12 +9225,17 @@ function renderFoodsTab() {
         <button class="foods-filter-toggle foods-scan-inline" type="button" data-action="open-scanner" aria-label="Skeniraj barkod" title="Skeniraj barkod">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
         </button>
-        <button class="foods-filter-toggle ${state.foodFiltersOpen ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
+        <button class="foods-filter-toggle ${state.foodFiltersOpen || state.foodNutritionFilter !== "Sve" ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri${state.foodNutritionFilter !== "Sve" ? ` (aktivan: ${state.foodNutritionFilter})` : ""}" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>
         </button>
       </div>
 
       <div class="foods-chips">
+        ${
+          !state.foodFiltersOpen && state.foodNutritionFilter !== "Sve"
+            ? `<button class="foods-chip foods-chip--applied is-active" type="button" data-action="set-food-nutrition-filter" data-filter="Sve" aria-label="Ukloni filter ${state.foodNutritionFilter}">${state.foodNutritionFilter}<span class="foods-chip-x" aria-hidden="true">×</span></button>`
+            : ""
+        }
         ${macroChips
           .map(
             (filter) => `
@@ -9259,7 +9264,7 @@ function renderFoodsTab() {
           Skeniraj
         </button>
         <button class="foods-add-inline solid-button button-with-icon" type="button" data-action="open-food-editor-dialog">
-          ${renderButtonContent("Dodaj namirnicu", "add")}
+          ${renderButtonContent("Nova namirnica", "add")}
         </button>
       </div>
       <div class="food-list foods-list">
@@ -9287,13 +9292,13 @@ function renderFoodsTab() {
                   aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
                   aria-pressed="${isFavoriteFood ? "true" : "false"}"
                 >${renderStarIcon(isFavoriteFood)}</button>
-                <div class="food-row-info">
-                  <div class="food-row-line">
-                    <div class="food-row-name">${escapeHtml(food.name)}</div>
+                <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)} — detalji i izmena">
+                  <span class="food-row-line">
+                    <span class="food-row-name">${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
-                  </div>
-                  <div class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</div>
-                </div>
+                  </span>
+                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</span>
+                </button>
                 ${
                   nextOpenMealLabel
                     ? `<button class="food-row-add" type="button" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(nextOpenMealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)} u ${escapeHtml(nextOpenMealTitle)}" title="Dodaj u ${escapeHtml(nextOpenMealTitle)}">
@@ -9315,7 +9320,7 @@ function renderFoodsTab() {
                   menuOpen
                     ? `<div class="food-row-actions">
                         <button class="ghost-button button-with-icon" type="button" data-action="edit-food" data-food-id="${food.id}">${renderButtonContent("Izmeni", "edit")}</button>
-                        <button class="danger-button button-with-icon" type="button" data-action="delete-food" data-food-id="${food.id}">${renderButtonContent("Obriši", "delete")}</button>
+                        <button class="danger-button button-with-icon" type="button" data-action="delete-food" data-food-id="${food.id}">${renderButtonContent("Obriši iz baze", "delete")}</button>
                       </div>`
                     : ""
                 }
@@ -9354,9 +9359,9 @@ function getNextOpenMealLabel() {
 
 function renderFoodsAddFab() {
   return `
-    <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog">
+    <button class="foods-add-fab" type="button" data-action="open-food-editor-dialog" aria-label="Nova namirnica u bazi">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      Dodaj namirnicu
+      Nova namirnica
     </button>
   `;
 }
