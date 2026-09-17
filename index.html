@@ -22,6 +22,9 @@
           root.dataset.theme = mode;
           root.style.colorScheme = mode;
           root.setAttribute("data-theme-pref", pref || "auto");
+          // Browser chrome / iOS status bar follows the app theme, not a fixed green.
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", mode === "dark" ? "#1b1815" : "#17352b");
         }
         var stored;
         try { stored = localStorage.getItem("ft-theme"); } catch (e) {}
@@ -50,6 +53,11 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
     />
+    <!-- app.js imports these statically; preloading lets them download alongside
+         app.js instead of after it has been parsed (one fewer round trip on a cold start). -->
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js" crossorigin />
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js" crossorigin />
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js" crossorigin />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
     <link rel="alternate icon" href="./icons/icon.svg" type="image/svg+xml" />
@@ -57,7 +65,23 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <!-- Static skeleton so something paints before app.js + Firebase (~1 MB) arrive;
+         app.js replaces it on its first render. Mirrors renderLoadingShell(). -->
+    <div id="app">
+      <main class="shell app-main loading-shell" aria-busy="true" aria-label="Učitavanje">
+        <div class="skeleton skeleton-hero"></div>
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-line skeleton-line--title"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line skeleton-line--short"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-line skeleton-line--title"></div>
+          <div class="skeleton skeleton-line"></div>
+        </div>
+        <p class="loading-shell-note">Povezujem aplikaciju…</p>
+      </main>
+    </div>
     <script src="./data/seed-data.js"></script>
     <script src="./app.js" type="module"></script>
   </body>

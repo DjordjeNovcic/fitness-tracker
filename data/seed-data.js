@@ -1,15 +1,22 @@
 window.SEED_DATA = {
   "version": 1,
   "profile": {
-    "name": "Djordje Novcic",
+    "name": "",
+    "sex": "male",
     "age": 30,
-    "weightKg": 90.0
+    "heightCm": 183,
+    "weightKg": 90.0,
+    "activityLevel": "light"
   },
   "goals": {
-    "calories": 1980,
-    "protein": 225.0,
-    "carbs": 108.0,
-    "fat": 72.0
+    "calories": 2061,
+    "protein": 198,
+    "carbs": 155,
+    "fat": 72,
+    "targetMode": "lose",
+    "paceLevel": "umereno",
+    "basisWeightKg": 90.0,
+    "waterMl": 3000
   },
   "foods": [
     {

@@ -735,7 +735,44 @@ const firebaseAuth = getAuth(firebaseApp);
 const firebaseDb = getFirestore(firebaseApp);
 
 function cloneSeed() {
-  return JSON.parse(JSON.stringify(window.SEED_DATA || {}));
+  const seed = JSON.parse(JSON.stringify(window.SEED_DATA || {}));
+  mirrorSingleTrackPlan(seed);
+  return seed;
+}
+
+// The meal plan and training are a two-week (Ova / Sledeća) cycle keyed to the
+// calendar, but the factory seed was authored on one track only — so on every
+// other week the demo opened on an empty "Ova" week with the whole plan sitting
+// under "Sledeća". Mirror single-track data onto the other track so both weeks
+// are populated. Returns true when something was added.
+function mirrorSingleTrackPlan(targetStore) {
+  let changed = false;
+  const mirror = (list, prefix) => {
+    if (!Array.isArray(list) || !list.length) {
+      return;
+    }
+    list.forEach((item) => {
+      if (item && typeof item === "object") {
+        item.weekTrack = normalizeWeekTrack(item.weekTrack);
+      }
+    });
+    const tracks = new Set(list.map((item) => normalizeWeekTrack(item && item.weekTrack)));
+    if (tracks.size !== 1) {
+      return;
+    }
+    const to = [...tracks][0] === 1 ? 0 : 1;
+    const copies = list.map((item, index) => ({
+      ...JSON.parse(JSON.stringify(item)),
+      id: `${(item && item.id) || `${prefix}-${index + 1}`}-t${to}`,
+      weekTrack: to,
+      done: false,
+    }));
+    list.push(...copies);
+    changed = true;
+  };
+  mirror(targetStore.weeklyPlanEntries, "plan");
+  mirror(targetStore.trainingTemplates, "template");
+  return changed;
 }
 
 function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
@@ -4975,6 +5012,40 @@ function getBmrEstimate(profile = store.profile) {
   return roundValue(base + (sex === "female" ? -161 : 5), 0);
 }
 
+// Macro split that can't overshoot the calorie target. Plain g/kg factors work
+// for normal-weight people, but on a heavier body they blow past the budget
+// (protein + fat alone exceeding the target, carbs shown as "0 g"). So: cap
+// protein at 40% of kcal when cutting (35% otherwise), fat at 35%, always keep
+// at least 20% of kcal for carbs, and if the caps still don't fit, scale P and
+// F down together. Carbs are the remainder. Whole grams — nobody weighs 259.6 g.
+function splitMacros(targetCalories, weightKg, goalMode) {
+  const kcal = Math.max(0, toNumber(targetCalories));
+  const weight = Math.max(0, toNumber(weightKg));
+  let proteinKcal = Math.min(weight * goalMode.proteinFactor * 4, kcal * (goalMode.id === "lose" ? 0.4 : 0.35));
+  let fatKcal = Math.min(weight * goalMode.fatFactor * 9, kcal * 0.35);
+  const carbFloorKcal = kcal * 0.2;
+  const available = kcal - carbFloorKcal;
+  if (proteinKcal + fatKcal > available && proteinKcal + fatKcal > 0) {
+    const scale = available / (proteinKcal + fatKcal);
+    proteinKcal *= scale;
+    fatKcal *= scale;
+  }
+  const protein = roundValue(proteinKcal / 4, 0);
+  const fat = roundValue(fatKcal / 9, 0);
+  const carbs = roundValue(Math.max(0, kcal - protein * 4 - fat * 9) / 4, 0);
+  return { protein, fat, carbs };
+}
+
+// Daily water target from body weight (~35 ml/kg), in 250 ml glasses, kept
+// between 1.5 and 4 L. Editable in Ciljevi; this is just the sensible default.
+function suggestWaterMl(weightKg) {
+  const weight = toNumber(weightKg);
+  if (!weight) {
+    return 2500;
+  }
+  return Math.min(4000, Math.max(1500, Math.round((weight * 35) / 250) * 250));
+}
+
 function getGoalRecommendation(profile = store.profile, goals = store.goals) {
   const bmr = getBmrEstimate(profile);
   if (!bmr) {
@@ -5004,10 +5075,7 @@ function getGoalRecommendation(profile = store.profile, goals = store.goals) {
     rateKgPerWeek = roundValue(((targetCalories - maintenance) * 7) / KCAL_PER_KG, 2);
   }
   const paceLimited = Math.abs(rateKgPerWeek - requestedRateKgPerWeek) > 0.01;
-  const protein = roundValue(weightKg * goalMode.proteinFactor, 1);
-  const fat = roundValue(weightKg * goalMode.fatFactor, 1);
-  const remainingCalories = Math.max(0, targetCalories - protein * 4 - fat * 9);
-  const carbs = roundValue(remainingCalories / 4, 1);
+  const { protein, fat, carbs } = splitMacros(targetCalories, weightKg, goalMode);
 
   return {
     bmr,
@@ -7033,7 +7101,8 @@ function renderOnboarding() {
 function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
   lastHeaderScrollY = 0;
-  document.body.classList.remove("app-header-hidden");
+  state.isPlanHeroCompact = false;
+  document.body.classList.remove("app-header-hidden", "plan-compact");
 }
 
 function isOverlayOpen() {
@@ -7427,7 +7496,7 @@ function updateHeroScrollState() {
     // The (non-interactive) workspace header shows ONLY at the very top of
     // the page. Once scrolled away it stays hidden — it does not reappear on
     // scroll-up, only when you return to the top.
-    if (y < 28) {
+    if (y < 72) {
       body.classList.remove("app-header-hidden");
     } else {
       body.classList.add("app-header-hidden");
@@ -8048,11 +8117,11 @@ function renderPlanActivitySection() {
   }
 
   return `
-    <details class="section form-collapse plan-activity-section" ${hasActivity ? "open" : ""}>
+    <details class="section form-collapse form-collapse--view plan-activity-section" ${hasActivity ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Aktivnost sa sata</span>
         ${hasActivity && activity.moveKcal != null ? `<span class="pill strong">${activity.moveKcal} kcal</span>` : ""}
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <p class="footer-note plan-activity-intro">${
         hasActivity
@@ -8117,8 +8186,11 @@ function getTodayReminders() {
     reminders.push({ text: `🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`, action: "jump-next-meal", hint: "Otvori sledeći" });
   }
   const measurements = store.measurements || [];
+  const nagSnoozedUntil = String(store.ui?.plan?.measurementNagSnoozedUntil || "");
   if (!measurements.length) {
-    reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "toggle-quick-weight", hint: "Unesi težinu" });
+    if (!nagSnoozedUntil || nagSnoozedUntil < getTodayDateValue()) {
+      reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "toggle-quick-weight", hint: "Unesi težinu" });
+    }
   } else {
     const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
     // Compare local calendar days (both at noon), not raw ms: `new Date("YYYY-MM-DD")`
@@ -8142,10 +8214,14 @@ function renderTodayRemindersBanner() {
     return "";
   }
   return `
-    <section class="section today-reminders">
-      <div class="section-header today-reminders-head">
-        <div class="section-copy">
-          <h2>Danas te čeka</h2>
+    <section class="section today-reminders" aria-label="Podsetnici za danas">
+      <div class="today-reminders-row">
+        <div class="pill-row today-reminders-pills">
+          ${reminders
+            .map(
+              (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${escapeHtml(reminder.text)}${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
+            )
+            .join("")}
         </div>
         <button class="ghost-button button-with-icon icon-only-action today-reminders-close" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas" title="Sakrij za danas">${renderButtonContent("Sakrij", "close")}</button>
       </div>
@@ -8163,13 +8239,6 @@ function renderTodayRemindersBanner() {
           </form>`
           : ""
       }
-      <div class="pill-row today-reminders-pills">
-        ${reminders
-          .map(
-            (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${escapeHtml(reminder.text)}${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
-          )
-          .join("")}
-      </div>
     </section>`;
 }
 
@@ -9088,7 +9157,6 @@ function renderFoodsTab() {
       <header class="foods-head">
         <h2>Namirnice</h2>
         <p class="foods-head-count">${selectableFoods.length} namirnica u bazi</p>
-        <p class="foods-head-sub">Pretraži, filtriraj i dodaj nove unose.</p>
       </header>
 
       ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Dodaj namirnicu</strong> ručno upiše novu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
@@ -9107,6 +9175,9 @@ function renderFoodsTab() {
         <input id="food-search" type="search" value="${escapeHtml(state.foodSearch)}" placeholder="Pretraga namirnica..." aria-label="Pretraga namirnica" autocomplete="off" />
         <button class="foods-search-clear ${state.foodSearch ? "" : "is-hidden"}" type="button" data-action="clear-food-search" aria-label="Obriši pretragu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+        <button class="foods-filter-toggle foods-scan-inline" type="button" data-action="open-scanner" aria-label="Skeniraj barkod" title="Skeniraj barkod">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
         </button>
         <button class="foods-filter-toggle ${state.foodFiltersOpen ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>
@@ -9619,7 +9690,7 @@ function renderRecipesTab() {
                           }
                           <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
                             <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
-                              ${renderButtonContent("Dodaj u plan", "apply")}
+                              ${renderButtonContent("Dodaj u plan", "add")}
                             </button>
                             <button class="ghost-button button-with-icon icon-only-action" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Izmeni recept" title="Izmeni recept">
                               ${renderButtonContent("Izmeni recept", "edit")}
@@ -9691,7 +9762,7 @@ function renderTrainingTab() {
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
-          return `<div class="empty empty-passive training-week-empty">Nema treninga u ovoj nedelji. Izaberi dan pa dodaj šablon ispod.</div>`;
+          return "";
         }
         return `
           <ul class="training-week-list">
@@ -9761,33 +9832,6 @@ function renderTrainingTab() {
             `
             : ""
         }
-        <article class="food-card suggestion-surface training-burn-card">
-          <div class="food-card-top training-burn-top">
-            <div class="training-burn-copy">
-              <h3>Apple Watch potrošnja</h3>
-              <p>Upiši kalorije sa treninga za taj dan da plan odmah prikaže neto unos.</p>
-            </div>
-            <span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>
-          </div>
-          <form id="training-burn-form" class="form-grid split training-burn-form">
-            <div class="field">
-              <label for="training-burn-kcal">Potrošeno kcal</label>
-              <input
-                id="training-burn-kcal"
-                name="burnKcal"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                placeholder="npr. 540"
-                value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
-              />
-            </div>
-            <div class="training-burn-actions">
-              <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
-            </div>
-          </form>
-        </article>
       </div>
       <div class="stack training-template-stack">
         ${
@@ -9834,6 +9878,32 @@ function renderTrainingTab() {
             : `<div class="empty">Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}. Dodaj šablon ispod${favoriteTrainings.length ? " ili ubaci omiljeni trening" : ""}.</div>`
         }
       </div>
+      <details class="form-collapse training-burn-collapse" ${trainingBurn > 0 ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">Potrošnja sa sata</span>
+          ${trainingBurn > 0 ? `<span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>` : ""}
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
+        <p class="footer-note training-burn-intro">Upiši kalorije sa treninga (Apple Watch i sl.) da Danas prikaže neto unos.</p>
+        <form id="training-burn-form" class="form-grid split training-burn-form">
+          <div class="field">
+            <label for="training-burn-kcal">Potrošeno kcal</label>
+            <input
+              id="training-burn-kcal"
+              name="burnKcal"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              placeholder="npr. 540"
+              value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
+            />
+          </div>
+          <div class="training-burn-actions">
+            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+          </div>
+        </form>
+      </details>
     </section>
 
     ${
@@ -9917,10 +9987,10 @@ function renderTrainingTab() {
       </form>
     </details>
 
-    <details class="section form-collapse">
+    <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Progres po vežbi</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <form id="training-progress-form" class="form-grid split">
         <div class="field date-field">
@@ -9967,10 +10037,10 @@ function renderTrainingTab() {
       </div>
     </details>
 
-    <details class="section form-collapse">
+    <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Poslednji unosi opterećenja</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <div class="stack">
         ${
@@ -9999,10 +10069,10 @@ function renderTrainingTab() {
       </div>
     </details>
 
-    <details class="section form-collapse">
+    <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Beleške</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <form id="training-log-form" class="form-grid">
         <div class="field">
@@ -10790,7 +10860,9 @@ function renderRunningTab() {
         : ""
     }
 
-    <section class="section running-history-section">
+    ${
+      hasRuns
+        ? `<section class="section running-history-section">
       <div class="section-header">
         <div>
           <h2>Istorija trčanja</h2>
@@ -10798,13 +10870,11 @@ function renderRunningTab() {
         </div>
       </div>
       <div class="stack running-history-stack">
-        ${
-          hasRuns
-            ? runs.map((run) => renderRunCard(run)).join("")
-            : `<div class="empty">Još nema unetih trčanja. Dodaj prvo gore i pojaviće se ovde sa tempom i statistikom.</div>`
-        }
+        ${runs.map((run) => renderRunCard(run)).join("")}
       </div>
-    </section>
+    </section>`
+        : ""
+    }
   `;
 }
 
@@ -10849,7 +10919,9 @@ function renderRoutineTab() {
           ).join("")}
         </div>
       </div>
-      <div class="plan-net-row">
+      ${
+        summary.habits.length || summary.tasks.length || summary.streakHabits.length
+          ? `<div class="plan-net-row">
         <div class="plan-net-item">
           <span class="plan-net-label">Navike</span>
           <strong>${summary.doneHabits}/${summary.habits.length}</strong>
@@ -10871,7 +10943,9 @@ function renderRoutineTab() {
               : "Streakovi su dodati, još nema aktivnog niza"
             : "Dodaj prvi streak ispod i kreni da brojiš"
         }
-      </div>
+      </div>`
+          : ""
+      }
     </section>
 
     <section class="section routine-habits-section">
@@ -11287,46 +11361,71 @@ function renderGoalsTab() {
       ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
       <div class="goals-cilj-layout">
       <div class="goals-cilj-main">
+      ${(() => {
+        // The headline is the goal the app actually tracks against (store.goals),
+        // which may be hand-set; the profile-based recommendation is shown as a
+        // hint when it differs, instead of dashes hiding a perfectly valid goal.
+        const activeCalories = roundValue(store.goals.calories, 0);
+        const headline = activeCalories > 0 ? activeCalories : goalRecommendation ? goalRecommendation.targetCalories : 0;
+        const recDiffers = goalRecommendation && activeCalories > 0 && Math.abs(goalRecommendation.targetCalories - activeCalories) > 25;
+        const paceLabel = goalRecommendation
+          ? goalRecommendation.rateKgPerWeek
+            ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned${
+                goalRecommendation.paceLimited ? " (tempo ograničen bezbednim minimumom kalorija)" : ""
+              }`
+            : goalRecommendation.goalMode.label
+          : "";
+        const note = !headline
+          ? "Popuni profil i izaberi cilj ispod"
+          : recDiffers
+            ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal — „Izračunaj iz cilja“ ispod da preuzmeš`
+            : goalRecommendation
+              ? paceLabel
+              : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
+        const macro = (key) => {
+          const stored = toNumber(store.goals[key]);
+          if (stored > 0) return `${roundValue(stored, 0)} g`;
+          if (goalRecommendation) return `${goalRecommendation[key]} g`;
+          return "—";
+        };
+        return `
       <div class="stat-hero">
         <span class="hero-day-label">Dnevni cilj</span>
         <div class="stat-hero-value">
-          ${goalRecommendation ? `<strong>${goalRecommendation.targetCalories}</strong> kcal` : `<strong>—</strong>`}
+          ${headline ? `<strong>${headline}</strong> kcal` : `<strong>—</strong>`}
         </div>
-        <div class="footer-note">${
-          goalRecommendation
-            ? goalRecommendation.rateKgPerWeek
-              ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned${
-                  goalRecommendation.paceLimited ? " (tempo ograničen bezbednim minimumom kalorija)" : ""
-                }`
-              : goalRecommendation.goalMode.label
-            : "Popuni profil i izaberi cilj ispod"
-        }</div>
+        <div class="footer-note">${note}</div>
       </div>
-      <div class="plan-net-row goals-calc-row">
+      ${
+        goalRecommendation
+          ? `<div class="plan-net-row goals-calc-row">
         <div class="plan-net-item">
           <span class="plan-net-label">BMR</span>
-          <strong>${goalRecommendation ? goalRecommendation.bmr : "—"}</strong>
+          <strong>${goalRecommendation.bmr}</strong>
         </div>
         <span class="plan-net-op">→</span>
         <div class="plan-net-item">
           <span class="plan-net-label">Održavanje</span>
-          <strong>${goalRecommendation ? goalRecommendation.maintenance : "—"}</strong>
+          <strong>${goalRecommendation.maintenance}</strong>
         </div>
-      </div>
+      </div>`
+          : ""
+      }
       <div class="plan-net-row goals-macro-row">
         <div class="plan-net-item">
           <span class="plan-net-label">Proteini</span>
-          <strong>${goalRecommendation ? `${goalRecommendation.protein} g` : "—"}</strong>
+          <strong>${macro("protein")}</strong>
         </div>
         <div class="plan-net-item">
           <span class="plan-net-label">UH</span>
-          <strong>${goalRecommendation ? `${goalRecommendation.carbs} g` : "—"}</strong>
+          <strong>${macro("carbs")}</strong>
         </div>
         <div class="plan-net-item">
           <span class="plan-net-label">Masti</span>
-          <strong>${goalRecommendation ? `${goalRecommendation.fat} g` : "—"}</strong>
+          <strong>${macro("fat")}</strong>
         </div>
-      </div>
+      </div>`;
+      })()}
       ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">
         <div class="form-group-label">Profil</div>
@@ -11396,6 +11495,16 @@ function renderGoalsTab() {
           <input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
         </div>
+        <div class="form-grid-3 goals-daily-extras">
+        <div class="field">
+          <label for="goal-water">Voda (L)</label>
+          <input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />
+        </div>
+        <div class="field">
+          <label for="goal-steps">Koraci</label>
+          <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
+        </div>
+        </div>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
@@ -11441,10 +11550,10 @@ function renderGoalsTab() {
       </div>
     </section>
 
-    <details class="section goals-days-section form-collapse">
+    <details class="section goals-days-section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Pregled po danima</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <div class="stats-grid stats-grid--glance">
         ${weeklyOverview.days
@@ -12375,6 +12484,24 @@ function getProgressSummary(history, photos) {
   };
 }
 
+// Brand-new account: instead of four cards of prose (Uvidi, glance grid, tip,
+// Dnevnik) one section says what to do first.
+function renderProgressEmptyState() {
+  return `
+    <section class="section progress-empty-section">
+      ${renderSectionLead("Napredak", "")}
+      <div class="empty progress-empty-guide">
+        <strong>Još nema merenja.</strong>
+        <span>Unesi težinu jednom nedeljno — trend, uvidi i poređenje slika se pojavljuju sami kako se podaci skupljaju.</span>
+        <div class="progress-empty-actions">
+          <button class="solid-button button-with-icon" type="button" data-action="set-progress-view" data-view="merenja">${renderButtonContent("Unesi prvo merenje", "add")}</button>
+          <button class="ghost-button button-with-icon" type="button" data-action="set-progress-view" data-view="slike">${renderButtonContent("Dodaj sliku", "open")}</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderProgressSummary(summary) {
   return `
     <section class="section progress-overview-section">
@@ -13029,10 +13156,10 @@ function renderBodyCompositionSection() {
 
   const sessions = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
   const sessionsDetails = `
-    <details class="form-collapse bc-sessions">
+    <details class="form-collapse form-collapse--view bc-sessions">
       <summary>
         <span class="form-collapse-title">Sve analize (${entries.length})</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <div class="bc-session-list">
         ${sessions
@@ -13503,7 +13630,10 @@ function renderProgressTab() {
   return `
     ${segNav}
 
-    ${view === "pregled" ? `
+    ${view === "pregled" ? (
+      !summary.measurementCount && !summary.photoCount && !getInsights(30).hasAnything
+        ? renderProgressEmptyState()
+        : `
     ${renderInsightsSection()}
 
     ${renderProgressSummary(summary)}
@@ -13511,7 +13641,8 @@ function renderProgressTab() {
     ${renderWeeklyReportSection()}
 
     ${renderProgressHistorySection()}
-    ` : ""}
+    `
+    ) : ""}
 
     ${view === "merenja" ? `
     <details class="section form-collapse">
@@ -13728,10 +13859,10 @@ function renderProgressTab() {
     ` : ""}
 
     ${view === "merenja" ? `
-    <details class="section form-collapse">
+    <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Istorija unosa</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <div class="stack">
         ${
@@ -14094,6 +14225,12 @@ function render() {
   // toggling a checkbox doesn't bounce to the top or drop focus.
   if (didEnter) {
     window.scrollTo(0, 0);
+    // A new tab starts at the top — drop the scroll-driven header states left
+    // over from the previous tab, otherwise the hidden (translated) header keeps
+    // a blank header-sized gap above the content until the next scroll event.
+    state.isPlanHeroCompact = false;
+    document.body.classList.remove("plan-compact", "app-header-hidden");
+    lastHeaderScrollY = 0;
   } else {
     if (preservedFocus) {
       const focusEl = document.getElementById(preservedFocus.id);
@@ -14280,9 +14417,6 @@ async function handleDocumentClick(event) {
     state.foodFiltersOpen = false;
     resetFoodEditing();
     resetRoutineEditing();
-    if (state.activeTab === "foods") {
-      preloadBarcodeReader();
-    }
     // Otvaranje Trčanja je tap (user gesture) — pokušaj tihog uvoza iz clipboard-a
     // ako je dozvola već data; inače korisnik koristi dugme „Popuni sa sata”.
     if (state.activeTab === "running") {
@@ -14536,6 +14670,7 @@ async function handleDocumentClick(event) {
       store.goals.fat = rec.fat;
       store.goals.basisWeightKg = toNumber(profile.weightKg) || null;
     }
+    store.goals.waterMl = suggestWaterMl(profile.weightKg);
     store.onboarded = true;
     state.onboarding = null;
     state.activeTab = "plan";
@@ -15353,6 +15488,13 @@ async function handleDocumentClick(event) {
     store.ui = store.ui || {};
     store.ui.plan = store.ui.plan || {};
     store.ui.plan.remindersDismissedDate = getTodayDateValue();
+    if (!(store.measurements || []).length) {
+      // The "first measurement" nag came back every single day; a dismissal
+      // means "not now" — give it a week before asking again.
+      const snooze = new Date();
+      snooze.setDate(snooze.getDate() + 7);
+      store.ui.plan.measurementNagSnoozedUntil = getLocalDateInputValue(snooze);
+    }
     persist();
     render();
     return;
@@ -16518,6 +16660,10 @@ async function handleDocumentClick(event) {
         document.querySelector("#goal-carbs").value = recommendation.carbs;
         document.querySelector("#goal-fat").value = recommendation.fat;
         document.querySelector("#goal-calories").value = recommendation.targetCalories;
+        const waterInput = document.querySelector("#goal-water");
+        if (waterInput) {
+          waterInput.value = String(suggestWaterMl(profileDraft.weightKg) / 1000);
+        }
       },
       {
         busyLabel: "Računam...",
@@ -17577,6 +17723,10 @@ async function handleSubmit(event) {
         store.goals.protein = toNumber(formData.get("protein"));
         store.goals.carbs = toNumber(formData.get("carbs"));
         store.goals.fat = toNumber(formData.get("fat"));
+        const waterL = toNumber(formData.get("waterL"));
+        store.goals.waterMl = waterL > 0 ? Math.round(waterL * 1000) : suggestWaterMl(store.profile.weightKg);
+        const stepsGoal = toNumber(formData.get("stepsGoal"));
+        store.goals.stepsGoal = stepsGoal > 0 ? Math.round(stepsGoal) : 10000;
         persist();
         render();
       },
@@ -18191,8 +18341,7 @@ window.addEventListener("offline", handleConnectionChange);
 window.addEventListener("scroll", updateHeroScrollState, { passive: true });
 
 // The barcode scanner lib (ZXing, ~hundreds of KB from a CDN) is loaded lazily
-// — on opening the Foods tab (where the scan button lives) and on scan tap —
-// rather than eagerly on every launch, which was a background stall.
+// on the first scan tap only — not on launch and not just for opening Namirnice.
 
 onAuthStateChanged(firebaseAuth, async (user) => {
   state.authPending = false;
@@ -18212,6 +18361,9 @@ onAuthStateChanged(firebaseAuth, async (user) => {
   // Cloud hydrate rebuilds progressPhotos from the (now blob-free) localStorage
   // snapshot, so stitch the IDB blobs back on / migrate any that aren't there yet.
   await reconcilePhotos();
+  if (isDemoAccount() && mirrorSingleTrackPlan(store)) {
+    persist();
+  }
   if (ensureCurrentWeek()) {
     persist();
   }

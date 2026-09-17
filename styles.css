@@ -1675,7 +1675,7 @@ textarea::placeholder {
 .food-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .food-form-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
 
-:root[data-theme="dark"] .foods-search { background: rgba(12, 22, 18, 0.5); }
+:root[data-theme="dark"] .foods-search { background: var(--surface-strong); }
 :root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
 :root[data-theme="dark"] .foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.22); }
 
@@ -12433,4 +12433,228 @@ body {
 .plan-glance-btn--quiet,
 :root[data-theme="dark"] .plan-glance-btn--quiet {
   min-width: 36px;
+}
+
+
+/* ============================================================
+   Tightening pass (2026-09-17): composer icon overlap, dark meal
+   nesting, quieter per-row actions, inline reminders, one collapse
+   language, Namirnice toolbar, recipe rows, empty states.
+   ============================================================ */
+
+/* Composer search: `.field input` (later in the cascade, same specificity)
+   was resetting the 44px left padding, so the magnifier sat on the text. */
+.field .food-search-control input,
+.food-search-control input#food-search-input {
+  padding-left: 44px;
+}
+
+/* The compact ring's gold glow rasterised as a lighter square behind the SVG. */
+:root[data-theme="dark"] .plan-summary-compact .cal-ring-fill {
+  filter: none;
+}
+
+/* Meals block is flat in light mode but the dark `.section` skin (higher
+   specificity) re-boxed it — meal cards sat inside a second card. */
+:root[data-theme="dark"] .section.plan-meals-section {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Meal titles are titles, not links: ink, not accent. */
+.plan-meals-section .meal-title,
+:root[data-theme="dark"] .plan-meals-section .meal-title {
+  color: var(--ink);
+}
+.plan-meals-section .meal-card.is-done .meal-title,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-done .meal-title {
+  color: var(--muted);
+}
+
+/* Per-food edit/delete recede to quiet glyphs; the trash only turns red when
+   you're actually on it. Thirteen red bins per day was the loudest thing on
+   the screen. */
+.meal-entry-actions .ghost-button,
+.meal-entry-actions .danger-button,
+:root[data-theme="dark"] .meal-entry-actions .ghost-button,
+:root[data-theme="dark"] .meal-entry-actions .danger-button,
+.recipe-library-card .entry-actions .icon-only-action.ghost-button,
+.recipe-library-card .entry-actions .icon-only-action.danger-button,
+:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.ghost-button,
+:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.danger-button {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+.meal-entry-actions .danger-button:hover,
+.meal-entry-actions .danger-button:focus-visible,
+.recipe-library-card .entry-actions .icon-only-action.danger-button:hover,
+.recipe-library-card .entry-actions .icon-only-action.danger-button:focus-visible {
+  color: var(--button-danger-text);
+  background: var(--button-danger-bg);
+}
+.meal-entry-actions .ghost-button:hover,
+.recipe-library-card .entry-actions .icon-only-action.ghost-button:hover {
+  color: var(--ink);
+  background: var(--pill-bg);
+}
+
+/* "Danas te čeka": one inline row under the daily overview, not a card with
+   its own heading for a single chip. */
+.section.today-reminders,
+:root[data-theme="dark"] .section.today-reminders {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0 6px;
+  backdrop-filter: none;
+}
+.today-reminders-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.today-reminders-row {
+  align-items: flex-start;
+}
+.today-reminders-row .today-reminders-pills {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+.today-reminders-row .reminder-chip {
+  width: 100%;
+  justify-content: space-between;
+  text-align: left;
+}
+.today-reminders-row .today-reminders-close {
+  flex: 0 0 auto;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.today-reminders .quick-weight-form {
+  margin-top: 12px;
+}
+
+/* One collapse language: content sections use a serif title and a chevron
+   that flips; "Dodaj …" forms keep the plus. */
+.form-collapse--view > summary .form-collapse-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.form-collapse-icon--chevron svg {
+  width: 16px;
+  height: 16px;
+}
+.form-collapse[open] .form-collapse-icon--chevron {
+  transform: rotate(180deg);
+}
+.plan-activity-section:not([open]) > summary .form-collapse-title {
+  color: var(--ink);
+}
+
+/* Namirnice toolbar: filters and the scan button share one scrollable row;
+   the standalone "Skeniraj" line is gone on phones. */
+.foods-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+.foods-chips::-webkit-scrollbar {
+  display: none;
+}
+.foods-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.foods-scan-inline {
+  color: var(--accent);
+}
+@media (min-width: 900px) {
+  .foods-scan-inline {
+    display: none;
+  }
+}
+.foods-chips--sub {
+  flex-wrap: wrap;
+}
+@media (max-width: 899px) {
+  .foods-secondary {
+    display: none;
+  }
+}
+/* Content-type details keep the serif title even while closed (the generic
+   closed-summary rule below it in the cascade dims + shrinks the title). */
+.form-collapse--view:not([open]) > summary .form-collapse-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.25rem;
+  color: var(--ink);
+}
+
+/* Adding a brand-new food to the database is the rarest action on this screen,
+   so it's a compact pill in the corner, not a full-width bar over the list. */
+.foods-add-fab {
+  left: auto;
+  right: 16px;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  min-height: 48px;
+  padding: 0 18px 0 14px;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  box-shadow: 0 12px 26px rgba(23, 59, 47, 0.24);
+}
+.foods-add-fab svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 899px) {
+  .shell-with-menu.is-foods-shell {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Recipe rows: kcal per serving is information, not a hero number. */
+.recipe-library-stat-kcal strong {
+  font-family: inherit;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Progress: single empty state with actions. */
+.progress-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.progress-empty-guide {
+  text-align: left;
+}
+
+/* Training: watch kcal entry folds under the day's plan. */
+.training-burn-collapse {
+  margin-top: 14px;
+}
+.training-burn-collapse > summary .pill {
+  margin-left: auto;
+}
+.training-burn-intro {
+  margin: 0 0 10px;
 }
