@@ -1003,53 +1003,7 @@ textarea::placeholder {
   box-shadow: 0 10px 22px rgba(25, 34, 31, 0.06);
 }
 
-.plan-quick-card {
-  padding: 18px;
-  border-radius: 24px;
-}
-
-.plan-quick-card {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-}
-
-.plan-quick-card--secondary {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(250, 245, 237, 0.96)),
-    var(--surface-strong);
-}
-
-.plan-quick-card-top {
-  align-items: flex-start;
-}
-
-.plan-quick-card-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.plan-quick-card-copy p {
-  margin: 0;
-  color: var(--muted);
-  max-width: 34ch;
-}
-
-.plan-quick-form {
-  gap: 14px;
-  align-items: end;
-}
-
-.plan-quick-form .field {
-  gap: 8px;
-}
-
-.plan-quick-form .field label {
-  min-height: 1.2em;
-}
-
-.recipe-draft-top,.recipe-library-top {
+.recipe-draft-top {
   align-items: flex-start;
 }
 
@@ -1073,117 +1027,6 @@ textarea::placeholder {
   border: 1px solid rgba(24, 33, 30, 0.08);
   color: color-mix(in srgb, var(--ink) 72%, var(--muted));
   line-height: 1.55;
-}
-
-.plan-quick-form .solid-button {
-  grid-column: 1 / -1;
-  margin-top: 2px;
-}
-
-.plan-quick-submit {
-  min-height: 52px;
-}
-
-.plan-quick-stack {
-  margin-top: 14px;
-  gap: 16px;
-}
-
-.plan-quick-main,
-.plan-quick-aside {
-  display: grid;
-  gap: 16px;
-}
-
-.plan-suggestion-card {
-  position: relative;
-}
-
-.plan-suggestion-card.is-muted {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 250, 244, 0.94)),
-    var(--surface-strong);
-}
-
-.plan-skip-button {
-  min-height: auto;
-  padding: 7px 10px;
-  border-radius: 999px;
-  background: var(--button-ghost-bg);
-  color: var(--muted);
-  border: 1px solid var(--button-ghost-border);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  box-shadow: none;
-}
-
-.plan-quick-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 0;
-  text-align: left;
-  background: transparent;
-  color: inherit;
-}
-
-.plan-quick-toggle-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.plan-quick-toggle-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.plan-quick-toggle h2,
-.plan-quick-toggle p {
-  margin: 0;
-}
-
-.plan-quick-toggle h2 {
-  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  letter-spacing: -0.012em;
-  line-height: 1.2;
-}
-
-.plan-quick-toggle p {
-  color: var(--muted);
-  font-size: 0.9375rem;
-  line-height: 1.42;
-  max-width: 36ch;
-}
-
-.plan-quick-toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  min-width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  color: var(--muted);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
-}
-
-.plan-quick-stack {
-  margin-top: 14px;
-  gap: 16px;
-}
-
-.plan-quick-stack.is-collapsed {
-  display: none;
 }
 
 .plan-quick-section.is-collapsed {
@@ -1403,17 +1246,6 @@ textarea::placeholder {
     var(--surface-strong);
 }
 
-.training-day-summary-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.training-day-summary-top h3 {
-  margin: 0;
-}
-
 .training-template-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 244, 237, 0.99)),
@@ -1450,10 +1282,6 @@ textarea::placeholder {
 .training-exercise-copy {
   display: grid;
   gap: 4px;
-}
-
-.training-template-progress-copy {
-  margin-top: 4px;
 }
 
 .training-template-actions,
@@ -1570,18 +1398,6 @@ textarea::placeholder {
 
 .meal-entry .pill-row {
   margin-top: 0;
-}
-
-.meal-entry-actions {
-  justify-content: flex-start;
-  margin-top: 10px;
-}
-
-.meal-entry-actions .ghost-button,
-.meal-entry-actions .danger-button {
-  min-height: 38px;
-  padding: 8px 13px;
-  border-radius: 14px;
 }
 
 .pill-row,.meta-row {
@@ -2361,16 +2177,6 @@ textarea::placeholder {
 
 .entry-actions--start {
   justify-content: flex-start;
-}
-
-.plan-inline-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-content: stretch;
-}
-
-.plan-inline-actions > button {
-  width: 100%;
 }
 
 .plan-meals-section .stack {
@@ -4613,7 +4419,7 @@ body.menu-open .menu-fab {
     max-width: 36ch;
   }
 
-  .macro-card,.stat-card,.meal-card,.food-card,.training-card,.routine-card,.chart-card,.photo-card,.plan-quick-card {
+  .macro-card,.stat-card,.meal-card,.food-card,.training-card,.routine-card,.chart-card,.photo-card {
     border-radius: 24px;
   }
 
@@ -4927,70 +4733,25 @@ body.menu-open .menu-fab {
     font-size: 0.9375rem;
   }
 
-  .plan-quick-toggle {
-    gap: 8px;
-  }
+  
 
-  .plan-quick-toggle h2 {
-    font-size: 1rem;
-  }
+  
 
-  .plan-quick-toggle p {
-    display: none;
-  }
+  
 
-  .plan-quick-toggle-icon {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    border-radius: 10px;
-  }
+  
 
-  .plan-quick-stack {
-    margin-top: 10px;
-    gap: 12px;
-  }
+  
 
   .plan-quick-section.is-collapsed {
     padding-bottom: 12px;
   }
 
-  .plan-quick-card,.plan-suggestion-card {
-    padding: 13px;
-    border-radius: 16px;
-  }
+  
 
-  .plan-quick-card--primary {
-    gap: 12px;
-  }
+  
 
-  .plan-quick-card--secondary {
-    gap: 10px;
-    padding: 12px;
-    border-radius: 14px;
-    box-shadow: 0 8px 18px rgba(25, 34, 31, 0.045);
-  }
-
-  .plan-quick-card--secondary .food-card-top {
-    gap: 10px;
-  }
-
-  .plan-quick-card--secondary .plan-quick-card-copy p,
-  .plan-quick-card--secondary .footer-note {
-    font-size: 0.8125rem;
-    line-height: 1.34;
-  }
-
-  .plan-quick-card--secondary .plan-quick-card-copy p {
-    display: none;
-  }
-
-  .plan-suggestion-card .footer-note {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    overflow: hidden;
-  }
+  
 
   
 
@@ -4998,18 +4759,19 @@ body.menu-open .menu-fab {
 
   
 
-  .plan-quick-form {
-    gap: 10px;
-  }
+  
 
-  .plan-quick-form .field label {
-    font-size: 0.8125rem;
-  }
+  
 
-  .plan-skip-button {
-    padding: 6px 9px;
-    font-size: 0.75rem;
-  }
+  
+
+  
+
+  
+
+  
+
+  
 
   .macro-grid,.stats-grid,.chart-grid,.photo-grid,.compare-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -5024,9 +4786,7 @@ body.menu-open .menu-fab {
     width: 100%;
   }
 
-  .plan-inline-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  
 
   
 
@@ -5038,20 +4798,11 @@ body.menu-open .menu-fab {
     gap: 10px;
   }
 
-  .meal-entry-actions {
-    margin-top: 8px;
-    padding-left: 0;
-  }
+  
 
-  .meal-entry-actions .button-label--mobile-hidden {
-    display: none;
-  }
+  
 
-  .meal-entry-actions .ghost-button,
-  .meal-entry-actions .danger-button {
-    min-width: 44px;
-    padding-inline: 12px;
-  }
+  
 
   .meal-card {
     padding: 16px 14px;
@@ -5384,23 +5135,13 @@ body.menu-open .menu-fab {
     gap: 18px;
   }
 
-  .plan-quick-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 18px;
-  }
+  
 
-  .plan-quick-main {
-    display: contents;
-  }
+  
 
-  .plan-quick-aside {
-    display: contents;
-  }
+  
 
-  .plan-quick-card {
-    height: 100%;
-  }
+  
 
   .recipes-library-section .stack,
   .routine-habits-section .stack,
@@ -5431,19 +5172,11 @@ body.menu-open .menu-fab {
 
   
 
-  .meal-entry-actions {
-    justify-content: flex-end;
-    margin-top: 0;
-  }
+  
 
-  .meal-entry-actions .ghost-button,
-  .meal-entry-actions .danger-button {
-    min-width: 96px;
-  }
+  
 
-  .meal-entry-actions .button-label--mobile-hidden {
-    display: inline;
-  }
+  
 
   .compare-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5757,9 +5490,7 @@ body.menu-open .menu-fab {
     gap: 12px;
   }
 
-  .plan-quick-card {
-    border-radius: 20px;
-  }
+  
 
   .meal-card {
     padding: 15px 16px;
@@ -5854,9 +5585,7 @@ body.menu-open .menu-fab {
     gap: 18px;
   }
 
-  .plan-quick-stack {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  
 
   .recipes-library-section .stack {
     gap: 18px;
@@ -6178,14 +5907,7 @@ body.menu-open .tab-bar {
 /* ============================================================
    Spring press feedback — tactile, iOS-like tap response.
    ============================================================ */
-.solid-button:not(:disabled):active,
-.ghost-button:not(:disabled):active,
-.danger-button:not(:disabled):active,
-.chip:active,
-.menu-tab-button:active,
-.menu-fab:active,
-.section-disclosure:active,
-.plan-quick-toggle:active {
+.solid-button:not(:disabled):active,.ghost-button:not(:disabled):active,.danger-button:not(:disabled):active,.chip:active,.menu-tab-button:active,.menu-fab:active,.section-disclosure:active {
   transform: scale(0.965);
 }
 
@@ -6198,15 +5920,7 @@ body.menu-open .tab-bar {
   .menu-tab-button {
     transition: none;
   }
-  .tab-bar-item:active,
-  .solid-button:not(:disabled):active,
-  .ghost-button:not(:disabled):active,
-  .danger-button:not(:disabled):active,
-  .chip:active,
-  .menu-tab-button:active,
-  .menu-fab:active,
-  .section-disclosure:active,
-  .plan-quick-toggle:active {
+  .tab-bar-item:active,.solid-button:not(:disabled):active,.ghost-button:not(:disabled):active,.danger-button:not(:disabled):active,.chip:active,.menu-tab-button:active,.menu-fab:active,.section-disclosure:active {
     transform: none;
   }
 }
@@ -6343,7 +6057,7 @@ body.menu-open .tab-bar {
    (meal macro tiles, disclosure/quick toggles, quick & preview
    cards, composer) that read as bright patches in dark mode.
    ============================================================ */
-:root[data-theme="dark"] .plan-quick-card,:root[data-theme="dark"] .plan-quick-card--primary,:root[data-theme="dark"] .plan-quick-card--secondary,:root[data-theme="dark"] .meal-summary-macro,:root[data-theme="dark"] .suggestion-surface,:root[data-theme="dark"] .plan-suggestion-card.is-muted,:root[data-theme="dark"] .recipe-studio-card,:root[data-theme="dark"] .nutrition-food-editor-card {
+:root[data-theme="dark"] .meal-summary-macro,:root[data-theme="dark"] .suggestion-surface,:root[data-theme="dark"] .recipe-studio-card,:root[data-theme="dark"] .nutrition-food-editor-card {
   background:
     var(--surface-strong);
   border-color: var(--line);
@@ -6352,8 +6066,7 @@ body.menu-open .tab-bar {
 
 /* Collapsible section headers are title rows, not raised sub-cards — keep them
    flat so they blend into the card instead of reading as a grey box in dark. */
-:root[data-theme="dark"] .section-disclosure,
-:root[data-theme="dark"] .plan-quick-toggle {
+:root[data-theme="dark"] .section-disclosure {
   background: none;
   border-color: transparent;
   box-shadow: none;
@@ -6427,7 +6140,6 @@ body.menu-open .tab-bar {
    teal-tinted value pills (kill the grey/white inconsistency).
    ============================================================ */
 
-
 :root[data-theme="dark"] .mobile-menu {
   background: var(--rail-bg);
   border-color: var(--line-strong);
@@ -6462,11 +6174,7 @@ body.menu-open .tab-bar {
   color: var(--accent-strong);
 }
 
-:root[data-theme="dark"] .meal-collapse-toggle,
-:root[data-theme="dark"] .routine-check-ui,
-:root[data-theme="dark"] .photo-picker,
-:root[data-theme="dark"] .plan-quick-toggle-icon,
-:root[data-theme="dark"] .section-disclosure-icon {
+:root[data-theme="dark"] .meal-collapse-toggle,:root[data-theme="dark"] .routine-check-ui,:root[data-theme="dark"] .photo-picker,:root[data-theme="dark"] .section-disclosure-icon {
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--line-strong);
 }
@@ -7404,16 +7112,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* 6. Per-food actions recede; delete isn't the loudest thing in a row */
-.meal-entry-actions .ghost-button,
-.meal-entry-actions .danger-button {
-  font-size: 0.8125rem;
-}
-.meal-entry-actions .danger-button {
-  border-color: transparent;
-}
-.meal-entry-actions .danger-button:hover {
-  border-color: var(--button-danger-border);
-}
 
 /* 8. Foods kcal unit lowercase like everywhere else */
 
@@ -7475,12 +7173,6 @@ body.app-header-hidden .workspace-header {
   margin: 0;
 }
 
-.meal-entry-main .meal-entry-actions {
-  flex: 0 0 auto;
-  margin-top: 0;
-  align-self: flex-start;
-}
-
 .meal-entry-stats {
   margin-top: 6px;
 }
@@ -7494,15 +7186,9 @@ body.app-header-hidden .workspace-header {
     padding-block: 11px;
   }
 
-  .meal-entry-main .meal-entry-actions {
-    gap: 6px;
-  }
+  
 
-  .meal-entry-actions .ghost-button,
-  .meal-entry-actions .danger-button {
-    min-width: 40px;
-    padding-inline: 10px;
-  }
+  
 
   /* Daily-overview macros: 2-up instead of 3-up so the long Serbian
      labels ("Ugljeni hidrati") have room to wrap at the space instead
@@ -7735,11 +7421,6 @@ body.app-header-hidden .workspace-header {
 .section-disclosure-icon .chevron-icon {
   width: 16px;
   height: 16px;
-}
-
-.plan-quick-toggle-icon .chevron-icon {
-  width: 17px;
-  height: 17px;
 }
 
 .star-icon {
@@ -10893,11 +10574,7 @@ body {
   .section-header {
     margin-bottom: 12px;
   }
-  .section-header h2,
-  .section-disclosure-copy h2,
-  .plan-quick-toggle h2,
-  .foods-head h2,
-  .form-collapse[open] > summary .form-collapse-title {
+  .section-header h2,.section-disclosure-copy h2,.foods-head h2,.form-collapse[open] > summary .form-collapse-title {
     font-size: 1.125rem;
     letter-spacing: -0.02em;
   }
@@ -10909,20 +10586,12 @@ body {
   .section-header > div:not(.section-copy) > p {
     display: none;
   }
-  .food-card,
-  .training-card,
-  .macro-card,
-  .stat-card,
-  .plan-quick-card,
-  .plan-summary-section .macro-card,
-  .recipe-library-card {
+  .food-card,.training-card,.macro-card,.stat-card,.plan-summary-section .macro-card,.recipe-library-card {
     border-radius: 16px;
   }
 }
 @media (min-width: 721px) {
-  .section-header h2,
-  .section-disclosure-copy h2,
-  .plan-quick-toggle h2 {
+  .section-header h2,.section-disclosure-copy h2 {
     font-size: 1.375rem;
   }
 }
@@ -11083,7 +10752,7 @@ body {
 }
 
 /* Flat surfaces: cream, hairline, no gradient/inset/stripe. */
-.section,.plan-summary-section,.recipes-builder-section,.routine-streak-section,.macro-card,.stat-card,.food-card,.training-card,.plan-summary-section .macro-card,.training-day-summary-card,.suggestion-surface,.routine-streak-card,.plan-suggestion-card.is-muted,.meal-card.is-done,.chip.is-light {
+.section,.plan-summary-section,.recipes-builder-section,.routine-streak-section,.macro-card,.stat-card,.food-card,.training-card,.plan-summary-section .macro-card,.training-day-summary-card,.suggestion-surface,.routine-streak-card,.meal-card.is-done,.chip.is-light {
   background: var(--surface-strong);
   border: 1px solid var(--line);
   box-shadow: none;
@@ -11130,7 +10799,7 @@ body {
    language, no boxes inside boxes.
    ============================================================ */
 /* Row actions (edit / delete / menu) are bare glyphs, 40px hit area. */
-.icon-only-action,.meal-entry-actions .ghost-button,.meal-entry-actions .danger-button,.routine-row > .entry-actions .ghost-button,.routine-row > .entry-actions .danger-button,.routine-streak-actions .ghost-button.icon-only-action,.routine-streak-actions .danger-button,.food-row-menu,.lab-row-del,:root[data-theme="dark"] .icon-only-action,:root[data-theme="dark"] .meal-entry-actions .ghost-button,:root[data-theme="dark"] .meal-entry-actions .danger-button,:root[data-theme="dark"] .routine-row > .entry-actions .ghost-button,:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,:root[data-theme="dark"] .routine-streak-actions .danger-button,:root[data-theme="dark"] .food-row-menu {
+.icon-only-action,.routine-row > .entry-actions .ghost-button,.routine-row > .entry-actions .danger-button,.routine-streak-actions .ghost-button.icon-only-action,.routine-streak-actions .danger-button,.food-row-menu,.lab-row-del,:root[data-theme="dark"] .icon-only-action,:root[data-theme="dark"] .routine-row > .entry-actions .ghost-button,:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,:root[data-theme="dark"] .routine-streak-actions .danger-button,:root[data-theme="dark"] .food-row-menu {
   min-height: 40px;
   height: 40px;
   padding: 0 8px;
@@ -11146,28 +10815,14 @@ body {
   min-width: 40px;
   padding: 0;
 }
-@media (max-width: 899px) {
-  .meal-entry-actions .ghost-button,
-  .meal-entry-actions .danger-button {
-    width: 40px;
-    min-width: 40px;
-    padding: 0;
-  }
-}
-.meal-entry-actions .danger-button,
-.routine-row > .entry-actions .danger-button,
-.routine-streak-actions .danger-button,
-.danger-button.icon-only-action,
-:root[data-theme="dark"] .meal-entry-actions .danger-button,
-:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,
-:root[data-theme="dark"] .danger-button.icon-only-action {
+
+.routine-row > .entry-actions .danger-button,.routine-streak-actions .danger-button,.danger-button.icon-only-action,:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,:root[data-theme="dark"] .danger-button.icon-only-action {
   color: var(--button-danger-text);
 }
-.icon-only-action:hover,.meal-entry-actions .ghost-button:hover,.meal-entry-actions .danger-button:hover,.food-row-menu:hover {
+.icon-only-action:hover,.food-row-menu:hover {
   background: var(--pill-bg);
 }
-.entry-actions,
-.meal-entry-actions {
+.entry-actions {
   gap: 2px;
 }
 
@@ -11182,14 +10837,7 @@ body {
 
 /* Lists inside a card are hairline rows, not cards: recipes, training
    templates and favourites, plan tools, stat tiles, expanded macro cards. */
-.recipes-library-stack > .recipe-library-card,
-.training-template-stack > .training-card,
-.training-favorite-card,
-.plan-quick-stack .food-card.plan-quick-card,
-:root[data-theme="dark"] .recipes-library-stack > .recipe-library-card,
-:root[data-theme="dark"] .training-template-stack > .training-card,
-:root[data-theme="dark"] .training-favorite-card,
-:root[data-theme="dark"] .plan-quick-stack .food-card.plan-quick-card {
+.recipes-library-stack > .recipe-library-card,.training-template-stack > .training-card,.training-favorite-card,:root[data-theme="dark"] .recipes-library-stack > .recipe-library-card,:root[data-theme="dark"] .training-template-stack > .training-card,:root[data-theme="dark"] .training-favorite-card {
   padding: 14px 0;
   border: 0;
   border-top: 1px solid var(--line);
@@ -11197,11 +10845,7 @@ body {
   background: none;
   box-shadow: none;
 }
-.recipes-library-stack,
-.training-template-stack,
-.plan-quick-stack,
-.plan-quick-main,
-.plan-quick-aside {
+.recipes-library-stack,.training-template-stack {
   gap: 0;
 }
 .recipes-library-stack > .recipe-library-card.is-collapsed {
@@ -11517,27 +11161,16 @@ body {
 /* Per-food edit/delete recede to quiet glyphs; the trash only turns red when
    you're actually on it. Thirteen red bins per day was the loudest thing on
    the screen. */
-.meal-entry-actions .ghost-button,
-.meal-entry-actions .danger-button,
-:root[data-theme="dark"] .meal-entry-actions .ghost-button,
-:root[data-theme="dark"] .meal-entry-actions .danger-button,
-.recipe-library-card .entry-actions .icon-only-action.ghost-button,
-.recipe-library-card .entry-actions .icon-only-action.danger-button,
-:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.ghost-button,
-:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.danger-button {
+.recipe-library-card .entry-actions .icon-only-action.ghost-button,.recipe-library-card .entry-actions .icon-only-action.danger-button,:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.ghost-button,:root[data-theme="dark"] .recipe-library-card .entry-actions .icon-only-action.danger-button {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
   color: var(--muted);
 }
-.meal-entry-actions .danger-button:hover,
-.meal-entry-actions .danger-button:focus-visible,
-.recipe-library-card .entry-actions .icon-only-action.danger-button:hover,
-.recipe-library-card .entry-actions .icon-only-action.danger-button:focus-visible {
+.recipe-library-card .entry-actions .icon-only-action.danger-button:hover,.recipe-library-card .entry-actions .icon-only-action.danger-button:focus-visible {
   color: var(--button-danger-text);
   background: var(--button-danger-bg);
 }
-.meal-entry-actions .ghost-button:hover,
 .recipe-library-card .entry-actions .icon-only-action.ghost-button:hover {
   color: var(--ink);
   background: var(--pill-bg);
@@ -11670,7 +11303,6 @@ body {
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
   }
 }
-
 
 /* Progress: single empty state with actions. */
 .progress-empty-actions {
@@ -12053,4 +11685,137 @@ button.meal-entry-body:focus-visible {
 }
 .calibration-last {
   margin-top: 8px;
+}
+
+/* Alati za plan — three unrelated tools used to sit in three equal columns
+   with mismatched densities (a 3-field form, two crammed buttons, a wall of
+   run-on text). Now each tool is a full-width block separated by a hairline,
+   with its own head, body and right-aligned actions. */
+.plan-tools {
+  display: grid;
+  gap: 0;
+  margin-top: 6px;
+}
+.plan-tools.is-collapsed {
+  display: none;
+}
+.plan-tool {
+  display: grid;
+  gap: 10px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.plan-tool:first-child {
+  border-top: 0;
+  padding-top: 10px;
+}
+.plan-tool:last-child {
+  padding-bottom: 2px;
+}
+.plan-tool-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.plan-tool-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.plan-tool-link {
+  flex: 0 0 auto;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.plan-tool-link:hover,
+.plan-tool-link:focus-visible {
+  color: var(--ink);
+}
+.plan-tool-note {
+  margin: 0;
+  max-width: 62ch;
+}
+.plan-tool-macros {
+  margin-top: 0;
+}
+
+/* The day suggestion reads as a menu: one line per meal, foods and amounts
+   in a quiet second column. */
+.plan-suggestion-meals {
+  display: grid;
+  gap: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-suggestion-meal {
+  display: grid;
+  grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
+  gap: 4px 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.plan-suggestion-meal:first-child {
+  border-top: 0;
+}
+.plan-suggestion-meal-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.plan-suggestion-meal-items {
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.plan-suggestion-grams {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Actions sit on their own line, sized to their labels, never stretched into
+   equal halves. */
+.plan-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.plan-tool-actions > button {
+  width: auto;
+}
+.plan-tool-form {
+  display: grid;
+  gap: 14px;
+}
+.plan-tool-fields {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 560px) {
+  .plan-tool-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+@media (min-width: 900px) {
+  .plan-tool {
+    padding: 20px 0;
+  }
+  .plan-tool-note,
+  .plan-suggestion-meals {
+    max-width: 72ch;
+  }
+}
+.bulk-delete-panel {
+  margin-top: 2px;
 }
