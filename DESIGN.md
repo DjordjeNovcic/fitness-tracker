@@ -96,7 +96,7 @@ The palette is a single warm neutral family (paper cream in light, graphite in d
 - **Warm White** (`#ffffff`, `--surface-elevated`) and translucent cream surfaces (`--surface`, `--surface-panel` at 88-96% opacity): card backgrounds.
 - **Deep Ink** (`#17201d`, `--ink`): primary text. **Soft Sage-Grey** (`#65716c`, `--muted`): secondary text.
 - **Hairline** (`rgba(24,33,30,0.085)`, `--line`): all dividers — never a boxed border.
-- In dark mode the whole neutral family moves to OKLCH graphite (`oklch(0.155 0.009 66)` background up through `oklch(0.282 0.013 64)` elevated surfaces) with warm off-white ink (`oklch(0.94 0.013 78)`).
+- In dark mode the neutral family is a four-level graphite ladder (2026-09-17): page `#0d0c0a` → chrome (sidebar, tab bar) `#100e0b` → sections/cards `#181511` → nested rows, empty states, inputs `#1e1a15`, with dialogs/toasts one step higher at `#24201a`. Dividers are neutral white hairlines (`rgba(255,255,255,0.08)` / `0.12`), ink `#f2ede5`, muted `#a69f95`. Separation between levels is tonal plus a hairline — no white "sheen" gradients, no stacked shadows.
 
 ### Named Rules
 **The No-Green-At-Night Rule.** Dark mode never uses green for anything — not nav, not CTAs, not progress bars, not borders. The only accent permitted after dark is the single warm gold. This was tried and explicitly rejected twice before landing here; treat it as a hard constraint, not a style preference.

@@ -1999,7 +1999,7 @@ textarea::placeholder {
 }
 
 :root[data-theme="dark"] .steps-input {
-  background: rgba(12, 22, 18, 0.66);
+  background: rgba(13, 12, 10, 0.72);
   border-color: var(--line-strong);
 }
 
@@ -5884,42 +5884,51 @@ body.menu-open .menu-fab {
   color-scheme: dark;
   /* Luxe dark: warm graphite surfaces (low-chroma, hue ~66) with a single
      gold accent (hue ~82). Green is dropped here; gold carries the brand. */
-  --bg: oklch(0.155 0.009 66);
-  --bg-strong: oklch(0.19 0.01 66);
-  --surface: oklch(0.207 0.011 64 / 0.96);
-  --surface-strong: oklch(0.237 0.012 64);
-  --surface-soft: oklch(0.207 0.011 64 / 0.84);
-  --surface-panel: oklch(0.197 0.011 64 / 0.96);
-  --surface-elevated: oklch(0.282 0.013 64);
-  --ink: oklch(0.94 0.013 78);
-  --muted: oklch(0.69 0.018 72);
-  --line: oklch(0.92 0.03 80 / 0.09);
-  --line-strong: oklch(0.92 0.03 80 / 0.15);
+  /* Surface ladder (2026-09-17): four clearly separated neutral graphite
+     levels instead of near-identical warm browns —
+       L0 page          #0d0c0a  (--bg)
+       L1 chrome        #100e0b  (--rail-bg / --tabbar-bg: sidebar, tab bar)
+       L2 sections      #181511  (--surface / --surface-panel)
+       L3 nested rows   #1e1a15  (--surface-strong / --clay: rows, empty states,
+                                  inner surfaces, inputs)
+       L4 floating      #24201a  (--surface-elevated: dialogs, toasts)
+     Dividers are neutral white hairlines; gold stays the only accent. */
+  --bg: #0d0c0a;
+  --bg-strong: #141210;
+  --surface: #181511;
+  --surface-strong: #1e1a15;
+  --surface-soft: rgba(30, 26, 21, 0.86);
+  --surface-panel: #181511;
+  --surface-elevated: #24201a;
+  --ink: #f2ede5;
+  --muted: #a69f95;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.12);
   --accent: oklch(0.8 0.132 82);
   --accent-strong: oklch(0.87 0.13 84);
-  --accent-soft: oklch(0.29 0.05 78);
+  --accent-soft: oklch(0.26 0.045 80);
   --secondary: oklch(0.78 0.08 68);
-  --secondary-soft: oklch(0.29 0.03 68);
+  --secondary-soft: oklch(0.26 0.025 68);
   --teal: oklch(0.8 0.1 82);
-  --clay: oklch(0.26 0.013 60);
+  --clay: #1e1a15;
   --button-primary-bg: linear-gradient(180deg, oklch(0.83 0.132 84), oklch(0.73 0.13 80));
   --button-primary-text: oklch(0.21 0.035 72);
   --button-primary-border: oklch(0.9 0.04 84 / 0.2);
-  --button-secondary-bg: linear-gradient(180deg, oklch(0.27 0.012 64), oklch(0.23 0.011 64));
+  --button-secondary-bg: linear-gradient(180deg, #24201a, #1e1a15);
   --button-secondary-text: var(--ink);
-  --button-secondary-border: oklch(0.92 0.03 80 / 0.12);
-  --button-ghost-bg: oklch(0.245 0.011 64 / 0.9);
+  --button-secondary-border: rgba(255, 255, 255, 0.12);
+  --button-ghost-bg: rgba(255, 255, 255, 0.05);
   --button-ghost-text: var(--ink);
-  --button-ghost-border: oklch(0.92 0.03 80 / 0.14);
+  --button-ghost-border: rgba(255, 255, 255, 0.12);
   --button-danger-bg: oklch(0.27 0.03 28 / 0.9);
   --button-danger-text: oklch(0.8 0.1 32);
   --button-danger-border: oklch(0.6 0.13 32 / 0.34);
-  --pill-bg: oklch(0.92 0.03 80 / 0.05);
-  --pill-border: oklch(0.92 0.03 80 / 0.09);
+  --pill-bg: rgba(255, 255, 255, 0.05);
+  --pill-border: rgba(255, 255, 255, 0.08);
   --pill-strong-bg: oklch(0.8 0.132 82 / 0.16);
   --pill-strong-border: oklch(0.8 0.132 82 / 0.32);
-  --pill-note-bg: oklch(0.92 0.03 80 / 0.06);
-  --pill-note-border: oklch(0.92 0.03 80 / 0.1);
+  --pill-note-bg: rgba(255, 255, 255, 0.06);
+  --pill-note-border: rgba(255, 255, 255, 0.1);
   --status-success-bg: oklch(0.6 0.09 150 / 0.2);
   --status-success-border: oklch(0.72 0.09 150 / 0.32);
   --status-success-text: oklch(0.82 0.1 150);
@@ -5932,7 +5941,7 @@ body.menu-open .menu-fab {
   --status-error-bg: oklch(0.55 0.14 28 / 0.22);
   --status-error-border: oklch(0.65 0.16 28 / 0.34);
   --status-error-text: oklch(0.78 0.15 30);
-  --rail-bg: linear-gradient(180deg, oklch(0.2 0.011 64), oklch(0.165 0.009 64));
+  --rail-bg: #100e0b;
   /* Dark mode: keep shadows subtle. Heavy black shadows on dark surfaces read
      as muddy grey "boxes/halos" around every card and tile, not as elevation —
      so these are dialed way down (inner tiles rely on a lighter fill instead). */
@@ -5940,28 +5949,25 @@ body.menu-open .menu-fab {
   --shadow-soft: 0 14px 30px rgba(0, 0, 0, 0.22);
   --shadow-tight: 0 2px 8px rgba(0, 0, 0, 0.16);
   --shadow-card: 0 14px 28px rgba(0, 0, 0, 0.24);
-  --bar-track: oklch(0.92 0.03 80 / 0.09);
+  --bar-track: rgba(255, 255, 255, 0.08);
   --bar-ok: linear-gradient(90deg, oklch(0.7 0.13 80), oklch(0.83 0.132 84));
   --bar-low: linear-gradient(90deg, oklch(0.72 0.06 82), oklch(0.82 0.08 84));
   --bar-near: linear-gradient(90deg, oklch(0.7 0.15 55), oklch(0.78 0.16 50));
   --bar-over: linear-gradient(90deg, oklch(0.6 0.18 28), oklch(0.7 0.19 33));
-  --tabbar-bg: oklch(0.165 0.009 64 / 0.82);
-  --tabbar-border: oklch(0.92 0.03 80 / 0.08);
+  --tabbar-bg: rgba(16, 14, 11, 0.92);
+  --tabbar-border: rgba(255, 255, 255, 0.08);
   --tabbar-active: var(--accent-strong);
   background:
-    radial-gradient(130% 80% at 50% -14%, oklch(0.34 0.07 82 / 0.16), transparent 55%),
-    oklch(0.13 0.009 64);
+    radial-gradient(130% 80% at 50% -14%, oklch(0.34 0.07 82 / 0.07), transparent 55%),
+    #0d0c0a;
 }
 
 :root[data-theme="dark"] body {
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
-    transparent;
+  background: none;
 }
 
 :root[data-theme="dark"] .section {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
     var(--surface);
   border-color: var(--line-strong);
 }
@@ -5972,14 +5978,12 @@ body.menu-open .menu-fab {
 :root[data-theme="dark"] .meal-card,
 :root[data-theme="dark"] .training-card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line);
 }
 
 :root[data-theme="dark"] .status-summary-card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
@@ -5987,7 +5991,6 @@ body.menu-open .menu-fab {
 
 :root[data-theme="dark"] .workspace-header {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line-strong);
 }
@@ -6006,7 +6009,7 @@ body.menu-open .menu-fab {
 :root[data-theme="dark"] .field textarea,
 :root[data-theme="dark"] .auth-form .field input,
 :root[data-theme="dark"] .amount-stepper-btn {
-  background: rgba(12, 22, 18, 0.66);
+  background: rgba(13, 12, 10, 0.72);
   border-color: var(--line-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
@@ -6023,13 +6026,12 @@ body.menu-open .menu-fab {
 }
 
 :root[data-theme="dark"] .empty {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  border-color: var(--line-strong);
+  background: var(--surface-strong);
+  border-color: var(--line);
 }
 
 :root[data-theme="dark"] .app-dialog {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.04), oklch(1 0 0 / 0)),
     var(--surface-elevated);
   border-color: var(--line-strong);
 }
@@ -6041,7 +6043,6 @@ body.menu-open .menu-fab {
 
 :root[data-theme="dark"] .plan-summary-headline {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--accent-soft);
 }
 
@@ -6344,7 +6345,6 @@ body.menu-open .tab-bar {
    ============================================================ */
 :root[data-theme="dark"] .plan-quick-card,:root[data-theme="dark"] .plan-quick-card--primary,:root[data-theme="dark"] .plan-quick-card--secondary,:root[data-theme="dark"] .meal-summary-macro,:root[data-theme="dark"] .suggestion-surface,:root[data-theme="dark"] .plan-suggestion-card.is-muted,:root[data-theme="dark"] .recipe-studio-card,:root[data-theme="dark"] .nutrition-food-editor-card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
@@ -6361,7 +6361,6 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .meal-card-summary-kcal {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0)),
     var(--surface-strong);
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
@@ -6427,10 +6426,7 @@ body.menu-open .tab-bar {
    Dark theme — unify: dark sidebar, dark meal-entry rows, and
    teal-tinted value pills (kill the grey/white inconsistency).
    ============================================================ */
-:root[data-theme="dark"] {
-  --pill-bg: oklch(1 0 0 / 0.05);
-  --pill-border: oklch(1 0 0 / 0.08);
-}
+
 
 :root[data-theme="dark"] .mobile-menu {
   background: var(--rail-bg);
@@ -6445,7 +6441,6 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .meal-entry {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0)),
     var(--surface-strong);
   border-color: var(--line);
   box-shadow: var(--shadow-tight);
@@ -6457,7 +6452,6 @@ body.menu-open .tab-bar {
    ============================================================ */
 :root[data-theme="dark"] .training-exercise-row,:root[data-theme="dark"] .recipe-library-method,:root[data-theme="dark"] .nutrition-plan-notes,:root[data-theme="dark"] .routine-day-picker,:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line);
 }
@@ -6486,7 +6480,6 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .update-banner,
 :root[data-theme="dark"] .feedback-toast {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-elevated);
   border-color: var(--line-strong);
 }
@@ -6529,14 +6522,12 @@ body.menu-open .tab-bar {
 }
 :root[data-theme="dark"] .offline-banner {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-elevated);
   border-color: var(--status-warning-border);
 }
 
 :root[data-theme="dark"] .sync-conflict-banner {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-elevated);
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
@@ -6736,7 +6727,7 @@ body.menu-open .tab-bar {
 }
 
 :root[data-theme="dark"] .hero-day-chips .chip.is-active {
-  color: oklch(0.32 0.07 158);
+  color: var(--button-primary-text);
 }
 
 /* ============================================================
@@ -6770,7 +6761,6 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .recipe-library-card,
 :root[data-theme="dark"] .training-day-spotlight {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.04), oklch(1 0 0 / 0)),
     var(--surface-strong);
   border-color: var(--line);
   box-shadow:
@@ -7604,7 +7594,6 @@ body.app-header-hidden .workspace-header {
    ============================================================ */
 :root[data-theme="dark"] .recipe-library-ingredient-card,:root[data-theme="dark"] .recipe-draft-method,:root[data-theme="dark"] .routine-streak-spotlight,:root[data-theme="dark"] .routine-streak-card,:root[data-theme="dark"] .routine-streak-meter {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line);
   color: var(--ink);
@@ -8086,7 +8075,6 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .onboarding-card {
   background:
     radial-gradient(circle at top right, oklch(0.8 0.132 82 / 0.12), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-strong);
   border-color: var(--line-strong);
 }
@@ -11259,12 +11247,20 @@ body {
 
 /* Empty states and the add row: soft tint, no dashes. */
 .empty,
-.meal-add-row,
+.meal-add-row {
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+/* Dark: nested surfaces are a tonal step up (L3), not a gold tint. */
 :root[data-theme="dark"] .empty,
 :root[data-theme="dark"] .meal-add-row {
   border: 0;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: var(--surface-strong);
+}
+:root[data-theme="dark"] .meal-add-row:hover {
+  background: var(--surface-elevated);
 }
 .empty {
   padding: 16px;
@@ -11502,6 +11498,10 @@ body {
   background: none;
   border: 0;
   box-shadow: none;
+}
+/* Meal cards are top-level on Danas: section tone (L2), same as Dnevni pregled. */
+:root[data-theme="dark"] .plan-meals-section .meal-card {
+  background: var(--surface);
 }
 
 /* Meal titles are titles, not links: ink, not accent. */
