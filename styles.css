@@ -11972,3 +11972,85 @@ button.meal-entry-body:focus-visible {
 .routine-day-picker .hero-day-chips {
   margin-top: 0;
 }
+
+/* Kalibracija cilja ------------------------------------------------------- */
+.calibration-progress {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 10px;
+}
+.calibration-progress-item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.calibration-progress-item strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.calibration-glance {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4px;
+}
+.calibration-glance .glance-item {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+.calibration-tdee {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.calibration-tdee strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.calibration-proposal {
+  display: grid;
+  gap: 4px;
+  padding: 14px 0 6px;
+}
+.calibration-proposal-values {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.calibration-from {
+  color: var(--muted);
+  font-size: 1.125rem;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.calibration-arrow {
+  color: var(--muted);
+}
+.calibration-to {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--accent);
+}
+.calibration-unit {
+  color: var(--muted);
+  font-weight: 600;
+}
+.calibration-actions {
+  margin-top: 10px;
+  align-items: center;
+  gap: 10px;
+}
+.calibration-section.is-suggest {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+:root[data-theme="dark"] .calibration-section.is-suggest {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+.calibration-last {
+  margin-top: 8px;
+}

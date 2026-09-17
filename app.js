@@ -8225,6 +8225,14 @@ function getTodayReminders() {
   if (mealLabels.length > 0 && mealsDone < mealLabels.length) {
     reminders.push({ text: `🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`, action: "jump-next-meal", hint: "Otvori sledeći" });
   }
+  const calibration = getGoalCalibration();
+  if (calibration.status === "suggest") {
+    reminders.push({
+      text: `🎯 Predlog: cilj ${calibration.proposedTarget} kcal`,
+      action: "open-goal-calibration",
+      hint: `${calibration.delta > 0 ? "+" : ""}${calibration.delta} kcal`,
+    });
+  }
   const measurements = store.measurements || [];
   const nagSnoozedUntil = String(store.ui?.plan?.measurementNagSnoozedUntil || "");
   if (!measurements.length) {
@@ -11285,6 +11293,302 @@ function renderAdaptiveGoalNudge() {
     </section>`;
 }
 
+// ---- Kalibracija cilja (closed goal loop) -----------------------------------
+// The profile formula (Mifflin + activity multiplier) is only a starting guess.
+// Once there are enough fully-logged days and weigh-ins, the body itself tells
+// us the real expenditure: what you ate minus what the scale did. From that we
+// derive the calorie target that actually delivers the chosen pace, and offer
+// it as a one-tap update. Nothing changes without the user's tap.
+const CALIBRATION_INTAKE_WINDOW_DAYS = 14;
+const CALIBRATION_WEIGHT_WINDOW_DAYS = 21;
+const CALIBRATION_MIN_LOGGED_DAYS = 8;
+const CALIBRATION_MIN_WEIGHINS = 3;
+const CALIBRATION_MIN_WEIGHT_SPAN_DAYS = 10;
+const CALIBRATION_MIN_CHANGE_KCAL = 75;
+const CALIBRATION_MAX_STEP_KCAL = 250;
+const CALIBRATION_COOLDOWN_DAYS = 7;
+
+function getCalibrationState() {
+  store.goals = store.goals || {};
+  const raw = store.goals.calibration;
+  return raw && typeof raw === "object" ? raw : {};
+}
+
+function daysBetweenDateValues(fromValue, toValue) {
+  const from = getDateValueAsLocalDate(normalizeDateValue(fromValue));
+  const to = getDateValueAsLocalDate(normalizeDateValue(toValue));
+  if (!from || !to) {
+    return null;
+  }
+  return Math.round((to.getTime() - from.getTime()) / DAY_IN_MS);
+}
+
+// Least-squares slope of weight over time (kg/day) — smooths the day-to-day
+// water noise that a first-vs-last comparison would swallow whole.
+function getWeightTrendSlope(points) {
+  if (points.length < 2) {
+    return null;
+  }
+  const n = points.length;
+  const meanX = points.reduce((sum, point) => sum + point.day, 0) / n;
+  const meanY = points.reduce((sum, point) => sum + point.kg, 0) / n;
+  let num = 0;
+  let den = 0;
+  points.forEach((point) => {
+    num += (point.day - meanX) * (point.kg - meanY);
+    den += (point.day - meanX) ** 2;
+  });
+  return den > 0 ? num / den : null;
+}
+
+function getGoalCalibration() {
+  const currentGoal = roundValue(toNumber(store.goals?.calories), 0);
+  const rec = getGoalRecommendation();
+  const today = getTodayDateValue();
+
+  const days = getHistoryDays(CALIBRATION_INTAKE_WINDOW_DAYS);
+  const loggedDays = days.filter((day) => isHistoryDayFinal(day));
+  const avgKcal = loggedDays.length
+    ? Math.round(loggedDays.reduce((sum, day) => sum + toNumber(day.snap.kcal), 0) / loggedDays.length)
+    : 0;
+
+  const weightPoints = [...(store.measurements || [])]
+    .filter((m) => toNumber(m.weightKg) > 0)
+    .map((m) => ({ date: normalizeDateValue(m.date), kg: toNumber(m.weightKg) }))
+    .filter((m) => m.date && daysBetweenDateValues(m.date, today) != null && daysBetweenDateValues(m.date, today) <= CALIBRATION_WEIGHT_WINDOW_DAYS && daysBetweenDateValues(m.date, today) >= 0)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    .map((m) => ({ ...m, day: -daysBetweenDateValues(m.date, today) }));
+  const weightSpanDays = weightPoints.length >= 2 ? weightPoints[weightPoints.length - 1].day - weightPoints[0].day : 0;
+
+  const missing = [];
+  if (!currentGoal) missing.push("dnevni cilj");
+  if (!rec) missing.push("popunjen profil");
+  if (loggedDays.length < CALIBRATION_MIN_LOGGED_DAYS) {
+    const need = CALIBRATION_MIN_LOGGED_DAYS - loggedDays.length;
+    missing.push(`još ${need} ${need === 1 ? "kompletan dan" : need < 5 ? "kompletna dana" : "kompletnih dana"} unosa`);
+  }
+  if (weightPoints.length < CALIBRATION_MIN_WEIGHINS) {
+    missing.push(`još ${CALIBRATION_MIN_WEIGHINS - weightPoints.length} ${CALIBRATION_MIN_WEIGHINS - weightPoints.length === 1 ? "merenje" : "merenja"} težine`);
+  } else if (weightSpanDays < CALIBRATION_MIN_WEIGHT_SPAN_DAYS) {
+    missing.push(`merenja razmaknuta bar ${CALIBRATION_MIN_WEIGHT_SPAN_DAYS} dana`);
+  }
+
+  const base = {
+    status: "insufficient",
+    loggedDays: loggedDays.length,
+    windowDays: CALIBRATION_INTAKE_WINDOW_DAYS,
+    weighIns: weightPoints.length,
+    weightSpanDays,
+    avgKcal,
+    currentGoal,
+    missing,
+  };
+  if (missing.length) {
+    return base;
+  }
+
+  const slopePerDay = getWeightTrendSlope(weightPoints);
+  const actualRate = roundValue(slopePerDay * 7, 2); // kg/week, negative = losing
+  const expectedRate = roundValue(rec.rateKgPerWeek, 2);
+  // Energy balance: intake minus what the scale says was stored/burned.
+  const measuredTdee = Math.round(avgKcal - (actualRate * KCAL_PER_KG) / 7);
+  const desiredRate = rec.requestedRateKgPerWeek;
+  const floorCalories = Math.max(1200, roundValue(rec.bmr, 0));
+  let idealTarget = Math.round((measuredTdee + (desiredRate * KCAL_PER_KG) / 7) / 10) * 10;
+  let floored = false;
+  if (desiredRate < 0 && idealTarget < floorCalories) {
+    idealTarget = Math.round(floorCalories / 10) * 10;
+    floored = true;
+  }
+  // One calibration moves the target by at most a modest step; the next one
+  // (a week+ later, on fresh data) takes it further if the trend holds.
+  const rawDelta = idealTarget - currentGoal;
+  const delta = Math.max(-CALIBRATION_MAX_STEP_KCAL, Math.min(CALIBRATION_MAX_STEP_KCAL, rawDelta));
+  const proposedTarget = Math.round((currentGoal + delta) / 10) * 10;
+
+  const calibration = getCalibrationState();
+  const lastTouched = calibration.lastAppliedAt || calibration.lastDismissedAt || "";
+  const sinceTouched = lastTouched ? daysBetweenDateValues(lastTouched, today) : null;
+  const inCooldown = sinceTouched != null && sinceTouched >= 0 && sinceTouched < CALIBRATION_COOLDOWN_DAYS;
+
+  const rateGap = roundValue(actualRate - expectedRate, 2);
+  const onTrack = Math.abs(proposedTarget - currentGoal) < CALIBRATION_MIN_CHANGE_KCAL;
+
+  return {
+    ...base,
+    status: onTrack ? "on-track" : inCooldown ? "cooldown" : "suggest",
+    actualRate,
+    expectedRate,
+    rateGap,
+    measuredTdee,
+    profileTdee: rec.maintenance,
+    proposedTarget,
+    idealTarget,
+    delta: proposedTarget - currentGoal,
+    capped: Math.abs(rawDelta) > CALIBRATION_MAX_STEP_KCAL,
+    floored,
+    floorCalories,
+    currentWeight: weightPoints[weightPoints.length - 1].kg,
+    goalMode: rec.goalMode,
+    cooldownDaysLeft: inCooldown ? CALIBRATION_COOLDOWN_DAYS - sinceTouched : 0,
+  };
+}
+
+function formatSignedRate(rate) {
+  const value = roundValue(toNumber(rate), 2);
+  if (Math.abs(value) < 0.005) {
+    return "0 kg/ned";
+  }
+  return `${value > 0 ? "+" : "−"}${Math.abs(value)} kg/ned`;
+}
+
+function applyGoalCalibration() {
+  const cal = getGoalCalibration();
+  if (cal.status !== "suggest" && cal.status !== "cooldown") {
+    return null;
+  }
+  const previous = roundValue(toNumber(store.goals.calories), 0);
+  const macros = splitMacros(cal.proposedTarget, cal.currentWeight, cal.goalMode);
+  store.goals.calories = cal.proposedTarget;
+  store.goals.protein = macros.protein;
+  store.goals.carbs = macros.carbs;
+  store.goals.fat = macros.fat;
+  store.goals.basisWeightKg = cal.currentWeight;
+  store.profile.weightKg = cal.currentWeight;
+  const today = getTodayDateValue();
+  const state = getCalibrationState();
+  const log = Array.isArray(state.log) ? state.log : [];
+  log.unshift({
+    date: today,
+    from: previous,
+    to: cal.proposedTarget,
+    measuredTdee: cal.measuredTdee,
+    avgKcal: cal.avgKcal,
+    actualRate: cal.actualRate,
+    expectedRate: cal.expectedRate,
+  });
+  store.goals.calibration = { ...state, lastAppliedAt: today, lastTdee: cal.measuredTdee, log: log.slice(0, 12) };
+  persist();
+  return { previous, next: cal.proposedTarget };
+}
+
+function dismissGoalCalibration() {
+  const state = getCalibrationState();
+  store.goals.calibration = { ...state, lastDismissedAt: getTodayDateValue() };
+  persist();
+}
+
+function renderGoalCalibrationCard() {
+  const cal = getGoalCalibration();
+  const lastLog = (getCalibrationState().log || [])[0];
+  const lastLine = lastLog
+    ? `<div class="footer-note calibration-last">Poslednja kalibracija ${formatDateValueLabel(lastLog.date) || lastLog.date}: ${lastLog.from} → ${lastLog.to} kcal.</div>`
+    : "";
+
+  if (cal.status === "insufficient") {
+    return `
+    <section class="section calibration-section is-waiting">
+      ${renderSectionLead("Kalibracija cilja", "Kad se skupi dovoljno podataka, cilj se proverava prema onome što telo stvarno radi, ne prema formuli.")}
+      <div class="calibration-progress">
+        <div class="calibration-progress-item">
+          <span class="plan-net-label">Kompletni dani</span>
+          <strong>${cal.loggedDays}/${CALIBRATION_MIN_LOGGED_DAYS}</strong>
+          <span class="footer-note">u poslednjih ${cal.windowDays} dana</span>
+        </div>
+        <div class="calibration-progress-item">
+          <span class="plan-net-label">Merenja težine</span>
+          <strong>${cal.weighIns}/${CALIBRATION_MIN_WEIGHINS}</strong>
+          <span class="footer-note">u poslednjih ${CALIBRATION_WEIGHT_WINDOW_DAYS} dan${CALIBRATION_WEIGHT_WINDOW_DAYS % 10 === 1 && CALIBRATION_WEIGHT_WINDOW_DAYS % 100 !== 11 ? "" : "a"}</span>
+        </div>
+      </div>
+      <div class="footer-note">Fali: ${escapeHtml(cal.missing.join(", "))}. Čekiraj sve obroke u danu da bi se dan računao.</div>
+      ${lastLine}
+    </section>`;
+  }
+
+  const gapWord =
+    Math.abs(cal.rateGap) < 0.1
+      ? "Tempo se poklapa sa ciljem."
+      : cal.actualRate < cal.expectedRate
+        ? "Ide brže nego što je planirano."
+        : "Ide sporije nego što je planirano.";
+  const tdeeDiff = cal.measuredTdee - cal.profileTdee;
+  const tdeeNote =
+    Math.abs(tdeeDiff) < 60
+      ? "Poklapa se sa procenom iz profila."
+      : `${Math.abs(tdeeDiff)} kcal ${tdeeDiff > 0 ? "više" : "manje"} nego što formula iz profila kaže.`;
+
+  const comparison = `
+      <dl class="glance-list calibration-glance">
+        <div class="glance-item">
+          <dt>Očekivano</dt>
+          <dd>${formatSignedRate(cal.expectedRate)}</dd>
+        </div>
+        <div class="glance-item">
+          <dt>Stvarno</dt>
+          <dd>${formatSignedRate(cal.actualRate)}</dd>
+        </div>
+        <div class="glance-item">
+          <dt>Prosečan unos</dt>
+          <dd>${cal.avgKcal} kcal</dd>
+        </div>
+      </dl>
+      <div class="calibration-tdee">
+        <span class="plan-net-label">Stvarna potrošnja</span>
+        <strong>${cal.measuredTdee} kcal/dan</strong>
+        <span class="footer-note">${tdeeNote}</span>
+      </div>`;
+
+  if (cal.status === "on-track") {
+    const appliedAt = getCalibrationState().lastAppliedAt;
+    const sinceApplied = appliedAt ? daysBetweenDateValues(appliedAt, getTodayDateValue()) : null;
+    const freshlyCalibrated = sinceApplied != null && sinceApplied >= 0 && sinceApplied < CALIBRATION_COOLDOWN_DAYS;
+    const okCopy = freshlyCalibrated
+      ? `Cilj od ${cal.currentGoal} kcal je tek kalibrisan. Sledeća provera kad se skupi nova nedelja podataka.`
+      : `${gapWord} Cilj od ${cal.currentGoal} kcal ostaje.`;
+    return `
+    <section class="section calibration-section is-ok">
+      ${renderSectionLead("Kalibracija cilja", okCopy)}
+      ${comparison}
+      <div class="footer-note">Na osnovu ${cal.loggedDays} kompletnih dana i ${cal.weighIns} merenja.</div>
+      ${lastLine}
+    </section>`;
+  }
+
+  const direction = cal.delta < 0 ? "manje" : "više";
+  return `
+    <section class="section calibration-section is-suggest">
+      ${renderSectionLead("Kalibracija cilja", `${gapWord} Da ${cal.goalMode.id === "gain" ? "dobijanje" : cal.goalMode.id === "lose" ? "mršavljenje" : "održavanje"} ide planiranim tempom, predlog je ${Math.abs(cal.delta)} kcal ${direction} dnevno.`)}
+      ${comparison}
+      <div class="calibration-proposal">
+        <div class="calibration-proposal-values">
+          <span class="calibration-from">${cal.currentGoal}</span>
+          <span class="calibration-arrow" aria-hidden="true">→</span>
+          <strong class="calibration-to">${cal.proposedTarget}</strong>
+          <span class="calibration-unit">kcal</span>
+        </div>
+        <div class="footer-note">Makroi se preračunavaju uz novi cilj.${
+          cal.floored
+            ? ` Niže od ${cal.floorCalories} kcal ne idemo — to je bezbedni minimum (≈ BMR), pa će tempo biti blaži od izabranog.`
+            : cal.capped
+              ? " Promena je ograničena na 250 kcal po koraku; sledeća provera stiže za nedelju dana."
+              : ""
+        }</div>
+      </div>
+      <div class="meta-row meta-row--compact calibration-actions">
+        ${
+          cal.status === "cooldown"
+            ? `<span class="footer-note">Odloženo — nova provera za ${getDayCountLabel(cal.cooldownDaysLeft)}.</span>
+               <button class="ghost-button button-with-icon" type="button" data-action="apply-goal-calibration">${renderButtonContent("Primeni ipak", "apply")}</button>`
+            : `<button class="solid-button button-with-icon" type="button" data-action="apply-goal-calibration">${renderButtonContent(`Primeni ${cal.proposedTarget} kcal`, "apply")}</button>
+               <button class="ghost-button" type="button" data-action="dismiss-goal-calibration">Ne sada</button>`
+        }
+      </div>
+      <div class="footer-note">Na osnovu ${cal.loggedDays} kompletnih dana i ${cal.weighIns} merenja u poslednjih ${CALIBRATION_WEIGHT_WINDOW_DAYS} dan${CALIBRATION_WEIGHT_WINDOW_DAYS % 10 === 1 && CALIBRATION_WEIGHT_WINDOW_DAYS % 100 !== 11 ? "" : "a"}.</div>
+      ${lastLine}
+    </section>`;
+}
+
 // Estimate when the target weight will be reached at the configured pace,
 // anchored to the latest measured weight (falls back to the profile weight).
 function getGoalEta() {
@@ -11391,7 +11695,8 @@ function renderGoalsTab() {
     ${gSegNav}
 
     ${gView === "cilj" ? `
-    ${renderAdaptiveGoalNudge()}
+    ${renderGoalCalibrationCard()}
+    ${getGoalCalibration().status === "insufficient" ? renderAdaptiveGoalNudge() : ""}
 
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "")}
@@ -11412,13 +11717,16 @@ function renderGoalsTab() {
               }`
             : goalRecommendation.goalMode.label
           : "";
+        const calibrated = getCalibrationState();
         const note = !headline
           ? "Popuni profil i izaberi cilj ispod"
-          : recDiffers
-            ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal — „Izračunaj iz cilja“ ispod da preuzmeš`
-            : goalRecommendation
-              ? paceLabel
-              : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
+          : calibrated.lastAppliedAt
+            ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan) · ${paceLabel || goalRecommendation.goalMode.label}`
+            : recDiffers
+              ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal — „Izračunaj iz cilja“ ispod da preuzmeš`
+              : goalRecommendation
+                ? paceLabel
+                : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
         const macro = (key) => {
           const stored = toNumber(store.goals[key]);
           if (stored > 0) return `${roundValue(stored, 0)} g`;
@@ -16692,6 +17000,41 @@ async function handleDocumentClick(event) {
       persist();
     });
     render();
+    return;
+  }
+
+  if (action === "apply-goal-calibration") {
+    const result = applyGoalCalibration();
+    render();
+    if (result) {
+      showFeedbackToast({
+        title: "Cilj je kalibrisan",
+        detail: `${result.previous} → ${result.next} kcal dnevno. Makroi su preračunati.`,
+        tone: "success",
+      });
+    }
+    return;
+  }
+
+  if (action === "dismiss-goal-calibration") {
+    dismissGoalCalibration();
+    render();
+    showFeedbackToast({ title: "Odloženo", detail: `Nova provera za ${CALIBRATION_COOLDOWN_DAYS} dana.`, tone: "info" });
+    return;
+  }
+
+  if (action === "open-goal-calibration") {
+    if (state.activeTab !== "goals") {
+      state.tabEnter = true;
+    }
+    state.activeTab = "goals";
+    state.goalsView = "cilj";
+    state.navMenuOpen = false;
+    window.location.hash = "goals";
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector(".calibration-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     return;
   }
 
