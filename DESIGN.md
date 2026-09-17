@@ -2,19 +2,19 @@
 name: Fit Tracker
 description: Earthy sage-green nutrition & training PWA that turns gold-luxe graphite at night
 colors:
-  bg: "#ebe5d9"
-  bg-strong: "#ddd6c8"
+  bg: "#efe9dd"
+  bg-strong: "#e1d9ca"
   surface-elevated: "#ffffff"
   ink: "#17201d"
-  muted: "#65716c"
+  muted: "#5d6963"
   line: "rgba(24, 33, 30, 0.085)"
-  accent: "#173b2f"
-  accent-strong: "#10271f"
-  accent-soft: "#dfe9e0"
-  secondary: "#2f6b52"
-  teal: "#2f6b52"
+  accent: "#1d5a42"
+  accent-strong: "#144433"
+  accent-soft: "#dbeadf"
+  secondary: "#2b6d52"
+  teal: "#2b6d52"
   clay: "#efe2d6"
-  bar-ok: "linear-gradient(90deg, #2f6b52 0%, #3f8a63 100%)"
+  bar-ok: "linear-gradient(90deg, #2b7a63 0%, #4d9a68 100%)"
   bar-near: "linear-gradient(90deg, #e0a83a 0%, #cf8a26 100%)"
   bar-over: "linear-gradient(90deg, #df7a48 0%, #c8442c 100%)"
   status-warning-text: "#72571b"
@@ -26,9 +26,9 @@ typography:
     fontWeight: 600
     lineHeight: 1
   headline:
-    fontFamily: "Fraunces, Georgia, serif"
-    fontSize: "clamp(1.65rem, 2.5vw, 2.35rem)"
-    fontWeight: 600
+    fontFamily: "Manrope, -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 700
   body:
     fontFamily: "Manrope, -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
     fontSize: "1rem"
@@ -83,7 +83,7 @@ Fit Tracker reads like a well-kept paper food-and-training journal that happens 
 The palette is a single warm neutral family (paper cream in light, graphite in dark) carrying one accent hue that itself changes identity between modes.
 
 ### Primary
-- **Deep Pine** (`#173b2f`, `--accent`): primary CTAs, active nav, "ok" progress-bar state, headline numerals in light mode. In dark mode this role is carried instead by **Warm Gold** (`oklch(0.8 0.132 82)`) — the single accent color permitted in dark, used for the calorie ring, primary buttons, active nav, and strong pills.
+- **Pine** (`#1d5a42`, `--accent`): primary CTAs, active nav, "ok" progress-bar state, headline numerals in light mode. In dark mode this role is carried instead by **Warm Gold** (`oklch(0.8 0.132 82)`) — the single accent color permitted in dark, used for the calorie ring, primary buttons, active nav, and strong pills.
 
 ### Secondary
 - **Olive** (`#8b9961`, `--secondary`): secondary buttons, "target"-kind macro bars (protein) when under goal.
@@ -92,7 +92,7 @@ The palette is a single warm neutral family (paper cream in light, graphite in d
 - **Muted Teal** (`#2f8076`, `--teal`): the neutral/informational state (protein "near" goal, info status pills) — distinct from the primary pine so status and brand accent never compete.
 
 ### Neutral
-- **Paper Cream** (`#ece2d3`, `--bg`) / **Deeper Clay** (`#ddd0bd`, `--bg-strong`): page background — deliberately darker than any card so cards visibly float (elevation ladder).
+- **Paper Cream** (`#efe9dd`, `--bg`) / **Deeper Clay** (`#e1d9ca`, `--bg-strong`): page background — deliberately darker than any card so cards visibly float (elevation ladder). The page itself is one clean vertical gradient (`#f4efe6 → #ebe3d6`); the old radial colour blobs on the page and on cards are gone (2026-09-17, direction "B").
 - **Warm White** (`#ffffff`, `--surface-elevated`) and translucent cream surfaces (`--surface`, `--surface-panel` at 88-96% opacity): card backgrounds.
 - **Deep Ink** (`#17201d`, `--ink`): primary text. **Soft Sage-Grey** (`#65716c`, `--muted`): secondary text.
 - **Hairline** (`rgba(24,33,30,0.085)`, `--line`): all dividers — never a boxed border.
@@ -111,9 +111,11 @@ The palette is a single warm neutral family (paper cream in light, graphite in d
 **Character:** A serif with warmth and a little editorial weight for the numbers that matter, paired with a body sans that gets out of the way and feels native on-device rather than "webby."
 
 ### Hierarchy
-- **Display** (600, `clamp(3.2rem, 13vw, 4.2rem)`, line-height 1): the remaining-calories ring number only — the one hero number per screen.
-- **Headline** (600, `clamp(1.65rem, 2.5vw, 2.35rem)`): section/tab headers, per-serving recipe kcal.
-- **Title** (600, `clamp(1.32rem, 1.95vw, 1.7rem)`): card and sub-section titles.
+Fraunces appears in exactly two places per screen: the hero number (calorie ring, goal kcal, onboarding kcal) and the page title (`Danas`, `Hrana`, the account name). Everything else — section headings, collapsible titles, meal and recipe kcal, macro values — is Manrope. Chosen 2026-09-17 ("B — dorada") over keeping serif on every heading (A) and over an all-sans rebrand (C).
+- **Display** (Fraunces 600, `clamp(3.2rem, 13vw, 4.2rem)`, line-height 1): the remaining-calories ring number only — the one hero number per screen.
+- **Page title** (Fraunces 700, `1.375–1.5rem`): the tab/page `h1`.
+- **Section heading** (Manrope 700, `1.0625rem`, letter-spacing −0.012em): `section-header h2`, disclosure titles, collapsible `<details>` titles.
+- **Figures** (Manrope 700–800, tabular-nums): meal totals, recipe kcal, macro values, streak counts.
 - **Body** (500, `1rem`): all running text, form labels, list rows.
 - **Label** (700, `0.85rem`, often uppercase-tracked): eyebrows, pill labels, macro-grid headers.
 
@@ -137,7 +139,7 @@ Hybrid: mostly flat, tonal-layered surfaces (paper-on-paper via the bg → surfa
 
 ### Buttons
 - **Shape:** 15px radius (`--radius-sm`), consistent across all button variants.
-- **Primary:** pine-green vertical gradient (`linear-gradient(180deg, #20493b, #173b2f)`) in light / gold gradient in dark, cream/graphite text, 800 font-weight, `10px 16px` padding, soft ambient shadow + inset highlight for a slightly tactile (not flat) press-feel.
+- **Primary:** pine-green vertical gradient (`linear-gradient(180deg, #266b50, #1d5a42)`) in light / gold gradient in dark, cream/graphite text, 800 font-weight, `10px 16px` padding, soft ambient shadow + inset highlight for a slightly tactile (not flat) press-feel.
 - **Secondary:** olive gradient, same shape/weight as primary — used when a screen needs two calls to action without implying a hierarchy the copy doesn't support.
 - **Ghost:** near-white translucent background, ink text, hairline border — the default for dismiss/cancel/"manage" actions.
 - **Danger:** pale clay/cream background with a warm brown text/border (not a saturated red) — deliberately quiet, reserved for destructive actions that already get a confirming undo-toast.
