@@ -92,9 +92,9 @@
   --shadow-tight: 0 10px 22px rgba(25, 34, 31, 0.055);
   --shadow-card: 0 18px 34px rgba(25, 34, 31, 0.075);
   --radius-xl: 32px;
-  --radius-lg: 26px;
+  --radius-lg: 24px;
   --radius-md: 20px;
-  --radius-sm: 15px;
+  --radius-sm: 14px;
   --content-narrow: 980px;
   --content-width: 720px;
 }
@@ -240,7 +240,7 @@ textarea::placeholder {
   margin: 0;
   min-width: 0;
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.42rem;
+  font-size: 1.375rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -280,12 +280,12 @@ textarea::placeholder {
   flex: 1 1 0;
   min-width: 0;
   padding: 9px 4px;
-  border-radius: 13px;
+  border-radius: 14px;
   border: 1px solid var(--line-strong);
   background: var(--surface-strong);
   color: var(--ink);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   text-align: center;
   box-shadow: none;
 }
@@ -321,116 +321,6 @@ textarea::placeholder {
   backdrop-filter: blur(22px);
 }
 
-.auth-card {
-  max-width: 980px;
-  margin: 0 auto;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 242, 0.9)),
-    var(--surface);
-  overflow: hidden;
-}
-
-.auth-card--centered {
-  text-align: center;
-}
-
-.auth-layout {
-  display: grid;
-  gap: 16px;
-}
-
-.auth-hero {
-  margin-bottom: 0;
-  padding: 22px 20px 24px;
-  border-radius: 26px;
-  color: #fefbf3;
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
-    radial-gradient(circle at 0% 100%, rgba(135, 148, 95, 0.18), transparent 34%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.12), transparent 22%),
-    linear-gradient(135deg, #132c23 0%, #1c493d 62%, #2b7a71 100%);
-  box-shadow: 0 18px 38px rgba(23, 53, 43, 0.18);
-}
-
-.auth-hero h1,
-.auth-hero p {
-  margin: 0;
-}
-
-.auth-hero h1 {
-  margin-top: 10px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 1.875rem;
-  line-height: 1;
-  letter-spacing: -0.035em;
-}
-
-.auth-hero p {
-  margin-top: 10px;
-  color: rgba(254, 251, 243, 0.84);
-  max-width: 28ch;
-}
-
-.auth-highlights {
-  margin-top: 16px;
-  gap: 10px;
-}
-
-.auth-highlights .pill {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #fefbf3;
-}
-
-.auth-highlights .pill.strong {
-  background: rgba(232, 237, 216, 0.22);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.auth-panel {
-  display: grid;
-  gap: 14px;
-  padding: 4px 2px 0;
-}
-
-.auth-badge {
-  display: inline-flex;
-  padding: 7px 11px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.auth-mode-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 6px;
-  border-radius: 18px;
-  background: rgba(228, 234, 211, 0.64);
-  border: 1px solid rgba(25, 34, 31, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
-}
-
-.auth-mode-chip {
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.auth-mode-chip.is-active {
-  background: var(--button-ghost-bg);
-  color: var(--accent);
-  border: 1px solid var(--button-ghost-border);
-  box-shadow: var(--shadow-tight);
-}
-
 .auth-toggle-row {
   align-items: center;
   justify-content: space-between;
@@ -447,16 +337,6 @@ textarea::placeholder {
   background: var(--status-error-bg);
   color: var(--status-error-text);
   border: 1px solid var(--status-error-border);
-}
-
-.auth-note {
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--status-info-bg), rgba(255, 250, 242, 0.88));
-  color: color-mix(in srgb, var(--status-info-text) 72%, var(--muted));
-  border: 1px solid var(--status-info-border);
-  font-size: 0.9375rem;
-  line-height: 1.5;
 }
 
 .password-input-wrap {
@@ -680,18 +560,6 @@ textarea::placeholder {
   color: var(--muted);
 }
 
-.plan-summary-headline-meta {
-  flex: 1 1 170px;
-  min-width: 155px;
-  display: grid;
-  gap: 8px;
-  align-content: end;
-}
-
-.plan-summary-headline-meta .progress {
-  margin-top: 0;
-}
-
 .plan-summary-headline[data-state="near"] {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0)),
@@ -756,9 +624,7 @@ textarea::placeholder {
   box-shadow: 0 10px 18px rgba(125, 139, 90, 0.22);
 }
 
-.goal-grid,
-.macro-grid,
-.stats-grid {
+.macro-grid,.stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
@@ -767,7 +633,7 @@ textarea::placeholder {
 .macro-card,
 .stat-card {
   padding: 18px 17px;
-  border-radius: 22px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 251, 246, 0.98)),
     var(--surface-strong);
@@ -777,21 +643,14 @@ textarea::placeholder {
     inset 0 1px 0 rgba(255, 255, 255, 0.56);
 }
 
-.macro-card header,
-.meal-entry-top,
-.food-card-top,
-.training-top {
+.macro-card header,.food-card-top,.training-top {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   align-items: center;
 }
 
-.macro-card h3,
-.meal-card h3,
-.food-card h3,
-.training-card h3,
-.list-header {
+.macro-card h3,.meal-card h3,.food-card h3,.training-card h3 {
   margin: 0;
   font-size: 1rem;
   letter-spacing: -0.02em;
@@ -855,7 +714,7 @@ textarea::placeholder {
 .food-card,
 .training-card {
   padding: 17px;
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgba(24, 33, 30, 0.07);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 244, 0.98)),
@@ -890,7 +749,7 @@ textarea::placeholder {
   margin-bottom: 14px;
   padding: 16px;
   border: 1px solid rgba(24, 33, 30, 0.07);
-  border-radius: 22px;
+  border-radius: 24px;
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 26%),
     linear-gradient(180deg, rgba(232, 239, 231, 0.92), rgba(246, 241, 233, 0.9));
@@ -907,8 +766,7 @@ textarea::placeholder {
     var(--shadow-tight);
 }
 
-.meal-card-topline,
-.meal-heading-block {
+.meal-card-topline {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1033,10 +891,6 @@ textarea::placeholder {
   gap: 0;
 }
 
-.plan-meals-section .meal-card-toolbar {
-  padding-bottom: 10px;
-}
-
 .meal-card-content.is-hidden {
   display: none;
 }
@@ -1084,39 +938,7 @@ textarea::placeholder {
   border-top: 1px solid var(--line);
 }
 
-.meal-card-toolbar {
-  display: grid;
-  gap: 12px;
-}
-
-.meal-items-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 2px 10px;
-}
-
-.meal-items-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.meal-items-count {
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.plan-summary-section,
-.plan-preview-section,
-.plan-recipes-section,
-.plan-supplements-section,
-.plan-quick-section,
-.plan-meals-section {
+.plan-summary-section,.plan-supplements-section,.plan-quick-section,.plan-meals-section {
   position: relative;
   overflow: hidden;
 }
@@ -1126,12 +948,7 @@ textarea::placeholder {
   gap: 16px;
 }
 
-.plan-summary-section::before,
-.plan-preview-section::before,
-.plan-recipes-section::before,
-.plan-supplements-section::before,
-.plan-quick-section::before,
-.plan-meals-section::before {
+.plan-summary-section::before,.plan-supplements-section::before,.plan-quick-section::before,.plan-meals-section::before {
   content: "";
   position: absolute;
   top: 0;
@@ -1149,12 +966,6 @@ textarea::placeholder {
     var(--surface);
 }
 
-.plan-recipes-section {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(249, 244, 235, 0.96)),
-    var(--surface);
-}
-
 .plan-summary-section .section-header {
   margin-bottom: 16px;
 }
@@ -1163,8 +974,7 @@ textarea::placeholder {
   gap: 14px;
 }
 
-.plan-summary-section .macro-card,
-.plan-secondary-stats .stat-card {
+.plan-summary-section .macro-card {
   position: relative;
   overflow: hidden;
   padding: 18px 18px 16px;
@@ -1176,21 +986,18 @@ textarea::placeholder {
 
 /* The decorative 3px tinted stripe these cards used to carry is gone: colour
    here is semantic only (the bar below already tells the ok/near/over story). */
-.plan-summary-section .macro-card::before,
-.plan-secondary-stats .stat-card::before {
+.plan-summary-section .macro-card::before {
   content: none;
 }
 
 /* No-green-in-dark applies even to a barely-visible decorative fade —
    swap the teal/olive tint for the single dark-mode gold accent. */
 
-
 .plan-summary-section .macro-card h3 {
   font-size: 1rem;
 }
 
-.plan-summary-section .macro-value,
-.plan-secondary-stats .macro-value {
+.plan-summary-section .macro-value {
   margin-top: 14px;
   font-size: 1.875rem;
   letter-spacing: -0.05em;
@@ -1201,32 +1008,11 @@ textarea::placeholder {
   height: 11px;
 }
 
-.plan-preview-card {
-  background:
-    linear-gradient(135deg, rgba(228, 234, 211, 0.26), rgba(255, 250, 242, 0.98) 34%),
-    var(--surface-strong);
-  border-radius: 24px;
-  box-shadow: 0 10px 22px rgba(25, 34, 31, 0.05);
-  min-height: 156px;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-
-.plan-preview-card .meal-title {
-  font-size: 1.125rem;
-}
-
-.plan-preview-card .pill-row {
-  margin-top: 0;
-}
-
 .plan-quick-section {
   box-shadow: 0 10px 22px rgba(25, 34, 31, 0.06);
 }
 
-.plan-quick-card,
-.plan-recipes-card {
+.plan-quick-card {
   padding: 18px;
   border-radius: 24px;
 }
@@ -1259,22 +1045,6 @@ textarea::placeholder {
   max-width: 34ch;
 }
 
-.plan-quick-card-source {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(249, 245, 237, 0.84);
-  border: 1px solid rgba(24, 33, 30, 0.06);
-}
-
-.plan-quick-card-source strong {
-  font-size: 0.9375rem;
-  letter-spacing: -0.02em;
-}
-
 .plan-quick-form {
   gap: 14px;
   align-items: end;
@@ -1288,94 +1058,23 @@ textarea::placeholder {
   min-height: 1.2em;
 }
 
-.plan-recipes-groups {
-  gap: 18px;
-}
-
-.plan-recipes-group {
-  display: grid;
-  gap: 14px;
-}
-
-.plan-recipes-group-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.plan-recipes-grid {
-  gap: 14px;
-}
-
-.plan-recipe-card {
-  padding: 20px;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top right, rgba(47, 128, 118, 0.12), transparent 28%),
-    linear-gradient(135deg, rgba(219, 232, 220, 0.4), rgba(255, 250, 242, 0.98)),
-    var(--surface-strong);
-}
-
-.plan-recipe-top,
-.recipe-draft-top,
-.recipe-library-top {
+.recipe-draft-top,.recipe-library-top {
   align-items: flex-start;
 }
 
-.plan-recipe-copy,
-.recipe-draft-copy,
-.recipe-library-copy {
+.recipe-draft-copy,.recipe-library-copy {
   display: grid;
   gap: 6px;
   min-width: 0;
 }
 
-.plan-recipe-copy p,
-.recipe-draft-copy p,
-.recipe-library-copy p {
+.recipe-draft-copy p,.recipe-library-copy p {
   margin: 0;
   color: var(--muted);
   max-width: 58ch;
 }
 
-.plan-recipe-pills {
-  margin-top: 12px;
-}
-
-.plan-recipe-ingredient-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.plan-recipe-ingredient {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 253, 249, 0.86);
-  border: 1px solid rgba(24, 33, 30, 0.08);
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.plan-recipe-ingredient strong {
-  color: var(--ink);
-  font-size: 0.8125rem;
-}
-
-.plan-recipe-ingredient--more {
-  background: rgba(227, 235, 219, 0.92);
-  color: var(--accent);
-  font-weight: 800;
-}
-
-.plan-recipe-method,
-.recipe-draft-method,
-.recipe-library-method {
+.recipe-draft-method,.recipe-library-method {
   margin-top: 14px;
   padding: 14px 15px;
   border-radius: 18px;
@@ -1383,15 +1082,6 @@ textarea::placeholder {
   border: 1px solid rgba(24, 33, 30, 0.08);
   color: color-mix(in srgb, var(--ink) 72%, var(--muted));
   line-height: 1.55;
-}
-
-.plan-recipe-actions {
-  margin-top: 14px;
-}
-
-.plan-recipe-actions > button {
-  flex: 1 1 168px;
-  min-width: 168px;
 }
 
 .plan-quick-form .solid-button {
@@ -1412,10 +1102,6 @@ textarea::placeholder {
 .plan-quick-aside {
   display: grid;
   gap: 16px;
-}
-
-.plan-favorite-chips {
-  margin-top: 10px;
 }
 
 .plan-suggestion-card {
@@ -1486,10 +1172,6 @@ textarea::placeholder {
   max-width: 36ch;
 }
 
-.plan-quick-toggle-badge {
-  flex-shrink: 0;
-}
-
 .plan-quick-toggle-icon {
   display: inline-flex;
   align-items: center;
@@ -1522,8 +1204,7 @@ textarea::placeholder {
 
 .foods-head { display: grid; gap: 2px; margin-bottom: 14px; }
 .foods-head h2 { margin: 0; }
-.foods-head-count { margin: 0; color: var(--ink); font-weight: 700; font-size: 0.95rem; }
-.foods-head-sub { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
+.foods-head-count { margin: 0; color: var(--ink); font-weight: 700; font-size: 0.9375rem; }
 
 .foods-search {
   display: flex; align-items: center; gap: 8px;
@@ -1542,7 +1223,7 @@ textarea::placeholder {
   font: inherit; color: var(--ink); padding: 10px 0; min-height: 0;
 }
 .foods-filter-toggle {
-  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px;
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent; color: var(--muted); border: 0; cursor: pointer;
 }
@@ -1554,18 +1235,18 @@ textarea::placeholder {
 .foods-chip {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 13px; border-radius: 999px;
-  font-size: 0.85rem; font-weight: 700;
+  font-size: 0.875rem; font-weight: 700;
   background: transparent; color: var(--ink);
   border: 1px solid var(--line-strong); cursor: pointer;
 }
 .foods-chip-count {
-  font-size: 0.74rem; font-weight: 700; color: var(--muted);
+  font-size: 0.75rem; font-weight: 700; color: var(--muted);
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   padding: 1px 7px; border-radius: 999px;
 }
 .foods-chip.is-active { background: var(--accent); color: var(--button-primary-text); border-color: var(--accent); }
 .foods-chip.is-active .foods-chip-count { background: rgba(255, 255, 255, 0.24); color: inherit; }
-.foods-chip--sub { font-weight: 600; font-size: 0.8rem; padding: 6px 12px; }
+.foods-chip--sub { font-weight: 600; font-size: 0.8125rem; padding: 6px 12px; }
 
 /* Quiet re-entry point into the hidden Nutricionista tab: foods imported from
    a document but still missing kcal/macros are hidden from the list below
@@ -1585,7 +1266,7 @@ textarea::placeholder {
   color: var(--accent-strong);
   font-family: inherit;
   font-weight: 600;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   text-align: left;
   cursor: pointer;
 }
@@ -1602,7 +1283,7 @@ textarea::placeholder {
   padding: 8px 14px; border-radius: 12px;
   background: transparent; color: var(--accent);
   border: 1px solid var(--line-strong);
-  font-weight: 700; font-size: 0.86rem; cursor: pointer;
+  font-weight: 700; font-size: 0.875rem; cursor: pointer;
 }
 .foods-scan-btn svg { width: 16px; height: 16px; }
 
@@ -1615,19 +1296,19 @@ textarea::placeholder {
 }
 .food-row:last-of-type { border-bottom: 0; }
 .food-row-star {
-  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; padding: 0;
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent; border: 0; cursor: pointer; color: var(--line-strong);
 }
 .food-row-star .star-icon { width: 18px; height: 18px; }
 .food-row-star.is-active { color: #e0a92e; }
 .food-row-info { min-width: 0; }
-.food-row-name { font-weight: 700; color: var(--ink); font-size: 0.96rem; line-height: 1.25; }
-.food-row-qty { color: var(--muted); font-size: 0.78rem; margin-top: 1px; }
-.food-row-nutri { color: var(--muted); font-size: 0.82rem; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.food-row-name { font-weight: 700; color: var(--ink); font-size: 0.9375rem; line-height: 1.25; }
+
+.food-row-nutri { color: var(--muted); font-size: 0.8125rem; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .food-row-kcal { color: var(--accent); font-weight: 700; }
 .food-row-menu {
-  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; padding: 0;
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent; border: 0; color: var(--muted); cursor: pointer;
 }
@@ -1661,17 +1342,17 @@ textarea::placeholder {
 
 /* Food editor — two clean sections with step markers */
 .food-form-v2 { display: grid; gap: 18px; }
-.food-form-scan-note { margin: 0; color: var(--muted); font-size: 0.88rem; background: var(--accent-soft); padding: 10px 12px; border-radius: 12px; }
+.food-form-scan-note { margin: 0; color: var(--muted); font-size: 0.875rem; background: var(--accent-soft); padding: 10px 12px; border-radius: 12px; }
 .food-form-section { display: grid; gap: 12px; }
 .food-form-step { display: flex; align-items: center; gap: 9px; }
 .food-form-step-num {
   width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--accent); color: var(--button-primary-text);
-  font-size: 0.8rem; font-weight: 800;
+  font-size: 0.8125rem; font-weight: 800;
 }
 .food-form-step-title { font-weight: 700; color: var(--ink); }
-.food-form-step-count { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.food-form-step-count { margin-left: auto; color: var(--muted); font-size: 0.8125rem; font-weight: 700; }
 .food-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .food-form-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
 
@@ -1695,25 +1376,7 @@ textarea::placeholder {
   color: var(--muted);
 }
 
-.composer-context {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(216, 234, 223, 0.45), rgba(255, 250, 242, 0.96));
-  border: 1px solid rgba(44, 123, 116, 0.12);
-}
-
-.composer-context strong {
-  display: block;
-  font-size: 1rem;
-}
-
-.meal-composer-context,
-.meal-composer-preview,
-.meal-composer-suggestions,
-.meal-composer-actions {
+.meal-composer-preview,.meal-composer-suggestions,.meal-composer-actions {
   grid-column: 1 / -1;
 }
 
@@ -1759,22 +1422,6 @@ textarea::placeholder {
 
 .training-day-summary-top h3 {
   margin: 0;
-}
-
-.training-day-summary-grid {
-  margin-top: 14px;
-  gap: 12px;
-}
-
-.training-weekday-card.is-active {
-  background:
-    radial-gradient(circle at top right, rgba(139, 153, 97, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 239, 229, 0.98)),
-    var(--surface-strong);
-  border-color: rgba(125, 139, 90, 0.16);
-  box-shadow:
-    0 12px 26px rgba(25, 34, 31, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62);
 }
 
 .training-template-card {
@@ -1917,18 +1564,6 @@ textarea::placeholder {
   opacity: 0.72;
 }
 
-.meal-entry.is-done .meal-entry-top strong {
-  text-decoration: line-through;
-}
-
-.meal-entry-body {
-  min-width: 0;
-}
-
-.meal-entry-top {
-  align-items: flex-start;
-}
-
 .meal-entry-title-group {
   display: flex;
   align-items: baseline;
@@ -1937,20 +1572,11 @@ textarea::placeholder {
   min-width: 0;
 }
 
-.meal-entry-top strong {
-  font-size: 1rem;
-  letter-spacing: -0.02em;
-}
-
 .meal-entry-grams {
   color: var(--muted);
   font-size: 0.9375rem;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.meal-entry-pills {
-  margin-top: 10px;
 }
 
 .meal-entry .pill-row {
@@ -1969,9 +1595,7 @@ textarea::placeholder {
   border-radius: 14px;
 }
 
-.pill-row,
-.macro-row,
-.meta-row {
+.pill-row,.meta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -2041,7 +1665,7 @@ textarea::placeholder {
   display: grid;
   gap: 14px;
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
@@ -2083,15 +1707,6 @@ textarea::placeholder {
 .status-summary-actions > .solid-button,
 .status-summary-actions > label.ghost-button {
   min-height: 42px;
-}
-
-.progress-summary-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.progress-insight-card {
-  display: grid;
-  gap: 8px;
 }
 
 .progress-empty-guide {
@@ -2147,7 +1762,7 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 700;
   line-height: 1;
   background: var(--accent);
@@ -2173,7 +1788,7 @@ textarea::placeholder {
 .plan-welcome-step-body > span {
   color: var(--muted);
   line-height: 1.45;
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
 }
 
 .plan-welcome-step.is-done .plan-welcome-step-body strong {
@@ -2239,7 +1854,7 @@ textarea::placeholder {
   color: var(--muted);
   border-radius: 999px;
   padding: 5px 11px;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2306,7 +1921,7 @@ textarea::placeholder {
   color: var(--ink);
   border-radius: 999px;
   padding: 7px 13px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2352,7 +1967,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .prep-cook-list li strong {
@@ -2399,10 +2014,6 @@ textarea::placeholder {
   border-color: var(--line-strong);
 }
 
-.progress-form-note {
-  margin-top: 12px;
-}
-
 /* ===== Krvna slika / lab results ===== */
 .lab-disclaimer { margin-top: 8px; }
 .lab-list { margin-top: 8px; }
@@ -2430,11 +2041,11 @@ textarea::placeholder {
 .lab-status--over,
 .lab-status--under { background: var(--status-warning-bg); color: var(--status-warning-text); }
 .lab-row-value { display: flex; align-items: baseline; gap: 9px; margin-top: 4px; }
-.lab-row-value strong { font-size: 1.3rem; color: var(--ink); font-variant-numeric: tabular-nums; }
-.lab-unit { color: var(--muted); font-size: 0.85rem; }
-.lab-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.lab-row-value strong { font-size: 1.25rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lab-unit { color: var(--muted); font-size: 0.875rem; }
+.lab-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
 .lab-delta svg { width: 11px; height: 11px; }
-.lab-row-meta { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+.lab-row-meta { color: var(--muted); font-size: 0.8125rem; margin-top: 4px; }
 .lab-spark { width: 96px; height: 30px; flex: 0 0 auto; }
 .lab-spark polyline { stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .lab-spark circle { fill: var(--accent); }
@@ -2448,7 +2059,7 @@ textarea::placeholder {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .lab-row-del:hover { color: var(--status-warning-text); background: color-mix(in srgb, var(--status-warning-text) 12%, transparent); }
 
@@ -2470,12 +2081,12 @@ textarea::placeholder {
   flex: 1 1 0;
   min-width: max-content;
   padding: 9px 14px;
-  border-radius: 11px;
+  border-radius: 12px;
   border: 0;
   background: transparent;
   color: var(--muted);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -2502,7 +2113,7 @@ textarea::placeholder {
   width: fit-content;
   list-style: none;
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--muted);
   padding: 3px 0;
@@ -2510,7 +2121,7 @@ textarea::placeholder {
 .help-note > summary::-webkit-details-marker { display: none; }
 .help-note > summary:hover { color: var(--accent); }
 .help-note-icon {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   line-height: 1;
   color: var(--accent);
 }
@@ -2520,7 +2131,7 @@ textarea::placeholder {
   border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--secondary-soft);
-  font-size: 0.84rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   color: var(--ink);
 }
@@ -2530,7 +2141,7 @@ textarea::placeholder {
 }
 
 /* Uvidi (insights digest) */
-.insights-headline { font-size: 0.98rem; }
+.insights-headline { font-size: 1rem; }
 .insights-headline strong { color: var(--ink); }
 .insights-period {
   display: flex;
@@ -2558,7 +2169,7 @@ textarea::placeholder {
   text-transform: uppercase;
   color: var(--accent);
 }
-.insights-callout p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+.insights-callout p { margin: 0; font-size: 0.875rem; line-height: 1.45; }
 .insights-callout p strong {
   font-size: inherit;
   letter-spacing: normal;
@@ -2596,14 +2207,14 @@ textarea::placeholder {
 .bc-group { display: grid; gap: 2px; }
 .bc-group-title {
   margin: 0 0 2px;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .bc-row { grid-template-columns: 1fr auto; }
-.bc-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.bc-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
 .bc-delta svg { width: 11px; height: 11px; }
 .bc-delta--good { color: var(--accent); }
 .bc-delta--bad { color: var(--status-warning-text); }
@@ -2618,7 +2229,7 @@ textarea::placeholder {
   padding: 8px 2px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 .bc-session-row:last-child { border-bottom: 0; }
 
@@ -2763,21 +2374,6 @@ textarea::placeholder {
   justify-content: flex-start;
 }
 
-.meal-card-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-content: stretch;
-  margin-top: 14px;
-}
-
-.meal-card-actions > button {
-  width: 100%;
-}
-
-.meal-card-actions > :nth-child(3):last-child {
-  grid-column: 1 / -1;
-}
-
 .plan-inline-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2788,13 +2384,8 @@ textarea::placeholder {
   width: 100%;
 }
 
-.plan-preview-section .stack,
 .plan-meals-section .stack {
   gap: 14px;
-}
-
-.plan-preview-card .pill-row {
-  margin-top: 12px;
 }
 
 .ghost-button,
@@ -2806,7 +2397,7 @@ textarea::placeholder {
   gap: 8px;
   min-height: 46px;
   padding: 10px 16px;
-  border-radius: 15px;
+  border-radius: 14px;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: 0.01em;
@@ -3053,24 +2644,7 @@ label.is-invalid textarea:focus {
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
-.preview-box {
-  padding: 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--accent-soft) 0%, #f6f0e4 100%);
-  border: 1px solid rgba(23, 53, 43, 0.08);
-}
-
-.preview-box h3,
-.preview-box p {
-  margin: 0;
-}
-
-.preview-box p {
-  margin-top: 6px;
-}
-
-.food-list,
-.training-list {
+.food-list {
   display: grid;
   gap: 12px;
 }
@@ -3086,36 +2660,13 @@ label.is-invalid textarea:focus {
   border-color: rgba(44, 123, 116, 0.12);
 }
 
-.goals-sync-card,
-.training-burn-card,
-.recipe-studio-card,
-.recipe-draft-card {
+.recipe-studio-card {
   height: auto;
-}
-
-.goals-sync-top {
-  display: grid;
-  gap: 10px;
 }
 
 .training-burn-form {
   margin-top: 14px;
   align-items: end;
-}
-
-.training-burn-top {
-  align-items: flex-start;
-}
-
-.training-burn-copy {
-  display: grid;
-  gap: 6px;
-}
-
-.training-burn-copy p {
-  margin: 0;
-  color: var(--muted);
-  max-width: 50ch;
 }
 
 .training-burn-actions {
@@ -3152,7 +2703,7 @@ label.is-invalid textarea:focus {
   flex: 1 1 200px;
   min-width: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
@@ -3206,7 +2757,7 @@ label.is-invalid textarea:focus {
 }
 
 .plan-net-item strong {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -3216,7 +2767,7 @@ label.is-invalid textarea:focus {
 }
 
 .plan-net-op {
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 800;
   color: var(--muted);
 }
@@ -3264,7 +2815,7 @@ label.is-invalid textarea:focus {
   display: inline-block;
   margin: 3px 0;
   padding: 2px 7px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -3492,7 +3043,7 @@ label.is-invalid textarea:focus {
   flex-wrap: wrap;
   gap: 14px;
   margin-top: 8px;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 .chart-legend-item { display: inline-flex; align-items: center; gap: 6px; }
@@ -3510,7 +3061,7 @@ label.is-invalid textarea:focus {
 }
 .chart-eta {
   margin-top: 8px;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .chart-eta strong { color: var(--ink); }
@@ -3527,8 +3078,8 @@ label.is-invalid textarea:focus {
   border: 1px solid var(--line);
   background: var(--secondary-soft);
 }
-.goal-eta-icon { font-size: 1.1rem; line-height: 1.3; flex: 0 0 auto; }
-.goal-eta p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--ink); }
+.goal-eta-icon { font-size: 1.125rem; line-height: 1.3; flex: 0 0 auto; }
+.goal-eta p { margin: 0; font-size: 0.875rem; line-height: 1.45; color: var(--ink); }
 .goal-eta--good { border-color: var(--accent); }
 .goal-eta--warn { background: var(--status-warning-bg); }
 :root[data-theme="dark"] .goal-eta { background: rgba(255, 255, 255, 0.045); }
@@ -3557,7 +3108,7 @@ label.is-invalid textarea:focus {
   aspect-ratio: 4 / 5;
   background: var(--bg-strong);
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .photo-card-body {
@@ -3688,10 +3239,6 @@ label.is-invalid textarea:focus {
   margin-top: 2px;
 }
 
-.recipe-builder-note {
-  margin-top: 14px;
-}
-
 .recipe-upload-preview {
   display: flex;
   flex-wrap: wrap;
@@ -3707,10 +3254,6 @@ label.is-invalid textarea:focus {
   border-radius: 18px;
   border: 1px solid rgba(24, 33, 30, 0.08);
   box-shadow: 0 10px 22px rgba(25, 34, 31, 0.08);
-}
-
-.recipe-editor-items {
-  gap: 10px;
 }
 
 .recipe-editor-item-row {
@@ -3751,7 +3294,7 @@ label.is-invalid textarea:focus {
   width: 100%;
   max-height: 260px;
   object-fit: cover;
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgba(24, 33, 30, 0.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.42),
@@ -3883,14 +3426,6 @@ label.is-invalid textarea:focus {
   overflow: hidden;
 }
 
-.recipe-library-pills {
-  margin-top: 12px;
-}
-
-.recipe-library-pills .pill {
-  background: rgba(255, 252, 247, 0.92);
-}
-
 .recipe-library-ingredients {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3983,7 +3518,7 @@ label.is-invalid textarea:focus {
 
 .routine-overview-section .stat-card {
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 /* Training's weekly-overview cards pack 4 pills (vežbi/odrađeno/kcal/logova)
@@ -3991,11 +3526,6 @@ label.is-invalid textarea:focus {
    stats-grid) that reliably wraps to 2-3 lines. Give just those cards the
    full row; Routine's overview cards share this section class but only
    carry a single value + note, so they're unaffected. */
-@media (max-width: 520px) {
-  .stats-grid:has(.training-weekday-card) {
-    grid-template-columns: 1fr;
-  }
-}
 
 .routine-habits-section {
   background:
@@ -4005,7 +3535,7 @@ label.is-invalid textarea:focus {
 
 .routine-card {
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 244, 0.98)),
     var(--surface-strong);
@@ -4303,7 +3833,7 @@ label.is-invalid textarea:focus {
 .routine-streak-meter {
   min-width: 104px;
   padding: 16px 14px;
-  border-radius: 22px;
+  border-radius: 24px;
   display: grid;
   justify-items: center;
   background:
@@ -4426,7 +3956,7 @@ label.is-invalid textarea:focus {
   position: relative;
   width: 30px;
   height: 30px;
-  border-radius: 11px;
+  border-radius: 12px;
   border: 1.5px solid rgba(25, 34, 31, 0.16);
   background: #fffdf9;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
@@ -4553,13 +4083,6 @@ label.is-invalid textarea:focus {
   min-height: 46px;
   padding: 0;
   border-radius: 16px;
-}
-
-.workspace-header-status-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
 }
 
 .shell-with-menu.is-plan-shell .hero {
@@ -4750,25 +4273,6 @@ body.menu-open .menu-fab {
   color: var(--muted);
 }
 
-.app-sidebar-email {
-  margin-top: 0;
-  font-size: 0.875rem;
-  background: none;
-  border: 0;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  color: var(--muted);
-  font-family: inherit;
-}
-
-.app-sidebar-email:hover,
-.app-sidebar-email:focus-visible {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 .menu-close {
   display: inline-flex;
   align-items: center;
@@ -4860,10 +4364,6 @@ body.menu-open .menu-fab {
   gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
-}
-
-.app-sidebar-status-row {
-  margin-top: 0;
 }
 
 .signout-button {
@@ -5132,18 +4632,8 @@ body.menu-open .menu-fab {
     max-width: 36ch;
   }
 
-  .macro-card,
-  .stat-card,
-  .meal-card,
-  .food-card,
-  .training-card,
-  .routine-card,
-  .chart-card,
-  .photo-card,
-  .plan-preview-card,
-  .plan-quick-card,
-  .plan-recipes-card {
-    border-radius: 22px;
+  .macro-card,.stat-card,.meal-card,.food-card,.training-card,.routine-card,.chart-card,.photo-card,.plan-quick-card {
+    border-radius: 24px;
   }
 
   .macro-card,
@@ -5199,7 +4689,7 @@ body.menu-open .menu-fab {
     min-width: 50px;
     min-height: 50px;
     padding: 12px;
-    border-radius: 17px;
+    border-radius: 16px;
     box-shadow: 0 18px 34px rgba(25, 34, 31, 0.18);
   }
 
@@ -5245,22 +4735,13 @@ body.menu-open .menu-fab {
     gap: 8px;
   }
 
-  .auth-card {
-    border-radius: 28px;
-  }
+  
 
-  .auth-hero {
-    padding: 20px 18px 22px;
-    border-radius: 24px;
-  }
+  
 
-  .auth-layout {
-    gap: 14px;
-  }
+  
 
-  .auth-panel {
-    padding: 2px 0 0;
-  }
+  
 
   .auth-toggle-row {
     flex-direction: column;
@@ -5275,9 +4756,7 @@ body.menu-open .menu-fab {
 }
 
 @media (max-width: 520px) {
-  .training-day-summary-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  
 
   .training-template-actions,
   .training-favorite-actions {
@@ -5285,9 +4764,7 @@ body.menu-open .menu-fab {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .plan-preview-section {
-    display: none;
-  }
+  
 
   .section-disclosure {
     gap: 10px;
@@ -5378,21 +4855,19 @@ body.menu-open .menu-fab {
 
   .hero {
     padding: 12px 12px 11px;
-    border-radius: 22px;
+    border-radius: 24px;
   }
 
   .hero h1 {
     font-size: 1.25rem;
   }
 
-  .hero--plan .hero-copy-text p {
-    display: none;
-  }
+  
 
   .hero-day-picker {
     margin-top: 8px;
     padding: 8px 9px 7px;
-    border-radius: 15px;
+    border-radius: 14px;
   }
 
   .hero-picker-label {
@@ -5417,11 +4892,7 @@ body.menu-open .menu-fab {
     justify-content: center;
   }
 
-  .plan-summary-section::before,
-  .plan-preview-section::before,
-  .plan-recipes-section::before,
-  .plan-quick-section::before,
-  .plan-meals-section::before {
+  .plan-summary-section::before,.plan-quick-section::before,.plan-meals-section::before {
     left: 16px;
     right: 16px;
   }
@@ -5432,13 +4903,9 @@ body.menu-open .menu-fab {
     gap: 10px;
   }
 
-  .hero-copy {
-    gap: 8px;
-  }
+  
 
-  .hero-copy-text {
-    gap: 2px;
-  }
+  
 
   .meal-card-summary-macros {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5458,7 +4925,7 @@ body.menu-open .menu-fab {
   .meal-summary-macro {
     gap: 4px;
     padding: 10px 11px;
-    border-radius: 15px;
+    border-radius: 14px;
   }
 
   .meal-card-summary-kcal strong {
@@ -5507,9 +4974,7 @@ body.menu-open .menu-fab {
     padding-bottom: 12px;
   }
 
-  .plan-quick-card,
-  .plan-recipes-card,
-  .plan-suggestion-card {
+  .plan-quick-card,.plan-suggestion-card {
     padding: 13px;
     border-radius: 16px;
   }
@@ -5521,7 +4986,7 @@ body.menu-open .menu-fab {
   .plan-quick-card--secondary {
     gap: 10px;
     padding: 12px;
-    border-radius: 15px;
+    border-radius: 14px;
     box-shadow: 0 8px 18px rgba(25, 34, 31, 0.045);
   }
 
@@ -5546,21 +5011,11 @@ body.menu-open .menu-fab {
     overflow: hidden;
   }
 
-  .plan-quick-card-source {
-    padding: 9px 10px;
-    border-radius: 14px;
-  }
+  
 
-  .plan-favorite-chips {
-    margin-top: 6px;
-    gap: 8px;
-  }
+  
 
-  .plan-favorite-chips .chip {
-    min-height: 34px;
-    padding: 7px 10px;
-    font-size: 0.8125rem;
-  }
+  
 
   .plan-quick-form {
     gap: 10px;
@@ -5575,12 +5030,7 @@ body.menu-open .menu-fab {
     font-size: 0.75rem;
   }
 
-  .goal-grid,
-  .macro-grid,
-  .stats-grid,
-  .chart-grid,
-  .photo-grid,
-  .compare-grid {
+  .macro-grid,.stats-grid,.chart-grid,.photo-grid,.compare-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -5593,23 +5043,15 @@ body.menu-open .menu-fab {
     width: 100%;
   }
 
-  .meal-card-actions,
   .plan-inline-actions {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .plan-recipe-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
+  
 
-  .meal-card-toolbar {
-    gap: 12px;
-  }
+  
 
-  .meal-card-actions > :nth-child(3):last-child {
-    grid-column: auto;
-  }
+  
 
   .meal-entry {
     gap: 10px;
@@ -5646,9 +5088,7 @@ body.menu-open .menu-fab {
     font-size: 1.125rem;
   }
 
-  .macro-value,
-  .plan-summary-section .macro-value,
-  .plan-secondary-stats .macro-value {
+  .macro-value,.plan-summary-section .macro-value {
     font-size: 1.5rem;
   }
 
@@ -5690,9 +5130,7 @@ body.menu-open .menu-fab {
     opacity: 0;
   }
 
-  body.plan-compact .hero-refresh {
-    display: none;
-  }
+  
 
   body.plan-compact .shell-with-menu.is-plan-shell .hero {
     padding-top: 6px;
@@ -5779,11 +5217,7 @@ body.menu-open .menu-fab {
     right: max(24px, calc((100vw - 720px) / 2 + 16px));
   }
 
-  .goal-grid,
-  .macro-grid,
-  .stats-grid,
-  .chart-grid,
-  .photo-grid {
+  .macro-grid,.stats-grid,.chart-grid,.photo-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -5795,40 +5229,20 @@ body.menu-open .menu-fab {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .auth-card {
-    max-width: 1040px;
-    padding: 24px;
-    border-radius: 30px;
-  }
+  
 
-  .auth-layout {
-    grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1fr);
-    align-items: stretch;
-    gap: 18px;
-  }
+  
 
-  .auth-hero {
-    min-height: 100%;
-    padding: 28px 26px;
-    border-radius: 28px;
-    display: grid;
-    align-content: space-between;
-  }
+  
 
-  .auth-hero h1 {
-    font-size: 2.25rem;
-  }
+  
 
-  .auth-panel {
-    padding: 10px 6px 4px;
-    align-content: center;
-  }
+  
 
   .auth-form {
     gap: 16px;
   }
 
-  .auth-note,
   .auth-feedback {
     max-width: 560px;
   }
@@ -5954,9 +5368,7 @@ body.menu-open .menu-fab {
     border-radius: 14px;
   }
 
-  .goal-grid,
-  .macro-grid,
-  .stats-grid {
+  .macro-grid,.stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
@@ -5967,9 +5379,7 @@ body.menu-open .menu-fab {
     gap: 16px;
   }
 
-  .food-list,
-  .training-list,
-  .stack {
+  .food-list,.stack {
     gap: 14px;
   }
 
@@ -5983,15 +5393,9 @@ body.menu-open .menu-fab {
     gap: 16px;
   }
 
-  .plan-secondary-stats {
-    margin-top: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
+  
 
-  .plan-preview-section {
-    display: none;
-  }
+  
 
   .plan-meals-section .stack {
     grid-template-columns: minmax(0, 1fr);
@@ -6044,9 +5448,7 @@ body.menu-open .menu-fab {
     align-items: center;
   }
 
-  .meal-entry-body {
-    min-width: 0;
-  }
+  
 
   .meal-entry-actions {
     justify-content: flex-end;
@@ -6099,12 +5501,7 @@ body.menu-open .menu-fab {
       inset 0 1px 0 rgba(255, 255, 255, 0.58);
   }
 
-  .food-card.training-burn-card,
-  .training-burn-card,
-  .food-card.recipe-studio-card,
-  .recipe-studio-card,
-  .food-card.recipe-draft-card,
-  .recipe-draft-card {
+  .food-card.recipe-studio-card,.recipe-studio-card {
     height: auto;
     align-self: start;
   }
@@ -6289,7 +5686,6 @@ body.menu-open .menu-fab {
     justify-items: center;
   }
 
-  .app-frame.is-sidebar-collapsed .app-sidebar-status-row,
   .app-frame.is-sidebar-collapsed .signout-button .button-label {
     display: none;
   }
@@ -6319,32 +5715,15 @@ body.menu-open .menu-fab {
     min-height: 38px;
   }
 
-  .goals-sync-card {
-    max-width: 620px;
-    display: grid;
-    gap: 10px;
-    padding: 10px 0 0;
-    border-top: 1px solid rgba(24, 33, 30, 0.08);
-  }
+  
 
-  .goals-sync-section .section-header {
-    margin-bottom: 8px;
-  }
+  
 
-  .goals-sync-top {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
+  
 
-  .goals-sync-email {
-    font-size: 1rem;
-    font-weight: 760;
-    letter-spacing: -0.02em;
-  }
+  
 
-  .goals-sync-pills {
-    margin-top: 0;
-  }
+  
 
   .goals-form-layout {
     gap: 10px;
@@ -6382,9 +5761,7 @@ body.menu-open .menu-fab {
     gap: 12px;
   }
 
-  .goals-backup-section .meta-row {
-    gap: 10px;
-  }
+  
 
   .plan-supplement-summary {
     gap: 12px;
@@ -6399,9 +5776,7 @@ body.menu-open .menu-fab {
     gap: 12px;
   }
 
-  .plan-preview-card,
-  .plan-quick-card,
-  .plan-recipes-card {
+  .plan-quick-card {
     border-radius: 20px;
   }
 
@@ -6424,44 +5799,22 @@ body.menu-open .menu-fab {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .meal-card-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: 12px;
-    margin-bottom: 4px;
-  }
+  
 
-  .meal-items-label-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  
 
-  .meal-card-toolbar:not(.has-actions) {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  
 
-  .meal-card-actions {
-    margin-top: 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
-  }
+  
 
-  .meal-card-actions > button {
-    width: auto;
-    min-width: 0;
-  }
+  
 
   .meal-entry {
     gap: 10px;
     padding: 12px;
   }
 
-  .training-burn-card {
-    max-width: 700px;
-    padding: 16px 18px;
-  }
+  
 
   .training-burn-form {
     grid-template-columns: minmax(0, 280px) auto;
@@ -6510,17 +5863,11 @@ body.menu-open .menu-fab {
     max-width: none;
   }
 
-  .goal-grid,
-  .macro-grid,
-  .stats-grid,
-  .chart-grid,
-  .photo-grid {
+  .macro-grid,.stats-grid,.chart-grid,.photo-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .plan-preview-section .stack {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  
 
   .plan-summary-layout {
     gap: 18px;
@@ -7014,17 +6361,7 @@ body.menu-open .tab-bar {
    (meal macro tiles, disclosure/quick toggles, quick & preview
    cards, composer) that read as bright patches in dark mode.
    ============================================================ */
-:root[data-theme="dark"] .plan-quick-card,
-:root[data-theme="dark"] .plan-quick-card--primary,
-:root[data-theme="dark"] .plan-quick-card--secondary,
-:root[data-theme="dark"] .plan-preview-card,
-:root[data-theme="dark"] .composer-context,
-:root[data-theme="dark"] .meal-composer-context,
-:root[data-theme="dark"] .meal-summary-macro,
-:root[data-theme="dark"] .suggestion-surface,
-:root[data-theme="dark"] .plan-suggestion-card.is-muted,
-:root[data-theme="dark"] .recipe-studio-card,
-:root[data-theme="dark"] .nutrition-food-editor-card {
+:root[data-theme="dark"] .plan-quick-card,:root[data-theme="dark"] .plan-quick-card--primary,:root[data-theme="dark"] .plan-quick-card--secondary,:root[data-theme="dark"] .meal-summary-macro,:root[data-theme="dark"] .suggestion-surface,:root[data-theme="dark"] .plan-suggestion-card.is-muted,:root[data-theme="dark"] .recipe-studio-card,:root[data-theme="dark"] .nutrition-food-editor-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--surface-strong);
@@ -7052,10 +6389,6 @@ body.menu-open .tab-bar {
 /* ============================================================
    Dark theme — meal "done" toggle, quick-card source box, done note
    ============================================================ */
-:root[data-theme="dark"] .plan-quick-card-source {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--line);
-}
 
 :root[data-theme="dark"] .meal-toggle-ui {
   background: rgba(255, 255, 255, 0.08);
@@ -7141,12 +6474,7 @@ body.menu-open .tab-bar {
    Dark theme — sweep of remaining tab surfaces
    (Trening / Rutina / Namirnice / Recepti / Nutricionista)
    ============================================================ */
-:root[data-theme="dark"] .training-exercise-row,
-:root[data-theme="dark"] .plan-recipe-ingredient,
-:root[data-theme="dark"] .recipe-library-method,
-:root[data-theme="dark"] .nutrition-plan-notes,
-:root[data-theme="dark"] .routine-day-picker,
-:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
+:root[data-theme="dark"] .training-exercise-row,:root[data-theme="dark"] .recipe-library-method,:root[data-theme="dark"] .nutrition-plan-notes,:root[data-theme="dark"] .routine-day-picker,:root[data-theme="dark"] .routine-overview-section .routine-day-picker {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
     var(--surface-strong);
@@ -7230,11 +6558,6 @@ body.menu-open .tab-bar {
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
     var(--surface-elevated);
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-}
-
-:root[data-theme="dark"] .recipe-library-pills .pill {
-  background: var(--pill-bg);
-  border-color: var(--pill-border);
 }
 
 /* ============================================================
@@ -7365,14 +6688,7 @@ body.menu-open .tab-bar {
    ============================================================ */
 
 /* Tabular figures so data never jitters or misaligns */
-.macro-value,
-.plan-summary-headline-value,
-.plan-summary-headline-meta,
-.meal-card-summary-kcal strong,
-.meal-summary-macro strong,
-.pill,
-.stat-card .macro-value,
-.meal-entry .footer-note {
+.macro-value,.plan-summary-headline-value,.meal-card-summary-kcal strong,.meal-summary-macro strong,.pill,.stat-card .macro-value,.meal-entry .footer-note {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "cv01" 1;
 }
@@ -7787,38 +7103,8 @@ body.app-header-hidden .workspace-header {
    ============================================================ */
 
 /* Meal actions: compact inline, not a full-width button wall */
-.meal-card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-start;
-}
-.meal-card-actions > button {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 9px 15px;
-}
 
 /* "Namirnice u obroku" reads as a clear label introducing the foods */
-.meal-items-label-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 14px 0 4px;
-}
-.meal-items-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.meal-items-count {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 
 /* Each food = a clean item: name + amount, one kcal pill, quiet macros */
 .meal-entry-title-group {
@@ -8158,9 +7444,6 @@ body.app-header-hidden .workspace-header {
 /* 8. Foods kcal unit lowercase like everywhere else */
 
 /* 9. NAMIRNICE label sits as a proper divider (more air below) */
-.meal-items-label-row {
-  margin: 18px 0 8px;
-}
 
 /* 10. One in-app section-title size */
 .form-collapse-title {
@@ -8325,7 +7608,6 @@ body.app-header-hidden .workspace-header {
 }
 
 /* Burn-card header pill ("540 kcal") must not wrap into a circle */
-.training-burn-top .pill,
 .food-card-top .pill.strong {
   white-space: nowrap;
   flex-shrink: 0;
@@ -8336,12 +7618,7 @@ body.app-header-hidden .workspace-header {
    recipe ingredient cards, recipe/plan method boxes, routine
    streak spotlight + meter. Mirror the existing dark sweep.
    ============================================================ */
-:root[data-theme="dark"] .recipe-library-ingredient-card,
-:root[data-theme="dark"] .recipe-draft-method,
-:root[data-theme="dark"] .plan-recipe-method,
-:root[data-theme="dark"] .routine-streak-spotlight,
-:root[data-theme="dark"] .routine-streak-card,
-:root[data-theme="dark"] .routine-streak-meter {
+:root[data-theme="dark"] .recipe-library-ingredient-card,:root[data-theme="dark"] .recipe-draft-method,:root[data-theme="dark"] .routine-streak-spotlight,:root[data-theme="dark"] .routine-streak-card,:root[data-theme="dark"] .routine-streak-meter {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
     var(--surface-strong);
@@ -8353,43 +7630,11 @@ body.app-header-hidden .workspace-header {
    hero (top-right) plus a labelled one in the slide-out menu footer.
    The hero is always a dark gradient with light text in both themes, so a
    translucent-white treatment reads correctly everywhere. */
-.hero-refresh {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border-radius: 999px;
-  color: var(--muted);
-  background: var(--surface-strong);
-  border: 1px solid var(--line-strong);
-}
 
 /* Reserve space on the right so the title never slides under the button
    (wins over the earlier mobile padding-right:0 by source order). */
 .shell-with-menu.is-plan-shell .hero-top {
   padding-right: 48px;
-}
-
-.hero-refresh:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.hero-refresh .button-icon {
-  margin: 0;
-}
-
-.hero-refresh svg {
-  width: 19px;
-  height: 19px;
 }
 
 /* The meals section is transparent (padding:0), so its overflow:hidden plus
@@ -8613,7 +7858,7 @@ body.app-header-hidden .workspace-header {
 
 .skeleton-line {
   height: 13px;
-  border-radius: 7px;
+  border-radius: 8px;
 }
 
 .skeleton-line--title {
@@ -8741,7 +7986,7 @@ body.app-header-hidden .workspace-header {
   justify-content: center;
   width: 54px;
   height: 54px;
-  border-radius: 17px;
+  border-radius: 16px;
   margin-bottom: 2px;
   color: #fefbf3;
   background: linear-gradient(135deg, #10271f 0%, #194236 55%, #2d7e74 100%);
@@ -8971,13 +8216,13 @@ body.app-header-hidden .workspace-header {
 .food-match-chip-name {
   font-weight: 700;
   color: var(--accent-strong);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .food-match-chip-meta {
   margin-left: auto;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -9038,7 +8283,7 @@ body.app-header-hidden .workspace-header {
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -9111,7 +8356,7 @@ body.app-header-hidden .workspace-header {
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
@@ -9129,47 +8374,6 @@ body.app-header-hidden .workspace-header {
   border-radius: var(--radius-sm);
   background: var(--surface-strong);
   border: 1px dashed color-mix(in srgb, var(--accent) 26%, var(--line-strong));
-}
-
-.meal-composer-preview-empty {
-  color: var(--muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
-}
-
-.meal-composer-preview-label {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.meal-composer-preview-result {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.meal-composer-preview-kcal {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--accent-strong);
-}
-
-.meal-composer-preview-kcal strong {
-  font-weight: 700;
-}
-
-.meal-composer-preview-macros {
-  color: var(--muted);
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.meal-composer-preview-macros strong {
-  color: var(--ink);
-  font-weight: 700;
 }
 
 .meal-composer-suggestions {
@@ -9206,64 +8410,22 @@ body.app-header-hidden .workspace-header {
 
 .meal-composer-suggestions .suggestion-row-copy strong {
   display: inline;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .meal-composer-suggestions .suggestion-row-copy .footer-note {
   margin-top: 0;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
 }
 
 .meal-composer-suggestions .suggestion-row-add {
   min-height: 0;
   padding: 6px 11px;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 
 /* Quick add — one-tap re-add of recently used foods */
 .quick-add { display: grid; gap: 6px; }
-.quick-add-label {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.quick-add-row {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.quick-add-row::-webkit-scrollbar { display: none; }
-.quick-add-chip {
-  flex: 0 0 auto;
-  display: grid;
-  gap: 2px;
-  text-align: left;
-  padding: 8px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--secondary-soft);
-  color: var(--ink);
-  cursor: pointer;
-  max-width: 180px;
-}
-.quick-add-chip:hover { border-color: var(--accent); }
-.quick-add-name {
-  font-weight: 700;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.quick-add-meta { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-:root[data-theme="dark"] .quick-add-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--line);
-}
 
 .meal-composer-actions {
   display: grid;
@@ -9447,7 +8609,7 @@ body.app-header-hidden .workspace-header {
     z-index: 58;
     width: min(290px, calc(100vw - 24px));
     padding: 8px;
-    border-radius: 22px;
+    border-radius: 24px;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
       var(--surface-elevated);
@@ -9513,7 +8675,7 @@ body.app-header-hidden .workspace-header {
     background: var(--accent);
     color: var(--button-primary-text);
     font-weight: 800;
-    font-size: 1.05rem;
+    font-size: 1.0625rem;
   }
 
   .more-sheet-user-info {
@@ -9529,12 +8691,12 @@ body.app-header-hidden .workspace-header {
     gap: 7px;
     color: var(--ink);
     font-weight: 700;
-    font-size: 0.98rem;
+    font-size: 1rem;
   }
 
   .more-sheet-user-email {
     color: var(--muted);
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -9634,7 +8796,6 @@ body.app-header-hidden .workspace-header {
   }
 }
 
-
 /* ============================================================
    Polish pass 2026-09-02 — tightening the daily surfaces.
    ============================================================ */
@@ -9678,7 +8839,7 @@ body.app-header-hidden .workspace-header {
 }
 .plan-summary-compact-value {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -9687,7 +8848,7 @@ body.app-header-hidden .workspace-header {
 }
 .plan-summary-compact-value span {
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0;
   color: var(--muted);
@@ -9708,13 +8869,7 @@ body.app-header-hidden .workspace-header {
 }
 
 /* Reminders banner: one row, no restated subtitle. */
-.today-reminders .today-reminders-head {
-  align-items: center;
-  margin-bottom: 0;
-}
-.today-reminders .today-reminders-head h2 {
-  font-size: 1.1rem;
-}
+
 .today-reminders-close {
   width: 38px;
   min-width: 38px;
@@ -9759,7 +8914,7 @@ body.app-header-hidden .workspace-header {
 .glance-sub {
   color: var(--muted);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 .training-day-glance {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -9784,7 +8939,6 @@ body.app-header-hidden .workspace-header {
     border-right: 0;
   }
 }
-
 
 /* Routine rows: icon actions stay inline (they no longer need their own row). */
 .routine-row > .entry-actions {
@@ -9837,10 +8991,10 @@ body.app-header-hidden .workspace-header {
     width: 34px;
     min-width: 34px;
     height: 34px;
-    border-radius: 11px;
+    border-radius: 12px;
   }
   .workspace-header h1 {
-    font-size: 1.35rem;
+    font-size: 1.375rem;
   }
   .workspace-header p {
     display: none;
@@ -9870,7 +9024,6 @@ body.app-header-hidden .workspace-header {
       inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 }
-
 
 /* Supporting numbers never shout: 600, not 700/800 (the ring keeps display weight). */
 .macro-value {
@@ -9902,7 +9055,7 @@ body.app-header-hidden .workspace-header {
   background: transparent;
   box-shadow: none;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .hero-week-toggle .hero-week-chip.is-active {
@@ -9941,7 +9094,7 @@ body.app-header-hidden .workspace-header {
   box-shadow: none;
 }
 .meal-card-summary-kcal strong {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 
 /* Dark theme: chips were hardcoded translucent white; the streak spotlight
@@ -9963,7 +9116,6 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .routine-streak-spotlight-label {
   color: var(--muted);
 }
-
 
 /* ============================================================
    Namirnice: catalog + shared-product results under the list.
@@ -9994,7 +9146,7 @@ body.app-header-hidden .workspace-header {
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .foods-external-row {
   display: flex;
@@ -10010,14 +9162,14 @@ body.app-header-hidden .workspace-header {
   min-width: 0;
 }
 .foods-external-copy strong {
-  font-size: 0.98rem;
+  font-size: 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .foods-external-meta {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 .foods-external-meta b {
   color: var(--ink);
@@ -10050,8 +9202,6 @@ body.app-header-hidden .workspace-header {
   gap: 10px;
 }
 
-
-
 /* Week-track row inside Training / Routine sections: label + segmented toggle. */
 .week-track-row {
   display: flex;
@@ -10059,7 +9209,6 @@ body.app-header-hidden .workspace-header {
   gap: 12px;
   margin: 4px 0 14px;
 }
-
 
 /* ============================================================
    Preglednost pass: glance-style stat grids, training week strip,
@@ -10089,18 +9238,18 @@ body.app-header-hidden .workspace-header {
   font-weight: 600;
 }
 .stats-grid--glance > .stat-card .macro-value {
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 .stats-grid--glance > .stat-card .macro-value small {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: var(--muted);
   font-weight: 600;
 }
 .stats-grid--glance > .stat-card .footer-note {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 @media (min-width: 900px) {
   .stats-grid.stats-grid--glance {
@@ -10132,12 +9281,12 @@ body.app-header-hidden .workspace-header {
   justify-items: center;
   align-content: center;
   gap: 4px;
-  border-radius: 13px;
+  border-radius: 14px;
   border: 1px solid var(--line-strong);
   background: var(--surface-strong);
   color: var(--ink);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   box-shadow: none;
 }
 .training-day-dot {
@@ -10191,11 +9340,11 @@ body.app-header-hidden .workspace-header {
   min-width: 0;
 }
 .training-week-item-main strong {
-  font-size: 0.98rem;
+  font-size: 1rem;
 }
 .training-week-item-name {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10206,12 +9355,9 @@ body.app-header-hidden .workspace-header {
 .training-week-item-meta {
   flex: 0 0 auto;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
-}
-.training-week-empty {
-  margin-top: 12px;
 }
 
 .routine-overview-section .routine-day-picker,
@@ -10233,7 +9379,6 @@ body.app-header-hidden .workspace-header {
     padding: 10px 14px;
   }
 }
-
 
 /* ============================================================
    Fixes from live screenshots: [hidden] must win, Ciljevi chart only on wide
@@ -10292,7 +9437,6 @@ body.app-header-hidden .workspace-header {
   }
 }
 
-
 /* ============================================================
    Search that feels finished: composer suggestions, one-tap add from
    Namirnice, highlighted matches.
@@ -10332,7 +9476,7 @@ body.app-header-hidden .workspace-header {
 }
 .food-suggest-name {
   font-weight: 600;
-  font-size: 0.98rem;
+  font-size: 1rem;
 }
 .food-suggest-name mark {
   background: transparent;
@@ -10344,7 +9488,7 @@ body.app-header-hidden .workspace-header {
 }
 .food-suggest-meta {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 .food-suggest-meta em {
   font-style: normal;
@@ -10359,7 +9503,7 @@ body.app-header-hidden .workspace-header {
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 10px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -10377,7 +9521,6 @@ body.app-header-hidden .workspace-header {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
 }
-
 
 /* ============================================================
    Recipe search, scanner in the composer, swipe-to-eat.
@@ -10442,7 +9585,7 @@ body.app-header-hidden .workspace-header {
   white-space: nowrap;
   color: var(--status-success-text);
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   opacity: var(--swipe-o, 0);
   pointer-events: none;
 }
@@ -10481,7 +9624,6 @@ body.app-header-hidden .workspace-header {
   max-width: 100%;
 }
 
-
 /* Group sub-navigation (Hrana: Namirnice | Recepti, Trening: Trening | Trčanje). */
 .group-seg-nav {
   margin: 0 0 14px;
@@ -10491,7 +9633,6 @@ body.app-header-hidden .workspace-header {
     margin-top: 10px;
   }
 }
-
 
 /* Sidebar footer: account row → Nalog (sign-out lives there now). */
 .app-sidebar-account {
@@ -10527,7 +9668,7 @@ body.app-header-hidden .workspace-header {
   background: var(--accent);
   color: var(--button-primary-text);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
 }
 :root[data-theme="dark"] .app-sidebar-account-avatar {
   background: var(--button-primary-bg);
@@ -10540,7 +9681,7 @@ body.app-header-hidden .workspace-header {
 }
 .app-sidebar-account-name {
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -10550,7 +9691,7 @@ body.app-header-hidden .workspace-header {
 }
 .app-sidebar-account-email {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10591,7 +9732,6 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .app-sidebar-account-name .more-sheet-user-badge {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
-
 
 /* Nalog as a profile screen. */
 .profile-hero {
@@ -10646,7 +9786,7 @@ body.app-header-hidden .workspace-header {
 }
 .profile-hero-email {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9375rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -10697,7 +9837,6 @@ body.app-header-hidden .workspace-header {
 .app-sidebar-account-dot.is-error {
   background: var(--status-error-text);
 }
-
 
 /* Reminder pills are actions: tap adds water / opens the next meal / jumps to the scale. */
 .reminder-chip {
@@ -10768,7 +9907,6 @@ body.app-header-hidden .workspace-header {
   color: var(--muted);
   font-weight: 700;
 }
-
 
 /* ============================================================
    2026-09-05 — Hierarchy pass. Every screen had the same weight
@@ -10897,11 +10035,11 @@ body.app-header-hidden .workspace-header {
   }
   .hero--plan .hero-day-chips .chip {
     padding: 8px 2px;
-    border-radius: 11px;
+    border-radius: 12px;
     border-color: transparent;
     background: transparent;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     font-weight: 600;
     box-shadow: none;
   }
@@ -10925,14 +10063,7 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .today-reminders {
   padding: 14px 16px;
 }
-.today-reminders .today-reminders-head h2 {
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
+
 .today-reminders-close {
   width: 30px;
   min-width: 30px;
@@ -11074,7 +10205,7 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .plan-meals-section .meal-collapse-toggle {
   min-width: 34px;
   min-height: 34px;
-  border-radius: 11px;
+  border-radius: 12px;
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -11136,9 +10267,7 @@ body.app-header-hidden .workspace-header {
   gap: 0;
   margin-bottom: 12px;
 }
-.foods-head-sub {
-  display: none;
-}
+
 .foods-head-count {
   margin-top: 2px;
   color: var(--muted);
@@ -11167,12 +10296,12 @@ body.app-header-hidden .workspace-header {
 }
 .food-row-line .food-row-kcal {
   flex: 0 0 auto;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
 .food-row-nutri {
   margin-top: 2px;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11191,22 +10320,9 @@ body.app-header-hidden .workspace-header {
   background: none;
   box-shadow: none;
 }
-.training-day-spotlight .training-burn-card,
-:root[data-theme="dark"] .training-day-spotlight .training-burn-card {
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
+
 .training-day-spotlight .training-burn-form {
   margin-top: 10px;
-}
-@media (min-width: 900px) {
-  .training-day-spotlight .training-burn-card,
-  :root[data-theme="dark"] .training-day-spotlight .training-burn-card {
-    padding-top: 0;
-    padding-left: 22px;
-    border-top: 0;
-    border-left: 1px solid var(--line);
-  }
 }
 
 /* ---- Rutina: habit / task / streak rows are hairline rows -------------- */
@@ -11285,11 +10401,11 @@ body.app-header-hidden .workspace-header {
   .hero-day-chips .chip,
   :root[data-theme="dark"] .hero-day-chips .chip {
     padding: 8px 2px;
-    border-radius: 11px;
+    border-radius: 12px;
     border-color: transparent;
     background: transparent;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     font-weight: 600;
     box-shadow: none;
   }
@@ -11774,7 +10890,7 @@ body {
   padding-right: 40px;
 }
 .help-note--inline > summary {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .plan-activity-intro {
   margin: 0 0 12px;
@@ -11835,7 +10951,7 @@ body {
   .section-header h2,
   .section-disclosure-copy h2,
   .plan-quick-toggle h2 {
-    font-size: 1.35rem;
+    font-size: 1.375rem;
   }
 }
 .section-copy p:empty {
@@ -11848,7 +10964,7 @@ body {
   gap: 5px;
 }
 .field label {
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .field input,
 .field select,
@@ -11914,7 +11030,7 @@ body {
 }
 .pill {
   padding: 5px 9px;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 
 /* Nalog: four cards in a card → one list of hairline blocks. */
@@ -11995,45 +11111,12 @@ body {
 }
 
 /* Flat surfaces: cream, hairline, no gradient/inset/stripe. */
-.section,
-.plan-summary-section,
-.plan-recipes-section,
-.recipes-builder-section,
-.routine-streak-section,
-.macro-card,
-.stat-card,
-.food-card,
-.training-card,
-.plan-summary-section .macro-card,
-.plan-secondary-stats .stat-card,
-.training-day-summary-card,
-.suggestion-surface,
-.plan-preview-card,
-.routine-streak-card,
-.plan-suggestion-card.is-muted,
-.meal-card.is-done,
-.chip.is-light {
+.section,.plan-summary-section,.recipes-builder-section,.routine-streak-section,.macro-card,.stat-card,.food-card,.training-card,.plan-summary-section .macro-card,.training-day-summary-card,.suggestion-surface,.routine-streak-card,.plan-suggestion-card.is-muted,.meal-card.is-done,.chip.is-light {
   background: var(--surface-strong);
   border: 1px solid var(--line);
   box-shadow: none;
 }
-.plan-summary-section::before,
-.plan-preview-section::before,
-.plan-recipes-section::before,
-.plan-supplements-section::before,
-.plan-quick-section::before,
-.routine-overview-section::before,
-.routine-habits-section::before,
-.routine-streak-section::before,
-.routine-tasks-section::before,
-.routine-weekly-section::before,
-.nutrition-overview-section::before,
-.nutrition-recommendations-section::before,
-.nutrition-recipes-section::before,
-.nutrition-foods-section::before,
-.nutrition-documents-section::before,
-.recipes-builder-section::before,
-.recipes-library-section::before {
+.plan-summary-section::before,.plan-supplements-section::before,.plan-quick-section::before,.routine-overview-section::before,.routine-habits-section::before,.routine-streak-section::before,.routine-tasks-section::before,.routine-weekly-section::before,.nutrition-overview-section::before,.nutrition-recommendations-section::before,.nutrition-recipes-section::before,.nutrition-foods-section::before,.nutrition-documents-section::before,.recipes-builder-section::before,.recipes-library-section::before {
   display: none;
 }
 .training-day-spotlight .food-card.suggestion-surface {
@@ -12075,24 +11158,7 @@ body {
    language, no boxes inside boxes.
    ============================================================ */
 /* Row actions (edit / delete / menu) are bare glyphs, 40px hit area. */
-.icon-only-action,
-.meal-entry-actions .ghost-button,
-.meal-entry-actions .danger-button,
-.routine-row > .entry-actions .ghost-button,
-.routine-row > .entry-actions .danger-button,
-.routine-streak-actions .ghost-button.icon-only-action,
-.routine-streak-actions .danger-button,
-.food-row-menu,
-.lab-row-del,
-.hero-refresh,
-:root[data-theme="dark"] .icon-only-action,
-:root[data-theme="dark"] .meal-entry-actions .ghost-button,
-:root[data-theme="dark"] .meal-entry-actions .danger-button,
-:root[data-theme="dark"] .routine-row > .entry-actions .ghost-button,
-:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,
-:root[data-theme="dark"] .routine-streak-actions .danger-button,
-:root[data-theme="dark"] .food-row-menu,
-:root[data-theme="dark"] .hero-refresh {
+.icon-only-action,.meal-entry-actions .ghost-button,.meal-entry-actions .danger-button,.routine-row > .entry-actions .ghost-button,.routine-row > .entry-actions .danger-button,.routine-streak-actions .ghost-button.icon-only-action,.routine-streak-actions .danger-button,.food-row-menu,.lab-row-del,:root[data-theme="dark"] .icon-only-action,:root[data-theme="dark"] .meal-entry-actions .ghost-button,:root[data-theme="dark"] .meal-entry-actions .danger-button,:root[data-theme="dark"] .routine-row > .entry-actions .ghost-button,:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,:root[data-theme="dark"] .routine-streak-actions .danger-button,:root[data-theme="dark"] .food-row-menu {
   min-height: 40px;
   height: 40px;
   padding: 0 8px;
@@ -12103,10 +11169,7 @@ body {
   color: var(--muted);
   font-weight: 600;
 }
-.icon-only-action,
-.food-row-menu,
-.lab-row-del,
-.hero-refresh {
+.icon-only-action,.food-row-menu,.lab-row-del {
   width: 40px;
   min-width: 40px;
   padding: 0;
@@ -12128,11 +11191,7 @@ body {
 :root[data-theme="dark"] .danger-button.icon-only-action {
   color: var(--button-danger-text);
 }
-.icon-only-action:hover,
-.meal-entry-actions .ghost-button:hover,
-.meal-entry-actions .danger-button:hover,
-.food-row-menu:hover,
-.hero-refresh:hover {
+.icon-only-action:hover,.meal-entry-actions .ghost-button:hover,.meal-entry-actions .danger-button:hover,.food-row-menu:hover {
   background: var(--pill-bg);
 }
 .entry-actions,
@@ -12267,7 +11326,7 @@ body {
 .plan-summary-section .macro-value,
 .plan-summary-section .macro-card .macro-value {
   margin-top: 6px;
-  font-size: 1.35rem;
+  font-size: 1.375rem;
 }
 .plan-summary-section .progress {
   margin-top: 8px;
@@ -12309,7 +11368,7 @@ body {
 .hero-date {
   display: block;
   margin-top: 3px;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 0.01em;
@@ -12334,7 +11393,7 @@ body {
   flex: 0 0 auto;
   width: 26px;
   text-align: center;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   line-height: 1;
 }
 .plan-glance-copy {
@@ -12434,7 +11493,6 @@ body {
 :root[data-theme="dark"] .plan-glance-btn--quiet {
   min-width: 36px;
 }
-
 
 /* ============================================================
    Tightening pass (2026-09-17): composer icon overlap, dark meal
@@ -12659,7 +11717,6 @@ body {
   margin: 0 0 10px;
 }
 
-
 /* Calorie ring, two arcs: eaten (strong) over planned (faint). Checking a meal
    off used to change nothing on the ring while the copy said "uneto". */
 .cal-ring-planned {
@@ -12699,4 +11756,28 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 }
 .foods-add-fab {
   transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.22s ease;
+}
+
+/* Per-exercise "kg" shortcut in the training template: opens the progress form
+   with the exercise filled in. Quiet until you reach for it. */
+.training-exercise-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+.training-exercise-log {
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.training-exercise-log:hover,
+.training-exercise-log:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
 }

@@ -38,9 +38,9 @@ typography:
     fontSize: "0.85rem"
     fontWeight: 700
 rounded:
-  sm: "15px"
+  sm: "14px"
   md: "20px"
-  lg: "26px"
+  lg: "24px"
   xl: "32px"
 spacing:
   sm: "8px"

@@ -596,6 +596,8 @@ const state = {
   quickWeightOpen: false,
   onboarding: null,
   lastAddedEntryId: "",
+  trainingProgressOpen: false,
+  trainingProgressPrefill: "",
   selectedWeekday: getTodayWeekday(),
   selectedWeekTrack: getCurrentWeekTrack(),
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
@@ -6210,6 +6212,22 @@ function preloadBarcodeReader() {
   getBarcodeReader().catch(() => {});
 }
 
+// Deferred warm-up: a beat after a screen with a scan button appears (Namirnice,
+// the meal composer), off the render path and skipped on data-saver connections.
+let barcodePreloadTimer = 0;
+function schedulePreloadBarcodeReader() {
+  if (barcodeReaderPromise || barcodePreloadTimer) {
+    return;
+  }
+  if (navigator.connection && navigator.connection.saveData) {
+    return;
+  }
+  barcodePreloadTimer = window.setTimeout(() => {
+    barcodePreloadTimer = 0;
+    preloadBarcodeReader();
+  }, 1500);
+}
+
 function stopBarcodeScan() {
   try {
     if (activeScanControls) {
@@ -9889,6 +9907,7 @@ function renderTrainingTab() {
                                   <strong class="training-exercise-name">${escapeHtml(exercise.name)}</strong>
                                   <div class="training-exercise-detail">${escapeHtml(exercise.details)}</div>
                                 </div>
+                                <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">kg</button>
                               </div>
                             `
                           )
@@ -10015,7 +10034,7 @@ function renderTrainingTab() {
       </form>
     </details>
 
-    <details class="section form-collapse form-collapse--view">
+    <details id="training-progress-details" class="section form-collapse form-collapse--view" ${state.trainingProgressOpen ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Progres po vežbi</span>
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
@@ -10037,7 +10056,7 @@ function renderTrainingTab() {
         </div>
         <div class="field">
           <label for="progress-exercise">Vežba</label>
-          <input id="progress-exercise" name="exerciseName" list="training-exercise-options" placeholder="npr. Cucanj" required />
+          <input id="progress-exercise" name="exerciseName" list="training-exercise-options" placeholder="npr. Čučanj" value="${escapeHtml(state.trainingProgressPrefill || "")}" required />
           <datalist id="training-exercise-options">
             ${exerciseOptions.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("")}
           </datalist>
@@ -14464,6 +14483,9 @@ async function handleDocumentClick(event) {
     state.foodFiltersOpen = false;
     resetFoodEditing();
     resetRoutineEditing();
+    if (state.activeTab === "foods") {
+      schedulePreloadBarcodeReader();
+    }
     // Otvaranje Trčanja je tap (user gesture) — pokušaj tihog uvoza iz clipboard-a
     // ako je dozvola već data; inače korisnik koristi dugme „Popuni sa sata”.
     if (state.activeTab === "running") {
@@ -15328,11 +15350,23 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "prefill-exercise-progress") {
+    state.trainingProgressPrefill = String(actionTarget.dataset.exerciseName || "").trim();
+    state.trainingProgressOpen = true;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#training-progress-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#progress-weight")?.focus();
+    });
+    return;
+  }
+
   if (action === "start-add-to-meal") {
     const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
     if (isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
       return;
     }
+    schedulePreloadBarcodeReader();
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
     state.prepMealLabel = "";
@@ -17529,6 +17563,7 @@ async function handleSubmit(event) {
       note,
       createdAt: new Date().toISOString(),
     });
+    state.trainingProgressPrefill = "";
     persist();
     event.target.reset();
     render();
@@ -18142,6 +18177,17 @@ async function handleImport(event) {
 document.addEventListener("click", handleDocumentClick);
 document.addEventListener("submit", handleSubmit);
 document.addEventListener("input", handleInput);
+// <details> toggles don't bubble; capture on document so a manual open/close of
+// the progress section survives the next render instead of snapping back.
+document.addEventListener(
+  "toggle",
+  (event) => {
+    if (event.target && event.target.id === "training-progress-details") {
+      state.trainingProgressOpen = event.target.open;
+    }
+  },
+  true
+);
 document.addEventListener("input", handleValidationInteraction, true);
 document.addEventListener("change", handleValidationInteraction, true);
 document.addEventListener("invalid", handleInvalidField, true);
@@ -18397,8 +18443,10 @@ window.addEventListener("offline", handleConnectionChange);
 
 window.addEventListener("scroll", updateHeroScrollState, { passive: true });
 
-// The barcode scanner lib (ZXing, ~hundreds of KB from a CDN) is loaded lazily
-// on the first scan tap only — not on launch and not just for opening Namirnice.
+// The barcode scanner lib (ZXing, ~hundreds of KB from a CDN) is never loaded on
+// launch: it warms up 1.5 s after a scan button is on screen (see
+// schedulePreloadBarcodeReader) so the first tap still opens the camera inside
+// the user gesture on iOS.
 
 onAuthStateChanged(firebaseAuth, async (user) => {
   state.authPending = false;
