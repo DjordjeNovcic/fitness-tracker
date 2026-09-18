@@ -1192,7 +1192,12 @@ textarea::placeholder {
 
 :root[data-theme="dark"] .foods-search { background: var(--surface-strong); }
 :root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
-:root[data-theme="dark"] .foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.22); }
+:root[data-theme="dark"] .foods-chip.is-active .foods-chip-count {
+  /* Dark ink sits on the accent here, so the badge has to lighten it, not
+     darken it — a black veil dropped the count to 4.45:1 once the accent
+     itself was retuned darker. */
+  background: rgba(255, 255, 255, 0.22);
+}
 
 .foods-list {
   gap: 12px;
@@ -1815,7 +1820,7 @@ textarea::placeholder {
 }
 
 :root[data-theme="dark"] .steps-input {
-  background: rgba(13, 12, 10, 0.72);
+  background: rgba(12, 13, 11, 0.72);
   border-color: var(--line-strong);
 }
 
@@ -5625,40 +5630,45 @@ body.menu-open .menu-fab {
 :root[data-theme="dark"] {
   color-scheme: dark;
   /* Warm graphite surfaces (low-chroma, hue ~66) carrying a single cool
-     steel-blue accent (hue ~231) — chosen 2026-09-18 over the previous warm
-     gold. The warm ground and cool accent are the point: the surfaces stay
-     paper-like, the accent never competes with the amber/red status colours. */
-  /* Surface ladder (2026-09-17): four clearly separated neutral graphite
-     levels instead of near-identical warm browns —
-       L0 page          #0d0c0a  (--bg)
-       L1 chrome        #100e0b  (--rail-bg / --tabbar-bg: sidebar, tab bar)
-       L2 sections      #181511  (--surface / --surface-panel)
-       L3 nested rows   #1e1a15  (--surface-strong / --clay: rows, empty states,
+     steel-blue accent — chosen 2026-09-18 over the previous warm gold, and
+     retuned the same day to hue 225, the exact hue of the light theme's
+     #1f5f75. At hue 231 and L 0.76 it rendered as a light sky blue that did
+     not read as the same brand colour; it is now the same teal, lifted only
+     as far as a dark ground needs. The accent never competes with the
+     amber/red status colours. */
+  /* Surface ladder: four clearly separated neutral warm-charcoal levels.
+     The first version leaned brown (R-B of 7-10) and read muddy against the
+     near-black page; these sit at R-B of 1-5, so they are warm without the
+     brown cast —
+       L0 page          #0c0d0b  (--bg)
+       L1 chrome        #111210  (--rail-bg / --tabbar-bg: sidebar, tab bar)
+       L2 sections      #171713  (--surface / --surface-panel)
+       L3 nested rows   #20201b  (--surface-strong / --clay: rows, empty states,
                                   inner surfaces, inputs)
-       L4 floating      #24201a  (--surface-elevated: dialogs, toasts)
+       L4 floating      #272722  (--surface-elevated: dialogs, toasts)
      Dividers are neutral white hairlines; steel blue is the only accent. */
-  --bg: #0d0c0a;
-  --bg-strong: #141210;
-  --surface: #181511;
-  --surface-strong: #1e1a15;
-  --surface-soft: rgba(30, 26, 21, 0.86);
-  --surface-panel: #181511;
-  --surface-elevated: #24201a;
+  --bg: #0c0d0b;
+  --bg-strong: #121310;
+  --surface: #171713;
+  --surface-strong: #20201b;
+  --surface-soft: rgba(32, 32, 27, 0.86);
+  --surface-panel: #171713;
+  --surface-elevated: #272722;
   --ink: #f2ede5;
-  --muted: #a69f95;
+  --muted: #b0aca3;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.12);
-  --accent: oklch(0.76 0.09 231);
-  --accent-strong: oklch(0.84 0.09 233);
-  --accent-soft: oklch(0.26 0.04 233);
-  --secondary: oklch(0.76 0.06 231);
-  --secondary-soft: oklch(0.26 0.025 231);
-  --teal: oklch(0.76 0.09 231);
-  --clay: #1e1a15;
-  --button-primary-bg: linear-gradient(180deg, oklch(0.8 0.09 233), oklch(0.7 0.09 230));
-  --button-primary-text: oklch(0.19 0.03 240);
-  --button-primary-border: oklch(0.88 0.04 233 / 0.2);
-  --button-secondary-bg: linear-gradient(180deg, #24201a, #1e1a15);
+  --accent: oklch(0.7 0.085 225);
+  --accent-strong: oklch(0.78 0.085 225);
+  --accent-soft: oklch(0.26 0.04 225);
+  --secondary: oklch(0.7 0.055 225);
+  --secondary-soft: oklch(0.26 0.025 225);
+  --teal: oklch(0.7 0.085 225);
+  --clay: #20201b;
+  --button-primary-bg: linear-gradient(180deg, oklch(0.75 0.085 225), oklch(0.66 0.085 225));
+  --button-primary-text: oklch(0.19 0.03 225);
+  --button-primary-border: oklch(0.84 0.04 225 / 0.2);
+  --button-secondary-bg: linear-gradient(180deg, #272722, #20201b);
   --button-secondary-text: var(--ink);
   --button-secondary-border: rgba(255, 255, 255, 0.12);
   --button-ghost-bg: rgba(255, 255, 255, 0.05);
@@ -5669,23 +5679,23 @@ body.menu-open .menu-fab {
   --button-danger-border: oklch(0.6 0.13 32 / 0.34);
   --pill-bg: rgba(255, 255, 255, 0.05);
   --pill-border: rgba(255, 255, 255, 0.08);
-  --pill-strong-bg: oklch(0.76 0.09 231 / 0.16);
-  --pill-strong-border: oklch(0.76 0.09 231 / 0.32);
+  --pill-strong-bg: oklch(0.7 0.085 225 / 0.16);
+  --pill-strong-border: oklch(0.7 0.085 225 / 0.32);
   --pill-note-bg: rgba(255, 255, 255, 0.06);
   --pill-note-border: rgba(255, 255, 255, 0.1);
   --status-success-bg: oklch(0.6 0.09 150 / 0.2);
   --status-success-border: oklch(0.72 0.09 150 / 0.32);
   --status-success-text: oklch(0.82 0.1 150);
-  --status-info-bg: oklch(0.6 0.06 231 / 0.2);
-  --status-info-border: oklch(0.72 0.07 231 / 0.32);
-  --status-info-text: oklch(0.83 0.08 233);
+  --status-info-bg: oklch(0.6 0.06 225 / 0.2);
+  --status-info-border: oklch(0.72 0.07 225 / 0.32);
+  --status-info-text: oklch(0.78 0.08 225);
   --status-warning-bg: oklch(0.66 0.12 55 / 0.22);
   --status-warning-border: oklch(0.74 0.13 52 / 0.34);
   --status-warning-text: oklch(0.81 0.13 52);
   --status-error-bg: oklch(0.55 0.14 28 / 0.22);
   --status-error-border: oklch(0.65 0.16 28 / 0.34);
   --status-error-text: oklch(0.78 0.15 30);
-  --rail-bg: #100e0b;
+  --rail-bg: #111210;
   /* Dark mode: keep shadows subtle. Heavy black shadows on dark surfaces read
      as muddy grey "boxes/halos" around every card and tile, not as elevation —
      so these are dialed way down (inner tiles rely on a lighter fill instead). */
@@ -5694,16 +5704,16 @@ body.menu-open .menu-fab {
   --shadow-tight: 0 2px 8px rgba(0, 0, 0, 0.16);
   --shadow-card: 0 14px 28px rgba(0, 0, 0, 0.24);
   --bar-track: rgba(255, 255, 255, 0.08);
-  --bar-ok: linear-gradient(90deg, oklch(0.68 0.09 228), oklch(0.8 0.09 233));
-  --bar-low: linear-gradient(90deg, oklch(0.7 0.05 231), oklch(0.8 0.07 233));
+  --bar-ok: linear-gradient(90deg, oklch(0.62 0.085 225), oklch(0.74 0.085 225));
+  --bar-low: linear-gradient(90deg, oklch(0.64 0.045 225), oklch(0.74 0.06 225));
   --bar-near: linear-gradient(90deg, oklch(0.7 0.15 55), oklch(0.78 0.16 50));
   --bar-over: linear-gradient(90deg, oklch(0.6 0.18 28), oklch(0.7 0.19 33));
-  --tabbar-bg: rgba(16, 14, 11, 0.92);
+  --tabbar-bg: rgba(17, 18, 16, 0.92);
   --tabbar-border: rgba(255, 255, 255, 0.08);
   --tabbar-active: var(--accent-strong);
   background:
-    radial-gradient(130% 80% at 50% -14%, oklch(0.34 0.06 233 / 0.07), transparent 55%),
-    #0d0c0a;
+    radial-gradient(130% 80% at 50% -14%, oklch(0.34 0.06 225 / 0.07), transparent 55%),
+    #0c0d0b;
 }
 
 :root[data-theme="dark"] body {
@@ -5753,7 +5763,7 @@ body.menu-open .menu-fab {
 :root[data-theme="dark"] .field textarea,
 :root[data-theme="dark"] .auth-form .field input,
 :root[data-theme="dark"] .amount-stepper-btn {
-  background: rgba(13, 12, 10, 0.72);
+  background: rgba(12, 13, 11, 0.72);
   border-color: var(--line-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
@@ -6105,13 +6115,13 @@ body.menu-open .tab-bar {
 }
 
 :root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui {
-  background: linear-gradient(135deg, oklch(0.76 0.09 231 / 0.3), oklch(0.76 0.09 231 / 0.16));
-  border-color: oklch(0.76 0.09 231 / 0.5);
+  background: linear-gradient(135deg, oklch(0.7 0.085 225 / 0.3), oklch(0.7 0.085 225 / 0.16));
+  border-color: oklch(0.7 0.085 225 / 0.5);
 }
 
 :root[data-theme="dark"] .meal-done-note {
-  background: oklch(0.76 0.09 231 / 0.12);
-  border-color: oklch(0.76 0.09 231 / 0.2);
+  background: oklch(0.7 0.085 225 / 0.12);
+  border-color: oklch(0.7 0.085 225 / 0.2);
 }
 
 /* ============================================================
@@ -6196,8 +6206,8 @@ body.menu-open .tab-bar {
 
 :root[data-theme="dark"] .routine-checkbox:checked + .routine-check-ui,
 :root[data-theme="dark"] .weekday-choice:has(input:checked) {
-  background: linear-gradient(135deg, oklch(0.76 0.09 231 / 0.3), oklch(0.76 0.09 231 / 0.16));
-  border-color: oklch(0.76 0.09 231 / 0.5);
+  background: linear-gradient(135deg, oklch(0.7 0.085 225 / 0.3), oklch(0.7 0.085 225 / 0.16));
+  border-color: oklch(0.7 0.085 225 / 0.5);
 }
 
 :root[data-theme="dark"] .update-banner,
@@ -6575,7 +6585,7 @@ body.menu-open .tab-bar {
 }
 
 :root[data-theme="dark"] .hero-day-chips .chip.is-active {
-  color: oklch(0.19 0.03 240);
+  color: oklch(0.19 0.03 225);
 }
 
 /* Premium charts: faint gridlines, soft area fill, one current marker */
@@ -6883,7 +6893,7 @@ body.app-header-hidden .workspace-header {
   --focus: rgba(31, 95, 117, 0.45);
 }
 :root[data-theme="dark"] {
-  --focus: oklch(0.8 0.09 233 / 0.65);
+  --focus: oklch(0.74 0.085 225 / 0.65);
 }
 
 ::selection {
@@ -6892,7 +6902,7 @@ body.app-header-hidden .workspace-header {
 
 /* Signature ring gets a soft gold glow in dark */
 :root[data-theme="dark"] .cal-ring-fill {
-  filter: drop-shadow(0 0 6px oklch(0.8 0.09 233 / 0.4));
+  filter: drop-shadow(0 0 6px oklch(0.74 0.085 225 / 0.4));
 }
 
 /* Gentle hover on cards (pointer devices only) — borders breathe, no jump */
@@ -7409,7 +7419,7 @@ body.app-header-hidden .workspace-header {
 :root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui {
   background: var(--accent);
   border-color: var(--accent);
-  color: oklch(0.19 0.03 240);
+  color: oklch(0.19 0.03 225);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7770,14 +7780,14 @@ body.app-header-hidden .workspace-header {
 
 :root[data-theme="dark"] .onboarding-card {
   background:
-    radial-gradient(circle at top right, oklch(0.76 0.09 231 / 0.12), transparent 40%),
+    radial-gradient(circle at top right, oklch(0.7 0.085 225 / 0.12), transparent 40%),
     var(--surface-strong);
   border-color: var(--line-strong);
 }
 
 :root[data-theme="dark"] .onboarding-preview {
-  background: linear-gradient(135deg, oklch(0.76 0.09 231 / 0.16), oklch(0.76 0.09 231 / 0.05));
-  border-color: oklch(0.76 0.09 231 / 0.3);
+  background: linear-gradient(135deg, oklch(0.7 0.085 225 / 0.16), oklch(0.7 0.085 225 / 0.05));
+  border-color: oklch(0.7 0.085 225 / 0.3);
 }
 
 /* A freshly added meal item glows softly once, so the eye lands on it. */
@@ -8689,7 +8699,7 @@ body.app-header-hidden .workspace-header {
   }
   :root[data-theme="dark"] .app-frame.is-sidebar-collapsed .menu-tab-button.is-active {
     box-shadow:
-      0 14px 26px oklch(0.76 0.09 231 / 0.16),
+      0 14px 26px oklch(0.7 0.085 225 / 0.16),
       inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 }

@@ -83,7 +83,7 @@ Fit Tracker reads like a well-kept paper food-and-training journal that happens 
 The palette is a single warm neutral family (paper cream in light, graphite in dark) carrying one accent hue that itself changes identity between modes.
 
 ### Primary
-- **Petrol** (`#1f5f75`, `--accent`): primary CTAs, active nav marker, "ok" progress-bar state, single hero numerals in light mode. In dark mode the same role is carried by **Steel Blue** (`oklch(0.76 0.09 231)`). Chosen 2026-09-18 over the previous pine-green/gold pair: a cool accent on a warm ground, and — unlike gold or copper — it can never be confused with the amber/red "near / over budget" status colours.
+- **Petrol** (`#1f5f75`, `--accent`): primary CTAs, active nav marker, "ok" progress-bar state, single hero numerals in light mode. In dark mode the same role is carried by the **same teal, lifted** (`oklch(0.7 0.085 225)` = `#5faac6`) — hue 225 is exactly the light accent's hue. It first shipped at hue 231 / L 0.76 and read as a light sky blue, so the two themes did not share one identity; only the lightness now differs between them. Chosen 2026-09-18 over the previous pine-green/gold pair: a cool accent on a warm ground, and — unlike gold or copper — it can never be confused with the amber/red "near / over budget" status colours.
 
 ### Secondary
 - **Deep Teal-Blue** (`#2b6d7d`, `--secondary` / `--teal`): secondary buttons, "target"-kind macro bars (protein) when under goal, informational pills.
@@ -96,7 +96,7 @@ One accent moment per region — active navigation, the primary action, and prog
 - **Warm White** (`#ffffff`, `--surface-elevated`) and translucent cream surfaces (`--surface`, `--surface-panel` at 88-96% opacity): card backgrounds.
 - **Deep Ink** (`#17201d`, `--ink`): primary text. **Soft Sage-Grey** (`#65716c`, `--muted`): secondary text.
 - **Hairline** (`rgba(24,33,30,0.085)`, `--line`): all dividers — never a boxed border.
-- In dark mode the neutral family is a four-level graphite ladder (2026-09-17): page `#0d0c0a` → chrome (sidebar, tab bar) `#100e0b` → sections/cards `#181511` → nested rows, empty states, inputs `#1e1a15`, with dialogs/toasts one step higher at `#24201a`. Dividers are neutral white hairlines (`rgba(255,255,255,0.08)` / `0.12`), ink `#f2ede5`, muted `#a69f95`. Separation between levels is tonal plus a hairline — no white "sheen" gradients, no stacked shadows.
+- In dark mode the neutral family is a four-level warm-charcoal ladder: page `#0c0d0b` → chrome (sidebar, tab bar) `#111210` → sections/cards `#171713` → nested rows, empty states, inputs `#20201b`, with dialogs/toasts one step higher at `#272722`. The first version of this ladder leaned brown (red minus blue of 7 to 10) and read muddy against the near-black page; these sit at 1 to 5, warm without the brown cast. Dividers are neutral white hairlines (`rgba(255,255,255,0.08)` / `0.12`), ink `#f2ede5`, muted `#b0aca3` (lifted from `#a69f95`, which read too dark under onboarding copy). Separation between levels is tonal plus a hairline — no white "sheen" gradients, no stacked shadows.
 
 ### Named Rules
 **The One-Accent Rule.** Both themes carry exactly one brand accent — petrol blue in light, steel blue in dark. Green survives only as the semantic success colour (`--status-success-*`, the consistency heatmap, "on target" pills); amber and red stay reserved for "near" and "over". No third brand hue.
