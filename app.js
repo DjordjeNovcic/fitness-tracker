@@ -7576,6 +7576,10 @@ function renderUnitField(id, label, unit, inputHtml, full = false) {
     </div>`;
 }
 
+function renderInfoIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.2"/></svg>';
+}
+
 function renderRestIcon() {
   return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
 }
@@ -9448,11 +9452,17 @@ function renderPlanTab(entries) {
                             : (() => {
                                 const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
                                 const previousEntries = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
-                                return `<div class="empty meal-empty">Još nema stavki u ovom obroku.${
-                                  previousEntries.length && !isMealDone
-                                    ? `<div class="meal-empty-actions"><button class="ghost-button button-with-icon" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">${renderButtonContent(`Kopiraj od juče (${previousEntries.length})`, "copy")}</button></div>`
-                                    : ""
-                                }</div>`;
+                                const canCopy = previousEntries.length > 0 && !isMealDone;
+                                // The "Dodaj namirnicu" row renders right below and already says
+                                // the meal is empty. Repeating it in five stacked cards is what
+                                // made a new user's first screen 600px of the same sentence — so
+                                // the message stays only when it carries something extra (the
+                                // copy-from-yesterday shortcut) or when there is no add row at
+                                // all because the meal is already checked off.
+                                if (!canCopy) {
+                                  return isMealDone ? `<div class="empty meal-empty">Još nema stavki u ovom obroku.</div>` : "";
+                                }
+                                return `<div class="empty meal-empty">Još nema stavki u ovom obroku.<div class="meal-empty-actions"><button class="ghost-button button-with-icon" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">${renderButtonContent(`Kopiraj od juče (${previousEntries.length})`, "copy")}</button></div></div>`;
                               })()
                         }
                         ${
@@ -14045,7 +14055,7 @@ function renderBodyCompositionSection() {
 function renderHelpNote(body, label = "Kako ovo radi?", inline = false) {
   return `
     <details class="help-note ${inline ? "help-note--inline" : ""}">
-      <summary><span class="help-note-icon" aria-hidden="true">ⓘ</span> ${label}</summary>
+      <summary><span class="help-note-icon" aria-hidden="true">${renderInfoIcon()}</span> ${label}</summary>
       <div class="help-note-body">${body}</div>
     </details>`;
 }

@@ -1931,9 +1931,15 @@ textarea::placeholder {
 .help-note > summary::-webkit-details-marker { display: none; }
 .help-note > summary:hover { color: var(--accent); }
 .help-note-icon {
-  font-size: 0.875rem;
+  display: inline-flex;
   line-height: 1;
   color: var(--accent);
+}
+/* 15px at stroke 2 lands on the same ~1.65px on-screen line as the rest of
+   the set; it used to be the text glyph ⓘ, the last non-SVG icon left. */
+.help-note-icon svg {
+  width: 15px;
+  height: 15px;
 }
 .help-note-body {
   margin-top: 6px;
