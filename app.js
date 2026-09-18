@@ -6082,7 +6082,7 @@ function renderRecipeApplyDialog() {
             </label>
           </div>
           <div class="pill-row">
-            <span class="pill">${favorite.items.length} sastojaka</span>
+            <span class="pill">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")}</span>
             <span class="pill">${favorite.servings || 1} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
             <span class="pill note">Po porciji ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal</span>
           </div>
@@ -7499,6 +7499,14 @@ function filterFoodsListInline(query) {
   ranked.sort((a, b) => a.score - b.score || a.index - b.index);
   hiddenRows.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
   const empty = list.querySelector(".foods-list-empty");
+  // The heading is rendered by render(), which this inline filter deliberately
+  // bypasses — so it kept saying "87 namirnica u bazi" while four rows showed.
+  const head = document.querySelector(".foods-head-count");
+  if (head) {
+    head.textContent = tokens.length
+      ? `${visible} od ${rows.length} ${srPlural(rows.length, "namirnice", "namirnice", "namirnica")}`
+      : `${rows.length} ${srPlural(rows.length, "namirnica", "namirnice", "namirnica")} u bazi`;
+  }
   // Reorder through a fragment so the list is touched once instead of once per
   // row — appendChild per row forced a layout pass each time.
   const fragment = document.createDocumentFragment();
@@ -7841,7 +7849,7 @@ function renderPlanSupplementsSection() {
           <p>${doneCount}/${supplements.length || 0} označeno za ${weekdayAccusative(state.selectedWeekday)}.</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="pill note">${supplements.length} stavki</span>
+          <span class="pill note">${supplements.length} ${srPlural(supplements.length, "stavka", "stavke", "stavki")}</span>
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSupplementsExpanded)}</span>
         </div>
       </button>
@@ -8328,7 +8336,7 @@ function renderPlanShoppingSection() {
       <button class="section-disclosure" type="button" data-action="toggle-plan-shopping" aria-expanded="${state.shoppingExpanded}">
         <div class="section-disclosure-copy">
           <h2>Lista za kupovinu</h2>
-          <p>${activeItems.length ? `${activeItems.length} namirnica iz plana za ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
+          <p>${activeItems.length ? `${activeItems.length} ${srPlural(activeItems.length, "namirnica", "namirnice", "namirnica")} iz plana za ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
@@ -9065,7 +9073,7 @@ function renderFoodsTab() {
     <section class="section foods-section">
       <header class="foods-head">
         <h2>Namirnice</h2>
-        <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} namirnica` : `${selectableFoods.length} namirnica u bazi`}</p>
+        <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnice", "namirnice", "namirnica")}` : `${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnica", "namirnice", "namirnica")} u bazi`}</p>
       </header>
 
       ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu, a <strong>+</strong> pored nje je ubacuje u sledeći otvoreni obrok. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
@@ -9073,7 +9081,7 @@ function renderFoodsTab() {
       ${
         pendingNutritionReviewCount > 0
           ? `<button class="foods-nutrition-link" type="button" data-action="switch-tab" data-tab="nutrition">
-              <span>${pendingNutritionReviewCount} ${pendingNutritionReviewCount === 1 ? "namirnica" : "namirnice"} iz uvoza čeka vrednosti pre nego što se pojavi ovde</span>
+              <span>${pendingNutritionReviewCount} ${srPlural(pendingNutritionReviewCount, "namirnica", "namirnice", "namirnica")} iz uvoza čeka vrednosti pre nego što se pojavi ovde</span>
               ${renderSideChevronIcon(false)}
             </button>`
           : ""
@@ -9160,7 +9168,7 @@ function renderFoodsTab() {
                     <span class="food-row-name">${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
                   </span>
-                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</span>
+                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</span>
                 </button>
                 ${
                   nextOpenMealLabel
@@ -9347,7 +9355,7 @@ function renderRecipesTab() {
               <h3>${escapeHtml(draftPreview.favoriteName || "Recept u izradi")}</h3>
               <p>${escapeHtml(draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta.")}</p>
             </div>
-            <span class="pill strong">${draftPreview.items.length} ${draftPreview.items.length === 1 ? "stavka" : "stavki"}</span>
+            <span class="pill strong">${draftPreview.items.length} ${srPlural(draftPreview.items.length, "stavka", "stavke", "stavki")}</span>
           </div>
           ${
             draftPreview.imageUrl
@@ -9449,7 +9457,7 @@ function renderRecipesTab() {
       <div class="section-header">
         <div>
           <h2>Biblioteka recepata</h2>
-          <p>${favorites.length ? `Trenutno imaš ${favorites.length} sačuvanih recepata.` : "Još nema sačuvanih recepata."}</p>
+          <p>${favorites.length ? `Trenutno imaš ${favorites.length} ${srPlural(favorites.length, "sačuvan recept", "sačuvana recepta", "sačuvanih recepata")}.` : "Još nema sačuvanih recepata."}</p>
         </div>
       </div>
       ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom — bez ponovnog kucanja svake namirnice.")}
@@ -9740,7 +9748,7 @@ function renderTrainingTab() {
                         <div>
                           <h3>${escapeHtml(template.name)}</h3>
                         </div>
-                        <span class="pill strong" aria-label="${completion.completedCount} od ${completion.totalCount} vežbi odrađeno">${completion.completedCount}/${completion.totalCount}</span>
+                        <span class="pill strong" aria-label="${completion.completedCount} od ${completion.totalCount} ${srPlural(completion.totalCount, "vežbe", "vežbe", "vežbi")} odrađeno">${completion.completedCount}/${completion.totalCount}</span>
                       </div>
                       <div class="training-exercise-list">
                         ${template.exercises
@@ -11118,7 +11126,7 @@ function renderRoutineTab() {
                     <article class="stat-card">
                       <strong>${weekdayLabel(day.weekday)}</strong>
                       <div class="macro-value">${day.progress}%</div>
-                      <div class="footer-note">${day.doneCount}/${day.totalCount} navika</div>
+                      <div class="footer-note">${day.doneCount}/${day.totalCount} ${srPlural(day.totalCount, "navika", "navike", "navika")}</div>
                     </article>
                   `
                 )
@@ -11421,7 +11429,7 @@ function renderGoalCalibrationCard() {
     <section class="section calibration-section is-ok">
       ${renderSectionLead("Kalibracija cilja", okCopy)}
       ${comparison}
-      <div class="footer-note">Na osnovu ${cal.loggedDays} kompletnih dana i ${cal.weighIns} merenja.</div>
+      <div class="footer-note">Na osnovu ${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletnog dana", "kompletna dana", "kompletnih dana")} i ${cal.weighIns} merenja.</div>
       ${lastLine}
     </section>`;
   }
@@ -11455,7 +11463,7 @@ function renderGoalCalibrationCard() {
                <button class="ghost-button" type="button" data-action="dismiss-goal-calibration">Ne sada</button>`
         }
       </div>
-      <div class="footer-note">Na osnovu ${cal.loggedDays} kompletnih dana i ${cal.weighIns} merenja u poslednjih ${CALIBRATION_WEIGHT_WINDOW_DAYS} dan${CALIBRATION_WEIGHT_WINDOW_DAYS % 10 === 1 && CALIBRATION_WEIGHT_WINDOW_DAYS % 100 !== 11 ? "" : "a"}.</div>
+      <div class="footer-note">Na osnovu ${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletnog dana", "kompletna dana", "kompletnih dana")} i ${cal.weighIns} merenja u poslednjih ${CALIBRATION_WEIGHT_WINDOW_DAYS} dan${CALIBRATION_WEIGHT_WINDOW_DAYS % 10 === 1 && CALIBRATION_WEIGHT_WINDOW_DAYS % 100 !== 11 ? "" : "a"}.</div>
       ${lastLine}
     </section>`;
 }
@@ -11982,14 +11990,14 @@ function renderNutritionTab() {
         })}
 
         ${renderStatusSummaryCard({
-          title: `${documents.length} dokumenata u arhivi`,
+          title: `${documents.length} ${srPlural(documents.length, "dokument", "dokumenta", "dokumenata")} u arhivi`,
           detail: "Svaki import pamti izvor, kratak sažetak i koliko je recepata, namirnica i preporuka izvučeno.",
           statusLabel: documents.length ? "Arhiva živa" : "Još prazno",
           tone: documents.length ? "success" : "warning",
           pills: [
             { label: `${plans.length} dana u planu`, tone: "success" },
-            { label: `${recommendations.length} preporuka`, tone: "info" },
-            { label: `${importedRecipes.length} recepata`, tone: "success" },
+            { label: `${recommendations.length} ${srPlural(recommendations.length, "preporuka", "preporuke", "preporuka")}`, tone: "info" },
+            { label: `${importedRecipes.length} ${srPlural(importedRecipes.length, "recept", "recepta", "recepata")}`, tone: "success" },
             { label: `${importedFoods.length} ukupno uvezenih namirnica`, tone: "warning" },
             { label: `${importedFoodsMissingValues} čeka review`, tone: importedFoodsMissingValues ? "warning" : "success" },
             ...(importedFoodsReviewedCount ? [{ label: `${importedFoodsReviewedCount} rešeno`, tone: "success" }] : []),
@@ -12055,7 +12063,7 @@ function renderNutritionTab() {
                       </div>
                       <div class="footer-note">${escapeHtml(recipe.description || "Importovano iz dokumenta nutricioniste.")}</div>
                       <div class="pill-row">
-                        <span class="pill">${recipe.items.length} sastojka</span>
+                        <span class="pill">${recipe.items.length} ${srPlural(recipe.items.length, "sastojak", "sastojka", "sastojaka")}</span>
                         <span class="pill">${recipe.servings || 1} ${recipe.servings === 1 ? "porcija" : recipe.servings < 5 ? "porcije" : "porcija"}</span>
                         <span class="pill">${recipe.prepTimeMinutes ? `${recipe.prepTimeMinutes} min` : "Vreme nije nađeno"}</span>
                         <span class="pill note">Ukupno ${roundValue(recipe.totals.kcal, 0)} kcal</span>
@@ -12063,7 +12071,7 @@ function renderNutritionTab() {
                         <span class="pill">P ${roundValue(recipe.perServingTotals.protein, 1)} g</span>
                         <span class="pill">UH ${roundValue(recipe.perServingTotals.carbs, 1)} g</span>
                         <span class="pill">M ${roundValue(recipe.perServingTotals.fat, 1)} g</span>
-                        ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} stavki za povezivanje</span>` : ""}
+                        ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} ${srPlural(pendingReviewCount, "stavka", "stavke", "stavki")} za povezivanje</span>` : ""}
                       </div>
                       ${renderNutritionSourcePills(recipe.importSourceDocNames)}
                       <div class="recipe-library-ingredients suggestion-row nutrition-inline-list">
@@ -12294,9 +12302,9 @@ function renderNutritionTab() {
                         <span class="pill">${escapeHtml(doc.parserLabel || "Tekst")}</span>
                         <span class="pill">${getFileSizeLabel(doc.size)}</span>
                         <span class="pill">${doc.planCount || 0} dana</span>
-                        <span class="pill">${doc.recipeCount || 0} recepata</span>
-                        <span class="pill">${doc.foodCount || 0} namirnica</span>
-                        <span class="pill">${doc.recommendationCount || 0} preporuka</span>
+                        <span class="pill">${doc.recipeCount || 0} ${srPlural(doc.recipeCount || 0, "recept", "recepta", "recepata")}</span>
+                        <span class="pill">${doc.foodCount || 0} ${srPlural(doc.foodCount || 0, "namirnica", "namirnice", "namirnica")}</span>
+                        <span class="pill">${doc.recommendationCount || 0} ${srPlural(doc.recommendationCount || 0, "preporuka", "preporuke", "preporuka")}</span>
                       </div>
                       <div class="footer-note">Uvezeno ${new Date(doc.importedAt).toLocaleString("sr-RS")}</div>
                     </article>
@@ -15386,8 +15394,8 @@ async function handleDocumentClick(event) {
       title: "Nutricionista dan je prebačen",
       detail:
         result.skippedMeals > 0
-          ? `${result.appliedCount} stavki je ubačeno u ${weekdayLabel(state.selectedWeekday)}, a ${result.skippedMeals} obroka je ostalo samo kao hint jer nema dovoljno podataka za automatsko prebacivanje.`
-          : `${result.appliedCount} stavki je ubačeno u ${weekdayLabel(state.selectedWeekday)}.`,
+          ? `${result.appliedCount} ${srPlural(result.appliedCount, "stavka", "stavke", "stavki")} je ubačeno u ${weekdayLabel(state.selectedWeekday)}, a ${result.skippedMeals} obroka je ostalo samo kao hint jer nema dovoljno podataka za automatsko prebacivanje.`
+          : `${result.appliedCount} ${srPlural(result.appliedCount, "stavka", "stavke", "stavki")} je ubačeno u ${weekdayLabel(state.selectedWeekday)}.`,
       tone: result.appliedCount ? "success" : "warning",
     });
     return;
@@ -16425,7 +16433,7 @@ async function handleDocumentClick(event) {
     store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
     persist();
     queuePendingUndo(
-      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} za ${weekdayAccusative(weekday)}.${
+      `Obrisano ${removedCount} ${srPlural(removedCount, "stavka", "stavke", "stavki")} za ${weekdayAccusative(weekday)}.${
         lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
       }`,
       () => {
@@ -16488,7 +16496,7 @@ async function handleDocumentClick(event) {
     state.bulkDeletePickDays = [];
     persist();
     queuePendingUndo(
-      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} sa ${pairs.length} dana.${
+      `Obrisano ${removedCount} ${srPlural(removedCount, "stavka", "stavke", "stavki")} sa ${pairs.length} dana.${
         lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
       }`,
       () => {
@@ -16525,7 +16533,7 @@ async function handleDocumentClick(event) {
     state.bulkDeletePickDays = [];
     persist();
     queuePendingUndo(
-      `Obrisano ${removedCount} ${removedCount === 1 ? "stavka" : "stavki"} iz celog plana.${
+      `Obrisano ${removedCount} ${srPlural(removedCount, "stavka", "stavke", "stavki")} iz celog plana.${
         lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
       }`,
       () => {
@@ -17097,7 +17105,7 @@ async function handleDocumentClick(event) {
     });
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     persist();
-    queuePendingUndo(`Kopirano od juče u ${getMealDisplayParts(mealLabel).title || mealLabel}: ${copiedIds.length} ${copiedIds.length === 1 ? "stavka" : "stavki"}.`, () => {
+    queuePendingUndo(`Kopirano od juče u ${getMealDisplayParts(mealLabel).title || mealLabel}: ${copiedIds.length} ${srPlural(copiedIds.length, "stavka", "stavke", "stavki")}.`, () => {
       store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !copiedIds.includes(entry.id));
       persist();
     });
@@ -18301,7 +18309,7 @@ async function handleImport(event) {
   const files = [...target.files];
   state.nutritionImportPending = true;
   state.nutritionImportStatus =
-    files.length === 1 ? `Obrađujem "${files[0].name}"...` : `Obrađujem ${files.length} dokumenta...`;
+    files.length === 1 ? `Obrađujem "${files[0].name}"...` : `Obrađujem ${files.length} ${srPlural(files.length, "dokument", "dokumenta", "dokumenata")}...`;
   render();
 
   try {
@@ -18310,7 +18318,7 @@ async function handleImport(event) {
     showFeedbackToast({
       title: result.importedDocuments.length ? "Dokumenti su uvezeni" : "Import je završen",
       detail: `${result.importedDocuments.length} dok. · ${result.totalRecommendations} preporuka · ${result.totalRecipes} recepata · ${result.totalFoods} namirnica${
-        result.errors.length ? ` · ${result.errors.length} grešaka` : ""
+        result.errors.length ? ` · ${result.errors.length} ${srPlural(result.errors.length, "greška", "greške", "grešaka")}` : ""
       }`,
       tone: result.errors.length ? "warning" : "success",
       duration: result.errors.length ? 4200 : 2800,

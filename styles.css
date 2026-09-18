@@ -12074,3 +12074,15 @@ button.meal-entry-body:focus-visible {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* On a phone the macro line was clipping by a couple of pixels on the longest
+   rows ("… · M 4.8 g" became "… · M 4…"), losing real numbers to an ellipsis.
+   Row heights already vary here because long names wrap, so let this line wrap
+   too rather than truncate. Wide layouts keep one line, where columns align. */
+@media (max-width: 480px) {
+  .food-row-nutri {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
