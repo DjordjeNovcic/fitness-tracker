@@ -12348,3 +12348,111 @@ button.meal-entry-body:focus-visible {
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   }
 }
+
+/* ============================================================
+   Ciljevi: izbori kao dugmići, jedinice u polju, provera makroa
+   Four of these questions have two or three answers. A dropdown hides them
+   behind a tap and gives no sense of the range; laid out as chips the whole
+   decision is visible at once — which is exactly how the onboarding already
+   asks the same four.
+   ============================================================ */
+.choice-field {
+  gap: 8px;
+}
+.choice-field-label {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-weight: 760;
+  letter-spacing: 0.01em;
+}
+.choice-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.choice-chip {
+  flex: 1 1 130px;
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.choice-chip:hover {
+  border-color: var(--accent);
+}
+.choice-chip-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.choice-chip-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.choice-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--button-primary-text);
+}
+.choice-chip.is-active .choice-chip-hint {
+  color: inherit;
+  /* 0.78 measured 4.79:1 — over the line but with no room to spare. */
+  opacity: 0.88;
+}
+
+/* The unit belongs next to the number, not only in the label above it. */
+.input-unit {
+  position: relative;
+  display: block;
+}
+.input-unit input {
+  padding-right: 52px;
+}
+.input-unit-suffix {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.macro-check {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.macro-check strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.macro-check .macro-check-warn {
+  color: var(--status-warning-text);
+}
+.macro-check .macro-check-warn strong {
+  color: inherit;
+}
+.macro-check:empty {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .choice-chip {
+    flex: 1 1 100px;
+    min-height: 48px;
+  }
+}

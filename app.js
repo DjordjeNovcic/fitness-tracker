@@ -7495,6 +7495,91 @@ function renderCollapseHint(text) {
   return text ? `<span class="form-collapse-hint">${escapeHtml(String(text))}</span>` : "";
 }
 
+// ---------------------------------------------------------------------------
+// Ciljevi — a question with three answers is a choice, not a text field. The
+// onboarding already asks these four as chips; the Ciljevi form asked the same
+// four as dropdowns. Chips write into a hidden input so the existing form
+// submit is untouched, and they never re-render: the form holds other unsaved
+// edits that a render would throw away.
+// ---------------------------------------------------------------------------
+// 4 kcal po gramu proteina i ugljenih hidrata, 9 po gramu masti.
+function renderGoalMacroCheck(goals = {}) {
+  const protein = toNumber(goals.protein);
+  const carbs = toNumber(goals.carbs);
+  const fat = toNumber(goals.fat);
+  const calories = toNumber(goals.calories);
+  if (!protein && !carbs && !fat) {
+    return "";
+  }
+  const fromMacros = Math.round(protein * 4 + carbs * 4 + fat * 9);
+  if (!calories) {
+    return `Makroi daju <strong>${fromMacros} kcal</strong>.`;
+  }
+  const diff = fromMacros - calories;
+  if (Math.abs(diff) <= 30) {
+    return `Makroi daju <strong>${fromMacros} kcal</strong> — poklapa se sa ciljem.`;
+  }
+  return `<span class="macro-check-warn">Makroi daju <strong>${fromMacros} kcal</strong>, a cilj je ${calories} kcal (${diff > 0 ? "+" : ""}${diff}).</span>`;
+}
+
+function renderChoiceField(label, name, currentValue, options) {
+  const current = String(currentValue || "");
+  return `
+    <div class="field field--full choice-field">
+      <span class="choice-field-label" id="choice-${name}-label">${escapeHtml(label)}</span>
+      <input type="hidden" name="${name}" value="${escapeHtml(current)}" data-choice-input="${name}" />
+      <div class="choice-chips" role="radiogroup" aria-labelledby="choice-${name}-label">
+        ${options
+          .map((option) => {
+            const active = String(option.id) === current;
+            return `<button type="button" class="choice-chip ${active ? "is-active" : ""}" role="radio" aria-checked="${active}" data-action="pick-goal-option" data-choice-name="${name}" data-choice-value="${escapeHtml(String(option.id))}">
+              <span class="choice-chip-label">${escapeHtml(option.label)}</span>
+              ${option.hint ? `<span class="choice-chip-hint">${escapeHtml(option.hint)}</span>` : ""}
+            </button>`;
+          })
+          .join("")}
+      </div>
+    </div>`;
+}
+
+// People routinely pick the wrong activity level, so each option says what it
+// means in training terms rather than leaving the multiplier implicit.
+const ACTIVITY_SHORT_LABELS = {
+  sedentary: "Sedeći",
+  light: "Lagano",
+  moderate: "Umereno",
+  active: "Aktivno",
+  "very-active": "Vrlo aktivno",
+};
+const ACTIVITY_HINTS = {
+  sedentary: "malo kretanja",
+  light: "1-3 treninga",
+  moderate: "3-5 treninga",
+  active: "6-7 treninga",
+  "very-active": "fizički posao",
+};
+
+function paceHintFor(paceId, targetMode) {
+  const level = PACE_LEVELS.find((entry) => entry.id === paceId);
+  if (!level || targetMode === "maintain") {
+    return "";
+  }
+  const rate = targetMode === "gain" ? level.gainKgPerWeek : level.loseKgPerWeek;
+  return `${String(rate).replace(".", ",")} kg/ned`;
+}
+
+// A number field that carries its unit inside it instead of in the label.
+function renderUnitField(id, label, unit, inputHtml, full = false) {
+  return `
+    <div class="field ${full ? "field--full" : ""}">
+      <label for="${id}">${escapeHtml(label)}</label>
+      <div class="input-unit">
+        ${inputHtml}
+        ${unit ? `<span class="input-unit-suffix" aria-hidden="true">${escapeHtml(unit)}</span>` : ""}
+      </div>
+    </div>`;
+}
+
 function renderRestIcon() {
   return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
 }
@@ -12179,75 +12264,49 @@ function renderGoalsTab() {
           <label for="profile-name">Ime</label>
           <input id="profile-name" name="name" value="${escapeHtml(store.profile.name || "")}" />
         </div>
-        <div class="field">
-          <label for="profile-sex">Pol</label>
-          <select id="profile-sex" name="sex">
-            <option value="">Izaberi</option>
-            <option value="male" ${store.profile.sex === "male" ? "selected" : ""}>Muško</option>
-            <option value="female" ${store.profile.sex === "female" ? "selected" : ""}>Žensko</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="profile-age">Godine</label>
-          <input id="profile-age" name="age" type="number" inputmode="decimal" min="0" value="${store.profile.age || ""}" />
-        </div>
-        <div class="field">
-          <label for="profile-weight">Težina (kg)</label>
-          <input id="profile-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.profile.weightKg || ""}" />
-        </div>
-        <div class="field">
-          <label for="profile-height">Visina (cm)</label>
-          <input id="profile-height" name="heightCm" type="number" inputmode="decimal" step="1" min="0" value="${store.profile.heightCm || ""}" />
-        </div>
-        <div class="field field--full">
-          <label for="profile-activity">Aktivnost</label>
-          <select id="profile-activity" name="activityLevel">
-            ${ACTIVITY_LEVELS.map((activity) => `<option value="${activity.id}" ${store.profile.activityLevel === activity.id ? "selected" : ""}>${activity.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="form-group-label">Cilj</div>
-        <div class="field">
-          <label for="goal-target-mode">Cilj</label>
-          <select id="goal-target-mode" name="targetMode">
-            ${GOAL_MODES.map((mode) => `<option value="${mode.id}" ${store.goals.targetMode === mode.id ? "selected" : ""}>${mode.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="goal-pace">Tempo</label>
-          <select id="goal-pace" name="paceLevel">
-            ${PACE_LEVELS.map((level) => `<option value="${level.id}" ${(store.goals.paceLevel || "umereno") === level.id ? "selected" : ""}>${level.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field field--full">
-          <label for="goal-target-weight">Ciljna težina (kg)</label>
-          <input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />
-        </div>
+        ${renderChoiceField("Pol", "sex", store.profile.sex, [
+          { id: "male", label: "Muško" },
+          { id: "female", label: "Žensko" },
+        ])}
+        ${renderUnitField("profile-age", "Godine", "god.", `<input id="profile-age" name="age" type="number" inputmode="decimal" min="0" value="${store.profile.age || ""}" />`)}
+        ${renderUnitField("profile-weight", "Težina", "kg", `<input id="profile-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.profile.weightKg || ""}" />`)}
+        ${renderUnitField("profile-height", "Visina", "cm", `<input id="profile-height" name="heightCm" type="number" inputmode="decimal" step="1" min="0" value="${store.profile.heightCm || ""}" />`)}
+        ${renderChoiceField(
+          "Aktivnost",
+          "activityLevel",
+          store.profile.activityLevel,
+          ACTIVITY_LEVELS.map((activity) => ({
+            id: activity.id,
+            label: ACTIVITY_SHORT_LABELS[activity.id] || activity.label,
+            hint: ACTIVITY_HINTS[activity.id] || "",
+          }))
+        )}
+        <div class="form-group-label">Cilj i tempo</div>
+        ${renderChoiceField("Cilj", "targetMode", store.goals.targetMode, GOAL_MODES.map((mode) => ({ id: mode.id, label: mode.label })))}
+        ${renderChoiceField(
+          "Tempo",
+          "paceLevel",
+          store.goals.paceLevel || "umereno",
+          PACE_LEVELS.map((level) => ({ id: level.id, label: level.label, hint: paceHintFor(level.id, store.goals.targetMode) }))
+        )}
+        ${renderUnitField("goal-target-weight", "Ciljna težina", "kg", `<input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />`, true)}
         <div class="form-group-label">Dnevni unos</div>
-        <div class="field field--full">
-          <label for="goal-calories">Dnevni cilj kcal</label>
-          <input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />
-        </div>
+        ${renderUnitField("goal-calories", "Dnevni cilj", "kcal", `<input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />`, true)}
         <div class="form-grid-3">
-        <div class="field">
-          <label for="goal-protein">Proteini</label>
-          <input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />
+        ${renderUnitField("goal-protein", "Proteini", "g", `<input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />`)}
+        ${renderUnitField("goal-carbs", "Ugljeni hidrati", "g", `<input id="goal-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.carbs || ""}" />`)}
+        ${renderUnitField("goal-fat", "Masti", "g", `<input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />`)}
         </div>
-        <div class="field">
-          <label for="goal-carbs">Ugljeni hidrati</label>
-          <input id="goal-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.carbs || ""}" />
-        </div>
-        <div class="field">
-          <label for="goal-fat">Masti</label>
-          <input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />
-        </div>
-        </div>
+        <!-- Makroi i kalorijski cilj su dva odvojena polja koja se lako raziđu.
+             Ovaj red živo sabira 4/4/9 i kaže koliko fali ili je previše. -->
+        <p class="macro-check field--full" id="goal-macro-check" data-role="macro-check">${renderGoalMacroCheck(store.goals)}</p>
         <div class="form-grid-2 goals-daily-extras">
         <div class="field">
-          <label for="goal-water">Voda (L)</label>
+          <label for="goal-water">Voda</label>
           <input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />
         </div>
         <div class="field">
-          <label for="goal-steps">Koraci</label>
+          <label for="goal-steps">Koraci dnevno</label>
           <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
         </div>
         </div>
@@ -17741,6 +17800,36 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "pick-goal-option") {
+    const name = actionTarget.dataset.choiceName || "";
+    const value = actionTarget.dataset.choiceValue || "";
+    const group = actionTarget.closest(".choice-chips");
+    const hidden = document.querySelector(`[data-choice-input="${name}"]`);
+    if (!group || !hidden) {
+      return;
+    }
+    // Deliberately no render(): the goals form holds other unsaved edits.
+    hidden.value = value;
+    group.querySelectorAll(".choice-chip").forEach((chip) => {
+      const on = chip === actionTarget;
+      chip.classList.toggle("is-active", on);
+      chip.setAttribute("aria-checked", String(on));
+    });
+    // The pace chips state kg/week, which depends on whether you are cutting
+    // or bulking — so they have to follow a change of goal.
+    if (name === "targetMode") {
+      document.querySelectorAll('[data-choice-name="paceLevel"]').forEach((chip) => {
+        const hintEl = chip.querySelector(".choice-chip-hint");
+        const hint = paceHintFor(chip.dataset.choiceValue, value);
+        if (hintEl) {
+          hintEl.textContent = hint;
+          hintEl.hidden = !hint;
+        }
+      });
+    }
+    return;
+  }
+
   if (action === "jump-measurement") {
     state.activeTab = "progress";
     state.progressView = "merenja";
@@ -18694,6 +18783,23 @@ function handleInput(event) {
         }
       }
     });
+    return;
+  }
+
+  if (
+    target instanceof HTMLInputElement &&
+    ["goal-calories", "goal-protein", "goal-carbs", "goal-fat"].includes(target.id)
+  ) {
+    const holder = document.querySelector('[data-role="macro-check"]');
+    if (holder) {
+      const read = (id) => toNumber(document.querySelector(`#${id}`)?.value);
+      holder.innerHTML = renderGoalMacroCheck({
+        calories: read("goal-calories"),
+        protein: read("goal-protein"),
+        carbs: read("goal-carbs"),
+        fat: read("goal-fat"),
+      });
+    }
     return;
   }
 
