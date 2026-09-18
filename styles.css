@@ -11927,3 +11927,62 @@ button.meal-entry-body:focus-visible {
     max-width: 52ch;
   }
 }
+
+/* ============================================================
+   Accent discipline (2026-09-18). One accent moment per region:
+   active navigation, the primary action, and progress/status.
+   Repeated data values go back to ink — 87 gold kcal figures in a
+   food list is noise, not hierarchy.
+   ============================================================ */
+
+/* Active nav is a quiet row with an accent marker, not a filled block that
+   outshouts every screen. */
+.menu-tab-button.is-active,
+.menu-tab-button.is-active:hover,
+:root[data-theme="dark"] .menu-tab-button.is-active,
+:root[data-theme="dark"] .menu-tab-button.is-active:hover {
+  position: relative;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+}
+.menu-tab-button.is-active::after,
+:root[data-theme="dark"] .menu-tab-button.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.menu-tab-button.is-active .menu-tab-label,
+:root[data-theme="dark"] .menu-tab-button.is-active .menu-tab-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+.menu-tab-button.is-active .icon,
+:root[data-theme="dark"] .menu-tab-button.is-active .icon {
+  color: var(--accent);
+}
+.app-frame.is-sidebar-collapsed .menu-tab-button.is-active::after,
+:root[data-theme="dark"] .app-frame.is-sidebar-collapsed .menu-tab-button.is-active::after {
+  display: none;
+}
+
+/* Repeated figures in lists read as data, not as links. */
+.food-row-kcal,
+.recipe-library-stat-kcal,
+.routine-streak-card .routine-streak-value {
+  color: var(--ink);
+}
+
+/* Namirnice: the two actions belong together, at the end of the toolbar —
+   they were pinned to opposite edges with 600px of nothing between them. */
+.foods-secondary {
+  justify-content: flex-end;
+}
+.foods-secondary .foods-add-inline {
+  margin-left: 0;
+}
