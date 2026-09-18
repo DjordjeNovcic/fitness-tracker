@@ -12499,3 +12499,11 @@ button.meal-entry-body:focus-visible {
 .section:has(> .help-note:not(.help-note--inline)) > .foods-head {
   padding-right: 44px;
 }
+
+/* An odd number of settings cards left the last one alone in a two-column row
+   with 500px of nothing beside it. A lone trailing card takes the whole row. */
+@media (min-width: 900px) {
+  .settings-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
