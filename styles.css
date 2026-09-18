@@ -11317,15 +11317,21 @@ body {
   }
 }
 
-/* Progress: single empty state with actions. */
+/* Progress: single empty state with actions. It is the one empty state with
+   its own buttons, so it keeps the generic "+" glyph off (the buttons already
+   say what to do) — but it centres like every other empty state instead of
+   hugging the left edge of a full-width card. */
 .progress-empty-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   margin-top: 12px;
 }
 .progress-empty-guide {
-  text-align: left;
+  justify-items: center;
+  max-width: 52ch;
+  margin-inline: auto;
 }
 
 /* Training: watch kcal entry folds under the day's plan. */
