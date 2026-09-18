@@ -11792,14 +11792,38 @@ button.meal-entry-body:focus-visible {
   display: grid;
   gap: 14px;
 }
-.plan-tool-fields {
-  display: grid;
+
+/* One action, one row: the three choices and the button that acts on them sit
+   together, each field only as wide as its content needs. On phones they stack
+   and the button goes full width. */
+.plan-tool-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: 12px;
 }
-@media (min-width: 560px) {
-  .plan-tool-fields {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+.plan-tool-form--inline .field {
+  flex: 1 1 150px;
+  max-width: 220px;
+  gap: 6px;
+}
+.plan-tool-form--inline .field label {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.plan-tool-submit {
+  flex: 0 0 auto;
+}
+@media (max-width: 559px) {
+  .plan-tool-form--inline .field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .plan-tool-submit {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 }
 @media (min-width: 900px) {

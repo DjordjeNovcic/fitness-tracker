@@ -8867,33 +8867,29 @@ function renderPlanTab(entries) {
           <div class="plan-tool-head">
             <h3>Kopiraj ${weekdayAccusative(state.selectedWeekday)} na drugi dan</h3>
           </div>
-          <form id="duplicate-day-form" class="plan-tool-form">
-            <div class="plan-tool-fields">
-              <div class="field">
-                <label for="duplicate-target-weekday">Ciljni dan</label>
-                <select id="duplicate-target-weekday" name="targetWeekday" required>
-                  <option value="">Izaberi dan</option>
-                  ${WEEKDAYS.map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`).join("")}
-                </select>
-              </div>
-              <div class="field">
-                <label for="duplicate-target-week-track">Ciljna nedelja</label>
-                <select id="duplicate-target-week-track" name="targetWeekTrack">
-                  <option value="${state.selectedWeekTrack}">${getWeekTrackLabel(state.selectedWeekTrack)}</option>
-                  <option value="${state.selectedWeekTrack === 1 ? 0 : 1}">${getWeekTrackLabel(state.selectedWeekTrack === 1 ? 0 : 1)}</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="duplicate-mode">Način kopiranja</label>
-                <select id="duplicate-mode" name="mode">
-                  <option value="append">Dodaj u plan</option>
-                  <option value="replace">Prepiši dan</option>
-                </select>
-              </div>
+          <form id="duplicate-day-form" class="plan-tool-form plan-tool-form--inline">
+            <div class="field">
+              <label for="duplicate-target-weekday">Dan</label>
+              <select id="duplicate-target-weekday" name="targetWeekday" required>
+                <option value="">Izaberi dan</option>
+                ${WEEKDAYS.map((weekday) => `<option value="${weekday}">${weekdayLabel(weekday)}</option>`).join("")}
+              </select>
             </div>
-            <div class="plan-tool-actions">
-              <button class="solid-button button-with-icon" type="submit">${renderButtonContent("Kopiraj dan", "copy")}</button>
+            <div class="field">
+              <label for="duplicate-target-week-track">Nedelja</label>
+              <select id="duplicate-target-week-track" name="targetWeekTrack">
+                <option value="${state.selectedWeekTrack}">${getWeekTrackLabel(state.selectedWeekTrack)}</option>
+                <option value="${state.selectedWeekTrack === 1 ? 0 : 1}">${getWeekTrackLabel(state.selectedWeekTrack === 1 ? 0 : 1)}</option>
+              </select>
             </div>
+            <div class="field">
+              <label for="duplicate-mode">Način</label>
+              <select id="duplicate-mode" name="mode">
+                <option value="append">Dodaj u plan</option>
+                <option value="replace">Prepiši dan</option>
+              </select>
+            </div>
+            <button class="solid-button button-with-icon plan-tool-submit" type="submit">${renderButtonContent("Kopiraj", "copy")}</button>
           </form>
         </div>
 
@@ -8901,13 +8897,13 @@ function renderPlanTab(entries) {
           <div class="plan-tool-head">
             <h3>Obriši obroke</h3>
           </div>
-          <p class="footer-note plan-tool-note">Briše nečekirane obroke — za izabrani dan ili za više dana odjednom. Posle brisanja stiže dugme za poništavanje.</p>
+          <p class="footer-note plan-tool-note">Briše nečekirane obroke. Posle brisanja stiže dugme za poništavanje.</p>
           <div class="plan-tool-actions">
             <button class="danger-button button-with-icon" type="button" data-action="delete-day-plan" ${entries.length ? "" : "disabled"}>
               ${renderButtonContent(`Obriši ${weekdayLabel(state.selectedWeekday).toLowerCase()}`, "delete")}
             </button>
             <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
-              ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori izbor" : "Izaberi više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
+              ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori izbor" : "Više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
             </button>
           </div>
           ${
