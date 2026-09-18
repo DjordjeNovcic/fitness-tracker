@@ -15062,6 +15062,7 @@ function render() {
     filterRecipeCardsInline(state.recipeSearch);
   }
   paintRestTimers();
+  syncDialogFocus();
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
   state.lastAddedEntryId = "";
@@ -15566,17 +15567,16 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "open-food-editor-dialog") {
+    rememberDialogTrigger(actionTarget);
     openFoodEditorDialog("");
     render();
-    window.requestAnimationFrame(() => {
-      document.querySelector("#food-name")?.focus();
-    });
     return;
   }
 
   if (action === "close-food-editor-dialog") {
     closeFoodEditorDialog();
     render();
+    restoreFocusAfterDialog();
     return;
   }
 
@@ -16702,6 +16702,7 @@ async function handleDocumentClick(event) {
     if (!favorite) {
       return;
     }
+    rememberDialogTrigger(actionTarget);
     openRecipeApplyDialog(favorite);
     render();
     return;
@@ -16710,6 +16711,7 @@ async function handleDocumentClick(event) {
   if (action === "close-recipe-apply-dialog") {
     closeRecipeApplyDialog();
     render();
+    restoreFocusAfterDialog();
     return;
   }
 
@@ -17634,17 +17636,18 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "open-quick-entry") {
+    rememberDialogTrigger(actionTarget);
     state.quickEntryOpen = true;
     state.quickEntryText = "";
     state.quickEntryOverrides = {};
     render();
-    window.requestAnimationFrame(() => document.querySelector("#quick-entry-input")?.focus());
     return;
   }
 
   if (action === "close-quick-entry") {
     state.quickEntryOpen = false;
     render();
+    restoreFocusAfterDialog();
     return;
   }
 
@@ -19212,6 +19215,117 @@ document.addEventListener("focusout", (event) => {
       list.hidden = true;
     }
   }, 120);
+});
+
+// ---------------------------------------------------------------------------
+// Modal focus. Every dialog carried role="dialog" aria-modal="true" but nothing
+// enforced it: opening one left focus on <body>, and Tab walked straight out
+// into the ~180 focusable elements of the page behind. These three pieces make
+// aria-modal true in practice — focus moves in, Tab cycles inside, and closing
+// hands focus back to whatever opened it.
+// ---------------------------------------------------------------------------
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+// Same precedence the Escape handler uses, so "top-most" means one thing.
+function getOpenDialogElement() {
+  const selector = state.scannerOpen
+    ? ".scanner-dialog"
+    : state.quickEntryOpen
+      ? ".quick-entry-dialog"
+      : state.foodEditorOpen
+        ? ".food-editor-dialog"
+        : state.recipeApplyDialog && state.recipeApplyDialog.favoriteId
+          ? ".recipe-apply-dialog"
+          : "";
+  return selector ? document.querySelector(selector) : null;
+}
+
+function getDialogFocusables(dialog) {
+  return [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (el) => el.offsetParent !== null || el === document.activeElement
+  );
+}
+
+// Remembered as a selector, not a node: render() replaces the DOM wholesale, so
+// the element that opened the dialog is gone by the time it closes.
+let dialogReturnFocusSelector = "";
+
+function rememberDialogTrigger(actionTarget) {
+  const action = actionTarget && actionTarget.dataset ? actionTarget.dataset.action : "";
+  dialogReturnFocusSelector = action ? `[data-action="${action}"]` : "";
+}
+
+function restoreFocusAfterDialog() {
+  if (!dialogReturnFocusSelector) {
+    return;
+  }
+  // The same action often has two triggers — a phone FAB and a desktop button —
+  // and only one of them is on screen. Focusing the hidden one silently does
+  // nothing and leaves focus on <body>.
+  const target = [...document.querySelectorAll(dialogReturnFocusSelector)].find((el) => el.offsetParent !== null);
+  dialogReturnFocusSelector = "";
+  if (target) {
+    target.focus();
+  }
+}
+
+// Called at the end of render(): if a dialog is open and focus is not inside
+// it, pull focus in — preferring the first text field, which is what the user
+// came to type into. Focus is set synchronously on purpose: the first version
+// deferred it to requestAnimationFrame and the callback did not reliably run,
+// so the dialog opened with focus still on <body>. The DOM is already in place
+// by the end of render(), so there is nothing to wait for.
+function syncDialogFocus() {
+  const dialog = getOpenDialogElement();
+  if (!dialog) {
+    return;
+  }
+  if (dialog.contains(document.activeElement)) {
+    return;
+  }
+  const focusables = getDialogFocusables(dialog);
+  const preferred =
+    focusables.find((el) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) || focusables[0];
+  if (preferred) {
+    preferred.focus();
+  } else {
+    dialog.setAttribute("tabindex", "-1");
+    dialog.focus();
+  }
+}
+
+// Tab cycles inside the open dialog instead of escaping behind it.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Tab") {
+    return;
+  }
+  const dialog = getOpenDialogElement();
+  if (!dialog) {
+    return;
+  }
+  const focusables = getDialogFocusables(dialog);
+  if (!focusables.length) {
+    event.preventDefault();
+    return;
+  }
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+  if (!dialog.contains(active)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+    return;
+  }
+  if (event.shiftKey && active === first) {
+    event.preventDefault();
+    last.focus();
+    return;
+  }
+  if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
 });
 
 // Escape closes the top-most open overlay, reusing its existing close handler
