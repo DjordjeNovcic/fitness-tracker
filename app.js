@@ -7382,20 +7382,20 @@ function renderMenuToggleIcon(isOpen) {
 function renderActionIcon(kind) {
   const icons = {
     add: '<path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/>',
-    edit: '<path fill="currentColor" d="m4 16.25 9.7-9.7 4 4L8 20.25H4zm11.1-10.4 1.7-1.7a1.5 1.5 0 0 1 2.1 0l.95.95a1.5 1.5 0 0 1 0 2.1l-1.7 1.7-4-4Z"/>',
+    edit: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     delete:
-      '<path fill="currentColor" d="M9 3.75h6a1.75 1.75 0 0 1 1.75 1.75v.25H20A1.25 1.25 0 1 1 20 8.25H4A1.25 1.25 0 1 1 4 5.75h3.25V5.5A1.75 1.75 0 0 1 9 3.75Zm.75 2h4.5V5.5a.25.25 0 0 0-.25-.25h-4a.25.25 0 0 0-.25.25v.25Zm-2.2 3.75h9.9l-.7 9.07A2 2 0 0 1 14.75 20h-5.5a2 2 0 0 1-1.99-1.43L6.55 9.5Zm2.2 2.1a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Zm3.1 0a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Zm3.1 0a.85.85 0 0 0-1.7 0v4.8a.85.85 0 0 0 1.7 0v-4.8Z"/>',
+      '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
     save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
-    undo: '<path fill="currentColor" d="M10 7V4L4 9l6 5v-3c3.7 0 6.1 1.3 7 4-0.1-5.1-2.8-8-7-8Z"/>',
+    undo: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
     apply: '<path fill="currentColor" d="M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8L19.2 6 9 16.2Z"/>',
     share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
     close: '<path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"/>',
     minus: '<path fill="currentColor" d="M5 11h14v2H5z"/>',
-    flash: '<path fill="currentColor" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2z"/>',
+    flash: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2Z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -7496,7 +7496,7 @@ function renderCollapseHint(text) {
 }
 
 function renderRestIcon() {
-  return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
+  return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
 }
 
 function renderChevronIcon(isOpen) {
@@ -7511,7 +7511,7 @@ function renderSideChevronIcon(pointsLeft) {
 
 // Crafted favorite star — outline when off, filled when active. Replaces ★/☆.
 function renderStarIcon(isActive) {
-  return `<svg class="star-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4l2.55 5.17 5.7.83-4.13 4.02.98 5.68L12 16.6l-5.1 2.68.98-5.68L3.75 9.4l5.7-.83z"/></svg>`;
+  return `<svg class="star-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4l2.55 5.17 5.7.83-4.13 4.02.98 5.68L12 16.6l-5.1 2.68.98-5.68L3.75 9.4l5.7-.83z"/></svg>`;
 }
 
 // Small up/down trend arrow — replaces ↑/↓ text glyphs in delta readouts.
@@ -7521,7 +7521,7 @@ function renderTrendArrowIcon(down) {
 
 // Small search glass — same mark as the Namirnice search box, reused inline in field icons.
 function renderSearchIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>`;
 }
 
 function renderAuthShell() {
