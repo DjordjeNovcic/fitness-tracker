@@ -2142,7 +2142,6 @@ textarea::placeholder {
     padding: 14px 16px;
   }
 
-
   /* Ciljevi's "Cilj" summary (stat-hero + BMR/macro pills) and Rutina's daily
      summary sit above a capped form/list like the ones above, but weren't in
      that list themselves: the hero centered its text across the whole wide
@@ -11758,61 +11757,14 @@ button.meal-entry-body:focus-visible {
   letter-spacing: -0.01em;
   color: var(--ink);
 }
-.plan-tool-link {
-  flex: 0 0 auto;
-  padding: 2px 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.plan-tool-link:hover,
-.plan-tool-link:focus-visible {
-  color: var(--ink);
-}
+
 .plan-tool-note {
   margin: 0;
   max-width: 62ch;
 }
-.plan-tool-macros {
-  margin-top: 0;
-}
 
 /* The day suggestion reads as a menu: one line per meal, foods and amounts
    in a quiet second column. */
-.plan-suggestion-meals {
-  display: grid;
-  gap: 0;
-  margin: 2px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.plan-suggestion-meal {
-  display: grid;
-  grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
-  gap: 4px 14px;
-  padding: 8px 0;
-  border-top: 1px solid var(--line);
-}
-.plan-suggestion-meal:first-child {
-  border-top: 0;
-}
-.plan-suggestion-meal-label {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-.plan-suggestion-meal-items {
-  font-size: 0.875rem;
-  color: var(--ink);
-  line-height: 1.5;
-}
-.plan-suggestion-grams {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 
 /* Actions sit on their own line, sized to their labels, never stretched into
    equal halves. */
@@ -11844,8 +11796,7 @@ button.meal-entry-body:focus-visible {
   .plan-tool {
     padding: 20px 0;
   }
-  .plan-tool-note,
-  .plan-suggestion-meals {
+  .plan-tool-note {
     max-width: 72ch;
   }
 }

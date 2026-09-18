@@ -780,7 +780,6 @@ function mirrorSingleTrackPlan(targetStore) {
 function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
   const fallbackUi = {
     plan: {
-      hideDaySuggestion: false,
       expandedMealsByWeekday: {},
     },
     recipes: {
@@ -1010,9 +1009,6 @@ function ensureStoreCollections(targetStore) {
   targetStore.ui = targetStore.ui || {};
   targetStore.ui.plan = targetStore.ui.plan || {};
   targetStore.ui.recipes = targetStore.ui.recipes || {};
-  if (typeof targetStore.ui.plan.hideDaySuggestion !== "boolean") {
-    targetStore.ui.plan.hideDaySuggestion = false;
-  }
   if (!targetStore.ui.plan.expandedMealsByWeekday || typeof targetStore.ui.plan.expandedMealsByWeekday !== "object") {
     targetStore.ui.plan.expandedMealsByWeekday = {};
   }
@@ -6691,124 +6687,6 @@ function calculateGramsForTarget(food, macroKey, targetValue, fallbackGrams = 10
   return roundValue(clamp(amount, min, max), 0);
 }
 
-function generateDaySuggestion() {
-  const breakfastProtein = findFoodByName(["przeno jaje", "kuvano jaje"], "Proteini");
-  const breakfastCarb = findFoodByName(["ovsene pahuljice", "integralna tortilja"], "UH");
-  const breakfastFruit = findFoodByName(["banana"], "UH");
-  const snackProtein = findFoodByName(["ella sir", "grcki jogurt", "balans jogurt"], "Proteini");
-  const snackFat = findFoodByName(["badem", "orah"], "Masti");
-  const lunchProtein = findFoodByName(["piletina", "pileca prsa", "tunjevina"], "Proteini");
-  const lunchCarb = findFoodByName(["beli pirinac", "beli krompir"], "UH");
-  const lunchVeg = findFoodByName(["brokoli", "icebarg salata", "paradajz"], "Ostalo");
-  const postProtein = findFoodByName(["protein"], "Proteini");
-  const postCarb = findFoodByName(["banana", "jabuka"], "UH");
-  const dinnerProtein = findFoodByName(["tunjevina", "piletina", "ella sir"], "Proteini");
-  const dinnerFat = findFoodByName(["maslinovo ulje", "avokado"], "Masti");
-  const dinnerVeg = findFoodByName(["icebarg salata", "brokoli", "zelena salata"], "Ostalo");
-
-  const meals = [
-    {
-      mealLabel: "1. Dorucak",
-      items: [
-        breakfastProtein &&
-          {
-            food: breakfastProtein,
-            grams: calculateGramsForTarget(breakfastProtein, "protein", store.goals.protein * 0.18, 150, 80, 250),
-          },
-        breakfastCarb &&
-          {
-            food: breakfastCarb,
-            grams: calculateGramsForTarget(breakfastCarb, "carbs", store.goals.carbs * 0.28, 70, 40, 140),
-          },
-        breakfastFruit && {
-          food: breakfastFruit,
-          grams: calculateGramsForTarget(breakfastFruit, "carbs", store.goals.carbs * 0.16, 120, 80, 220),
-        },
-      ].filter(Boolean),
-    },
-    {
-      mealLabel: "2. Prva užina",
-      items: [
-        snackProtein &&
-          {
-            food: snackProtein,
-            grams: calculateGramsForTarget(snackProtein, "protein", store.goals.protein * 0.12, 150, 80, 250),
-          },
-        snackFat && {
-          food: snackFat,
-          grams: calculateGramsForTarget(snackFat, "fat", store.goals.fat * 0.18, 20, 10, 50),
-        },
-      ].filter(Boolean),
-    },
-    {
-      mealLabel: "3. Ručak",
-      items: [
-        lunchProtein &&
-          {
-            food: lunchProtein,
-            grams: calculateGramsForTarget(lunchProtein, "protein", store.goals.protein * 0.28, 200, 120, 320),
-          },
-        lunchCarb &&
-          {
-            food: lunchCarb,
-            grams: calculateGramsForTarget(lunchCarb, "carbs", store.goals.carbs * 0.34, 120, 60, 220),
-          },
-        lunchVeg && {
-          food: lunchVeg,
-          grams: 200,
-        },
-      ].filter(Boolean),
-    },
-    {
-      mealLabel: "4. Druga užina",
-      items: [
-        postProtein &&
-          {
-            food: postProtein,
-            grams: calculateGramsForTarget(postProtein, "protein", store.goals.protein * 0.14, 30, 20, 60),
-          },
-        postCarb && {
-          food: postCarb,
-          grams: calculateGramsForTarget(postCarb, "carbs", store.goals.carbs * 0.14, 100, 80, 180),
-        },
-      ].filter(Boolean),
-    },
-    {
-      mealLabel: "5. Vecera",
-      items: [
-        dinnerProtein &&
-          {
-            food: dinnerProtein,
-            grams: calculateGramsForTarget(dinnerProtein, "protein", store.goals.protein * 0.22, 180, 100, 260),
-          },
-        dinnerVeg && {
-          food: dinnerVeg,
-          grams: 200,
-        },
-        dinnerFat && {
-          food: dinnerFat,
-          grams: calculateGramsForTarget(dinnerFat, "fat", store.goals.fat * 0.22, 10, 5, 30),
-        },
-      ].filter(Boolean),
-    },
-  ].filter((meal) => meal.items.length);
-
-  const flattened = meals.flatMap((meal) =>
-    meal.items.map((item) => ({
-      mealLabel: meal.mealLabel,
-      foodId: item.food.id,
-      foodName: item.food.name,
-      grams: item.grams,
-      totals: calculateEntry(item.food, item.grams),
-    }))
-  );
-
-  return {
-    meals,
-    totals: getDayTotals(flattened),
-  };
-}
-
 function generateCompanionSuggestions() {
   const food = getDraftFood();
   const grams = toNumber(state.planDraft.grams);
@@ -8549,11 +8427,9 @@ function renderMealPrepPanel(mealLabel) {
     </div>`;
 }
 
-function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
+function renderPlanWelcomeGuide(calorieGoal) {
   const name = String(store.profile?.name || "").trim();
   const hasGoal = calorieGoal > 0;
-  const canApplySuggestion =
-    hasGoal && daySuggestion && Array.isArray(daySuggestion.meals) && daySuggestion.meals.length > 0;
   return `
     <section class="section plan-welcome-guide">
       <div class="plan-welcome-head">
@@ -8585,14 +8461,7 @@ function renderPlanWelcomeGuide(calorieGoal, daySuggestion) {
           <span class="plan-welcome-step-num" aria-hidden="true">2</span>
           <div class="plan-welcome-step-body">
             <strong>Sastavi prvi dan</strong>
-            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod — makroi se računaju sami.${
-              canApplySuggestion ? " Ili odmah primeni gotov predlog celog dana." : ""
-            }</span>
-            ${
-              canApplySuggestion
-                ? `<div class="plan-welcome-actions"><button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">${renderButtonContent("Primeni predlog dana", "apply")}</button></div>`
-                : ""
-            }
+            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod — makroi se računaju sami.</span>
           </div>
         </li>
         <li class="plan-welcome-step">
@@ -8731,13 +8600,11 @@ function renderPlanTab(entries) {
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
   const favoriteFoods = getFavoriteFoodsDetailed();
   const mealPreviewRows = getMealPreviewRows(groupedEntries);
-  const daySuggestion = generateDaySuggestion();
   const companionSuggestions = generateCompanionSuggestions();
   const draftFood = getDraftFood();
-  const isDaySuggestionHidden = Boolean(store.ui?.plan?.hideDaySuggestion);
 
   return `
-    ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal, daySuggestion) : ""}
+    ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal) : ""}
 
     <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
       <button
@@ -8996,55 +8863,6 @@ function renderPlanTab(entries) {
         </div>
       </button>
       <div class="plan-tools ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
-        ${
-          isDaySuggestionHidden
-            ? `
-              <div class="plan-tool">
-                <div class="plan-tool-head">
-                  <h3>Predlog celog dana</h3>
-                  <button class="plan-tool-link" type="button" data-action="show-day-suggestion">Prikaži</button>
-                </div>
-                <p class="footer-note plan-tool-note">Sklonjen je sa ekrana. Vrati ga kad ti zatreba.</p>
-              </div>
-            `
-            : `
-              <div class="plan-tool">
-                <div class="plan-tool-head">
-                  <h3>Predlog celog dana</h3>
-                  <button class="plan-tool-link" type="button" data-action="hide-day-suggestion">Sakrij</button>
-                </div>
-                <div class="pill-row plan-tool-macros">
-                  <span class="pill strong">${roundValue(daySuggestion.totals.kcal, 0)} kcal</span>
-                  <span class="pill">P ${roundValue(daySuggestion.totals.protein, 0)} g</span>
-                  <span class="pill">UH ${roundValue(daySuggestion.totals.carbs, 0)} g</span>
-                  <span class="pill">M ${roundValue(daySuggestion.totals.fat, 0)} g</span>
-                </div>
-                <ul class="plan-suggestion-meals">
-                  ${daySuggestion.meals
-                    .map((meal) => {
-                      const parts = getMealDisplayParts(normalizeMealLabel(meal.mealLabel));
-                      return `
-                        <li class="plan-suggestion-meal">
-                          <span class="plan-suggestion-meal-label">${escapeHtml(parts.title || meal.mealLabel)}</span>
-                          <span class="plan-suggestion-meal-items">${meal.items
-                            .map((item) => `${escapeHtml(item.food.name)} <span class="plan-suggestion-grams">${roundValue(item.grams, 0)} g</span>`)
-                            .join(" · ")}</span>
-                        </li>`;
-                    })
-                    .join("")}
-                </ul>
-                <div class="plan-tool-actions">
-                  <button class="solid-button secondary-button button-with-icon" data-action="apply-day-suggestion" data-mode="replace">
-                    ${renderButtonContent("Primeni na dan", "apply")}
-                  </button>
-                  <button class="ghost-button button-with-icon" data-action="apply-day-suggestion" data-mode="append">
-                    ${renderButtonContent("Dodaj u plan", "add")}
-                  </button>
-                </div>
-              </div>
-            `
-        }
-
         <div class="plan-tool">
           <div class="plan-tool-head">
             <h3>Kopiraj ${weekdayAccusative(state.selectedWeekday)} na drugi dan</h3>
@@ -15657,20 +15475,6 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "hide-day-suggestion") {
-    store.ui.plan.hideDaySuggestion = true;
-    persist();
-    render();
-    return;
-  }
-
-  if (action === "show-day-suggestion") {
-    store.ui.plan.hideDaySuggestion = false;
-    persist();
-    render();
-    return;
-  }
-
   if (action === "prefill-exercise-progress") {
     state.trainingProgressPrefill = String(actionTarget.dataset.exerciseName || "").trim();
     state.trainingProgressOpen = true;
@@ -16201,40 +16005,6 @@ async function handleDocumentClick(event) {
         document.querySelector("#food-search-input")?.focus();
       });
     }
-    return;
-  }
-
-  if (action === "apply-day-suggestion") {
-    const mode = actionTarget.dataset.mode || "append";
-    const suggestion = generateDaySuggestion();
-    if (!suggestion.meals.length) {
-      return;
-    }
-    if (mode === "replace") {
-      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${weekdayLabel(state.selectedWeekday)} ovim predlogom?`);
-      if (!confirmed) {
-        return;
-      }
-      store.weeklyPlanEntries = store.weeklyPlanEntries.filter(
-        (entry) => !(entry.weekday === state.selectedWeekday && normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
-      );
-    }
-    suggestion.meals.forEach((meal) => {
-      meal.items.forEach((item) => {
-        store.weeklyPlanEntries.push({
-          id: uid("plan"),
-          weekday: state.selectedWeekday,
-          weekTrack: state.selectedWeekTrack,
-          mealLabel: normalizeMealLabel(meal.mealLabel),
-          foodId: item.food.id,
-          foodName: item.food.name,
-          grams: item.grams,
-          done: false,
-        });
-      });
-    });
-    persist();
-    render();
     return;
   }
 
