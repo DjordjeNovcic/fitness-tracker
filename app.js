@@ -12267,9 +12267,20 @@ function renderGoalsTab() {
       </form>
       </div>
       ${
+        // At >=1280px this card is a two-column composition: form on the left,
+        // weight trend on the right. With no weigh-ins there is no chart, and
+        // the column used to sit empty — a 500px void beside a capped form.
+        // The prompt that fills it is also the thing that unlocks both the
+        // chart and the goal calibration, so the space earns its place.
         getMeasurementSeries("weightKg").length
           ? `<div class="goals-cilj-chart">${renderTrendCard(measurementFields.find((field) => field.id === "weightKg"))}</div>`
-          : ""
+          : `<div class="goals-cilj-chart goals-chart-invite">
+              <div class="empty">
+                <strong>Još nema merenja težine.</strong>
+                <span>Unesi težinu jednom nedeljno — ovde se crta trend, a cilj počinje da se proverava prema onome što telo stvarno radi, ne prema formuli.</span>
+                <button class="solid-button button-with-icon" type="button" data-action="jump-measurement">${renderButtonContent("Unesi prvo merenje", "add")}</button>
+              </div>
+            </div>`
       }
       </div>
     </section>

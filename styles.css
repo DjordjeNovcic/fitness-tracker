@@ -12325,3 +12325,23 @@ button.meal-entry-body:focus-visible {
     padding: 0 8px;
   }
 }
+
+/* The chart column's stand-in when there are no weigh-ins yet. It keeps the
+   two-column composition intact instead of leaving the right half of the card
+   empty, and points at the one action that fills both the chart and the
+   calibration card above it. */
+.goals-chart-invite .empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 22px 20px;
+}
+.goals-chart-invite .empty strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+.goals-chart-invite .empty span {
+  max-width: 34ch;
+  line-height: 1.5;
+}
