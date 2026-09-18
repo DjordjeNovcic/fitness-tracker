@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1d5a42" />
+    <meta name="theme-color" content="#1f5f75" />
     <meta name="description" content="Licna PWA aplikacija za plan obroka, kalorije i trening." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -24,7 +24,7 @@
           root.setAttribute("data-theme-pref", pref || "auto");
           // Browser chrome / iOS status bar follows the app theme, not a fixed green.
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", mode === "dark" ? "#1b1815" : "#1d5a42");
+          if (meta) meta.setAttribute("content", mode === "dark" ? "#0d0c0a" : "#1f5f75");
         }
         var stored;
         try { stored = localStorage.getItem("ft-theme"); } catch (e) {}

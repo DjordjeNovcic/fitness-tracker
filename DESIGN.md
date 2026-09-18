@@ -8,13 +8,13 @@ colors:
   ink: "#17201d"
   muted: "#5d6963"
   line: "rgba(24, 33, 30, 0.085)"
-  accent: "#1d5a42"
-  accent-strong: "#144433"
-  accent-soft: "#dbeadf"
-  secondary: "#2b6d52"
-  teal: "#2b6d52"
+  accent: "#1f5f75"
+  accent-strong: "#164757"
+  accent-soft: "#dbe9ef"
+  secondary: "#2b6d7d"
+  teal: "#2b6d7d"
   clay: "#efe2d6"
-  bar-ok: "linear-gradient(90deg, #2b7a63 0%, #4d9a68 100%)"
+  bar-ok: "linear-gradient(90deg, #27738c 0%, #4fa3bd 100%)"
   bar-near: "linear-gradient(90deg, #e0a83a 0%, #cf8a26 100%)"
   bar-over: "linear-gradient(90deg, #df7a48 0%, #c8442c 100%)"
   status-warning-text: "#72571b"
@@ -83,13 +83,13 @@ Fit Tracker reads like a well-kept paper food-and-training journal that happens 
 The palette is a single warm neutral family (paper cream in light, graphite in dark) carrying one accent hue that itself changes identity between modes.
 
 ### Primary
-- **Pine** (`#1d5a42`, `--accent`): primary CTAs, active nav, "ok" progress-bar state, headline numerals in light mode. In dark mode this role is carried instead by **Warm Gold** (`oklch(0.8 0.132 82)`) — the single accent color permitted in dark, used for the calorie ring, primary buttons, active nav, and strong pills.
+- **Petrol** (`#1f5f75`, `--accent`): primary CTAs, active nav marker, "ok" progress-bar state, single hero numerals in light mode. In dark mode the same role is carried by **Steel Blue** (`oklch(0.76 0.09 231)`). Chosen 2026-09-18 over the previous pine-green/gold pair: a cool accent on a warm ground, and — unlike gold or copper — it can never be confused with the amber/red "near / over budget" status colours.
 
 ### Secondary
-- **Olive** (`#8b9961`, `--secondary`): secondary buttons, "target"-kind macro bars (protein) when under goal.
+- **Deep Teal-Blue** (`#2b6d7d`, `--secondary` / `--teal`): secondary buttons, "target"-kind macro bars (protein) when under goal, informational pills.
 
-### Tertiary
-- **Muted Teal** (`#2f8076`, `--teal`): the neutral/informational state (protein "near" goal, info status pills) — distinct from the primary pine so status and brand accent never compete.
+### Named Rule: accent discipline
+One accent moment per region — active navigation, the primary action, and progress/status. Repeated figures in a list (food kcal, per-serving recipe kcal, streak counts in rows) are **ink**, not accent; only a single hero number per card takes the accent. Before this rule a food list showed 87 accent-coloured numbers and nothing read as important.
 
 ### Neutral
 - **Paper Cream** (`#efe9dd`, `--bg`) / **Deeper Clay** (`#e1d9ca`, `--bg-strong`): page background — deliberately darker than any card so cards visibly float (elevation ladder). The page itself is one clean vertical gradient (`#f4efe6 → #ebe3d6`); the old radial colour blobs on the page and on cards are gone (2026-09-17, direction "B").
@@ -99,7 +99,7 @@ The palette is a single warm neutral family (paper cream in light, graphite in d
 - In dark mode the neutral family is a four-level graphite ladder (2026-09-17): page `#0d0c0a` → chrome (sidebar, tab bar) `#100e0b` → sections/cards `#181511` → nested rows, empty states, inputs `#1e1a15`, with dialogs/toasts one step higher at `#24201a`. Dividers are neutral white hairlines (`rgba(255,255,255,0.08)` / `0.12`), ink `#f2ede5`, muted `#a69f95`. Separation between levels is tonal plus a hairline — no white "sheen" gradients, no stacked shadows.
 
 ### Named Rules
-**The No-Green-At-Night Rule.** Dark mode never uses green for anything — not nav, not CTAs, not progress bars, not borders. The only accent permitted after dark is the single warm gold. This was tried and explicitly rejected twice before landing here; treat it as a hard constraint, not a style preference.
+**The One-Accent Rule.** Both themes carry exactly one brand accent — petrol blue in light, steel blue in dark. Green survives only as the semantic success colour (`--status-success-*`, the consistency heatmap, "on target" pills); amber and red stay reserved for "near" and "over". No third brand hue.
 
 **The Semantic-Only Rule.** Color is never applied to a surface just to add visual interest. Every non-neutral color maps to a state: `ok`/`near`/`over` macro status, success/info/warning/error pills, or the one permitted brand accent. If a color can't name the state it represents, it shouldn't be there.
 
@@ -139,7 +139,7 @@ Hybrid: mostly flat, tonal-layered surfaces (paper-on-paper via the bg → surfa
 
 ### Buttons
 - **Shape:** 15px radius (`--radius-sm`), consistent across all button variants.
-- **Primary:** pine-green vertical gradient (`linear-gradient(180deg, #266b50, #1d5a42)`) in light / gold gradient in dark, cream/graphite text, 800 font-weight, `10px 16px` padding, soft ambient shadow + inset highlight for a slightly tactile (not flat) press-feel.
+- **Primary:** petrol vertical gradient (`linear-gradient(180deg, #27738c, #1f5f75)`) in light / gold gradient in dark, cream/graphite text, 800 font-weight, `10px 16px` padding, soft ambient shadow + inset highlight for a slightly tactile (not flat) press-feel.
 - **Secondary:** olive gradient, same shape/weight as primary — used when a screen needs two calls to action without implying a hierarchy the copy doesn't support.
 - **Ghost:** near-white translucent background, ink text, hairline border — the default for dismiss/cancel/"manage" actions.
 - **Danger:** pale clay/cream background with a warm brown text/border (not a saturated red) — deliberately quiet, reserved for destructive actions that already get a confirming undo-toast.
@@ -177,7 +177,7 @@ A circular Oura/Apple-style progress ring is the one memorable focal point of th
 
 ### Don't:
 - **Don't** introduce neon accents, badge/confetti gamification, or flat corporate-SaaS blue — the explicit category anti-reference for this product.
-- **Don't** let green bleed into dark mode anywhere — nav, CTAs, bars, borders. Gold is the only dark-mode accent; this has been tried and rejected twice already.
+- **Don't** introduce a second brand hue. Steel blue is the only dark-mode accent and petrol the only light-mode one; green appears solely as the success status colour.
 - **Don't** use `border-left`/`border-right` greater than 1px as a colored accent stripe on any card, row, or callout — an absolute, already-established ban in this codebase.
 - **Don't** nest a card inside a card, or box a list row that already lives inside an elevated container.
 - **Don't** use gradient text, glassmorphism as decoration, or the generic hero-metric-template layout (big number + small label + supporting stats + gradient accent) — these are the AI-slop tells this system is built to avoid.
