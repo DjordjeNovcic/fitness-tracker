@@ -71,7 +71,7 @@
   --status-success-text: #234f3c;
   --status-info-bg: rgba(219, 230, 227, 0.94);
   --status-info-border: rgba(43, 109, 125, 0.12);
-  --status-info-text: #245850;
+  --status-info-text: #1c5a6e;
   --status-warning-bg: rgba(243, 232, 203, 0.95);
   --status-warning-border: rgba(160, 127, 52, 0.14);
   --status-warning-text: #72571b;
@@ -79,8 +79,8 @@
   --status-error-border: rgba(122, 78, 56, 0.14);
   --status-error-text: #7a4e38;
   --bar-track: var(--bg-strong);
-  --bar-ok: linear-gradient(90deg, #2b6d7d 0%, #6f9e54 100%);
-  --bar-low: linear-gradient(90deg, #4f9c8f 0%, #79a96f 100%);
+  --bar-ok: linear-gradient(90deg, #27738c 0%, #4fa3bd 100%);
+  --bar-low: linear-gradient(90deg, #9aacb4 0%, #b5c3c9 100%);
   --bar-near: linear-gradient(90deg, #e0a83a 0%, #cf8a26 100%);
   --bar-over: linear-gradient(90deg, #df7a48 0%, #c8442c 100%);
   --tabbar-bg: rgba(252, 248, 242, 0.82);
@@ -915,12 +915,12 @@ textarea::placeholder {
   height: 42px;
   padding: 0 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(240, 245, 228, 0.96), rgba(225, 232, 203, 0.94));
-  color: #5a6840;
+  background: linear-gradient(135deg, rgba(219, 233, 239, 0.96), rgba(203, 224, 232, 0.94));
+  color: var(--accent-strong);
   font-weight: 800;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 8px 14px rgba(17, 40, 32, 0.06);
+    0 8px 14px rgba(16, 38, 46, 0.06);
 }
 
 .meal-composer {
@@ -1985,7 +1985,7 @@ textarea::placeholder {
   background: rgba(255, 255, 255, 0.045);
   border-color: var(--line);
 }
-:root[data-theme="dark"] .insights-callout strong { color: #f0d28a; }
+:root[data-theme="dark"] .insights-callout strong { color: var(--accent); }
 :root[data-theme="dark"] .insights-callout p strong { color: var(--ink); }
 
 /* Body composition (Sastav tela) */
@@ -2456,9 +2456,9 @@ label.is-invalid textarea:focus {
   min-height: 58px;
   padding: 10px 12px;
   border-style: dashed;
-  border-color: rgba(137, 153, 108, 0.26);
+  border-color: rgba(31, 95, 117, 0.26);
   background:
-    linear-gradient(180deg, rgba(247, 250, 242, 0.92), rgba(255, 252, 247, 0.96)),
+    linear-gradient(180deg, rgba(243, 248, 250, 0.92), rgba(255, 252, 247, 0.96)),
     rgba(255, 254, 251, 0.96);
 }
 
@@ -3174,15 +3174,6 @@ label.is-invalid textarea:focus {
   min-height: 40px;
   padding-inline: 14px;
   border-radius: 999px;
-}
-
-.recipe-filter-chip.is-active {
-  background: linear-gradient(180deg, rgba(135, 150, 91, 0.96), rgba(112, 129, 77, 0.94));
-  color: #fffaf3;
-  border-color: rgba(112, 129, 77, 0.34);
-  box-shadow:
-    0 10px 18px rgba(72, 88, 47, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .recipe-library-card {
@@ -4166,28 +4157,6 @@ body.menu-open .menu-fab {
   width: 22px;
   height: 22px;
   color: var(--accent);
-}
-
-.menu-tab-button.is-active {
-  color: #fffaf2;
-  background: linear-gradient(135deg, #17352b 0%, #225142 72%, #2c7b74 100%);
-  box-shadow:
-    0 16px 28px rgba(23, 53, 43, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-/* The desktop sidebar's active-tab highlight was still hardcoded green,
-   missed when the dark theme moved to gold-only accents — every other
-   "active" nav indicator (mobile tab bar, more-sheet dot) already goes
-   through --tabbar-active/--accent-strong and flips automatically. Reuse
-   the primary-button tokens here too, which already resolve to the gold
-   gradient in dark. */
-:root[data-theme="dark"] .menu-tab-button.is-active {
-  color: var(--button-primary-text);
-  background: var(--button-primary-bg);
-  box-shadow:
-    0 16px 28px oklch(0.76 0.09 231 / 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .mobile-menu-footer {
@@ -5982,7 +5951,7 @@ body.menu-open .tab-bar {
   aspect-ratio: 4 / 3;
   border-radius: 18px;
   overflow: hidden;
-  background: #0c1813;
+  background: #12100d;
   margin-bottom: 12px;
   cursor: pointer;
 }
@@ -10792,7 +10761,7 @@ body {
   --status-info-border: rgba(31, 95, 117, 0.14);
   --status-info-text: #1c5a6e;
   --bar-ok: linear-gradient(90deg, #27738c 0%, #4fa3bd 100%);
-  --bar-low: linear-gradient(90deg, #98ad9f 0%, #aebfb3 100%);
+  --bar-low: linear-gradient(90deg, #9aacb4 0%, #b5c3c9 100%);
 }
 
 /* Flat surfaces: cream, hairline, no gradient/inset/stripe. */
