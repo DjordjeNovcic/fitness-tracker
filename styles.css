@@ -12489,3 +12489,13 @@ button.meal-entry-body:focus-visible {
     max-width: none;
   }
 }
+
+/* The floating "Kako ovo radi?" toggle is absolutely positioned in the
+   section's top-right corner, so anything the header puts there lands under
+   it — the "Brzi unos" button on Danas ended up with the ⓘ stamped on top of
+   its corner. Reserve the corner in any section that has one, so a header
+   action can never collide with it. */
+.section:has(> .help-note:not(.help-note--inline)) > .section-header,
+.section:has(> .help-note:not(.help-note--inline)) > .foods-head {
+  padding-right: 44px;
+}
