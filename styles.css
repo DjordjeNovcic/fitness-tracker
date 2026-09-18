@@ -2191,7 +2191,7 @@ textarea::placeholder {
 @media (min-width: 1280px) {
   .goals-cilj-layout {
     display: grid;
-    grid-template-columns: minmax(0, 640px) minmax(280px, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
     align-items: start;
     gap: 28px;
   }
@@ -11879,7 +11879,7 @@ button.meal-entry-body:focus-visible {
 
 @media (min-width: 1280px) {
   .goals-cilj-layout {
-    grid-template-columns: minmax(0, 660px) minmax(300px, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   }
 }
 
@@ -12468,4 +12468,18 @@ button.meal-entry-body:focus-visible {
 }
 .goals-cilj-main > * {
   max-width: none;
+}
+/* Once the chart column exists the grid already bounds the form, so the 640px
+   cap only pushed everything left and left a 500px sidebar holding three lines
+   of text. */
+@media (min-width: 1280px) {
+  /* Named explicitly: the older `.goals-profile-section .stat-hero` cap is more
+     specific than a `> *` reset, so the hero kept its 640px and ended 136px
+     short of everything under it. */
+  .goals-cilj-main,
+  .goals-profile-section .stat-hero,
+  .goals-profile-section .goal-eta,
+  .goals-cilj-main .goals-form-layout {
+    max-width: none;
+  }
 }
