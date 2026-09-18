@@ -7479,22 +7479,31 @@ function filterFoodsListInline(query) {
     }
   });
   const ranked = [];
+  const hiddenRows = [];
   let visible = 0;
   rows.forEach((row) => {
     const haystack = row.dataset.search || "";
     const name = row.dataset.name || haystack;
-    const match = !tokens.length || scoreNameForQuery(name, haystack, normalizedQuery, tokens) !== null;
+    // Scored once per row, not twice: this runs over the whole list on every
+    // keystroke, and the list grows with the user's own foods.
+    const score = scoreNameForQuery(name, haystack, normalizedQuery, tokens);
+    const match = !tokens.length || score !== null;
     row.style.display = match ? "" : "none";
     if (!match) {
+      hiddenRows.push(row);
       return;
     }
     visible += 1;
-    ranked.push({ row, score: scoreNameForQuery(name, haystack, normalizedQuery, tokens) ?? 4, index: Number(row.dataset.index) });
+    ranked.push({ row, score: score ?? 4, index: Number(row.dataset.index) });
   });
   ranked.sort((a, b) => a.score - b.score || a.index - b.index);
-  const hiddenRows = rows.filter((row) => row.style.display === "none").sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
+  hiddenRows.sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index));
   const empty = list.querySelector(".foods-list-empty");
-  [...ranked.map((entry) => entry.row), ...hiddenRows].forEach((row) => list.appendChild(row));
+  // Reorder through a fragment so the list is touched once instead of once per
+  // row — appendChild per row forced a layout pass each time.
+  const fragment = document.createDocumentFragment();
+  [...ranked.map((entry) => entry.row), ...hiddenRows].forEach((row) => fragment.appendChild(row));
+  list.appendChild(fragment);
   if (empty) {
     list.appendChild(empty);
     empty.hidden = !(tokens.length > 0 && rows.length > 0 && visible === 0);
@@ -13020,23 +13029,19 @@ function renderProgressHistorySection() {
         </div>
         ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
       </div>
-      <div class="stats-grid stats-grid--glance" style="margin-bottom:14px;">
-        <article class="stat-card">
-          <strong>Prosek kcal</strong>
-          <div class="macro-value">${stats.avgKcal7 || "—"}</div>
-          <div class="footer-note">7 dana</div>
-        </article>
-        <article class="stat-card">
-          <strong>Prosek proteina</strong>
-          <div class="macro-value">${stats.avgProtein7 ? `${stats.avgProtein7} g` : "—"}</div>
-          <div class="footer-note">7 dana</div>
-        </article>
-        <article class="stat-card">
-          <strong>Prosek vode</strong>
-          <div class="macro-value">${stats.avgWater7 ? `${(stats.avgWater7 / 1000).toFixed(1)} L` : "—"}</div>
-          <div class="footer-note">7 dana</div>
-        </article>
-      </div>
+      ${
+        // These three were a full stat grid, directly under two cards that
+        // already showed the same week's average calories and protein. The
+        // numbers stay, the third identical-looking grid does not — this card
+        // is here for the consistency calendar.
+        (() => {
+          const parts = [];
+          if (stats.avgKcal7) parts.push(`<strong>${stats.avgKcal7}</strong> kcal`);
+          if (stats.avgProtein7) parts.push(`<strong>${stats.avgProtein7} g</strong> proteina`);
+          if (stats.avgWater7) parts.push(`<strong>${(stats.avgWater7 / 1000).toFixed(1)} L</strong> vode`);
+          return parts.length ? `<p class="history-averages">Prosek za 7 dana: ${parts.join(" · ")}</p>` : "";
+        })()
+      }
       <div class="history-heatmap">
         ${cells}
       </div>

@@ -1079,7 +1079,7 @@ textarea::placeholder {
   padding: 1px 7px; border-radius: 999px;
 }
 .foods-chip.is-active { background: var(--accent); color: var(--button-primary-text); border-color: var(--accent); }
-.foods-chip.is-active .foods-chip-count { background: rgba(255, 255, 255, 0.24); color: inherit; }
+.foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.18); color: inherit; }
 .foods-chip--sub { font-weight: 600; font-size: 0.8125rem; padding: 6px 12px; }
 
 /* Quiet re-entry point into the hidden Nutricionista tab: foods imported from
@@ -3634,7 +3634,9 @@ label.is-invalid textarea:focus {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(24, 33, 30, 0.52);
+  /* Token, not a literal: the hardcoded light ink that used to sit here was
+     invisible in dark mode because no dark override was ever added for it. */
+  color: var(--muted);
 }
 
 .routine-streak-stack {
@@ -12037,4 +12039,38 @@ button.meal-entry-body:focus-visible {
 .reminder-chip-text {
   margin-right: auto;
   text-align: left;
+}
+
+/* ============================================================
+   Accessibility fixes found by measurement, not by eye
+   ============================================================ */
+
+/* The search field on Namirnice and Recepti cleared its outline and put
+   nothing back, so keyboard focus landed there invisibly. The ring goes on the
+   wrapper, which is what actually looks like the input. */
+.foods-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus, rgba(31, 95, 117, 0.45));
+}
+
+/* html carried scroll-behavior: smooth unconditionally, so every in-app jump
+   animated even for people who ask the system for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* One line of averages instead of a third stat grid — the consistency
+   calendar is what this card is for. */
+.history-averages {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.history-averages strong {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
