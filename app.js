@@ -6790,11 +6790,11 @@ function renderMetricsGrid(metrics) {
   `;
 }
 
+// Plan tools (copy a day, wipe a day) are a weekly editing job, not a daily
+// one. They opened by default on desktop, which put a three-select form between
+// today's meals and everything below it. Closed until asked for, on every width.
 function getInitialPlanQuickExpanded() {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  return window.innerWidth >= 960;
+  return false;
 }
 
 function getInitialPlanSummaryExpanded() {
@@ -7299,6 +7299,32 @@ function renderButtonContent(label, iconKind, labelClass = "") {
 }
 
 // Crafted disclosure chevron — rotates 180° when open. Replaces the ▴/▾ glyphs.
+// Serbian counts take three forms, not two: 1 vežba, 2-4 vežbe, 5+ vežbi —
+// with the teens (11-14) falling back to the last form. Getting this wrong is
+// the loudest sign a Serbian interface was translated rather than written.
+function srPlural(count, one, few, many) {
+  const n = Math.abs(Math.round(Number(count) || 0));
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) {
+    return many;
+  }
+  const last = n % 10;
+  if (last === 1) {
+    return one;
+  }
+  if (last >= 2 && last <= 4) {
+    return few;
+  }
+  return many;
+}
+
+// A collapsed section that only shows its title forces a tap to find out
+// whether there is anything inside. One muted line in the summary answers that
+// without opening it.
+function renderCollapseHint(text) {
+  return text ? `<span class="form-collapse-hint">${escapeHtml(String(text))}</span>` : "";
+}
+
 function renderChevronIcon(isOpen) {
   return `<svg class="chevron-icon ${isOpen ? "is-open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 }
@@ -8094,19 +8120,14 @@ function renderPlanActivitySection() {
 // Surfaced as a dismissible banner at the top of the Plan tab on open.
 function getTodayReminders() {
   const reminders = [];
-  const entries = getPlanEntriesForDay(getTodayWeekday(), getCurrentWeekTrack());
-  const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
-  const mealsDone = mealLabels.filter((label) => {
-    const mealEntries = entries.filter((entry) => entry.mealLabel === label);
-    return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
-  }).length;
-  if (mealLabels.length > 0 && mealsDone < mealLabels.length) {
-    reminders.push({ text: `🍽 Obroci: ${mealsDone}/${mealLabels.length} pojedeno`, action: "jump-next-meal", hint: "Otvori sledeći" });
-  }
+  // Deliberately no "meals eaten" reminder here: the meal list with its
+  // checkboxes sits right below this banner and the ring already counts them.
+  // A reminder should point at something off-screen.
   const calibration = getGoalCalibration();
   if (calibration.status === "suggest") {
     reminders.push({
-      text: `🎯 Predlog: cilj ${calibration.proposedTarget} kcal`,
+      text: `Predlog: cilj ${calibration.proposedTarget} kcal`,
+      icon: "refresh",
       action: "open-goal-calibration",
       hint: `${calibration.delta > 0 ? "+" : ""}${calibration.delta} kcal`,
     });
@@ -8115,7 +8136,7 @@ function getTodayReminders() {
   const nagSnoozedUntil = String(store.ui?.plan?.measurementNagSnoozedUntil || "");
   if (!measurements.length) {
     if (!nagSnoozedUntil || nagSnoozedUntil < getTodayDateValue()) {
-      reminders.push({ text: "⚖️ Dodaj prvo merenje", action: "toggle-quick-weight", hint: "Unesi težinu" });
+      reminders.push({ text: "Dodaj prvo merenje", icon: "add", action: "toggle-quick-weight", hint: "Unesi težinu" });
     }
   } else {
     const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
@@ -8125,7 +8146,7 @@ function getTodayReminders() {
     const todayDay = getDateValueAsLocalDate(getTodayDateValue());
     const days = latestDay && todayDay ? Math.round((todayDay.getTime() - latestDay.getTime()) / DAY_IN_MS) : 0;
     if (days >= 7) {
-      reminders.push({ text: `⚖️ Merenje: poslednje pre ${days} dana`, action: "toggle-quick-weight", hint: "Unesi težinu" });
+      reminders.push({ text: `Merenje: poslednje pre ${days} dana`, icon: "add", action: "toggle-quick-weight", hint: "Unesi težinu" });
     }
   }
   return reminders;
@@ -8145,7 +8166,7 @@ function renderTodayRemindersBanner() {
         <div class="pill-row today-reminders-pills">
           ${reminders
             .map(
-              (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${escapeHtml(reminder.text)}${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
+              (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${reminder.icon ? renderActionIcon(reminder.icon) : ""}<span class="reminder-chip-text">${escapeHtml(reminder.text)}</span>${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
             )
             .join("")}
         </div>
@@ -8857,6 +8878,7 @@ function renderPlanTab(entries) {
       >
         <div class="section-disclosure-copy">
           <h2>Alati za plan</h2>
+          <p>Kopiraj dan na drugi dan ili očisti plan.</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
@@ -9644,7 +9666,7 @@ function renderTrainingTab() {
                 const exerciseCount = day.templates.reduce((count, template) => count + template.exercises.length, 0);
                 const meta = [];
                 if (day.templates.length) {
-                  meta.push(`${exerciseCount} ${exerciseCount === 1 ? "vežba" : "vežbi"}`);
+                  meta.push(`${exerciseCount} ${srPlural(exerciseCount, "vežba", "vežbe", "vežbi")}`);
                   meta.push(`${day.completedExerciseCount}/${day.totalExerciseCount}`);
                 }
                 if (day.trainingBurn > 0) {
@@ -9790,7 +9812,7 @@ function renderTrainingTab() {
                       <div class="training-top">
                         <div>
                           <h3>${escapeHtml(training.name)}</h3>
-                          <div class="footer-note">${training.exerciseCount} ${training.exerciseCount === 1 ? "vežba" : training.exerciseCount < 5 ? "vežbe" : "vežbi"} spremno za ubacivanje</div>
+                          <div class="footer-note">${training.exerciseCount} ${srPlural(training.exerciseCount, "vežba", "vežbe", "vežbi")} spremno za ubacivanje</div>
                         </div>
                         <span class="pill strong">${training.exerciseCount}</span>
                       </div>
@@ -9815,9 +9837,15 @@ function renderTrainingTab() {
         : ""
     }
 
+    <div class="section-toolbox">
     <details class="section routine-weekly-section form-collapse">
       <summary>
         <span class="form-collapse-title">Dodaj trening šablon</span>
+        ${renderCollapseHint(
+          (store.trainingTemplates || []).length
+            ? `${(store.trainingTemplates || []).length} ${srPlural((store.trainingTemplates || []).length, "šablon", "šablona", "šablona")} u planu`
+            : "Još nijedan šablon"
+        )}
         <span class="form-collapse-icon" aria-hidden="true">+</span>
       </summary>
       <form id="training-form" class="form-grid">
@@ -9854,6 +9882,11 @@ function renderTrainingTab() {
     <details id="training-progress-details" class="section form-collapse form-collapse--view" ${state.trainingProgressOpen ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Progres po vežbi</span>
+        ${renderCollapseHint(
+          progressGroups.length
+            ? `${progressGroups.length} ${srPlural(progressGroups.length, "vežba", "vežbe", "vežbi")} sa istorijom`
+            : "Još nema praćenih vežbi"
+        )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <form id="training-progress-form" class="form-grid split">
@@ -9904,6 +9937,11 @@ function renderTrainingTab() {
     <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Poslednji unosi opterećenja</span>
+        ${renderCollapseHint(
+          recentProgressLogs.length
+            ? `Poslednji: ${new Date(recentProgressLogs[0].date).toLocaleDateString("sr-RS")}`
+            : "Još nema unosa"
+        )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <div class="stack">
@@ -9936,6 +9974,11 @@ function renderTrainingTab() {
     <details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Beleške</span>
+        ${renderCollapseHint(
+          logs.length
+            ? `${logs.length} ${srPlural(logs.length, "beleška", "beleške", "beleški")} za ${weekdayAccusative(state.selectedWeekday)}`
+            : "Nema beleški za ovaj dan"
+        )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
       <form id="training-log-form" class="form-grid">
@@ -9965,6 +10008,7 @@ function renderTrainingTab() {
         }
       </div>
     </details>
+    </div>
   `;
 }
 
@@ -17003,21 +17047,6 @@ async function handleDocumentClick(event) {
     if (state.quickWeightOpen) {
       window.requestAnimationFrame(() => document.querySelector("#quick-weight")?.focus());
     }
-    return;
-  }
-
-  if (action === "jump-next-meal") {
-    state.selectedWeekday = getTodayWeekday();
-    state.selectedWeekTrack = getCurrentWeekTrack();
-    const mealLabel = getNextOpenMealLabel();
-    if (mealLabel) {
-      expandMealForWeekday(state.selectedWeekday, mealLabel);
-    }
-    render();
-    window.requestAnimationFrame(() => {
-      const toggle = mealLabel ? document.querySelector(`[data-action="toggle-plan-meal-collapse"][data-meal-label="${CSS.escape(mealLabel)}"]`) : null;
-      (toggle?.closest(".meal-card") || document.querySelector(".plan-meals-section"))?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
     return;
   }
 

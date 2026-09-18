@@ -11963,3 +11963,78 @@ button.meal-entry-body:focus-visible {
 .foods-secondary .foods-add-inline {
   margin-left: 0;
 }
+
+/* ============================================================
+   PREGLEDNOST — collapsed utilities stop being a wall of bars
+   A tab that ends in four collapsed sections used to render four identical
+   full-width cards, each holding a title and a chevron and nothing else. At
+   desktop they now pair up two per row, and whichever one you open takes the
+   full width back. Each summary also carries a one-line hint, so you can tell
+   what is inside without opening it.
+   ============================================================ */
+.section-toolbox {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+.section-toolbox > .section {
+  margin: 0;
+}
+.form-collapse-hint {
+  margin-left: auto;
+  padding-right: 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-collapse[open] > summary .form-collapse-hint {
+  display: none;
+}
+/* The title never gives up space to the hint — the hint truncates instead. */
+.form-collapse > summary .form-collapse-title {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 900px) {
+  .section-toolbox {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+  .section-toolbox > .section[open] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Reminders point at something off this screen, so there are rarely more than
+   one or two. Stacked full-width rows made two short sentences occupy the whole
+   card; inline chips keep the banner one line deep. */
+@media (min-width: 900px) {
+  .today-reminders-row .today-reminders-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .today-reminders-row .reminder-chip {
+    width: auto;
+    justify-content: flex-start;
+  }
+}
+.reminder-chip svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+/* Icon and label stay together on the left; only the hint goes to the far
+   edge. Without this the row's space-between strands the text mid-chip. */
+.reminder-chip-text {
+  margin-right: auto;
+  text-align: left;
+}
