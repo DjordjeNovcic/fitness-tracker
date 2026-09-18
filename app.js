@@ -12250,7 +12250,7 @@ function renderGoalsTab() {
           <input id="goal-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.fat || ""}" />
         </div>
         </div>
-        <div class="form-grid-3 goals-daily-extras">
+        <div class="form-grid-2 goals-daily-extras">
         <div class="field">
           <label for="goal-water">Voda (L)</label>
           <input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />

@@ -2010,6 +2010,12 @@ textarea::placeholder {
   grid-template-columns: 1fr 1fr;
   gap: 10px 12px;
 }
+/* "Metabolizam" holds a single metric (BMR), so the two-track grid left half
+   the row empty. A trailing gap on the last row of a multi-field group is
+   normal form layout; a group that is one field wide is not. */
+.bc-form-fields > .field:only-child {
+  grid-column: 1 / -1;
+}
 .bc-field-unit { color: var(--muted); font-weight: 600; }
 .bc-submit { justify-self: start; }
 
@@ -10667,6 +10673,14 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
+/* Same full-width row, two tracks — for the pairs that used to sit in a
+   three-track grid with one track permanently empty. */
+.form-grid-2 {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 .form-grid.goals-form-layout {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -12344,4 +12358,16 @@ button.meal-entry-body:focus-visible {
 .goals-chart-invite .empty span {
   max-width: 34ch;
   line-height: 1.5;
+}
+
+/* Chart cards never matched their track count: the Merenja trend grid always
+   holds exactly three cards in a four-column grid (a column permanently
+   empty), and the exercise-progress grid holds however many exercises have a
+   history. Let the track count follow the cards — the SVG inside each card
+   scales, so a lone card filling the row is a better chart, not a stretched
+   one. */
+@media (min-width: 900px) {
+  .chart-grid {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
 }
