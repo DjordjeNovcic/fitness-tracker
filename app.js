@@ -614,6 +614,9 @@ const state = {
   stepsEditOpen: false,
   foodMenuOpenId: "",
   foodEditorOpen: false,
+  quickEntryOpen: false,
+  quickEntryText: "",
+  quickEntryOverrides: {},
   scannerOpen: false,
   scannerStatus: "",
   scannerTorchOn: false,
@@ -7591,6 +7594,347 @@ function quickAddGramsFor(food, usage) {
   return toNumber(usage && usage.lastGrams) || roundValue(food.servingBaseGrams || 100, 0);
 }
 
+// ---------------------------------------------------------------------------
+// Brzi unos — type a whole meal as one sentence instead of adding foods one by
+// one. "200g piletine, 150 pirinca i 2 jajeta u rucak" becomes three rows the
+// user confirms. Everything here reuses machinery that already exists: the
+// portion parser from the recipe importer, the ranked food search from the
+// composer, and commitPlanDraftEntry for the write.
+// ---------------------------------------------------------------------------
+
+// A word after a number counts as a unit only if convertImportedPortionToGrams
+// knows how to weigh it. Exact matches for the short ones (so "gr" never eats
+// "grašak"), prefix families for the inflected ones (kašika / kašike / kašikom).
+const QUICK_ENTRY_UNIT_EXACT = [
+  "g", "gr", "gram", "grama", "grami",
+  "kg", "kila", "kilogram", "kilograma",
+  "ml", "dl", "l",
+  "kom", "komad", "komada",
+];
+const QUICK_ENTRY_UNIT_PREFIXES = [
+  "litr", "kasic", "kasik", "meric", "solj", "cas", "krisk",
+  "parce", "parca", "parcet", "pakov", "kesic", "konzerv", "glavic", "cen", "list",
+];
+
+function isQuickEntryUnitWord(word) {
+  const normalized = normalizeLookupValue(word);
+  if (!normalized) {
+    return false;
+  }
+  return (
+    QUICK_ENTRY_UNIT_EXACT.includes(normalized) ||
+    QUICK_ENTRY_UNIT_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+  );
+}
+
+// A meal named anywhere in the text retargets every row ("... u rucak").
+const QUICK_ENTRY_MEAL_HINTS = [
+  { test: /\bdorucak|dorucku|doruckom\b/, meal: "1. Doručak" },
+  { test: /\bprv[au]\s+uzin|prvoj\s+uzin/, meal: "2. Prva užina" },
+  { test: /\bdrug[au]\s+uzin|drugoj\s+uzin/, meal: "4. Druga užina" },
+  { test: /\brucak|rucku|puckom\b|\brucko/, meal: "3. Ručak" },
+  { test: /\bvecer/, meal: "5. Večera" },
+  { test: /\buzin/, meal: "2. Prva užina" },
+];
+
+function detectQuickEntryMeal(text) {
+  const normalized = normalizeLookupValue(text);
+  const hit = QUICK_ENTRY_MEAL_HINTS.find((entry) => entry.test.test(normalized));
+  return hit ? hit.meal : "";
+}
+
+// Strips a trailing "u rucak" / "za veceru" so it does not leak into the last
+// food name. Only the tail is trimmed — "u" inside a name is left alone.
+function stripQuickEntryMealPhrase(chunk) {
+  return String(chunk || "").replace(/\s+(?:u|za|na)\s+[^,;]{2,24}$/i, (match) =>
+    detectQuickEntryMeal(match) ? "" : match
+  );
+}
+
+function parseQuickEntryChunk(raw) {
+  const cleaned = stripQuickEntryMealPhrase(String(raw || "").trim()).trim();
+  if (!cleaned) {
+    return null;
+  }
+  // Leading amount: "200 g piletine", "2 jaja", "1,5 kasike ulja".
+  let match = cleaned.match(/^(\d+(?:[.,]\d+)?)\s*([^\s\d]+)?\s*(.*)$/);
+  let amount = 0;
+  let unit = "";
+  let query = cleaned;
+  if (match && match[1]) {
+    amount = parseDecimal(match[1]);
+    const maybeUnit = (match[2] || "").replace(/\.$/, "");
+    if (maybeUnit && isQuickEntryUnitWord(maybeUnit) && String(match[3] || "").trim()) {
+      unit = maybeUnit;
+      query = match[3] || "";
+    } else {
+      query = [maybeUnit, match[3]].filter(Boolean).join(" ");
+    }
+  } else {
+    // Trailing amount: "piletina 200g".
+    match = cleaned.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*([^\s\d]*)$/);
+    if (match) {
+      const maybeUnit = (match[3] || "").replace(/\.$/, "");
+      if (!maybeUnit || isQuickEntryUnitWord(maybeUnit)) {
+        query = match[1] || "";
+        amount = parseDecimal(match[2]);
+        unit = maybeUnit;
+      }
+    }
+  }
+  query = query.replace(/^(?:od|sa)\s+/i, "").trim();
+  if (!query) {
+    return null;
+  }
+  return { raw: cleaned, query, amount, unit };
+}
+
+function parseQuickEntryText(text) {
+  // A decimal comma ("1,5 kašike") must not be read as an item separator, so
+  // normalise it to a dot before splitting.
+  const source = String(text || "").replace(/(\d),(\d)/g, "$1.$2");
+  const mealLabel = detectQuickEntryMeal(source);
+  const chunks = source
+    .split(/[\n,;]+|\s+\bi\b\s+/i)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  return { mealLabel, items: chunks.map(parseQuickEntryChunk).filter(Boolean) };
+}
+
+// Serbian inflects the noun ("piletine", "jajeta"), and the ranked search is
+// prefix/substring based, so a genitive ending can miss. Retry with the last
+// word progressively shortened before giving up.
+function rankQuickEntryMatches(query, limit = 5) {
+  const direct = rankFoodsForQuery(query, getSelectableFoods(), limit);
+  if (direct.length) {
+    return direct;
+  }
+  const words = normalizeLookupValue(query).split(" ").filter(Boolean);
+  if (!words.length) {
+    return [];
+  }
+  const last = words[words.length - 1];
+  for (let trim = 1; trim <= 3; trim += 1) {
+    if (last.length - trim < 3) {
+      break;
+    }
+    const stem = last.slice(0, last.length - trim);
+    const found = rankFoodsForQuery([...words.slice(0, -1), stem].join(" "), getSelectableFoods(), limit);
+    if (found.length) {
+      // A stem matches both "pirinač" and "pirinčani griz". The word closest in
+      // length to what the user actually typed is the likelier one.
+      return [...found].sort((a, b) => {
+        const distance = (entry) => {
+          const word = normalizeLookupValue(entry.food.name)
+            .split(" ")
+            .filter((part) => part.startsWith(stem))
+            .sort((x, y) => Math.abs(x.length - last.length) - Math.abs(y.length - last.length))[0];
+          return word ? Math.abs(word.length - last.length) : 99;
+        };
+        return distance(a) - distance(b) || a.score - b.score;
+      });
+    }
+  }
+  return [];
+}
+
+// A bare number reads as a count ("2 jajeta"), a number with a weight unit
+// reads as weight ("200 g piletine"). Pick the candidate whose own unit matches
+// that reading, so eggs land on the per-piece entry instead of on 2 grams of
+// the per-100 g one.
+const QUICK_ENTRY_COUNT_CEILING = 20;
+
+function quickEntryPrefersPieces(item) {
+  const unit = normalizeLookupValue(item.unit);
+  if (unit.startsWith("kom")) {
+    return true;
+  }
+  if (unit) {
+    return false;
+  }
+  return item.amount > 0 && item.amount <= QUICK_ENTRY_COUNT_CEILING;
+}
+
+function pickQuickEntryMatch(matches, item) {
+  if (!matches.length) {
+    return null;
+  }
+  const wantsPieces = quickEntryPrefersPieces(item);
+  const preferred = matches.find((entry) => (getFoodServingUnit(entry.food) === "piece") === wantsPieces);
+  return (preferred || matches[0]).food;
+}
+
+// Amount → the number stored on the entry, which is always in the food's own
+// unit (grams for gram-foods, pieces for per-piece foods) — see calculateEntry.
+function quickEntryAmountFor(food, item) {
+  const perPiece = getFoodServingUnit(food) === "piece";
+  const normalizedUnit = normalizeLookupValue(item.unit);
+  if (!item.amount) {
+    return perPiece ? 1 : getFoodServingBaseValue(food);
+  }
+  if (perPiece) {
+    // "2 jaja", "2 kom" → pieces. A gram amount on a per-piece food is
+    // converted back into pieces so the maths stays honest.
+    if (!normalizedUnit || normalizedUnit.startsWith("kom")) {
+      return roundValue(item.amount, 1);
+    }
+    const grams = convertImportedPortionToGrams(item.amount, item.unit, item.query);
+    const perPieceGrams = Math.max(1, toNumber(food.servingBaseGrams) || 0) || 1;
+    return roundValue(grams / perPieceGrams, 1) || 1;
+  }
+  if (!normalizedUnit || normalizedUnit.startsWith("kom")) {
+    // A bare number on a gram-food means grams ("150 pirinca").
+    return roundValue(item.amount, 0);
+  }
+  return roundValue(convertImportedPortionToGrams(item.amount, item.unit, item.query), 0) || 0;
+}
+
+// Rows are derived from the text on every render; per-row edits live in
+// state.quickEntryOverrides keyed by position, so retyping resets cleanly.
+function getQuickEntryRows() {
+  const parsed = parseQuickEntryText(state.quickEntryText);
+  const fallbackMeal = parsed.mealLabel || getNextOpenMealLabel() || defaultMeals[0];
+  return parsed.items.map((item, index) => {
+    const override = state.quickEntryOverrides[index] || {};
+    if (override.removed) {
+      return { index, removed: true, item };
+    }
+    const matches = rankQuickEntryMatches(item.query);
+    const picked = override.foodId ? getFoodById(override.foodId) : pickQuickEntryMatch(matches, item);
+    const food = picked || null;
+    const amount = override.amount != null ? toNumber(override.amount) : food ? quickEntryAmountFor(food, item) : 0;
+    // A small bare number on a per-100 g food means the user counted pieces but
+    // no per-piece entry exists — "2 jajeta" would silently log 2 grams.
+    const countOnWeightFood =
+      Boolean(food) &&
+      override.amount == null &&
+      quickEntryPrefersPieces(item) &&
+      getFoodServingUnit(food) !== "piece";
+    return {
+      index,
+      item,
+      food,
+      matches,
+      amount,
+      countOnWeightFood,
+      mealLabel: normalizeMealLabel(override.mealLabel || fallbackMeal),
+      totals: food && amount ? calculateEntry(food, amount) : { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    };
+  });
+}
+
+function renderQuickEntryDialog() {
+  if (!state.quickEntryOpen) {
+    return "";
+  }
+  const rows = getQuickEntryRows();
+  const live = rows.filter((row) => !row.removed && row.food && row.amount > 0);
+  const unmatched = rows.filter((row) => !row.removed && !row.food);
+  const totals = live.reduce(
+    (acc, row) => ({
+      kcal: acc.kcal + row.totals.kcal,
+      protein: acc.protein + row.totals.protein,
+      carbs: acc.carbs + row.totals.carbs,
+      fat: acc.fat + row.totals.fat,
+    }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+  const mealOptions = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((e) => normalizeMealLabel(e.mealLabel))])];
+
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-quick-entry" aria-label="Zatvori brzi unos"></button>
+      <section class="app-dialog quick-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-entry-title">
+        <div class="app-dialog-head">
+          <div class="stack" style="gap:4px;">
+            <div class="hero-picker-label">Brzi unos</div>
+            <h3 id="quick-entry-title">Upiši ceo obrok</h3>
+            <p>Napiši šta si jeo/la običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-quick-entry" aria-label="Zatvori brzi unos">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+
+        <div class="field">
+          <label for="quick-entry-input">Šta si jeo/la</label>
+          <textarea id="quick-entry-input" rows="3" placeholder="npr. 200 g piletine, 150 pirinča i 2 jajeta u ručak" autocomplete="off" spellcheck="false">${escapeHtml(state.quickEntryText)}</textarea>
+          <p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice znači grame, a „u ručak“ na kraju bira obrok.</p>
+        </div>
+
+        ${
+          rows.length
+            ? `
+          <div class="quick-entry-rows">
+            ${rows
+              .map((row) =>
+                row.removed
+                  ? ""
+                  : `
+                <div class="quick-entry-row ${row.food ? "" : "is-unmatched"}">
+                  <div class="quick-entry-row-main">
+                    <div class="quick-entry-row-head">
+                      <span class="quick-entry-raw">${escapeHtml(row.item.raw)}</span>
+                      <button class="ghost-button icon-only-action quick-entry-remove" type="button" data-action="remove-quick-entry-row" data-index="${row.index}" aria-label="Izbaci „${escapeHtml(row.item.raw)}“">${renderActionIcon("close")}</button>
+                    </div>
+                    ${
+                      row.food
+                        ? `
+                      <div class="quick-entry-row-controls">
+                        <label class="field quick-entry-field">
+                          <span>Namirnica</span>
+                          <select data-action="set-quick-entry-food" data-index="${row.index}">
+                            ${row.matches
+                              .map(
+                                (m) =>
+                                  `<option value="${escapeHtml(m.food.id)}" ${m.food.id === row.food.id ? "selected" : ""}>${escapeHtml(m.food.name)}</option>`
+                              )
+                              .join("")}
+                            ${row.matches.some((m) => m.food.id === row.food.id) ? "" : `<option value="${escapeHtml(row.food.id)}" selected>${escapeHtml(row.food.name)}</option>`}
+                          </select>
+                        </label>
+                        <label class="field quick-entry-field quick-entry-field--amount">
+                          <span>${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}</span>
+                          <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.amount}" data-action="set-quick-entry-amount" data-index="${row.index}" />
+                        </label>
+                        <label class="field quick-entry-field">
+                          <span>Obrok</span>
+                          <select data-action="set-quick-entry-meal" data-index="${row.index}">
+                            ${mealOptions
+                              .map((label) => `<option value="${escapeHtml(label)}" ${label === row.mealLabel ? "selected" : ""}>${escapeHtml(getMealDisplayParts(label).title || label)}</option>`)
+                              .join("")}
+                          </select>
+                        </label>
+                      </div>
+                      <div class="quick-entry-row-totals">${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g</div>
+                      ${row.countOnWeightFood ? `<div class="quick-entry-warn">„${escapeHtml(String(row.item.amount))}“ je shvaćeno kao ${roundValue(row.amount, 0)} g, jer se ova namirnica vodi na ${escapeHtml(getFoodNutritionBasisLabel(row.food))}. Ispravi količinu ako si mislio/la na komade.</div>` : ""}
+                    `
+                        : `<div class="quick-entry-miss">Nema „${escapeHtml(row.item.query)}“ u tvojoj bazi. Dodaj je u Namirnice pa probaj ponovo.</div>`
+                    }
+                  </div>
+                </div>
+              `
+              )
+              .join("")}
+          </div>
+          <div class="quick-entry-summary">
+            <strong>${roundValue(totals.kcal, 0)} kcal</strong>
+            <span>P ${roundValue(totals.protein, 0)} g · UH ${roundValue(totals.carbs, 0)} g · M ${roundValue(totals.fat, 0)} g</span>
+          </div>
+        `
+            : `<div class="empty">Počni da kucaš — prepoznate namirnice se pojavljuju ovde.</div>`
+        }
+
+        <div class="app-dialog-actions">
+          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length ? "" : "disabled"}>${renderButtonContent(live.length ? `Dodaj ${live.length} ${srPlural(live.length, "stavku", "stavke", "stavki")}` : "Dodaj u plan", "add")}</button>
+          <button class="ghost-button" type="button" data-action="close-quick-entry">Otkaži</button>
+        </div>
+        ${unmatched.length ? `<p class="footer-note">${unmatched.length} ${srPlural(unmatched.length, "stavka nije prepoznata", "stavke nisu prepoznate", "stavki nije prepoznato")} i ${srPlural(unmatched.length, "biće preskočena", "biće preskočene", "biće preskočeno")}.</p>` : ""}
+      </section>
+    </div>
+  `;
+}
+
 function renderPlanEntryComposer(meals, companionSuggestions, draftFood) {
   const activeMealLabel = normalizeMealLabel(state.planDraft.mealLabel || state.editingMealLabel || defaultMeals[0]);
   const planFoodSearchValue = draftFood?.name || "";
@@ -8734,8 +9078,9 @@ function renderPlanTab(entries) {
           }</h2>
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
         </div>
+        <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
-      ${renderHelpNote("Otvori obrok pa <strong>„Dodaj namirnicu“</strong> (ili tapni nedavnu iz brzog unosa). <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“) — prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -14458,6 +14803,7 @@ function render() {
 
       ${renderRecipeApplyDialog()}
       ${renderFoodEditorDialog()}
+      ${renderQuickEntryDialog()}
       ${renderBarcodeScanner()}
     </div>
   `;
@@ -17063,6 +17409,59 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-quick-entry") {
+    state.quickEntryOpen = true;
+    state.quickEntryText = "";
+    state.quickEntryOverrides = {};
+    render();
+    window.requestAnimationFrame(() => document.querySelector("#quick-entry-input")?.focus());
+    return;
+  }
+
+  if (action === "close-quick-entry") {
+    state.quickEntryOpen = false;
+    render();
+    return;
+  }
+
+  if (action === "remove-quick-entry-row") {
+    const index = Number(actionTarget.dataset.index);
+    state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), removed: true };
+    render();
+    return;
+  }
+
+  if (action === "commit-quick-entry") {
+    const rows = getQuickEntryRows().filter((row) => !row.removed && row.food && row.amount > 0);
+    const addedIds = [];
+    let blockedMeals = 0;
+    rows.forEach((row) => {
+      if (isMealCompletedForWeekday(state.selectedWeekday, row.mealLabel)) {
+        blockedMeals += 1;
+        return;
+      }
+      if (commitPlanDraftEntry(row.food, row.amount, row.mealLabel)) {
+        addedIds.push(state.lastAddedEntryId);
+      }
+    });
+    state.quickEntryOpen = false;
+    state.quickEntryText = "";
+    state.quickEntryOverrides = {};
+    if (addedIds.length) {
+      queuePendingUndo(
+        `Dodato ${addedIds.length} ${srPlural(addedIds.length, "stavka", "stavke", "stavki")} iz brzog unosa.${blockedMeals ? " Zatvoreni obroci su preskočeni." : ""}`,
+        () => {
+          store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !addedIds.includes(entry.id));
+          persist();
+        }
+      );
+    } else if (blockedMeals) {
+      announce("Ti obroci su već označeni kao pojedeni, pa nije dodato ništa.");
+    }
+    render();
+    return;
+  }
+
   if (action === "jump-measurement") {
     state.activeTab = "progress";
     state.progressView = "merenja";
@@ -17999,6 +18398,52 @@ async function handleSubmit(event) {
 function handleInput(event) {
   const target = event.target;
 
+  if (target instanceof HTMLTextAreaElement && target.id === "quick-entry-input") {
+    state.quickEntryText = target.value;
+    state.quickEntryOverrides = {};
+    const caret = target.selectionStart;
+    render();
+    // render() rebuilds the textarea, so put the caret back where it was.
+    window.requestAnimationFrame(() => {
+      const next = document.querySelector("#quick-entry-input");
+      if (next) {
+        next.focus();
+        try {
+          next.setSelectionRange(caret, caret);
+        } catch (error) {
+          /* older browsers: focus alone is enough */
+        }
+      }
+    });
+    return;
+  }
+
+  if (target instanceof HTMLSelectElement && target.dataset.action === "set-quick-entry-food") {
+    const index = Number(target.dataset.index);
+    state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), foodId: target.value, amount: undefined };
+    render();
+    return;
+  }
+
+  if (target instanceof HTMLSelectElement && target.dataset.action === "set-quick-entry-meal") {
+    const index = Number(target.dataset.index);
+    state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), mealLabel: target.value };
+    render();
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.action === "set-quick-entry-amount") {
+    const index = Number(target.dataset.index);
+    state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), amount: target.value };
+    const rows = getQuickEntryRows();
+    const row = rows[index];
+    const totalsEl = target.closest(".quick-entry-row")?.querySelector(".quick-entry-row-totals");
+    if (row && totalsEl) {
+      totalsEl.textContent = `${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g`;
+    }
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "recipe-search") {
     state.recipeSearch = target.value;
     target.parentElement?.querySelector(".foods-search-clear")?.classList.toggle("is-hidden", !target.value);
@@ -18553,7 +18998,9 @@ document.addEventListener("keydown", (event) => {
   }
   const closeSelector = state.scannerOpen
     ? '[data-action="close-scanner"]'
-    : state.foodEditorOpen
+    : state.quickEntryOpen
+      ? '[data-action="close-quick-entry"]'
+      : state.foodEditorOpen
       ? '[data-action="close-food-editor-dialog"]'
       : state.recipeApplyDialog && state.recipeApplyDialog.favoriteId
         ? '[data-action="close-recipe-apply-dialog"]'

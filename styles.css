@@ -12086,3 +12086,139 @@ button.meal-entry-body:focus-visible {
     text-overflow: clip;
   }
 }
+
+/* ============================================================
+   Brzi unos — a whole meal typed as one sentence
+   ============================================================ */
+.plan-quick-entry-button {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+.quick-entry-dialog {
+  display: grid;
+  gap: 16px;
+  width: min(640px, calc(100vw - 28px));
+  max-height: min(88dvh, 100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.quick-entry-dialog textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+.quick-entry-rows {
+  display: grid;
+  gap: 10px;
+}
+.quick-entry-row {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+}
+.quick-entry-row.is-unmatched {
+  border-color: var(--status-warning-border);
+  background: var(--status-warning-bg);
+}
+.quick-entry-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.quick-entry-raw {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-entry-remove {
+  flex: 0 0 auto;
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.quick-entry-row-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+/* The three row controls reuse .field so they look like every other input in
+   the app; only the label size and the height are tightened for a dense row. */
+.quick-entry-field {
+  gap: 4px;
+  min-width: 0;
+}
+.quick-entry-field > span {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.quick-entry-field select,
+.quick-entry-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+}
+.quick-entry-field select {
+  padding-right: 30px;
+}
+.quick-entry-row-totals {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.quick-entry-miss {
+  color: var(--status-warning-text);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.quick-entry-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.quick-entry-summary strong {
+  font-size: 1.25rem;
+  color: var(--ink);
+}
+.quick-entry-summary span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+@media (max-width: 560px) {
+  .quick-entry-row-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+  }
+  .quick-entry-field:last-child {
+    grid-column: 1 / -1;
+  }
+}
+.quick-entry-warn {
+  color: var(--status-warning-text);
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
