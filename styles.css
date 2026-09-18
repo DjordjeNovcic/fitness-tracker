@@ -12232,3 +12232,96 @@ button.meal-entry-body:focus-visible {
   font-size: 0.8125rem;
   line-height: 1.4;
 }
+
+/* ============================================================
+   Trening: ceo trening odrađen, progresija opterećenja, odmor
+   ============================================================ */
+/* The "whole training" checkbox sits at the left of the title, in the same
+   column as the exercise checkboxes under it, so it reads as "check them all"
+   rather than as a stray control floating on the right. */
+.training-top-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.training-top-title h3 {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Done reads as "quieter", not "greyed out" — the card stays legible because
+   you still check individual exercises inside it. */
+.training-template-card.is-done {
+  border-color: var(--status-success-border);
+}
+.training-template-card.is-done .training-top h3 {
+  color: var(--muted);
+}
+
+.training-exercise-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.training-rest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.training-rest-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.training-rest:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.training-rest.is-running {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
+}
+.training-rest-label {
+  min-width: 42px;
+  text-align: left;
+}
+
+/* The suggestion is the point of the row, so it gets a rule and a tint —
+   but only when it actually says "go up". */
+.training-progression {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.training-progression.is-up {
+  color: var(--status-success-text);
+  font-weight: 600;
+}
+.training-progression.is-up strong {
+  font-weight: 800;
+}
+
+@media (max-width: 560px) {
+  .training-rest-label {
+    min-width: 34px;
+  }
+  .training-rest {
+    padding: 0 8px;
+  }
+}

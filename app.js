@@ -5282,6 +5282,151 @@ function isTrainingExerciseCompleted(weekday, templateId, exerciseId) {
   return Boolean(getTrainingCompletionBucket(weekday)?.[templateId]?.[exerciseId]);
 }
 
+// ---------------------------------------------------------------------------
+// Progresija opterećenja — the training side of the closed loop the nutrition
+// tab already has. The plan states a rep range ("3-4 serije, 8-12 ponavljanja")
+// and the log states what was actually lifted; when the top of the range is
+// reached twice at the same weight, the load is ready to go up. Nothing moves
+// on its own — this only ever renders a suggestion.
+// ---------------------------------------------------------------------------
+
+// "8-12 ponavljanja" / "3x8-12" / "10 ponavljanja" → { min, max }
+function parseRepRange(details) {
+  const text = String(details || "").toLowerCase();
+  const range = text.match(/(\d{1,3})\s*[-–—]\s*(\d{1,3})\s*(?:ponav|rep|x\b)/);
+  if (range) {
+    const min = Number(range[1]);
+    const max = Number(range[2]);
+    if (min > 0 && max >= min && max <= 100) {
+      return { min, max };
+    }
+  }
+  const single = text.match(/(\d{1,3})\s*ponav/);
+  if (single) {
+    const value = Number(single[1]);
+    if (value > 0 && value <= 100) {
+      return { min: value, max: value };
+    }
+  }
+  return null;
+}
+
+// The reps field is free text ("4x8", "12, 11, 10", "8"). The best set is what
+// decides whether the top of the range was reached, so take the largest number
+// that is not the set count in a "4x8" style prefix.
+function parseRepsAchieved(repsText) {
+  const text = String(repsText || "").toLowerCase().replace(/,/g, " ");
+  const cross = text.match(/(\d{1,3})\s*[x×]\s*(\d{1,3})/);
+  if (cross) {
+    return Number(cross[2]);
+  }
+  const numbers = (text.match(/\d{1,3}/g) || []).map(Number).filter((n) => n > 0 && n <= 100);
+  return numbers.length ? Math.max(...numbers) : 0;
+}
+
+// Big compound lifts move in 5 kg steps, everything else in 2.5 kg.
+const BIG_LIFT_PATTERN = /(cucanj|celni cucanj|mrtvo|potisak nogama|leg press|hip thrust|zgib sa tegom|veslanje sa sipkom)/;
+
+function progressionStepFor(exerciseName) {
+  return BIG_LIFT_PATTERN.test(normalizeLookupValue(exerciseName)) ? 5 : 2.5;
+}
+
+function getExerciseProgression(exerciseName, details) {
+  const range = parseRepRange(details);
+  const key = String(exerciseName || "").trim().toLowerCase();
+  if (!range || !key) {
+    return null;
+  }
+  const logs = [...(store.trainingProgressLogs || [])]
+    .filter((log) => String(log.exerciseName || "").trim().toLowerCase() === key && toNumber(log.weightKg) > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+  if (!logs.length) {
+    return { kind: "none", range };
+  }
+  const last = logs[logs.length - 1];
+  const previous = logs[logs.length - 2];
+  const lastWeight = roundValue(toNumber(last.weightKg), 1);
+  const lastReps = parseRepsAchieved(last.reps);
+  const atTop = lastReps >= range.max;
+  const previousAtTop =
+    previous && roundValue(toNumber(previous.weightKg), 1) === lastWeight && parseRepsAchieved(previous.reps) >= range.max;
+
+  if (atTop && previousAtTop) {
+    const step = progressionStepFor(exerciseName);
+    return { kind: "increase", range, lastWeight, lastReps, step, nextWeight: roundValue(lastWeight + step, 1) };
+  }
+  if (atTop) {
+    return { kind: "almost", range, lastWeight, lastReps };
+  }
+  return { kind: "hold", range, lastWeight, lastReps };
+}
+
+function renderExerciseProgression(exerciseName, details) {
+  const progression = getExerciseProgression(exerciseName, details);
+  if (!progression || progression.kind === "none") {
+    return "";
+  }
+  if (progression.kind === "increase") {
+    return `<div class="training-progression is-up">Dva puta ${progression.range.max} ponavljanja na ${progression.lastWeight} kg — probaj <strong>${progression.nextWeight} kg</strong>.</div>`;
+  }
+  if (progression.kind === "almost") {
+    return `<div class="training-progression">Vrh opsega na ${progression.lastWeight} kg. Ponovi to još jednom pa diži kilažu.</div>`;
+  }
+  return `<div class="training-progression">Poslednje: ${progression.lastWeight} kg × ${progression.lastReps}. Cilj je ${progression.range.max} ponavljanja pre nego što dodaš kilažu.</div>`;
+}
+
+// Rest timer. A whole-tab re-render every second would be absurd for a clock,
+// so the tick writes straight into the button and render() just repaints once.
+const REST_TIMER_SECONDS = 90;
+let restTimer = null;
+let restTimerInterval = null;
+
+function formatRestClock(totalSeconds) {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function paintRestTimers() {
+  const remaining = restTimer ? Math.ceil((restTimer.endsAt - Date.now()) / 1000) : 0;
+  document.querySelectorAll("[data-rest-key]").forEach((button) => {
+    const isActive = Boolean(restTimer) && button.dataset.restKey === restTimer.key && remaining > 0;
+    button.classList.toggle("is-running", isActive);
+    const label = button.querySelector(".training-rest-label");
+    if (label) {
+      label.textContent = isActive ? formatRestClock(remaining) : "Odmor";
+    }
+    button.setAttribute("aria-label", isActive ? `Odmor, još ${formatRestClock(remaining)}` : "Pokreni odmor");
+  });
+}
+
+function stopRestTimer() {
+  restTimer = null;
+  if (restTimerInterval) {
+    window.clearInterval(restTimerInterval);
+    restTimerInterval = null;
+  }
+  paintRestTimers();
+}
+
+function startRestTimer(key) {
+  restTimer = { key, endsAt: Date.now() + REST_TIMER_SECONDS * 1000 };
+  if (!restTimerInterval) {
+    restTimerInterval = window.setInterval(() => {
+      if (!restTimer) {
+        stopRestTimer();
+        return;
+      }
+      if (restTimer.endsAt - Date.now() <= 0) {
+        stopRestTimer();
+        announce("Odmor je gotov.");
+        return;
+      }
+      paintRestTimers();
+    }, 500);
+  }
+  paintRestTimers();
+}
+
 function getTrainingTemplateCompletionCount(template, weekday = state.selectedWeekday) {
   const exercises = Array.isArray(template?.exercises) ? template.exercises : [];
   const completedCount = exercises.filter((exercise) => isTrainingExerciseCompleted(weekday, template?.id, exercise.id)).length;
@@ -5289,6 +5434,28 @@ function getTrainingTemplateCompletionCount(template, weekday = state.selectedWe
     completedCount,
     totalCount: exercises.length,
   };
+}
+
+// The training is "done" when every exercise in it is checked — the same rule
+// meals use, so there is no second source of truth to drift out of sync.
+function setTrainingTemplateCompletion(weekday, template, done) {
+  const exercises = Array.isArray(template?.exercises) ? template.exercises : [];
+  if (!weekday || !template?.id || !exercises.length) {
+    return;
+  }
+  const weekdayBucket = { ...(store.trainingCompletionsByWeekday?.[weekday] || {}) };
+  if (done) {
+    weekdayBucket[template.id] = Object.fromEntries(exercises.map((exercise) => [exercise.id, true]));
+  } else {
+    delete weekdayBucket[template.id];
+  }
+  store.trainingCompletionsByWeekday = store.trainingCompletionsByWeekday || {};
+  if (Object.keys(weekdayBucket).length) {
+    store.trainingCompletionsByWeekday[weekday] = weekdayBucket;
+  } else {
+    delete store.trainingCompletionsByWeekday[weekday];
+  }
+  persist();
 }
 
 function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
@@ -7326,6 +7493,10 @@ function srPlural(count, one, few, many) {
 // without opening it.
 function renderCollapseHint(text) {
   return text ? `<span class="form-collapse-hint">${escapeHtml(String(text))}</span>` : "";
+}
+
+function renderRestIcon() {
+  return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
 }
 
 function renderChevronIcon(isOpen) {
@@ -10087,10 +10258,19 @@ function renderTrainingTab() {
             ? templates
                 .map((template) => {
                   const completion = getTrainingTemplateCompletionCount(template, state.selectedWeekday);
+                  const isTemplateDone = completion.totalCount > 0 && completion.completedCount === completion.totalCount;
                   return `
-                    <article class="training-card training-template-card">
+                    <article class="training-card training-template-card ${isTemplateDone ? "is-done" : ""}">
                       <div class="training-top">
-                        <div>
+                        <div class="training-top-title">
+                          ${
+                            completion.totalCount
+                              ? `<label class="routine-check training-done-check" title="${isTemplateDone ? "Poništi ceo trening" : "Označi ceo trening kao odrađen"}">
+                                  <input class="routine-checkbox" type="checkbox" data-action="toggle-training-template-done" data-template-id="${template.id}" aria-label="${isTemplateDone ? "Poništi" : "Označi"} ceo trening „${escapeHtml(template.name)}“ kao odrađen" ${isTemplateDone ? "checked" : ""} />
+                                  <span class="routine-check-ui" aria-hidden="true"></span>
+                                </label>`
+                              : ""
+                          }
                           <h3>${escapeHtml(template.name)}</h3>
                         </div>
                         <span class="pill strong" aria-label="${completion.completedCount} od ${completion.totalCount} ${srPlural(completion.totalCount, "vežbe", "vežbe", "vežbi")} odrađeno">${completion.completedCount}/${completion.totalCount}</span>
@@ -10107,8 +10287,14 @@ function renderTrainingTab() {
                                 <div class="training-exercise-copy">
                                   <strong class="training-exercise-name">${escapeHtml(exercise.name)}</strong>
                                   <div class="training-exercise-detail">${escapeHtml(exercise.details)}</div>
+                                  ${renderExerciseProgression(exercise.name, exercise.details)}
                                 </div>
-                                <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">kg</button>
+                                <div class="training-exercise-actions">
+                                  <button class="training-rest" type="button" data-action="toggle-rest-timer" data-rest-key="${template.id}:${exercise.id}" aria-label="Pokreni odmor" title="Odmor ${REST_TIMER_SECONDS} sekundi">
+                                    ${renderRestIcon()}<span class="training-rest-label">Odmor</span>
+                                  </button>
+                                  <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">kg</button>
+                                </div>
                               </div>
                             `
                           )
@@ -14864,6 +15050,7 @@ function render() {
   if (state.activeTab === "recipes" && state.recipeSearch) {
     filterRecipeCardsInline(state.recipeSearch);
   }
+  paintRestTimers();
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
   state.lastAddedEntryId = "";
@@ -15542,6 +15729,32 @@ async function handleDocumentClick(event) {
     );
     persist();
     render();
+    return;
+  }
+
+  if (action === "toggle-training-template-done") {
+    const template = getTrainingForDay(state.selectedWeekday).find((item) => item.id === actionTarget.dataset.templateId);
+    if (template) {
+      const completion = getTrainingTemplateCompletionCount(template, state.selectedWeekday);
+      const nextDone = completion.completedCount !== completion.totalCount;
+      setTrainingTemplateCompletion(state.selectedWeekday, template, nextDone);
+      announce(
+        nextDone
+          ? `Trening „${template.name}“ je označen kao odrađen.`
+          : `Trening „${template.name}“ više nije označen kao odrađen.`
+      );
+      render();
+    }
+    return;
+  }
+
+  if (action === "toggle-rest-timer") {
+    const key = actionTarget.dataset.restKey || "";
+    if (restTimer && restTimer.key === key) {
+      stopRestTimer();
+    } else {
+      startRestTimer(key);
+    }
     return;
   }
 
