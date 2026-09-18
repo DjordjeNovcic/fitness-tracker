@@ -2127,7 +2127,8 @@ textarea::placeholder {
   }
 
   /* An empty state describes the whole list, so it spans every column and
-     stays proportional to the little it says. */
+     centres in the card instead of hugging the left edge with dead space
+     beside it. */
   .routine-habit-stack > .empty,
   .routine-task-stack > .empty,
   .routine-streak-stack > .empty,
@@ -2138,8 +2139,8 @@ textarea::placeholder {
   .nutrition-foods-stack > .empty,
   .nutrition-documents-stack > .empty {
     grid-column: 1 / -1;
-    max-width: 640px;
-    padding: 14px 16px;
+    max-width: none;
+    padding-block: 18px;
   }
 
   /* Ciljevi's "Cilj" summary (stat-hero + BMR/macro pills) and Rutina's daily
@@ -2155,9 +2156,18 @@ textarea::placeholder {
     max-width: 640px;
   }
 
-  .goals-profile-section .plan-net-row,
-  .routine-overview-section .plan-net-row {
+  /* Ciljevi's BMR → održavanje pair stays beside the weight chart, so it keeps
+     the 640px column. Rutina's daily summary has nothing beside it: capping it
+     left three numbers hugging the left edge of a 1080px card, while the same
+     glance row spans the full width on Trening, Trčanje and Napredak. */
+  .goals-profile-section .plan-net-row {
     max-width: 640px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .routine-overview-section .plan-net-row {
+    max-width: none;
     margin-left: 0;
     margin-right: 0;
   }
@@ -11866,5 +11876,30 @@ button.meal-entry-body:focus-visible {
 @media (min-width: 1280px) {
   .goals-cilj-layout {
     grid-template-columns: minmax(0, 660px) minmax(300px, 1fr);
+  }
+}
+
+/* Empty states never sit in a capped, left-anchored column: they describe the
+   whole card, so they take its full width and centre their message. Applies to
+   the stacks that are otherwise capped at 640px for form readability. */
+@media (min-width: 900px) {
+  .routine-habit-stack > .empty,
+  .routine-task-stack > .empty,
+  .routine-streak-stack > .empty,
+  .running-history-stack > .empty,
+  .plan-supplement-stack > .empty,
+  .plan-supplement-manage-stack > .empty,
+  .nutrition-plan-meals > .empty,
+  .nutrition-recommendations-stack > .empty,
+  .nutrition-recipes-stack > .empty,
+  .nutrition-foods-stack > .empty,
+  .nutrition-documents-stack > .empty,
+  .goals-form-layout > .empty {
+    max-width: none;
+    margin-inline: 0;
+  }
+  /* The message itself stays readable — it centres, it doesn't stretch. */
+  .empty:not(.nutrition-plan-notes):not(.progress-empty-guide) > * {
+    max-width: 52ch;
   }
 }
