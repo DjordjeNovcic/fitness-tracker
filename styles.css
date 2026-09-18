@@ -12456,3 +12456,16 @@ button.meal-entry-body:focus-visible {
     min-height: 48px;
   }
 }
+
+/* Ciljevi: jedna mera za celu kolonu.
+   The 640px cap used to sit on individual children (stat-hero, the form),
+   while the BMR and macro rows were explicitly uncapped — so those two rows
+   ran 20px past the form at 1420px and 62px past it at 1100px, and the
+   column had a ragged right edge. Capping the column and clearing the child
+   caps means nothing can drift out of line again. */
+.goals-cilj-main {
+  max-width: 640px;
+}
+.goals-cilj-main > * {
+  max-width: none;
+}
