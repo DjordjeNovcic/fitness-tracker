@@ -9492,8 +9492,6 @@ function renderPlanTab(entries) {
 }
 
 function renderFoodsTab() {
-  const nextOpenMealLabel = getNextOpenMealLabel();
-  const nextOpenMealTitle = nextOpenMealLabel ? getMealDisplayParts(nextOpenMealLabel).title || nextOpenMealLabel : "";
   // Foods imported from a nutrition-plan document that still need kcal/macro
   // values are hidden from the selectable list below (shouldHidePendingImportedFood)
   // until reviewed — without this link, they're invisible and unreachable
@@ -9592,7 +9590,7 @@ function renderFoodsTab() {
         <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnice", "namirnice", "namirnica")}` : `${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnica", "namirnice", "namirnica")} u bazi`}</p>
       </header>
 
-      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu, a <strong>+</strong> pored nje je ubacuje u sledeći otvoreni obrok. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Sve odavde ubacuješ u obroke u Planu.")}
+      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Ovo je samo baza — u obroke se dodaje u <strong>Danas</strong>, iz samog obroka ili preko <strong>Brzog unosa</strong>.")}
 
       ${
         pendingNutritionReviewCount > 0
@@ -9686,13 +9684,6 @@ function renderFoodsTab() {
                   </span>
                   <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</span>
                 </button>
-                ${
-                  nextOpenMealLabel
-                    ? `<button class="food-row-add" type="button" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(nextOpenMealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)} u ${escapeHtml(nextOpenMealTitle)}" title="Dodaj u ${escapeHtml(nextOpenMealTitle)}">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                      </button>`
-                    : ""
-                }
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
                   type="button"

@@ -9184,29 +9184,6 @@ body.app-header-hidden .workspace-header {
 .food-row {
   grid-template-columns: auto 1fr auto auto;
 }
-.food-row-add {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 0;
-  cursor: pointer;
-}
-.food-row-add svg {
-  width: 18px;
-  height: 18px;
-}
-:root[data-theme="dark"] .food-row-add {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-}
-
 /* ============================================================
    Recipe search, scanner in the composer, swipe-to-eat.
    ============================================================ */
