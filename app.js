@@ -6686,13 +6686,10 @@ function renderFoodEditorDialog() {
                 <input id="food-category" name="category" value="${escapeHtml(editingFood?.category || "")}" placeholder="Automatski po makroima" readonly aria-describedby="food-category-hint" />
                 <div id="food-category-hint" class="footer-note">Određuje se automatski po dominantnom makrou (Proteini / UH / Masti / Ostalo).</div>
               </div>
-              <div class="field">
-                <label for="food-serving-unit">Baza nutritivnih vrednosti</label>
-                <select id="food-serving-unit" name="servingUnit">
-                  <option value="grams" ${foodEditorServingUnit === "grams" ? "selected" : ""}>Na 100 g</option>
-                  <option value="piece" ${foodEditorServingUnit === "piece" ? "selected" : ""}>Na 1 komad</option>
-                </select>
-              </div>
+              ${renderChoiceField("Baza nutritivnih vrednosti", "servingUnit", foodEditorServingUnit, [
+                { id: "grams", label: "Na 100 g" },
+                { id: "piece", label: "Na 1 komad" },
+              ])}
             </div>
           </section>
           <section class="food-form-section">
@@ -7124,20 +7121,19 @@ function renderOnboarding() {
               <label for="ob-age">Godine</label>
               <input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" placeholder="30" />
             </div>
-            <div class="field">
-              <label for="ob-height">Visina (cm)</label>
-              <input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" placeholder="180" />
-            </div>
-            <div class="field">
-              <label for="ob-weight">Težina (kg)</label>
-              <input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" placeholder="84" />
-            </div>
+            ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" placeholder="180" />`)}
+            ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" placeholder="84" />`)}
           </div>
           <div class="field">
-            <label for="ob-activity">Nivo aktivnosti</label>
-            <select id="ob-activity">
-              ${ACTIVITY_LEVELS.map((level) => `<option value="${level.id}" ${level.id === ob.activityLevel ? "selected" : ""}>${level.label}</option>`).join("")}
-            </select>
+            <label>Nivo aktivnosti</label>
+            <div class="choice-chips">
+              ${ACTIVITY_LEVELS.map(
+                (level) => `<button type="button" class="choice-chip ${level.id === ob.activityLevel ? "is-active" : ""}" data-action="set-onboarding-activity" data-activity="${level.id}">
+                  <span class="choice-chip-label">${ACTIVITY_SHORT_LABELS[level.id] || level.label}</span>
+                  <span class="choice-chip-hint">${ACTIVITY_HINTS[level.id] || ""}</span>
+                </button>`
+              ).join("")}
+            </div>
           </div>
           <div class="field">
             <label>Cilj</label>
@@ -8513,12 +8509,12 @@ function renderPlanSupplementsSection() {
             <label for="supplement-name">${editingSupplement ? "Izmena suplementa" : "Novi suplement"}</label>
             <input id="supplement-name" name="name" placeholder="npr. Vitamin D3" value="${escapeHtml(editingSupplement?.name || "")}" required />
           </div>
-          <div class="field">
-            <label for="supplement-timing">Kada se uzima</label>
-            <select id="supplement-timing" name="timing">
-              ${SUPPLEMENT_TIMINGS.map((timing) => `<option value="${timing.id}" ${(editingSupplement?.timing || "breakfast") === timing.id ? "selected" : ""}>${timing.label}</option>`).join("")}
-            </select>
-          </div>
+          ${renderChoiceField(
+            "Kada se uzima",
+            "timing",
+            editingSupplement?.timing || "breakfast",
+            SUPPLEMENT_TIMINGS.map((timing) => ({ id: timing.id, label: timing.label }))
+          )}
           <div class="field supplement-weekdays-field">
             <label>Za koje dane</label>
             <div class="chips weekday-choice-grid">
@@ -11322,16 +11318,8 @@ function renderRunningTab() {
           <label for="run-date">Datum</label>
           <input id="run-date" name="date" type="date" value="${draftDate}" required />
         </div>
-        <div class="field">
-          <label for="run-type">Tip trčanja</label>
-          <select id="run-type" name="type">
-            ${RUN_TYPES.map((type) => `<option value="${type.id}" ${type.id === draftType ? "selected" : ""}>${type.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="run-distance">Distanca (km)</label>
-          <input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />
-        </div>
+        ${renderChoiceField("Tip trčanja", "type", draftType, RUN_TYPES.map((type) => ({ id: type.id, label: type.label })))}
+        ${renderUnitField("run-distance", "Distanca", "km", `<input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />`)}
         <div class="field">
           <label for="run-minutes">Vreme (min : sek)</label>
           <div class="run-time-inputs">
@@ -11502,13 +11490,10 @@ function renderRoutineTab() {
             required
           />
         </div>
-        <div class="field">
-          <label for="habit-tracking-mode">Tip praćenja</label>
-          <select id="habit-tracking-mode" name="trackingMode">
-            <option value="weekly" ${habitTrackingMode === "weekly" ? "selected" : ""}>Nedeljna navika</option>
-            <option value="streak" ${habitTrackingMode === "streak" ? "selected" : ""}>Dugoročni streak</option>
-          </select>
-        </div>
+        ${renderChoiceField("Tip praćenja", "trackingMode", habitTrackingMode, [
+          { id: "weekly", label: "Nedeljna", hint: "čekiraš po danima" },
+          { id: "streak", label: "Streak", hint: "broji dane u nizu" },
+        ])}
         <div class="field">
           <label for="habit-note">Opis / cilj</label>
           <input id="habit-note" name="note" placeholder="npr. svaki dan, makar 10 min" value="${escapeHtml(editingHabit?.note || "")}" />
@@ -14508,17 +14493,19 @@ function renderProgressTab() {
         ${measurementFields
           .map(
             (field) => `
-              <div class="field">
-                <label for="measurement-${field.id}">${field.label}${field.unit ? ` (${field.unit})` : ""}</label>
-                <input
+              ${renderUnitField(
+                `measurement-${field.id}`,
+                field.label,
+                field.unit || "",
+                `<input
                   id="measurement-${field.id}"
                   name="${field.id}"
                   type="${field.type}"
                   ${field.step ? `step="${field.step}"` : ""}
                   ${field.type === "number" ? 'min="0"' : ""}
                   placeholder="${field.placeholder || ""}"
-                />
-              </div>
+                />`
+              )}
             `
           )
           .join("")}
@@ -15457,6 +15444,14 @@ async function handleDocumentClick(event) {
   if (action === "set-onboarding-mode") {
     if (state.onboarding) {
       state.onboarding.targetMode = actionTarget.dataset.mode || "lose";
+      render();
+    }
+    return;
+  }
+
+  if (action === "set-onboarding-activity") {
+    if (state.onboarding) {
+      state.onboarding.activityLevel = actionTarget.dataset.activity || "moderate";
       render();
     }
     return;
@@ -18844,11 +18839,10 @@ function handleInput(event) {
     return;
   }
 
-  if (state.onboarding && (target.id === "ob-age" || target.id === "ob-height" || target.id === "ob-weight" || target.id === "ob-activity")) {
+  if (state.onboarding && (target.id === "ob-age" || target.id === "ob-height" || target.id === "ob-weight")) {
     if (target.id === "ob-age") state.onboarding.age = target.value;
     if (target.id === "ob-height") state.onboarding.heightCm = target.value;
     if (target.id === "ob-weight") state.onboarding.weightKg = target.value;
-    if (target.id === "ob-activity") state.onboarding.activityLevel = target.value;
     syncOnboardingPreview();
     return;
   }
