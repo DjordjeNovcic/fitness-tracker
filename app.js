@@ -15670,12 +15670,28 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    // Snapshot before the reset: a long streak is the single most painful
+    // thing to lose here, and it was the one destructive action with no way back.
+    const previousStreak = {
+      bestStreakDays: habit.bestStreakDays,
+      resetCount: habit.resetCount,
+      lastResetAt: habit.lastResetAt,
+      streakStartDate: habit.streakStartDate,
+      updatedAt: habit.updatedAt,
+    };
     habit.bestStreakDays = Math.max(Math.max(0, toNumber(habit.bestStreakDays)), currentStreakDays);
     habit.resetCount = Math.max(0, toNumber(habit.resetCount)) + 1;
     habit.lastResetAt = getTodayDateValue();
     habit.streakStartDate = getTodayDateValue();
     habit.updatedAt = new Date().toISOString();
     persist();
+    queuePendingUndo(`Streak za „${habit.name}" je resetovan.`, () => {
+      const target = store.habits.find((entry) => entry.id === habit.id);
+      if (target) {
+        Object.assign(target, previousStreak);
+        persist();
+      }
+    });
     render();
     return;
   }
@@ -15812,11 +15828,16 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    const prevTasks = store.dayTasks;
     store.dayTasks = store.dayTasks.filter((entry) => entry.id !== actionTarget.dataset.taskId);
     if (state.editingTaskId === actionTarget.dataset.taskId) {
       state.editingTaskId = "";
     }
     persist();
+    queuePendingUndo("Task obrisan.", () => {
+      store.dayTasks = prevTasks;
+      persist();
+    });
     render();
     return;
   }
@@ -15851,11 +15872,16 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    const prevSupplements = store.supplements;
     store.supplements = store.supplements.filter((entry) => entry.id !== actionTarget.dataset.supplementId);
     if (state.editingSupplementId === actionTarget.dataset.supplementId) {
       state.editingSupplementId = "";
     }
     persist();
+    queuePendingUndo("Suplement obrisan.", () => {
+      store.supplements = prevSupplements;
+      persist();
+    });
     render();
     return;
   }
@@ -15871,13 +15897,22 @@ async function handleDocumentClick(event) {
     if (!confirmed) {
       return;
     }
+    const prevDayTasks = store.dayTasks;
     store.dayTasks = store.dayTasks.filter(
       (task) => !(task.weekday === state.selectedWeekday && normalizeWeekTrack(task.weekTrack) === state.selectedWeekTrack && task.done)
     );
+    const removedCount = prevDayTasks.length - store.dayTasks.length;
     if (state.editingTaskId && !store.dayTasks.some((task) => task.id === state.editingTaskId)) {
       state.editingTaskId = "";
     }
     persist();
+    queuePendingUndo(
+      `Obrisano ${removedCount} ${srPlural(removedCount, "završen task", "završena taska", "završenih taskova")}.`,
+      () => {
+        store.dayTasks = prevDayTasks;
+        persist();
+      }
+    );
     render();
     return;
   }
@@ -16913,8 +16948,13 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    // Removing the last ingredient removes the whole recipe, so the snapshot
+    // has to cover both the item list and the recipe list.
+    const prevFavoriteMeals = store.favoriteMeals;
+    const prevItems = favorite.items;
     favorite.items = favorite.items.filter((_, index) => index !== itemIndex);
-    if (!favorite.items.length) {
+    const removedRecipe = !favorite.items.length;
+    if (removedRecipe) {
       store.favoriteMeals = store.favoriteMeals.filter((entry) => entry.id !== favorite.id);
     }
     if (
@@ -16924,6 +16964,14 @@ async function handleDocumentClick(event) {
       resetFavoriteDraft();
     }
     persist();
+    queuePendingUndo(
+      removedRecipe ? `Recept „${favorite.name}" je obrisan (ostao je bez sastojaka).` : "Sastojak obrisan iz recepta.",
+      () => {
+        favorite.items = prevItems;
+        store.favoriteMeals = prevFavoriteMeals;
+        persist();
+      }
+    );
     render();
     return;
   }
@@ -17314,17 +17362,30 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    const prevFavoriteTrainings = store.favoriteTrainings;
     store.favoriteTrainings = store.favoriteTrainings.filter(
       (entry) => entry.id !== actionTarget.dataset.favoriteTrainingId
     );
     persist();
+    queuePendingUndo("Omiljeni trening obrisan.", () => {
+      store.favoriteTrainings = prevFavoriteTrainings;
+      persist();
+    });
     render();
     return;
   }
 
   if (action === "delete-training-progress") {
+    const prevProgressLogs = store.trainingProgressLogs;
+    if (!prevProgressLogs.some((log) => log.id === actionTarget.dataset.progressId)) {
+      return;
+    }
     store.trainingProgressLogs = store.trainingProgressLogs.filter((log) => log.id !== actionTarget.dataset.progressId);
     persist();
+    queuePendingUndo("Unos opterećenja obrisan.", () => {
+      store.trainingProgressLogs = prevProgressLogs;
+      persist();
+    });
     render();
     return;
   }
