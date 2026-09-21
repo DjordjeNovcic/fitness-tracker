@@ -10137,6 +10137,9 @@ function renderRecipesTab() {
     ]),
   ];
   const draftPreview = getFavoriteDraftPreview();
+  const editingFavorite = state.editingFavoriteItem.favoriteId
+    ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId) || null
+    : null;
   const favoriteDraftFood = getFoodById(state.favoriteDraft.foodId);
   const favoriteFoodSearchValue = favoriteDraftFood?.name || "";
   const recipeMealFilters = ["Sve", ...meals.filter(Boolean)];
@@ -10158,8 +10161,12 @@ function renderRecipesTab() {
     <section class="section recipes-builder-section ${state.recipesBuilderExpanded ? "is-expanded" : "is-collapsed"}">
       <button class="section-disclosure" type="button" data-action="toggle-recipes-builder" aria-expanded="${state.recipesBuilderExpanded}">
         <div class="section-disclosure-copy">
-          <h2>Napravi recept</h2>
-          <p>Sastavi novi recept iz sastojaka.</p>
+          <h2>${editingFavorite ? "Izmeni recept" : "Napravi recept"}</h2>
+          <p>${
+            editingFavorite
+              ? `Menjaš „${escapeHtml(editingFavorite.name)}“ — čuvanje prepisuje postojeći recept.`
+              : "Sastavi novi recept iz sastojaka."
+          }</p>
         </div>
         <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.recipesBuilderExpanded)}</span>
       </button>
@@ -10334,8 +10341,13 @@ function renderRecipesTab() {
               data-action="save-favorite-meal-draft"
               ${!draftPreview.favoriteName || !draftPreview.mealLabel || !draftPreview.items.length ? "disabled" : ""}
             >
-              ${renderButtonContent("Sačuvaj recept", "save")}
+              ${renderButtonContent(editingFavorite ? "Sačuvaj izmene" : "Sačuvaj recept", "save")}
             </button>
+            ${
+              editingFavorite
+                ? `<button class="ghost-button" type="button" data-action="cancel-edit-favorite-meal">Odustani</button>`
+                : ""
+            }
           </div>
         </div>
       </article>
@@ -17310,6 +17322,11 @@ async function handleDocumentClick(event) {
       return;
     }
     state.activeTab = "recipes";
+    // Kompozitor je skupljen po difoltu (`recipesBuilderExpanded: false`), a
+    // njegovo telo je `display: none` — bez ovoga se draft učita u formu koja
+    // se ne vidi, pa scrollIntoView i focus ispod ne rade ništa i klik na
+    // olovku izgleda kao da se nije desio.
+    state.recipesBuilderExpanded = true;
     setFavoriteDraftFromRecipe(favorite);
     render();
     window.requestAnimationFrame(() => {
@@ -17356,6 +17373,8 @@ async function handleDocumentClick(event) {
       return;
     }
     state.activeTab = "recipes";
+    // Isti razlog kao kod izmene celog recepta — bez ovoga je forma skrivena.
+    state.recipesBuilderExpanded = true;
     setFavoriteDraftFromItem(favorite, item);
     render();
     window.requestAnimationFrame(() => {
@@ -17408,6 +17427,12 @@ async function handleDocumentClick(event) {
           }
         : item
     );
+    render();
+    return;
+  }
+
+  if (action === "cancel-edit-favorite-meal") {
+    resetFavoriteDraft();
     render();
     return;
   }
