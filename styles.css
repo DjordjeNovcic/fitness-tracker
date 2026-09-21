@@ -12551,3 +12551,228 @@ button.meal-entry-body:focus-visible {
 
 /* Kept at 36px on a phone too: this is the delete control, and the row has the
    width to spare — the name does not clip at this size. */
+
+/* ============================================================
+   Merenje: datum + težina su srž, sve ostalo je opciono.
+   Kalorije se ne kucaju — upisuje se cilj koji je važio tog dana.
+   ============================================================ */
+.measurement-goal-note {
+  padding: 11px 13px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-strong) 42%, var(--surface-strong));
+}
+.measurement-goal-note .footer-note {
+  margin: 0;
+}
+
+.measurement-photo-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+/* Bez sopstvenog isprekidanog okvira: .field input[type="file"] već crta jedan,
+   pa bi se dobila ramica u ramici. */
+.measurement-photo-slot {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.measurement-photo-slot label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.measurement-photo-slot input[type="file"] {
+  font-size: 0.8125rem;
+  max-width: 100%;
+}
+
+/* Obimi stoje sklopljeni — forma se otvara na datum + težinu, ne na sedam polja. */
+.measurement-extra {
+  gap: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.measurement-extra > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+.measurement-extra > summary::-webkit-details-marker {
+  display: none;
+}
+.measurement-extra[open] > summary {
+  margin-bottom: 14px;
+}
+/* Vlastite klase, ne form-collapse-*: spoljni .form-collapse[open] rotira svaku
+   takvu ikonicu u sebi (plus → ×), pa bi i ova stajala iskošena dok je zatvorena.
+   Naslov je i namerno tiši od „Dodaj merenje“ — ovo je podgrupa, ne sekcija. */
+.measurement-extra-title {
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.measurement-extra-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.measurement-extra-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.measurement-extra[open] .measurement-extra-icon {
+  transform: rotate(180deg);
+}
+
+/* Slike tog dana, uz sam unos u istoriji merenja. */
+.measurement-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.measurement-thumb {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  width: 92px;
+}
+.measurement-thumb img,
+.measurement-thumb .photo-loading {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--bg-strong);
+}
+.measurement-thumb figcaption {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ============================================================
+   Galerija slika kao vremenska linija: jedan red = jedan dan
+   snimanja, sa težinom iz merenja tog datuma.
+   ============================================================ */
+.photo-session-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.photo-session {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-tight);
+}
+/* Fiksne kolone, ne auto-fill: sesija ima najviše tri slike (front/bok/leđa), pa
+   tri kolone na širokom ekranu drže jednu sesiju u jednom redu, a dve na
+   telefonu. Sa auto-fill-om je širina kartice odlučivala umesto nas i slike su
+   padale svaka u svoj red. */
+.photo-session-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 900px) {
+  /* Ograničene kolone: ovo je pregled, ne poređenje — puna širina kartice bi
+     dala sličice od ~380px i jedna sesija bi zauzela ceo ekran. */
+  .photo-session-row {
+    grid-template-columns: repeat(3, minmax(0, 220px));
+  }
+}
+.photo-session-item {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+.photo-session-item img,
+.photo-session-item .photo-loading {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 14px;
+  background: var(--bg-strong);
+}
+.photo-session-item figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Zbog čega se poređenje uopšte otvara: koliko kilograma za koliko dana. */
+.compare-delta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-strong) 42%, var(--surface-strong));
+}
+.compare-delta-range {
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.compare-delta .footer-note {
+  margin: 0;
+}
+.compare-delta-note {
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Na telefonu su tri kolone preuske za nativnu kontrolu za fajl — ime fajla se
+   seče na pola slova. Jedan slot po redu. */
+@media (max-width: 720px) {
+  .measurement-photo-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Tamna tema: "Choose File" je bio svetlo dugme sa svetlim tekstom (gradijent je
+   tvrdo kodiran na belo, a boja je var(--ink)) — natpis se nije video. Tiče se
+   svakog file inputa, ali najviše bode oči u formi merenja, gde su sada tri. */
+:root[data-theme="dark"] .field input[type="file"]::file-selector-button {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .field input[type="file"]:hover::file-selector-button {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--line-strong);
+  box-shadow: none;
+}

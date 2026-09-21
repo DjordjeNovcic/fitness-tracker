@@ -454,9 +454,13 @@ const defaultMeals = [
   "5. Večera",
 ];
 
+// Merenje je namerno usko: datum + težina su srž, obimi su opcioni dodatak koji
+// u formi stoji sklopljen. "Trening" je izbačen — bio je slobodan tekst koji
+// ništa u aplikaciji nije čitalo osim jedne pilule u istoriji, a trening ionako
+// ima svoj log. Kalorije se više ne kucaju: cilj koji je važio na dan merenja se
+// zamrzne na unos pri čuvanju (getCalorieGoalForDate), pa kasnija promena cilja
+// ne prepravlja istoriju unazad.
 const measurementFields = [
-  { id: "trainingType", label: "Trening", type: "text", placeholder: "npr. noge" },
-  { id: "calorieDeficit", label: "Kalorije deficit", type: "number", step: "1", unit: "kcal" },
   { id: "weightKg", label: "Težina", type: "number", step: "0.1", unit: "kg" },
   { id: "thighCm", label: "Butine", type: "number", step: "0.1", unit: "cm" },
   { id: "upperWaistCm", label: "Stomak gornji", type: "number", step: "0.1", unit: "cm" },
@@ -465,7 +469,13 @@ const measurementFields = [
   { id: "armCm", label: "Ruke", type: "number", step: "0.1", unit: "cm" },
 ];
 
+// Težina je jedino obavezno polje; sve ostalo ide pod „Dodatne mere“.
+const optionalMeasurementFieldIds = measurementFields
+  .filter((field) => field.id !== "weightKg")
+  .map((field) => field.id);
+
 const PHOTO_TAGS = ["front", "side", "back"];
+const PHOTO_TAG_LABELS = { front: "Front", side: "Bok", back: "Leđa" };
 
 // Common blood-work markers with orientational reference ranges + units. Ranges
 // vary by lab, sex and age, so these are guidance only (not medical advice) and
@@ -13305,6 +13315,124 @@ function getPhotoDateDefault() {
   return getLocalDateInputValue();
 }
 
+// Kalorijski cilj koji je važio na dati dan. recordTodaySnapshot piše cilj u
+// store.history svakog dana, pa je snapshot tačniji od tekućeg cilja za datume
+// unazad; tekući cilj je fallback za dane bez snapshota (npr. prvi dan).
+function getCalorieGoalForDate(date) {
+  const key = normalizeDateValue(date) || date;
+  const snapshotGoal = roundValue(toNumber((store.history || {})[key]?.calorieGoal), 0);
+  if (snapshotGoal > 0) {
+    return snapshotGoal;
+  }
+  return roundValue(toNumber(store.goals?.calories), 0);
+}
+
+// Pilula sa kalorijama za jedan unos. Nova merenja nose zamrznut cilj
+// (calorieGoal); stari unosi imaju ručno kucan calorieDeficit i prikazuju se pod
+// svojim imenom, da im ne pripišemo značenje koje nisu imali.
+function getMeasurementCaloriePill(entry) {
+  const goal = roundValue(toNumber(entry?.calorieGoal), 0);
+  if (goal > 0) {
+    return `<span class="pill">Cilj: ${goal} kcal</span>`;
+  }
+  const legacy = roundValue(toNumber(entry?.calorieDeficit), 0);
+  return legacy > 0 ? `<span class="pill">Kalorije: ${legacy} kcal</span>` : "";
+}
+
+function renderMeasurementGoalNote(date) {
+  const goal = getCalorieGoalForDate(date);
+  if (!(goal > 0)) {
+    return `<span class="footer-note">Kalorijski cilj se upisuje sam uz merenje — postavi ga u Ciljevima.</span>`;
+  }
+  return `<span class="footer-note">Kalorijski cilj tog dana: <strong>${goal} kcal</strong> — upisuje se sam, ne kucaš ga.</span>`;
+}
+
+function getPhotoTagLabel(tag) {
+  return PHOTO_TAG_LABELS[tag] || tag || "bez taga";
+}
+
+// Slike i merenja se spajaju po datumu, bez tvrde veze: postojeće slike se same
+// povežu (nema migracije), slika dodata kasnije sa istim datumom uđe u istu
+// sesiju, a brisanje merenja ne ostavlja siročiće.
+function getMeasurementWeightForDate(date) {
+  const key = normalizeDateValue(date) || date;
+  const match = (store.measurements || []).find(
+    (entry) => (normalizeDateValue(entry?.date) || entry?.date) === key && toNumber(entry?.weightKg) > 0
+  );
+  return match ? roundValue(toNumber(match.weightKg), 1) : null;
+}
+
+// Galerija se grupiše po danu snimanja: jedan red = jedna sesija (front/bok/leđa),
+// pa se čita kao vremenska linija umesto kao ravan niz pojedinačnih slika.
+function groupPhotosByDate(photos) {
+  const byDate = new Map();
+  photos.forEach((photo) => {
+    const key = normalizeDateValue(photo?.date) || photo?.date || "";
+    if (!byDate.has(key)) {
+      byDate.set(key, []);
+    }
+    byDate.get(key).push(photo);
+  });
+  return [...byDate.entries()]
+    .map(([date, items]) => ({
+      date,
+      photos: [...items].sort((a, b) => PHOTO_TAGS.indexOf(a.tag) - PHOTO_TAGS.indexOf(b.tag)),
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Ono zbog čega se poređenje uopšte otvara: koliko je kilograma otišlo između
+// dve slike i za koliko dana. Ćuti ako za neki od dva datuma nema merenja.
+function renderCompareDelta(leftPhoto, rightPhoto) {
+  const leftWeight = getMeasurementWeightForDate(leftPhoto?.date);
+  const rightWeight = getMeasurementWeightForDate(rightPhoto?.date);
+  const days = getDaysBetweenDates(leftPhoto?.date, rightPhoto?.date);
+  // days === 0 je validno (dve slike istog dana) — samo null znači „ne znam“.
+  if (leftWeight === null || rightWeight === null || days === null) {
+    return `<div class="footer-note compare-delta-note">Unesi merenje za oba datuma pa će ovde pisati razlika u kilogramima.</div>`;
+  }
+  const leftIsOlder = new Date(leftPhoto.date) <= new Date(rightPhoto.date);
+  const olderWeight = leftIsOlder ? leftWeight : rightWeight;
+  const newerWeight = leftIsOlder ? rightWeight : leftWeight;
+  const delta = roundValue(newerWeight - olderWeight, 1);
+  const tone = delta < 0 ? "measure-delta--down" : delta > 0 ? "measure-delta--up" : "measure-delta--flat";
+  const deltaLabel = delta === 0 ? "bez promene" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} kg`;
+  return `
+    <div class="compare-delta">
+      <span class="compare-delta-range">${olderWeight} kg → ${newerWeight} kg</span>
+      <span class="measure-delta ${tone}">${deltaLabel}</span>
+      <span class="footer-note">${days === 0 ? "isti dan" : `za ${days} ${days === 1 ? "dan" : "dana"}`}</span>
+    </div>`;
+}
+
+function getPhotosForDate(photos, date) {
+  const key = normalizeDateValue(date) || date;
+  return photos.filter((photo) => (normalizeDateValue(photo?.date) || photo?.date) === key);
+}
+
+// 1 slika / 2-4 slike / 5+ slika — sr množina, da pilula ne zvuči kao prevod.
+function getPhotoCountLabel(count) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${count} slika`;
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} slike`;
+  }
+  return `${count} slika`;
+}
+
+// Dana između dva datuma, za natpis ispod poređenja slika.
+function getDaysBetweenDates(fromDate, toDate) {
+  const from = getDateValueAsLocalDate(normalizeDateValue(fromDate));
+  const to = getDateValueAsLocalDate(normalizeDateValue(toDate));
+  if (!from || !to) {
+    return null;
+  }
+  return Math.abs(Math.round((to - from) / 86400000));
+}
+
 function getProgressSummary(history, photos) {
   const latestMeasurement = history[0] || null;
   const latestPhoto = photos[0] || null;
@@ -14513,25 +14641,57 @@ function renderProgressTab() {
           <label for="measurement-date">Datum</label>
           <input id="measurement-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
         </div>
-        ${measurementFields
-          .map(
-            (field) => `
-              ${renderUnitField(
-                `measurement-${field.id}`,
-                field.label,
-                field.unit || "",
-                `<input
-                  id="measurement-${field.id}"
-                  name="${field.id}"
-                  type="${field.type}"
-                  ${field.step ? `step="${field.step}"` : ""}
-                  ${field.type === "number" ? 'min="0"' : ""}
-                  placeholder="${field.placeholder || ""}"
-                />`
-              )}
-            `
-          )
-          .join("")}
+        ${renderUnitField(
+          "measurement-weightKg",
+          "Težina",
+          "kg",
+          `<input id="measurement-weightKg" name="weightKg" type="number" step="0.1" min="0" required />`
+        )}
+        <div class="field field--full measurement-goal-note" id="measurement-calorie-goal">
+          ${renderMeasurementGoalNote(getLocalDateInputValue())}
+        </div>
+        <div class="field field--full measurement-photo-field">
+          <label>Slike (opciono)</label>
+          <div class="measurement-photo-row">
+            ${PHOTO_TAGS.map(
+              (tag) => `
+                <div class="measurement-photo-slot">
+                  <label for="measurement-photo-${tag}">${PHOTO_TAG_LABELS[tag]}</label>
+                  <input id="measurement-photo-${tag}" name="photo-${tag}" type="file" accept="image/*" />
+                </div>
+              `
+            ).join("")}
+          </div>
+          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. Čuvaju se <strong>samo na ovom uređaju</strong> — za prenos na drugi telefon izvezi backup (Ciljevi → Izvezi backup).</div>
+        </div>
+        <details class="field field--full measurement-extra">
+          <summary>
+            <span class="measurement-extra-title">Dodatne mere (opciono)</span>
+            <span class="measurement-extra-icon" aria-hidden="true">${renderChevronIcon(false)}</span>
+          </summary>
+          <div class="form-grid split">
+            ${measurementFields
+              .filter((field) => optionalMeasurementFieldIds.includes(field.id))
+              .map(
+                (field) => `
+                  ${renderUnitField(
+                    `measurement-${field.id}`,
+                    field.label,
+                    field.unit || "",
+                    `<input
+                      id="measurement-${field.id}"
+                      name="${field.id}"
+                      type="${field.type}"
+                      ${field.step ? `step="${field.step}"` : ""}
+                      ${field.type === "number" ? 'min="0"' : ""}
+                      placeholder="${field.placeholder || ""}"
+                    />`
+                  )}
+                `
+              )
+              .join("")}
+          </div>
+        </details>
         <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
     </details>
@@ -14544,7 +14704,7 @@ function renderProgressTab() {
       </div>
       <div class="stats-grid stats-grid--glance">
         ${measurementFields
-          .filter((field) => !["trainingType", "weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id))
+          .filter((field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id))
           .map((field) => renderMeasurementCard(field))
           .join("")}
       </div>
@@ -14662,27 +14822,26 @@ function renderProgressTab() {
                 taggedPhotos.length >= 2 && compare.leftPhoto && compare.rightPhoto && compare.leftPhoto.id !== compare.rightPhoto.id
                   ? `
                     <div class="compare-grid">
-                      <article class="photo-card compare-card">
-                        ${renderProgressPhotoImg(compare.leftPhoto, `Leva progress slika ${compare.leftPhoto.date}`)}
-                        <div class="photo-card-body">
-                          <strong>${new Date(compare.leftPhoto.date).toLocaleDateString("sr-RS")}</strong>
-                          <div class="pill-row">
-                            <span class="pill strong">${escapeHtml(compare.leftPhoto.tag || "bez taga")}</span>
-                          </div>
-                          ${compare.leftPhoto.note ? `<div class="footer-note">${escapeHtml(compare.leftPhoto.note)}</div>` : ""}
-                        </div>
-                      </article>
-                      <article class="photo-card compare-card">
-                        ${renderProgressPhotoImg(compare.rightPhoto, `Desna progress slika ${compare.rightPhoto.date}`)}
-                        <div class="photo-card-body">
-                          <strong>${new Date(compare.rightPhoto.date).toLocaleDateString("sr-RS")}</strong>
-                          <div class="pill-row">
-                            <span class="pill strong">${escapeHtml(compare.rightPhoto.tag || "bez taga")}</span>
-                          </div>
-                          ${compare.rightPhoto.note ? `<div class="footer-note">${escapeHtml(compare.rightPhoto.note)}</div>` : ""}
-                        </div>
-                      </article>
+                      ${[compare.leftPhoto, compare.rightPhoto]
+                        .map((photo, index) => {
+                          const weight = getMeasurementWeightForDate(photo.date);
+                          return `
+                            <article class="photo-card compare-card">
+                              ${renderProgressPhotoImg(photo, `${index === 0 ? "Leva" : "Desna"} progress slika ${photo.date}`)}
+                              <div class="photo-card-body">
+                                <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
+                                <div class="pill-row">
+                                  <span class="pill strong">${escapeHtml(getPhotoTagLabel(photo.tag))}</span>
+                                  ${weight !== null ? `<span class="pill note">${weight} kg</span>` : ""}
+                                </div>
+                                ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
+                              </div>
+                            </article>
+                          `;
+                        })
+                        .join("")}
                     </div>
+                    ${renderCompareDelta(compare.leftPhoto, compare.rightPhoto)}
                   `
                   : `<div class="empty">Za tag "${escapeHtml(activeCompareTag)}" dodaj bar dve slike ili izaberi druge dve razlicite slike.</div>`
               }
@@ -14690,27 +14849,37 @@ function renderProgressTab() {
             : `<div class="empty">Dodaj bar dve slike da bi radio side by side prikaz.</div>`
         }
       </div>
-      <div class="photo-grid" style="margin-top:14px;">
+      <div class="photo-session-list">
         ${
           photos.length
-            ? photos
-                .map(
-                  (photo) => `
-                    <article class="photo-card">
-                      ${renderProgressPhotoImg(photo, `Progress slika ${photo.date}`)}
-                      <div class="photo-card-body">
-                        <div class="food-card-top">
-                          <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
-                          <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obriši</button>
-                        </div>
-                        <div class="pill-row">
-                          <span class="pill strong">${escapeHtml(photo.tag || "bez taga")}</span>
-                        </div>
-                        ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
+            ? groupPhotosByDate(photos)
+                .map((session) => {
+                  const weight = getMeasurementWeightForDate(session.date);
+                  return `
+                    <article class="photo-session">
+                      <div class="food-card-top">
+                        <strong>${formatDateValueLabel(session.date) || new Date(session.date).toLocaleDateString("sr-RS")}</strong>
+                        ${weight !== null ? `<span class="pill note strong">${weight} kg</span>` : ""}
+                      </div>
+                      <div class="photo-session-row">
+                        ${session.photos
+                          .map(
+                            (photo) => `
+                              <figure class="photo-session-item">
+                                ${renderProgressPhotoImg(photo, `Progress slika ${photo.date} (${getPhotoTagLabel(photo.tag)})`)}
+                                <figcaption>
+                                  <span class="pill strong">${escapeHtml(getPhotoTagLabel(photo.tag))}</span>
+                                  <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obriši</button>
+                                </figcaption>
+                                ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
+                              </figure>
+                            `
+                          )
+                          .join("")}
                       </div>
                     </article>
-                  `
-                )
+                  `;
+                })
                 .join("")
             : `<div class="empty">Još nema progress slika. Ubaci prvu da imaš vizuelni trag napretka.</div>`
         }
@@ -14729,7 +14898,9 @@ function renderProgressTab() {
           history.length
             ? history
                 .map(
-                  (entry) => `
+                  (entry) => {
+                    const entryPhotos = getPhotosForDate(photos, entry.date);
+                    return `
                     <article class="food-card">
                       <div class="food-card-top">
                         <h3>${new Date(entry.date).toLocaleDateString("sr-RS")}</h3>
@@ -14749,9 +14920,26 @@ function renderProgressTab() {
                             })
                             .join("")
                         }
+                        ${getMeasurementCaloriePill(entry)}
+                        ${entryPhotos.length ? `<span class="pill">${getPhotoCountLabel(entryPhotos.length)}</span>` : ""}
                       </div>
+                      ${
+                        entryPhotos.length
+                          ? `<div class="measurement-thumbs">${entryPhotos
+                              .map(
+                                (photo) => `
+                                  <figure class="measurement-thumb">
+                                    ${renderProgressPhotoImg(photo, `Progress slika ${photo.date} (${getPhotoTagLabel(photo.tag)})`)}
+                                    <figcaption>${escapeHtml(getPhotoTagLabel(photo.tag))}</figcaption>
+                                  </figure>
+                                `
+                              )
+                              .join("")}</div>`
+                          : ""
+                      }
                     </article>
-                  `
+                  `;
+                  }
                 )
                 .join("")
             : `<div class="empty">Dodaj prvo merenje pa će ovde ostati istorija.</div>`
@@ -17863,7 +18051,8 @@ async function handleDocumentClick(event) {
         details.open = true;
       }
       form?.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelector("#progress-weight")?.focus();
+      // #progress-weight je kilaža u treningu; merenju treba njegovo polje.
+      document.querySelector("#measurement-weightKg")?.focus();
     });
     return;
   }
@@ -18616,12 +18805,15 @@ async function handleSubmit(event) {
     const measurement = {
       id: uid("measurement"),
       date,
+      // Cilj se zamrzava ovde, na dan unosa — kasnija promena cilja u Ciljevima
+      // ne sme da prepravi šta je pisalo u trenutku merenja.
+      calorieGoal: getCalorieGoalForDate(date),
     };
 
     measurementFields.forEach((field) => {
       const raw = formData.get(field.id);
       if (field.type === "number") {
-        const value = raw === "" ? null : toNumber(raw);
+        const value = raw === "" || raw == null ? null : toNumber(raw);
         if (value !== null) {
           measurement[field.id] = value;
         }
@@ -18634,16 +18826,60 @@ async function handleSubmit(event) {
       }
     });
 
-    const hasAnyData = measurementFields.some((field) => measurement[field.id] !== undefined);
-    if (!hasAnyData) {
+    if (!(toNumber(measurement.weightKg) > 0)) {
+      window.alert("Unesi težinu — ona je srž merenja, ostalo je opciono.");
       return;
     }
 
-    store.measurements.unshift(measurement);
-    if (measurement.weightKg) {
-      store.profile.weightKg = measurement.weightKg;
+    // Slike iz forme nose datum merenja; spajaju se po datumu, bez tvrde veze,
+    // pa brisanje merenja ne ostavlja siročiće i naknadno dodata slika sa istim
+    // datumom sama upadne u istu sesiju.
+    const pickedPhotos = PHOTO_TAGS.map((tag) => ({
+      tag,
+      file: event.target.querySelector(`#measurement-photo-${tag}`)?.files?.[0] || null,
+    })).filter((slot) => slot.file);
+
+    const photoRecords = [];
+    for (const slot of pickedPhotos) {
+      try {
+        const optimized = await createOptimizedPhoto(slot.file);
+        photoRecords.push({
+          id: uid("photo"),
+          date,
+          tag: slot.tag,
+          note: "",
+          previewUrl: optimized.previewUrl,
+          width: optimized.width,
+          height: optimized.height,
+        });
+      } catch (error) {
+        console.error("Photo optimize failed", error);
+        window.alert(`Sliku „${PHOTO_TAG_LABELS[slot.tag]}“ nisam uspeo da obradim — merenje se čuva bez nje.`);
+      }
     }
-    persist();
+
+    if (photoRecords.length) {
+      await idbPutPhotos(photoRecords);
+      store.progressPhotos.unshift(...photoRecords);
+    }
+
+    const previousProfileWeight = store.profile.weightKg;
+    store.measurements.unshift(measurement);
+    store.profile.weightKg = measurement.weightKg;
+
+    const saved = persist(() => {
+      store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
+      const rolledBackIds = new Set(photoRecords.map((photo) => photo.id));
+      store.progressPhotos = store.progressPhotos.filter((photo) => !rolledBackIds.has(photo.id));
+      store.profile.weightKg = previousProfileWeight;
+    });
+
+    if (!saved) {
+      // Lokalni snimak je vraćen unazad — skloni i blobove iz IndexedDB.
+      photoRecords.forEach((photo) => idbDeletePhoto(photo.id));
+      return;
+    }
+
     event.target.reset();
     render();
     return;
@@ -18783,6 +19019,16 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // Menjanje datuma merenja prepisuje samo natpis sa ciljem — bez render(), da
+  // se već popunjena forma ne resetuje ispod prstiju.
+  if (target instanceof HTMLInputElement && target.id === "measurement-date") {
+    const note = document.querySelector("#measurement-calorie-goal");
+    if (note) {
+      note.innerHTML = renderMeasurementGoalNote(target.value);
+    }
+    return;
+  }
 
   if (target instanceof HTMLTextAreaElement && target.id === "quick-entry-input") {
     state.quickEntryText = target.value;
