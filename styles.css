@@ -11081,6 +11081,17 @@ body {
   background: var(--bar-ok);
   transition: width 0.3s ease;
 }
+/* Kafa nema cilj (pa ni traku) — u slot koji traka zauzima kod vode i koraka
+   ide podatak koji tu stvarno treba: koja je kafa vezana i koliko kcal je tap. */
+.plan-glance-sub {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .plan-glance-btn,
 :root[data-theme="dark"] .plan-glance-btn {
   flex: 0 0 auto;

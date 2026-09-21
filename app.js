@@ -454,6 +454,19 @@ const defaultMeals = [
   "5. Večera",
 ];
 
+// Kafa se beleži kao broj popijenih šoljica po danu (kao voda i koraci), ali —
+// za razliku od vode — šoljica nosi kalorije i šećer, pa mora da uđe u dnevni
+// zbir. Zato je šoljica vezana za namirnicu iz baze, a ne za fiksni broj kcal:
+// „Turska kafa“ (sa šećerom, 38 kcal/100 g) i „Turska kafa bez šećera“ (4,8)
+// se razlikuju ~66 kcal na šoljicu od 200 ml, a veza sa namirnicom drži i
+// makroe tačnim (šećer u kafi je ~19 g UH po šoljici, nije zanemarljivo).
+//
+// Namerno samo obična kafa (sve što se zove „kafa“): espreso, kapućino i
+// slično ispadaju iz izbora — ovaj red je brzi tap za domaću kafu, ne meni
+// kafeterije. Takvo piće se i dalje normalno dodaje kao stavka u obrok.
+const COFFEE_CUP_ML_DEFAULT = 200;
+const COFFEE_NAME_PATTERN = /kaf[aeiu]/i;
+
 // Merenje je namerno usko: datum + težina su srž, obimi su opcioni dodatak koji
 // u formi stoji sklopljen. "Trening" je izbačen — bio je slobodan tekst koji
 // ništa u aplikaciji nije čitalo osim jedne pilule u istoriji, a trening ionako
@@ -813,6 +826,8 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     stepsGoal: 10000,
     basisWeightKg: null,
     targetWeightKg: null,
+    coffeeCupMl: COFFEE_CUP_ML_DEFAULT,
+    coffeeFoodId: "",
   };
 
   return {
@@ -860,6 +875,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     foodUsage: rawStore.foodUsage && typeof rawStore.foodUsage === "object" ? rawStore.foodUsage : {},
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
+    coffeeByDate: rawStore.coffeeByDate && typeof rawStore.coffeeByDate === "object" ? rawStore.coffeeByDate : {},
     activityByDate: rawStore.activityByDate && typeof rawStore.activityByDate === "object" ? rawStore.activityByDate : {},
     shortcutNames: {
       run: String(rawStore.shortcutNames?.run || ""),
@@ -985,6 +1001,8 @@ function ensureStoreCollections(targetStore) {
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
+  targetStore.coffeeByDate =
+    targetStore.coffeeByDate && typeof targetStore.coffeeByDate === "object" ? targetStore.coffeeByDate : {};
   targetStore.activityByDate =
     targetStore.activityByDate && typeof targetStore.activityByDate === "object" ? targetStore.activityByDate : {};
   targetStore.shortcutNames =
@@ -4846,6 +4864,15 @@ function getRecipeServingCount(recipe = {}) {
   return Math.max(1, roundValue(toNumber(recipe.servings || recipe.portions || 1), 0)) || 1;
 }
 
+function addTotals(base = {}, extra = {}) {
+  return {
+    kcal: roundValue(toNumber(base.kcal) + toNumber(extra.kcal), 1),
+    protein: roundValue(toNumber(base.protein) + toNumber(extra.protein), 1),
+    carbs: roundValue(toNumber(base.carbs) + toNumber(extra.carbs), 1),
+    fat: roundValue(toNumber(base.fat) + toNumber(extra.fat), 1),
+  };
+}
+
 function divideTotals(totals = {}, divisor = 1) {
   const safeDivisor = Math.max(1, toNumber(divisor) || 1);
   return {
@@ -8591,8 +8618,136 @@ function getTodayWaterMl() {
   return Math.max(0, Math.round(toNumber((store.waterByDate || {})[today]) || 0));
 }
 
-// Water and steps live in the daily overview as two rows (they used to be
-// two cards of their own, two screens below the glance they belong to).
+// ---- Kafa -----------------------------------------------------------------
+// Šoljica je vezana za namirnicu iz baze (vidi COFFEE_NAME_PATTERN): tap dodaje
+// jednu šoljicu, a kalorije i makroi se izvedu iz te namirnice, pa „kafa sa
+// šećerom“ i „kafa bez šećera“ ne moraju da se kucaju kao dva različita broja.
+function getCoffeeCupMl() {
+  return Math.max(1, Math.round(toNumber(store.goals?.coffeeCupMl) || COFFEE_CUP_ML_DEFAULT));
+}
+
+function getCoffeeFoodOptions() {
+  return (store.foods || []).filter((food) => COFFEE_NAME_PATTERN.test(String(food?.name || "")));
+}
+
+// Izabrana namirnica ima prednost; inače prva kafa iz baze. Redosled je stabilan
+// i namerno takav: baza lista „Turska kafa“ pre „Turska kafa bez šećera“, pa je
+// podrazumevana šoljica ona sa šećerom — verzija koja uopšte ima kalorije vredne
+// praćenja, što je i razlog zašto ovaj red postoji.
+function getCoffeeFood() {
+  const options = getCoffeeFoodOptions();
+  // Izbor važi samo dok je i dalje jedna od ponuđenih kafa. Ako je namirnica
+  // obrisana — ili je ranije bila izabrana neka koja više ne ulazi u izbor —
+  // pada na prvu iz liste umesto da ostane zaglavljena van nje.
+  const picked = store.goals?.coffeeFoodId
+    ? options.find((food) => food.id === store.goals.coffeeFoodId)
+    : null;
+  return picked || options[0] || null;
+}
+
+// Koliko "količine" te namirnice ide u jednu šoljicu. Kafa u bazi ume da bude
+// vođena i po komadu (npr. „Espreso sa mlekom“, servingUnit: "piece") — tamo je
+// šoljica jedan komad, a ml nema smisla: 200 "komada" bi dalo 7000 kcal.
+function getCoffeeCupAmount(food) {
+  return getFoodServingUnit(food) === "piece" ? 1 : getCoffeeCupMl();
+}
+
+// Šta piše kao osnova jedne šoljice: „200 ml“ za namirnice po gramima,
+// „1 komad“ za one po komadu.
+function getCoffeeCupBasisLabel(food) {
+  return getFoodServingUnit(food) === "piece" ? getFoodNutritionBasisLabel(food) : `${getCoffeeCupMl()} ml`;
+}
+
+function getCoffeeCupTotals() {
+  const food = getCoffeeFood();
+  return food ? calculateEntry(food, getCoffeeCupAmount(food)) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
+function getCoffeeCupsForDate(date) {
+  return Math.max(0, Math.round(toNumber((store.coffeeByDate || {})[date]) || 0));
+}
+
+function getTodayCoffeeCups() {
+  return getCoffeeCupsForDate(getTodayDateValue());
+}
+
+function getCoffeeTotalsForDate(date) {
+  const cups = getCoffeeCupsForDate(date);
+  if (!cups) {
+    return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  }
+  const cup = getCoffeeCupTotals();
+  return {
+    kcal: roundValue(cup.kcal * cups, 1),
+    protein: roundValue(cup.protein * cups, 1),
+    carbs: roundValue(cup.carbs * cups, 1),
+    fat: roundValue(cup.fat * cups, 1),
+  };
+}
+
+// Kafa je vezana za kalendarski datum, a jelovnik je nedeljni šablon — zato se
+// upisuje u dan na ekranu samo kad je taj dan stvarno danas. Isto pravilo već
+// prati potrošnja sa treninga (getTrainingBurnForDay u renderPlanTab).
+function isSelectedDayToday() {
+  return state.selectedWeekTrack === getCurrentWeekTrack() && state.selectedWeekday === getTodayWeekday();
+}
+
+function getSelectedDayCoffeeTotals() {
+  return isSelectedDayToday() ? getCoffeeTotalsForDate(getTodayDateValue()) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
+// 1 šoljica, 2-4 šoljice, 5+ šoljica (i 11-14 idu na „šoljica“).
+function coffeeCupsLabel(cups) {
+  const count = Math.abs(Math.round(toNumber(cups)));
+  const lastTwo = count % 100;
+  const last = count % 10;
+  if (lastTwo < 11 || lastTwo > 14) {
+    if (last === 1) {
+      return "šoljica";
+    }
+    if (last >= 2 && last <= 4) {
+      return "šoljice";
+    }
+  }
+  return "šoljica";
+}
+
+// Red se ne prikazuje ako u bazi nema ni jedne kafe — bez namirnice nema ni
+// kcal po šoljici, pa red ne bi imao šta da kaže. (Polja u Ciljevima se tada
+// takođe ne renderuju.)
+function renderPlanCoffeeRow() {
+  // Samo na današnjem danu. Kafa se beleži po datumu i ulazi u zbir samo danas
+  // (getSelectedDayCoffeeTotals), pa bi na utorku pisalo „1 šoljica · 76 kcal“
+  // pored prstena koji tih 76 kcal ne broji — kontradikcija na istom ekranu.
+  if (!isSelectedDayToday()) {
+    return "";
+  }
+  const food = getCoffeeFood();
+  if (!food) {
+    return "";
+  }
+  const cups = getTodayCoffeeCups();
+  const cup = getCoffeeCupTotals();
+  const cupKcal = Math.round(cup.kcal);
+  const value = cups ? `${cups} ${coffeeCupsLabel(cups)} · ${Math.round(cup.kcal * cups)} kcal` : "0 šoljica";
+  return `
+      <div class="plan-glance-row">
+        <span class="plan-glance-icon" aria-hidden="true">☕</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">Kafa</span><span class="plan-glance-value">${escapeHtml(value)}</span></div>
+          <div class="plan-glance-sub">${cupKcal} kcal / ${escapeHtml(getCoffeeCupBasisLabel(food))} · ${escapeHtml(food.name)}</div>
+        </div>
+        ${
+          cups > 0
+            ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-coffee" data-cups="-1" aria-label="Skini jednu šoljicu kafe">−</button>`
+            : ""
+        }
+        <button class="plan-glance-btn" type="button" data-action="add-coffee" data-cups="1" aria-label="Dodaj šoljicu kafe, ${cupKcal} kcal">+1</button>
+      </div>`;
+}
+
+// Water, coffee and steps live in the daily overview as rows (they used to be
+// cards of their own, two screens below the glance they belong to).
 function renderPlanGlanceRows() {
   const water = getTodayWaterMl();
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
@@ -8615,6 +8770,7 @@ function renderPlanGlanceRows() {
         ${water > 0 ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-water" data-ml="-250" aria-label="Skini 250 ml vode">−</button>` : ""}
         <button class="plan-glance-btn" type="button" data-action="add-water" data-ml="250" aria-label="Dodaj čašu vode, 250 ml">+250</button>
       </div>
+      ${renderPlanCoffeeRow()}
       <div class="plan-glance-row ${stepsDone ? "is-done" : ""}">
         <span class="plan-glance-icon" aria-hidden="true">👟</span>
         <div class="plan-glance-copy">
@@ -9162,8 +9318,11 @@ function renderWeekTrackRow() {
 // you've actually checked off is a subset. The ring draws both: strong arc =
 // eaten, faint arc = still planned, so "is my plan inside the budget" and "how
 // far into the day am I" are both readable at a glance.
-function getDayRingFacts(entries, totals, calorieGoal) {
-  const eaten = getDayTotals(entries.filter((entry) => entry.done));
+function getDayRingFacts(entries, totals, calorieGoal, extraEaten = null) {
+  // Kafa (i sve što se beleži tapom, a ne planira kao obrok) je popijena u
+  // trenutku unosa, pa ide direktno na stranu „pojedeno“ — nema čekboks da ga
+  // čeka. U `totals` je već uračunata (renderPlanTab), ovde ulazi u „eaten“.
+  const eaten = addTotals(getDayTotals(entries.filter((entry) => entry.done)), extraEaten || {});
   const plannedKcal = roundValue(totals.kcal, 0);
   const eatenKcal = roundValue(eaten.kcal, 0);
   const allDone = entries.length > 0 && entries.every((entry) => entry.done);
@@ -9181,10 +9340,9 @@ function getDayRingFacts(entries, totals, calorieGoal) {
   };
 }
 
-function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState) {
+function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState, ring) {
   const radius = 15;
   const circumference = 2 * Math.PI * radius;
-  const ring = getDayRingFacts(getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack), totals, calorieGoal);
   const offset = circumference * (1 - ring.eatenFraction);
   const plannedOffset = circumference * (1 - ring.plannedFraction);
   // The three macros as slim bars under the headline — same ok/near/over
@@ -9224,7 +9382,10 @@ function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calori
 
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
-  const totals = getDayTotals(entries);
+  // Kafa se beleži po datumu, ne kao stavka nedeljnog šablona, pa se sabira
+  // preko plana — i to samo na danu kome pripada (getSelectedDayCoffeeTotals).
+  const coffeeTotals = getSelectedDayCoffeeTotals();
+  const totals = addTotals(getDayTotals(entries), coffeeTotals);
   // Burn is logged per weekday for the current week only (it isn't a template),
   // so the other track has nothing to show — don't mirror this week's numbers.
   const trainingBurn = state.selectedWeekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(state.selectedWeekday) : 0;
@@ -9234,7 +9395,7 @@ function renderPlanTab(entries) {
   const calorieRatio = calorieGoal ? totals.kcal / calorieGoal : 0;
   const calorieState = !calorieGoal ? "neutral" : calorieRatio > 1.1 ? "over" : calorieRatio > 1.0 ? "near" : "ok";
   const ringCircumference = 326.7; // 2π·52
-  const ringFacts = getDayRingFacts(entries, totals, calorieGoal);
+  const ringFacts = getDayRingFacts(entries, totals, calorieGoal, coffeeTotals);
   const ringOffset = roundValue(ringCircumference * (1 - ringFacts.eatenFraction), 1);
   const ringPlannedOffset = roundValue(ringCircumference * (1 - ringFacts.plannedFraction), 1);
   const caloriePct = calorieGoal ? Math.round(calorieRatio * 100) : 0;
@@ -9265,7 +9426,7 @@ function renderPlanTab(entries) {
           <h2>Dnevni pregled</h2>
           ${
             !state.planSummaryExpanded && calorieGoal
-              ? renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState)
+              ? renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState, ringFacts)
               : `<p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>`
           }
         </div>
@@ -12327,6 +12488,40 @@ function renderGoalsTab() {
           <label for="goal-steps">Koraci dnevno</label>
           <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
         </div>
+        ${(() => {
+          // Ako u bazi nema kafe, polje se izostavlja — kao i red na „Danas“.
+          const coffeeOptions = getCoffeeFoodOptions();
+          if (!coffeeOptions.length) {
+            return "";
+          }
+          // Važi za kafe vođene po gramima; one po komadu idu na 1 komad po
+          // šoljici bez obzira na ovaj broj (getCoffeeCupAmount).
+          const cupMl = getCoffeeCupMl();
+          const activeId = getCoffeeFood()?.id || "";
+          const cupField = `
+        <div class="field">
+          <label for="goal-coffee-cup">Šoljica kafe (ml)</label>
+          <input id="goal-coffee-cup" name="coffeeCupMl" type="number" inputmode="numeric" step="10" min="20" max="1000" value="${cupMl}" />
+        </div>`;
+          // Padajuća lista samo kad stvarno ima šta da se bira (u praksi: sa
+          // šećerom / bez šećera). Jedna kafa u bazi = lista od jedne stavke,
+          // a to je klik bez ijedne odluke.
+          if (coffeeOptions.length < 2) {
+            return cupField;
+          }
+          return `${cupField}
+        <div class="field">
+          <label for="goal-coffee-food">Kafa</label>
+          <select id="goal-coffee-food" name="coffeeFoodId">
+            ${coffeeOptions
+              .map(
+                (food) =>
+                  `<option value="${escapeHtml(food.id)}" ${food.id === activeId ? "selected" : ""}>${escapeHtml(food.name)} · ${Math.round(calculateEntry(food, getCoffeeCupAmount(food)).kcal)} kcal</option>`
+              )
+              .join("")}
+          </select>
+        </div>`;
+        })()}
         </div>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
@@ -13634,7 +13829,9 @@ function recordTodaySnapshot() {
   const date = getTodayDateValue();
   const weekday = getTodayWeekday();
   const entries = getPlanEntriesForDay(weekday, getCurrentWeekTrack());
-  const eaten = getDayTotals(entries.filter((entry) => entry.done));
+  // Kafa se pije, ne planira — ulazi u „pojedeno“ u trenutku kad je tapneš, pa
+  // dnevnik, prosek i streak vide iste kalorije koje vidi i prsten na „Danas“.
+  const eaten = addTotals(getDayTotals(entries.filter((entry) => entry.done)), getCoffeeTotalsForDate(date));
   const mealLabels = [...new Set(entries.map((entry) => entry.mealLabel))];
   const mealsDone = mealLabels.filter((label) => {
     const mealEntries = entries.filter((entry) => entry.mealLabel === label);
@@ -13649,6 +13846,7 @@ function recordTodaySnapshot() {
     fat: roundValue(eaten.fat, 1),
     calorieGoal: roundValue(store.goals?.calories || 0, 0),
     waterMl: getTodayWaterMl(),
+    coffeeCups: getCoffeeCupsForDate(date),
     mealsDone,
     mealsTotal: mealLabels.length,
   };
@@ -16717,6 +16915,25 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "add-coffee") {
+    const delta = toNumber(actionTarget.dataset.cups);
+    if (!delta) {
+      return;
+    }
+    const today = getTodayDateValue();
+    store.coffeeByDate = store.coffeeByDate && typeof store.coffeeByDate === "object" ? store.coffeeByDate : {};
+    const next = Math.max(0, Math.round((toNumber(store.coffeeByDate[today]) || 0) + delta));
+    // Nula se briše, a ne upisuje: ovaj objekat ide u cloud i backup svakog dana.
+    if (next > 0) {
+      store.coffeeByDate[today] = next;
+    } else {
+      delete store.coffeeByDate[today];
+    }
+    persist();
+    render();
+    return;
+  }
+
   if (action === "add-steps") {
     const delta = toNumber(actionTarget.dataset.steps);
     if (!delta) {
@@ -19004,6 +19221,19 @@ async function handleSubmit(event) {
         store.goals.waterMl = waterL > 0 ? Math.round(waterL * 1000) : suggestWaterMl(store.profile.weightKg);
         const stepsGoal = toNumber(formData.get("stepsGoal"));
         store.goals.stepsGoal = stepsGoal > 0 ? Math.round(stepsGoal) : 10000;
+        // Polja za kafu se ne renderuju kad u bazi nema kafe; tada formData nema
+        // te ključeve i postojeće podešavanje ostaje netaknuto (ne gazi ga "").
+        if (formData.has("coffeeCupMl")) {
+          const coffeeCupMl = toNumber(formData.get("coffeeCupMl"));
+          store.goals.coffeeCupMl = coffeeCupMl > 0 ? Math.round(coffeeCupMl) : COFFEE_CUP_ML_DEFAULT;
+        }
+        if (formData.has("coffeeFoodId")) {
+          // Prima samo jednu od ponuđenih kafa; sve drugo pada na "" (= prva iz
+          // liste), da u store-u ne ostane id koji getCoffeeFood ionako ignoriše.
+          const coffeeFoodId = String(formData.get("coffeeFoodId") || "").trim();
+          const isOffered = getCoffeeFoodOptions().some((food) => food.id === coffeeFoodId);
+          store.goals.coffeeFoodId = isOffered ? coffeeFoodId : "";
+        }
         persist();
         render();
       },
