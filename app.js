@@ -454,18 +454,18 @@ const defaultMeals = [
   "5. Večera",
 ];
 
-// Kafa se beleži kao broj popijenih šoljica po danu (kao voda i koraci), ali —
-// za razliku od vode — šoljica nosi kalorije i šećer, pa mora da uđe u dnevni
-// zbir. Zato je šoljica vezana za namirnicu iz baze, a ne za fiksni broj kcal:
-// „Turska kafa“ (sa šećerom, 38 kcal/100 g) i „Turska kafa bez šećera“ (4,8)
-// se razlikuju ~66 kcal na šoljicu od 200 ml, a veza sa namirnicom drži i
-// makroe tačnim (šećer u kafi je ~19 g UH po šoljici, nije zanemarljivo).
+// Kafa se beleži kao broj popijenih šoljica po danu (kao voda i koraci), samo
+// što šoljica nosi i kalorije, pa ulazi u dnevni zbir.
 //
-// Namerno samo obična kafa (sve što se zove „kafa“): espreso, kapućino i
-// slično ispadaju iz izbora — ovaj red je brzi tap za domaću kafu, ne meni
-// kafeterije. Takvo piće se i dalje normalno dodaje kao stavka u obrok.
-const COFFEE_CUP_ML_DEFAULT = 200;
-const COFFEE_NAME_PATTERN = /kaf[aeiu]/i;
+// Jedan broj — kcal po šoljici — a ne veza sa namirnicom iz baze. Prva verzija
+// je bila vezana: šoljica = 200 ml namirnice „Turska kafa“, što je davalo
+// 76 kcal. Aritmetika je bila tačna (38 kcal/100 ml × 2), ali ta namirnica nosi
+// 9,5 g šećera na 100 ml — to je kafa zaslađena sa 4-5 kašičica, ne obična.
+// Crna kafa je ~10 kcal na šoljicu od 200 ml i nema makroa vrednih računanja,
+// pa je veza sa bazom nosila celu komplikaciju (koja kafa, ml ili komad,
+// namirnica obrisana iz baze) a nije davala ništa. Ko pije kafu sa šećerom ili
+// mlekom upiše svoj broj i tu je kraj priče.
+const COFFEE_KCAL_DEFAULT = 10;
 
 // Merenje je namerno usko: datum + težina su srž, obimi su opcioni dodatak koji
 // u formi stoji sklopljen. "Trening" je izbačen — bio je slobodan tekst koji
@@ -803,6 +803,15 @@ function mirrorSingleTrackPlan(targetStore) {
   return changed;
 }
 
+// Prva verzija reda za kafu je čuvala „koja namirnica“ + „ml po šoljici“. Sada
+// je to jedan broj (coffeeKcal), pa ti ključevi nemaju ko da ih čita — brišu se
+// pri učitavanju da ne šetaju kroz cloud i backup zauvek.
+function dropLegacyCoffeeGoalKeys(goals) {
+  delete goals.coffeeCupMl;
+  delete goals.coffeeFoodId;
+  return goals;
+}
+
 function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
   const fallbackUi = {
     plan: {
@@ -826,15 +835,14 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     stepsGoal: 10000,
     basisWeightKg: null,
     targetWeightKg: null,
-    coffeeCupMl: COFFEE_CUP_ML_DEFAULT,
-    coffeeFoodId: "",
+    coffeeKcal: COFFEE_KCAL_DEFAULT,
   };
 
   return {
     ...fallback,
     ...rawStore,
     profile: { ...profileDefaults, ...fallback.profile, ...(rawStore.profile || {}) },
-    goals: { ...goalDefaults, ...fallback.goals, ...(rawStore.goals || {}) },
+    goals: dropLegacyCoffeeGoalKeys({ ...goalDefaults, ...fallback.goals, ...(rawStore.goals || {}) }),
     onboarded: Boolean(rawStore.onboarded),
     meta: { ...fallback.meta, ...(rawStore.meta || {}) },
     foods: Array.isArray(rawStore.foods) ? rawStore.foods : fallback.foods,
@@ -8619,48 +8627,12 @@ function getTodayWaterMl() {
 }
 
 // ---- Kafa -----------------------------------------------------------------
-// Šoljica je vezana za namirnicu iz baze (vidi COFFEE_NAME_PATTERN): tap dodaje
-// jednu šoljicu, a kalorije i makroi se izvedu iz te namirnice, pa „kafa sa
-// šećerom“ i „kafa bez šećera“ ne moraju da se kucaju kao dva različita broja.
-function getCoffeeCupMl() {
-  return Math.max(1, Math.round(toNumber(store.goals?.coffeeCupMl) || COFFEE_CUP_ML_DEFAULT));
-}
-
-function getCoffeeFoodOptions() {
-  return (store.foods || []).filter((food) => COFFEE_NAME_PATTERN.test(String(food?.name || "")));
-}
-
-// Izabrana namirnica ima prednost; inače prva kafa iz baze. Redosled je stabilan
-// i namerno takav: baza lista „Turska kafa“ pre „Turska kafa bez šećera“, pa je
-// podrazumevana šoljica ona sa šećerom — verzija koja uopšte ima kalorije vredne
-// praćenja, što je i razlog zašto ovaj red postoji.
-function getCoffeeFood() {
-  const options = getCoffeeFoodOptions();
-  // Izbor važi samo dok je i dalje jedna od ponuđenih kafa. Ako je namirnica
-  // obrisana — ili je ranije bila izabrana neka koja više ne ulazi u izbor —
-  // pada na prvu iz liste umesto da ostane zaglavljena van nje.
-  const picked = store.goals?.coffeeFoodId
-    ? options.find((food) => food.id === store.goals.coffeeFoodId)
-    : null;
-  return picked || options[0] || null;
-}
-
-// Koliko "količine" te namirnice ide u jednu šoljicu. Kafa u bazi ume da bude
-// vođena i po komadu (npr. „Espreso sa mlekom“, servingUnit: "piece") — tamo je
-// šoljica jedan komad, a ml nema smisla: 200 "komada" bi dalo 7000 kcal.
-function getCoffeeCupAmount(food) {
-  return getFoodServingUnit(food) === "piece" ? 1 : getCoffeeCupMl();
-}
-
-// Šta piše kao osnova jedne šoljice: „200 ml“ za namirnice po gramima,
-// „1 komad“ za one po komadu.
-function getCoffeeCupBasisLabel(food) {
-  return getFoodServingUnit(food) === "piece" ? getFoodNutritionBasisLabel(food) : `${getCoffeeCupMl()} ml`;
-}
-
-function getCoffeeCupTotals() {
-  const food = getCoffeeFood();
-  return food ? calculateEntry(food, getCoffeeCupAmount(food)) : { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+// Tap dodaje jednu šoljicu; kalorije su „kcal po šoljici“ iz Ciljeva (vidi
+// COFFEE_KCAL_DEFAULT zašto jedan broj, a ne namirnica iz baze). Makroi se ne
+// vode: crna kafa ih praktično nema, a ko doda šećer ili mleko ionako upisuje
+// svoju procenu kalorija, iz koje se raspodela na P/UH/M ne može izvesti.
+function getCoffeeCupKcal() {
+  return Math.max(0, Math.round(toNumber(store.goals?.coffeeKcal)));
 }
 
 function getCoffeeCupsForDate(date) {
@@ -8672,17 +8644,7 @@ function getTodayCoffeeCups() {
 }
 
 function getCoffeeTotalsForDate(date) {
-  const cups = getCoffeeCupsForDate(date);
-  if (!cups) {
-    return { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  }
-  const cup = getCoffeeCupTotals();
-  return {
-    kcal: roundValue(cup.kcal * cups, 1),
-    protein: roundValue(cup.protein * cups, 1),
-    carbs: roundValue(cup.carbs * cups, 1),
-    fat: roundValue(cup.fat * cups, 1),
-  };
+  return { kcal: getCoffeeCupsForDate(date) * getCoffeeCupKcal(), protein: 0, carbs: 0, fat: 0 };
 }
 
 // Kafa je vezana za kalendarski datum, a jelovnik je nedeljni šablon — zato se
@@ -8712,37 +8674,33 @@ function coffeeCupsLabel(cups) {
   return "šoljica";
 }
 
-// Red se ne prikazuje ako u bazi nema ni jedne kafe — bez namirnice nema ni
-// kcal po šoljici, pa red ne bi imao šta da kaže. (Polja u Ciljevima se tada
-// takođe ne renderuju.)
 function renderPlanCoffeeRow() {
   // Samo na današnjem danu. Kafa se beleži po datumu i ulazi u zbir samo danas
-  // (getSelectedDayCoffeeTotals), pa bi na utorku pisalo „1 šoljica · 76 kcal“
-  // pored prstena koji tih 76 kcal ne broji — kontradikcija na istom ekranu.
+  // (getSelectedDayCoffeeTotals), pa bi na utorku pisalo „1 šoljica · 10 kcal“
+  // pored prstena koji tih 10 kcal ne broji — kontradikcija na istom ekranu.
   if (!isSelectedDayToday()) {
     return "";
   }
-  const food = getCoffeeFood();
-  if (!food) {
-    return "";
-  }
   const cups = getTodayCoffeeCups();
-  const cup = getCoffeeCupTotals();
-  const cupKcal = Math.round(cup.kcal);
-  const value = cups ? `${cups} ${coffeeCupsLabel(cups)} · ${Math.round(cup.kcal * cups)} kcal` : "0 šoljica";
+  const cupKcal = getCoffeeCupKcal();
+  // Bez kcal po šoljici red je samo brojač — tada ni ne piše kalorije, umesto
+  // da svuda kači „· 0 kcal“.
+  const value = cups
+    ? `${cups} ${coffeeCupsLabel(cups)}${cupKcal ? ` · ${cups * cupKcal} kcal` : ""}`
+    : "0 šoljica";
   return `
       <div class="plan-glance-row">
         <span class="plan-glance-icon" aria-hidden="true">☕</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Kafa</span><span class="plan-glance-value">${escapeHtml(value)}</span></div>
-          <div class="plan-glance-sub">${cupKcal} kcal / ${escapeHtml(getCoffeeCupBasisLabel(food))} · ${escapeHtml(food.name)}</div>
+          ${cupKcal ? `<div class="plan-glance-sub">${cupKcal} kcal po šoljici</div>` : ""}
         </div>
         ${
           cups > 0
             ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-coffee" data-cups="-1" aria-label="Skini jednu šoljicu kafe">−</button>`
             : ""
         }
-        <button class="plan-glance-btn" type="button" data-action="add-coffee" data-cups="1" aria-label="Dodaj šoljicu kafe, ${cupKcal} kcal">+1</button>
+        <button class="plan-glance-btn" type="button" data-action="add-coffee" data-cups="1" aria-label="Dodaj šoljicu kafe${cupKcal ? `, ${cupKcal} kcal` : ""}">+1</button>
       </div>`;
 }
 
@@ -12479,7 +12437,7 @@ function renderGoalsTab() {
         <!-- Makroi i kalorijski cilj su dva odvojena polja koja se lako raziđu.
              Ovaj red živo sabira 4/4/9 i kaže koliko fali ili je previše. -->
         <p class="macro-check field--full" id="goal-macro-check" data-role="macro-check">${renderGoalMacroCheck(store.goals)}</p>
-        <div class="form-grid-2 goals-daily-extras">
+        <div class="form-grid-3 goals-daily-extras">
         <div class="field">
           <label for="goal-water">Voda</label>
           <input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />
@@ -12488,41 +12446,14 @@ function renderGoalsTab() {
           <label for="goal-steps">Koraci dnevno</label>
           <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
         </div>
-        ${(() => {
-          // Ako u bazi nema kafe, polje se izostavlja — kao i red na „Danas“.
-          const coffeeOptions = getCoffeeFoodOptions();
-          if (!coffeeOptions.length) {
-            return "";
-          }
-          // Važi za kafe vođene po gramima; one po komadu idu na 1 komad po
-          // šoljici bez obzira na ovaj broj (getCoffeeCupAmount).
-          const cupMl = getCoffeeCupMl();
-          const activeId = getCoffeeFood()?.id || "";
-          const cupField = `
         <div class="field">
-          <label for="goal-coffee-cup">Šoljica kafe (ml)</label>
-          <input id="goal-coffee-cup" name="coffeeCupMl" type="number" inputmode="numeric" step="10" min="20" max="1000" value="${cupMl}" />
-        </div>`;
-          // Padajuća lista samo kad stvarno ima šta da se bira (u praksi: sa
-          // šećerom / bez šećera). Jedna kafa u bazi = lista od jedne stavke,
-          // a to je klik bez ijedne odluke.
-          if (coffeeOptions.length < 2) {
-            return cupField;
-          }
-          return `${cupField}
-        <div class="field">
-          <label for="goal-coffee-food">Kafa</label>
-          <select id="goal-coffee-food" name="coffeeFoodId">
-            ${coffeeOptions
-              .map(
-                (food) =>
-                  `<option value="${escapeHtml(food.id)}" ${food.id === activeId ? "selected" : ""}>${escapeHtml(food.name)} · ${Math.round(calculateEntry(food, getCoffeeCupAmount(food)).kcal)} kcal</option>`
-              )
-              .join("")}
-          </select>
-        </div>`;
-        })()}
+          <label for="goal-coffee">Kafa (kcal/šoljica)</label>
+          <input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />
         </div>
+        </div>
+        <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
+             što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
+        <p class="footer-note field--full">Kafa: crna ~10 kcal po šoljici, sa kašičicom šećera ~26, sa mlekom i šećerom ~50. Stavi 0 ako želiš samo da brojiš šoljice.</p>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
@@ -19221,19 +19152,12 @@ async function handleSubmit(event) {
         store.goals.waterMl = waterL > 0 ? Math.round(waterL * 1000) : suggestWaterMl(store.profile.weightKg);
         const stepsGoal = toNumber(formData.get("stepsGoal"));
         store.goals.stepsGoal = stepsGoal > 0 ? Math.round(stepsGoal) : 10000;
-        // Polja za kafu se ne renderuju kad u bazi nema kafe; tada formData nema
-        // te ključeve i postojeće podešavanje ostaje netaknuto (ne gazi ga "").
-        if (formData.has("coffeeCupMl")) {
-          const coffeeCupMl = toNumber(formData.get("coffeeCupMl"));
-          store.goals.coffeeCupMl = coffeeCupMl > 0 ? Math.round(coffeeCupMl) : COFFEE_CUP_ML_DEFAULT;
-        }
-        if (formData.has("coffeeFoodId")) {
-          // Prima samo jednu od ponuđenih kafa; sve drugo pada na "" (= prva iz
-          // liste), da u store-u ne ostane id koji getCoffeeFood ionako ignoriše.
-          const coffeeFoodId = String(formData.get("coffeeFoodId") || "").trim();
-          const isOffered = getCoffeeFoodOptions().some((food) => food.id === coffeeFoodId);
-          store.goals.coffeeFoodId = isOffered ? coffeeFoodId : "";
-        }
+        // Nula je ispravna vrednost (red onda samo broji šoljice), pa se ne
+        // sme pretvoriti u default — zato provera na prazno polje, ne na `> 0`.
+        const coffeeKcalRaw = String(formData.get("coffeeKcal") || "").trim();
+        store.goals.coffeeKcal = coffeeKcalRaw === ""
+          ? COFFEE_KCAL_DEFAULT
+          : Math.min(500, Math.max(0, Math.round(toNumber(coffeeKcalRaw))));
         persist();
         render();
       },
