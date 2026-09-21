@@ -1829,7 +1829,7 @@ textarea::placeholder {
 .lab-list { margin-top: 8px; }
 .lab-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 12px;
   padding: 12px 2px;
@@ -2024,6 +2024,7 @@ textarea::placeholder {
 }
 .bc-field-unit { color: var(--muted); font-weight: 600; }
 .bc-submit { justify-self: start; }
+.bc-submit-row { justify-self: start; margin-top: 0; }
 
 .bc-trends { margin-top: 10px; display: grid; gap: 18px; }
 .bc-group { display: grid; gap: 2px; }
@@ -2239,6 +2240,16 @@ textarea::placeholder {
 
 .entry-actions--start {
   justify-content: flex-start;
+}
+
+/* Brze akcije na datiranom unosu (merenje, trčanje, analiza). Ne koristi
+   .entry-actions: ta klasa nosi margin-top i poravnanje na desno, što unutar
+   zaglavlja kartice odvaja dugmad od naslova s kojim stoje u istom redu. */
+.record-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .plan-meals-section .stack {

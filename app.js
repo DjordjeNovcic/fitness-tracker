@@ -705,6 +705,12 @@ const state = {
   editingHabitId: "",
   editingTaskId: "",
   editingSupplementId: "",
+  // Datirani unosi u „Napredak“ su do sada mogli samo da se obrišu i unesu
+  // ponovo. Ovo drži koji se unos trenutno izmenjuje; "" = forma dodaje nov.
+  editingMeasurementId: "",
+  editingRunId: "",
+  editingLabId: "",
+  editingBodyCompId: "",
   // Podaci poslednjeg trčanja učitani iz clipboard-a (Apple Prečica) — pune formu
   // dok se ne sačuva. null = nema učitanog drafta.
   runImportDraft: null,
@@ -4093,6 +4099,28 @@ function getSelectableFoods() {
 
 function getFoodById(foodId) {
   return store.foods.find((food) => food.id === foodId);
+}
+
+// ---- Izmena datiranih unosa (merenje, trčanje, nalaz, analiza) -------------
+// Svi se drže u listi obrnuto hronološki i dodaju preko unshift, pa izmena ne
+// sme da ide „obriši + dodaj“: unos bi odskočio na vrh liste i promenio red.
+function getEditingRecord(collection, id) {
+  const recordId = String(id || "").trim();
+  return recordId ? (collection || []).find((entry) => entry && entry.id === recordId) || null : null;
+}
+
+function replaceRecordInPlace(collection, id, next) {
+  const index = (collection || []).findIndex((entry) => entry && entry.id === id);
+  if (index < 0) {
+    return false;
+  }
+  collection[index] = next;
+  return true;
+}
+
+// Olovka na redu: ista ikonica i isti oblik kao brze akcije na stavci u obroku.
+function renderEditRecordButton(action, idAttr, id, label) {
+  return `<button class="ghost-button button-with-icon icon-only-action" type="button" data-action="${action}" ${idAttr}="${id}" aria-label="${escapeHtml(label)}" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>`;
 }
 
 function getFoodNutritionStatus(food = {}) {
@@ -11492,7 +11520,10 @@ function renderRunCard(run) {
           <strong>${escapeHtml(dateLabel)}</strong>
           <span class="run-type-pill run-type-${escapeHtml(run.type || "lagano")}">${escapeHtml(getRunTypeLabel(run.type))}</span>
         </div>
-        <button class="danger-button" data-action="delete-run" data-run-id="${run.id}">Obriši</button>
+        <div class="record-row-actions">
+          ${renderEditRecordButton("edit-run", "data-run-id", run.id, `Izmeni trčanje od ${escapeHtml(dateLabel)}`)}
+          <button class="danger-button" data-action="delete-run" data-run-id="${run.id}">Obriši</button>
+        </div>
       </div>
       <div class="pill-row">
         ${pills.map((pill) => `<span class="pill${pill.strong ? " strong" : ""}">${escapeHtml(pill.text)}</span>`).join("")}
@@ -11508,9 +11539,21 @@ function renderRunningTab() {
   const hasRuns = runs.length > 0;
   const weekPaceSec = stats.weekKm > 0 ? stats.weekSec / stats.weekKm : null;
 
-  // Deep-link iz Prečice (#import-run) i dalje radi i popuni polja ako stigne;
-  // inače je ovo običan ručni unos.
-  const draft = state.runImportDraft || {};
+  // Tri izvora za istu formu, po prioritetu: izmena postojećeg trčanja, pa
+  // deep-link iz Prečice (#import-run), pa prazan ručni unos. Izmena ima
+  // prednost jer je eksplicitna radnja korisnika.
+  const editingRun = getEditingRecord(store.runs, state.editingRunId);
+  const draft = editingRun
+    ? {
+        date: normalizeDateValue(editingRun.date),
+        km: editingRun.distanceKm,
+        durationSec: editingRun.durationSec,
+        avgHr: editingRun.avgHr,
+        maxHr: editingRun.maxHr,
+        type: editingRun.type,
+        note: editingRun.note,
+      }
+    : state.runImportDraft || {};
   const draftDate = draft.date || getTodayDateValue();
   const draftKm = draft.km != null ? String(draft.km) : "";
   const draftMinutes = draft.durationSec != null ? String(Math.floor(draft.durationSec / 60)) : "";
@@ -11518,6 +11561,7 @@ function renderRunningTab() {
   const draftAvgHr = draft.avgHr != null ? String(draft.avgHr) : "";
   const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
   const draftType = draft.type || "";
+  const draftNote = draft.note != null ? String(draft.note) : "";
 
   return `
     <section class="section running-summary-section">
@@ -11556,9 +11600,9 @@ function renderRunningTab() {
       }
     </section>
 
-    <details class="section form-collapse running-add-section" ${state.runImportDraft ? "open" : ""}>
+    <details class="section form-collapse running-add-section" ${state.runImportDraft || editingRun ? "open" : ""}>
       <summary>
-        <span class="form-collapse-title">Dodaj trčanje</span>
+        <span class="form-collapse-title">${editingRun ? "Izmeni trčanje" : "Dodaj trčanje"}</span>
         <span class="form-collapse-icon" aria-hidden="true">+</span>
       </summary>
       <form id="run-form" class="form-grid split run-form">
@@ -11586,9 +11630,10 @@ function renderRunningTab() {
         </div>
         <div class="field run-note-field">
           <label for="run-note">Napomena</label>
-          <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" />
+          <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" value="${escapeHtml(draftNote)}" />
         </div>
-        <button class="solid-button secondary-button run-form-submit" type="submit">Sačuvaj trčanje</button>
+        ${editingRun ? `<button class="ghost-button" type="button" data-action="cancel-edit-run">Odustani</button>` : ""}
+        <button class="solid-button secondary-button run-form-submit" type="submit">${editingRun ? "Sačuvaj izmenu" : "Sačuvaj trčanje"}</button>
       </form>
     </details>
 
@@ -14180,29 +14225,36 @@ function renderLabSection() {
       </div>
       ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera — deltu i mini-grafik trenda.")}
 
-      <details class="form-collapse">
+      ${(() => {
+      const editingLab = getEditingRecord(store.labResults, state.editingLabId);
+      return `
+      <details class="form-collapse" ${editingLab ? "open" : ""}>
         <summary>
-          <span class="form-collapse-title">Dodaj nalaz</span>
+          <span class="form-collapse-title">${editingLab ? "Izmeni nalaz" : "Dodaj nalaz"}</span>
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
         <form id="lab-form" class="form-grid split">
           <div class="field">
             <label for="lab-marker">Marker</label>
-            <input id="lab-marker" name="marker" list="lab-marker-options" placeholder="npr. Vitamin D" autocomplete="off" required />
+            <input id="lab-marker" name="marker" list="lab-marker-options" placeholder="npr. Vitamin D" autocomplete="off" value="${escapeHtml(editingLab ? editingLab.marker || "" : "")}" required />
             <datalist id="lab-marker-options">
               ${LAB_MARKERS.map((m) => `<option value="${escapeHtml(m.name)}"></option>`).join("")}
             </datalist>
           </div>
           <div class="field">
             <label for="lab-value">Vrednost</label>
-            <input id="lab-value" name="value" type="number" inputmode="decimal" step="0.01" min="0" placeholder="npr. 34" required />
+            <input id="lab-value" name="value" type="number" inputmode="decimal" step="0.01" min="0" placeholder="npr. 34" value="${editingLab && editingLab.value != null ? escapeHtml(String(editingLab.value)) : ""}" required />
           </div>
           <div class="field">
             <label for="lab-date">Datum</label>
-            <input id="lab-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
+            <input id="lab-date" name="date" type="date" value="${editingLab ? normalizeDateValue(editingLab.date) : getLocalDateInputValue()}" required />
           </div>
-          <button class="solid-button secondary-button" type="submit">Sačuvaj nalaz</button>
-        </form>
+          <div class="meta-row field--full">
+            ${editingLab ? `<button class="ghost-button" type="button" data-action="cancel-edit-lab-result">Odustani</button>` : ""}
+            <button class="solid-button secondary-button" type="submit">${editingLab ? "Sačuvaj izmenu" : "Sačuvaj nalaz"}</button>
+          </div>
+        </form>`;
+      })()}
         <div class="footer-note lab-disclaimer">Referentni opsezi su orijentacioni (zavise od laboratorije, pola i godina) — nije medicinski savet.</div>
       </details>
 
@@ -14243,6 +14295,7 @@ function renderLabSection() {
                         <div class="lab-row-meta">${metaText}</div>
                       </div>
                       ${renderLabSparkline(group.entries)}
+                      ${renderEditRecordButton("edit-lab-result", "data-id", latest.id, `Izmeni poslednji nalaz za ${group.marker}`)}
                       <button class="lab-row-del" type="button" data-action="delete-lab-result" data-id="${latest.id}" aria-label="Obriši poslednji nalaz za ${escapeHtml(group.marker)}">✕</button>
                     </article>
                   `;
@@ -14310,6 +14363,12 @@ function renderBodySparkline(values) {
 function renderBodyCompositionSection() {
   const entries = store.bodyComposition || [];
   const hasData = entries.length > 0;
+  const editingBodyComp = getEditingRecord(entries, state.editingBodyCompId);
+  const editingValues = (editingBodyComp && editingBodyComp.values) || {};
+  const bodyCompValue = (key) => {
+    const raw = editingValues[key];
+    return raw === null || raw === undefined || raw === "" ? "" : String(raw);
+  };
 
   const formFields = BODY_METRIC_GROUPS.map(
     (group) => `
@@ -14321,7 +14380,7 @@ function renderBodyCompositionSection() {
               (m) => `
             <div class="field">
               <label for="bc-${m.key}">${m.label}${m.unit ? ` <span class="bc-field-unit">(${m.unit})</span>` : ""}</label>
-              <input id="bc-${m.key}" name="${m.key}" type="number" step="${m.dec === 0 ? "1" : m.dec === 2 ? "0.01" : "0.1"}" min="0" inputmode="decimal" placeholder="—" />
+              <input id="bc-${m.key}" name="${m.key}" type="number" step="${m.dec === 0 ? "1" : m.dec === 2 ? "0.01" : "0.1"}" min="0" inputmode="decimal" placeholder="—" value="${bodyCompValue(m.key)}" />
             </div>`
             )
             .join("")}
@@ -14374,7 +14433,10 @@ function renderBodyCompositionSection() {
             const count = Object.values(e.values || {}).filter((v) => v != null && v !== "").length;
             return `<div class="bc-session-row">
               <span>${new Date(e.date).toLocaleDateString("sr-RS")} · ${count} ${count === 1 ? "vrednost" : "vrednosti"}</span>
-              <button class="lab-row-del" type="button" data-action="delete-body-comp" data-id="${e.id}" aria-label="Obriši analizu">✕</button>
+              <div class="record-row-actions">
+                ${renderEditRecordButton("edit-body-comp", "data-id", e.id, `Izmeni analizu od ${new Date(e.date).toLocaleDateString("sr-RS")}`)}
+                <button class="lab-row-del" type="button" data-action="delete-body-comp" data-id="${e.id}" aria-label="Obriši analizu">✕</button>
+              </div>
             </div>`;
           })
           .join("")}
@@ -14391,19 +14453,24 @@ function renderBodyCompositionSection() {
       </div>
       ${renderHelpNote("Jedan unos = jedna analiza. Prepiši brojeve sa izveštaja (popuni samo polja koja imaš). Za svaku metriku se pamti trend: poslednja vrednost, promena u odnosu na prošli put i mini-grafik. Boja promene prati zdrav smer — mast/visceralna dole = zeleno, mišić/voda gore = zeleno. Nije medicinski savet.")}
 
-      <details class="form-collapse">
+      <details class="form-collapse" ${editingBodyComp ? "open" : ""}>
         <summary>
-          <span class="form-collapse-title">Dodaj analizu</span>
+          <span class="form-collapse-title">${editingBodyComp ? "Izmeni analizu" : "Dodaj analizu"}</span>
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
         <form id="body-comp-form" class="bc-form">
           <div class="field bc-date-field">
             <label for="bc-date">Datum analize</label>
-            <input id="bc-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
+            <input id="bc-date" name="date" type="date" value="${editingBodyComp ? normalizeDateValue(editingBodyComp.date) : getLocalDateInputValue()}" required />
           </div>
           ${formFields}
-          <button class="solid-button secondary-button bc-submit" type="submit">Sačuvaj analizu</button>
-          <div class="footer-note">Popuni samo polja koja imaš sa izveštaja — ostalo ostavi prazno.</div>
+          <div class="meta-row bc-submit-row">
+            ${editingBodyComp ? `<button class="ghost-button" type="button" data-action="cancel-edit-body-comp">Odustani</button>` : ""}
+            <button class="solid-button secondary-button bc-submit" type="submit">${editingBodyComp ? "Sačuvaj izmenu" : "Sačuvaj analizu"}</button>
+          </div>
+          <div class="footer-note">Popuni samo polja koja imaš sa izveštaja — ostalo ostavi prazno.${
+            editingBodyComp ? " Pri izmeni ispražnjeno polje skida tu vrednost sa analize." : ""
+          }</div>
         </form>
       </details>
 
@@ -14856,24 +14923,32 @@ function renderProgressTab() {
     ) : ""}
 
     ${view === "merenja" ? `
-    <details class="section form-collapse">
+    ${(() => {
+      const editing = getEditingRecord(store.measurements, state.editingMeasurementId);
+      const formDate = editing ? normalizeDateValue(editing.date) : getLocalDateInputValue();
+      const fieldValue = (fieldId) => {
+        const raw = editing ? editing[fieldId] : null;
+        return raw === null || raw === undefined || raw === "" ? "" : String(raw);
+      };
+      return `
+    <details class="section form-collapse" ${editing ? "open" : ""}>
       <summary>
-        <span class="form-collapse-title">Dodaj merenje</span>
+        <span class="form-collapse-title">${editing ? "Izmeni merenje" : "Dodaj merenje"}</span>
         <span class="form-collapse-icon" aria-hidden="true">+</span>
       </summary>
       <form id="measurement-form" class="form-grid split">
         <div class="field">
           <label for="measurement-date">Datum</label>
-          <input id="measurement-date" name="date" type="date" value="${getLocalDateInputValue()}" required />
+          <input id="measurement-date" name="date" type="date" value="${formDate}" required />
         </div>
         ${renderUnitField(
           "measurement-weightKg",
           "Težina",
           "kg",
-          `<input id="measurement-weightKg" name="weightKg" type="number" step="0.1" min="0" required />`
+          `<input id="measurement-weightKg" name="weightKg" type="number" step="0.1" min="0" value="${fieldValue("weightKg")}" required />`
         )}
         <div class="field field--full measurement-goal-note" id="measurement-calorie-goal">
-          ${renderMeasurementGoalNote(getLocalDateInputValue())}
+          ${renderMeasurementGoalNote(formDate)}
         </div>
         <div class="field field--full measurement-photo-field">
           <label>Slike (opciono)</label>
@@ -14887,7 +14962,11 @@ function renderProgressTab() {
               `
             ).join("")}
           </div>
-          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. Čuvaju se <strong>samo na ovom uređaju</strong> — za prenos na drugi telefon izvezi backup (Ciljevi → Izvezi backup).</div>
+          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. Čuvaju se <strong>samo na ovom uređaju</strong> — za prenos na drugi telefon izvezi backup (Ciljevi → Izvezi backup).${
+            editing
+              ? " Postojeće slike se izmenom ne diraju: vezane su za datum, pa ako promeniš datum ostaju na starom."
+              : ""
+          }</div>
         </div>
         <details class="field field--full measurement-extra">
           <summary>
@@ -14910,6 +14989,7 @@ function renderProgressTab() {
                       ${field.step ? `step="${field.step}"` : ""}
                       ${field.type === "number" ? 'min="0"' : ""}
                       placeholder="${field.placeholder || ""}"
+                      value="${fieldValue(field.id)}"
                     />`
                   )}
                 `
@@ -14917,9 +14997,13 @@ function renderProgressTab() {
               .join("")}
           </div>
         </details>
-        <button class="solid-button" type="submit">Sačuvaj unos</button>
+        <div class="meta-row field--full">
+          ${editing ? `<button class="ghost-button" type="button" data-action="cancel-edit-measurement">Odustani</button>` : ""}
+          <button class="solid-button" type="submit">${editing ? "Sačuvaj izmenu" : "Sačuvaj unos"}</button>
+        </div>
       </form>
-    </details>
+    </details>`;
+    })()}
 
     <section class="section">
       <div class="section-header">
@@ -15129,9 +15213,12 @@ function renderProgressTab() {
                     <article class="food-card">
                       <div class="food-card-top">
                         <h3>${new Date(entry.date).toLocaleDateString("sr-RS")}</h3>
-                        <button class="danger-button" data-action="delete-measurement" data-measurement-id="${entry.id}">
-                          Obriši
-                        </button>
+                        <div class="record-row-actions">
+                          ${renderEditRecordButton("edit-measurement", "data-measurement-id", entry.id, `Izmeni merenje od ${new Date(entry.date).toLocaleDateString("sr-RS")}`)}
+                          <button class="danger-button" data-action="delete-measurement" data-measurement-id="${entry.id}">
+                            Obriši
+                          </button>
+                        </div>
                       </div>
                       <div class="pill-row">
                         ${
@@ -17694,7 +17781,35 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-run") {
+    const runId = String(actionTarget.dataset.runId || "").trim();
+    if (!getEditingRecord(store.runs, runId)) {
+      return;
+    }
+    // Uvezeni draft i izmena pune istu formu, pa draft mora da se skloni —
+    // inače bi posle „Odustani“ iskočili tuđi podaci.
+    state.runImportDraft = null;
+    state.editingRunId = runId;
+    render();
+    window.requestAnimationFrame(() => {
+      const input = document.querySelector("#run-distance");
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
+      document.querySelector("#run-form")?.scrollIntoView({ block: "center" });
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-run") {
+    state.editingRunId = "";
+    render();
+    return;
+  }
+
   if (action === "delete-run") {
+    state.editingRunId = "";
     const runId = String(actionTarget.dataset.runId || "");
     const run = (store.runs || []).find((entry) => entry.id === runId);
     if (!run) {
@@ -17899,7 +18014,32 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-measurement") {
+    const measurementId = String(actionTarget.dataset.measurementId || "").trim();
+    if (!getEditingRecord(store.measurements, measurementId)) {
+      return;
+    }
+    state.editingMeasurementId = measurementId;
+    render();
+    window.requestAnimationFrame(() => {
+      const input = document.querySelector("#measurement-weightKg");
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
+      document.querySelector("#measurement-form")?.scrollIntoView({ block: "center" });
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-measurement") {
+    state.editingMeasurementId = "";
+    render();
+    return;
+  }
+
   if (action === "delete-measurement") {
+    state.editingMeasurementId = "";
     const measurementId = actionTarget.dataset.measurementId;
     const prevMeasurements = store.measurements;
     if (!prevMeasurements.some((entry) => entry.id === measurementId)) {
@@ -17915,7 +18055,32 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-lab-result") {
+    const labId = String(actionTarget.dataset.id || "").trim();
+    if (!getEditingRecord(store.labResults, labId)) {
+      return;
+    }
+    state.editingLabId = labId;
+    render();
+    window.requestAnimationFrame(() => {
+      const input = document.querySelector("#lab-value");
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
+      document.querySelector("#lab-form")?.scrollIntoView({ block: "center" });
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-lab-result") {
+    state.editingLabId = "";
+    render();
+    return;
+  }
+
   if (action === "delete-lab-result") {
+    state.editingLabId = "";
     const id = actionTarget.dataset.id;
     const prevLabResults = store.labResults;
     if (!prevLabResults.some((entry) => entry.id === id)) {
@@ -17931,7 +18096,31 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-body-comp") {
+    const bodyCompId = String(actionTarget.dataset.id || "").trim();
+    if (!getEditingRecord(store.bodyComposition, bodyCompId)) {
+      return;
+    }
+    state.editingBodyCompId = bodyCompId;
+    render();
+    window.requestAnimationFrame(() => {
+      document.querySelector("#body-comp-form")?.scrollIntoView({ block: "center" });
+      const input = document.querySelector("#bc-date");
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+      }
+    });
+    return;
+  }
+
+  if (action === "cancel-edit-body-comp") {
+    state.editingBodyCompId = "";
+    render();
+    return;
+  }
+
   if (action === "delete-body-comp") {
+    state.editingBodyCompId = "";
     const id = actionTarget.dataset.id;
     const prevBodyComposition = store.bodyComposition;
     if (!prevBodyComposition.some((entry) => entry.id === id)) {
@@ -19023,8 +19212,9 @@ async function handleSubmit(event) {
       return;
     }
 
-    store.runs.unshift({
-      id: uid("run"),
+    const editingRun = getEditingRecord(store.runs, state.editingRunId);
+    const record = {
+      id: editingRun ? editingRun.id : uid("run"),
       date,
       distanceKm,
       durationSec,
@@ -19032,8 +19222,16 @@ async function handleSubmit(event) {
       avgHr: avgHr > 0 ? Math.round(avgHr) : null,
       maxHr: maxHr > 0 ? Math.round(maxHr) : null,
       note,
-      createdAt: new Date().toISOString(),
-    });
+      // createdAt je vreme unosa, ne trčanja — izmena ga ne prepisuje, jer se
+      // po njemu razrešava red kad dva trčanja dele isti datum.
+      createdAt: editingRun ? editingRun.createdAt : new Date().toISOString(),
+    };
+    if (editingRun) {
+      replaceRecordInPlace(store.runs, editingRun.id, record);
+    } else {
+      store.runs.unshift(record);
+    }
+    state.editingRunId = "";
     state.runImportDraft = null;
     persist();
     event.target.reset();
@@ -19065,13 +19263,21 @@ async function handleSubmit(event) {
       return;
     }
 
-    const measurement = {
-      id: uid("measurement"),
-      date,
-      // Cilj se zamrzava ovde, na dan unosa — kasnija promena cilja u Ciljevima
-      // ne sme da prepravi šta je pisalo u trenutku merenja.
-      calorieGoal: getCalorieGoalForDate(date),
-    };
+    const editing = getEditingRecord(store.measurements, state.editingMeasurementId);
+    const measurement = editing
+      ? { ...editing, date }
+      : {
+          id: uid("measurement"),
+          date,
+          // Cilj se zamrzava ovde, na dan unosa — kasnija promena cilja u Ciljevima
+          // ne sme da prepravi šta je pisalo u trenutku merenja.
+          calorieGoal: getCalorieGoalForDate(date),
+        };
+    // Zamrznuti cilj prati datum: izmena težine ga ne dira, a premeštanje unosa
+    // na drugi dan mora, jer je tog dana važio drugi cilj.
+    if (editing && normalizeDateValue(editing.date) !== normalizeDateValue(date)) {
+      measurement.calorieGoal = getCalorieGoalForDate(date);
+    }
 
     measurementFields.forEach((field) => {
       const raw = formData.get(field.id);
@@ -19079,6 +19285,9 @@ async function handleSubmit(event) {
         const value = raw === "" || raw == null ? null : toNumber(raw);
         if (value !== null) {
           measurement[field.id] = value;
+        } else {
+          // Ispražnjeno polje pri izmeni mora da skine meru, ne da je ostavi.
+          delete measurement[field.id];
         }
         return;
       }
@@ -19086,6 +19295,8 @@ async function handleSubmit(event) {
       const value = String(raw || "").trim();
       if (value) {
         measurement[field.id] = value;
+      } else {
+        delete measurement[field.id];
       }
     });
 
@@ -19127,11 +19338,27 @@ async function handleSubmit(event) {
     }
 
     const previousProfileWeight = store.profile.weightKg;
-    store.measurements.unshift(measurement);
-    store.profile.weightKg = measurement.weightKg;
+    const previousRecord = editing ? { ...editing } : null;
+    if (editing) {
+      replaceRecordInPlace(store.measurements, editing.id, measurement);
+    } else {
+      store.measurements.unshift(measurement);
+    }
+    // Profil nosi trenutnu težinu, pa ga sme da pomeri samo najnovije merenje —
+    // ispravka unosa od prošlog meseca ne sme da prepiše današnju kilažu.
+    const isLatestMeasurement = !store.measurements.some(
+      (entry) => entry.id !== measurement.id && normalizeDateValue(entry.date) > normalizeDateValue(measurement.date)
+    );
+    if (isLatestMeasurement) {
+      store.profile.weightKg = measurement.weightKg;
+    }
 
     const saved = persist(() => {
-      store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
+      if (previousRecord) {
+        replaceRecordInPlace(store.measurements, previousRecord.id, previousRecord);
+      } else {
+        store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
+      }
       const rolledBackIds = new Set(photoRecords.map((photo) => photo.id));
       store.progressPhotos = store.progressPhotos.filter((photo) => !rolledBackIds.has(photo.id));
       store.profile.weightKg = previousProfileWeight;
@@ -19143,6 +19370,7 @@ async function handleSubmit(event) {
       return;
     }
 
+    state.editingMeasurementId = "";
     event.target.reset();
     render();
     return;
@@ -19158,15 +19386,24 @@ async function handleSubmit(event) {
     // Curated markers bring a unit + orientational reference range; a custom
     // marker is tracked without a range (no status, just the trend).
     const curated = LAB_MARKERS.find((m) => m.name.toLowerCase() === marker.toLowerCase());
-    store.labResults.unshift({
-      id: uid("lab"),
+    const editingLab = getEditingRecord(store.labResults, state.editingLabId);
+    // Opseg i jedinica se pri izmeni računaju ponovo iz markera: ako je marker
+    // promenjen, stari opseg bi ostao i status bi se ocenjivao po tuđoj skali.
+    const record = {
+      id: editingLab ? editingLab.id : uid("lab"),
       marker: curated ? curated.name : marker,
       value: toNumber(valueRaw),
       unit: curated ? curated.unit : "",
       refLow: curated && curated.low != null ? curated.low : null,
       refHigh: curated && curated.high != null ? curated.high : null,
       date,
-    });
+    };
+    if (editingLab) {
+      replaceRecordInPlace(store.labResults, editingLab.id, record);
+    } else {
+      store.labResults.unshift(record);
+    }
+    state.editingLabId = "";
     persist();
     event.target.reset();
     render();
@@ -19197,7 +19434,15 @@ async function handleSubmit(event) {
       window.alert("Popuni bar jednu vrednost sa analize.");
       return;
     }
-    store.bodyComposition.unshift({ id: uid("bc"), date, values });
+    const editingBodyComp = getEditingRecord(store.bodyComposition, state.editingBodyCompId);
+    // `values` se gradi od nule iz forme, pa ispražnjeno polje pri izmeni skida
+    // tu metriku umesto da ostavi staru vrednost.
+    if (editingBodyComp) {
+      replaceRecordInPlace(store.bodyComposition, editingBodyComp.id, { ...editingBodyComp, date, values });
+    } else {
+      store.bodyComposition.unshift({ id: uid("bc"), date, values });
+    }
+    state.editingBodyCompId = "";
     persist();
     event.target.reset();
     render();
