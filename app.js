@@ -5967,6 +5967,47 @@ function setFavoriteDraftFromRecipe(favorite) {
   state.editingFavoriteItem = { favoriteId: favorite.id, itemId: "", itemIndex: -1 };
 }
 
+// Sažetak recepta u izradi. Odvojen u svoju funkciju jer se pri kucanju
+// količine osvežava sam, bez render()-a: cela aplikacija se renderuje kroz
+// innerHTML, pa bi pun render na svaki karakter izbacio kursor iz polja.
+function renderRecipeDraftSummaryInner(preview) {
+  const meta = [
+    preview.mealLabel || "Tip obroka nije izabran",
+    `${preview.servings} ${srPlural(preview.servings, "porcija", "porcije", "porcija")}`,
+    preview.prepTimeMinutes ? `${preview.prepTimeMinutes} min pripreme` : "",
+  ].filter(Boolean);
+  return `
+    <div class="recipe-draft-summary">
+      <div class="recipe-draft-summary-main">
+        <span class="recipe-draft-summary-label">Po porciji</span>
+        <strong class="recipe-draft-summary-value">${roundValue(preview.perServingTotals.kcal, 0)}<span>kcal</span></strong>
+      </div>
+      <dl class="recipe-draft-summary-macros">
+        <div><dt>P</dt><dd>${roundValue(preview.perServingTotals.protein, 1)} g</dd></div>
+        <div><dt>UH</dt><dd>${roundValue(preview.perServingTotals.carbs, 1)} g</dd></div>
+        <div><dt>M</dt><dd>${roundValue(preview.perServingTotals.fat, 1)} g</dd></div>
+      </dl>
+      <div class="recipe-draft-summary-note">${escapeHtml(meta.join(" · "))} · ukupno ${roundValue(preview.totals.kcal, 0)} kcal</div>
+    </div>`;
+}
+
+// Količina se menja u polju koje ostaje na ekranu, pa se osvežavaju samo
+// brojke: sažetak u celosti (u njemu nema polja) i kcal po stavci tekstualno.
+function syncRecipeDraftPreview() {
+  const summary = document.querySelector("#recipe-draft-summary");
+  if (!summary) {
+    return;
+  }
+  const preview = getFavoriteDraftPreview();
+  summary.innerHTML = renderRecipeDraftSummaryInner(preview);
+  preview.items.forEach((item) => {
+    const cell = document.querySelector(`[data-recipe-draft-item-kcal="${item.id}"]`);
+    if (cell) {
+      cell.textContent = `${roundValue(item.totals.kcal, 0)} kcal`;
+    }
+  });
+}
+
 function getFavoriteDraftPreview() {
   const favoriteName = String(state.favoriteDraft.favoriteName || "").trim();
   const mealLabel = String(state.favoriteDraft.mealLabel || "").trim();
@@ -10258,76 +10299,75 @@ function renderRecipesTab() {
               ? `<div class="recipe-draft-media"><img src="${escapeHtml(draftPreview.imageUrl)}" alt="${escapeHtml(draftPreview.favoriteName || "Preview recepta")}" /></div>`
               : ""
           }
-          <div class="pill-row recipe-draft-pills">
-            <span class="pill">${escapeHtml(draftPreview.mealLabel || "Tip obroka nije još izabran")}</span>
-            <span class="pill">${draftPreview.servings} ${draftPreview.servings === 1 ? "porcija" : draftPreview.servings < 5 ? "porcije" : "porcija"}</span>
-            ${
-              draftPreview.prepTimeMinutes
-                ? `<span class="pill note">${draftPreview.prepTimeMinutes} min pripreme</span>`
-                : ""
-            }
-            <span class="pill note">Ukupno ${roundValue(draftPreview.totals.kcal, 0)} kcal</span>
-            <span class="pill">Po porciji ${roundValue(draftPreview.perServingTotals.kcal, 0)} kcal</span>
-            <span class="pill">P ${roundValue(draftPreview.perServingTotals.protein, 1)} g</span>
-            <span class="pill">UH ${roundValue(draftPreview.perServingTotals.carbs, 1)} g</span>
-            <span class="pill">M ${roundValue(draftPreview.perServingTotals.fat, 1)} g</span>
-          </div>
+          <div id="recipe-draft-summary">${renderRecipeDraftSummaryInner(draftPreview)}</div>
           ${
             draftPreview.instructions
               ? `<div class="recipe-draft-method">${escapeHtml(draftPreview.instructions)}</div>`
               : ""
           }
-          <div class="footer-note" style="margin-top:10px;">Sastojci recepta koji praviš:</div>
-          <div class="stack" style="margin-top:12px;">
+          <div class="recipe-draft-items">
             ${
               draftPreview.items.length
                 ? draftPreview.items
                     .map((item) => {
                       const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
+                      const itemFood = getFoodById(item.foodId);
+                      const unitLabel = getFoodServingUnit(itemFood) === "piece" ? "kom" : "g";
+                      // Naziv je stajao dva puta (jednom kao naslov, jednom kao
+                      // podnaslov) i kad su isti — druga linija ide samo kad
+                      // stvarno kaže nešto novo (drugo ime u bazi, ili da veze
+                      // još nema).
+                      const linkNote = !item.isMatched
+                        ? "Još nije povezano sa bazom"
+                        : item.displayName && item.foodName && item.displayName !== item.foodName
+                          ? `Povezano sa: ${item.foodName}`
+                          : "";
                       return `
-                        <div class="suggestion-row recipe-editor-item-row">
-                          <div class="recipe-editor-item-copy">
-                            <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
-                            <div class="footer-note">${escapeHtml(item.displayName && item.foodName && item.displayName !== item.foodName ? `Povezano sa: ${item.foodName}` : item.foodName || "Još nije povezano sa bazom")}</div>
-                            ${
-                              suggestedFood
-                                ? `
-                                  <div class="recipe-editor-item-suggestion">
-                                    <span class="pill pill--success">Predlog: ${escapeHtml(suggestedFood.name)}</span>
-                                    <button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati predlog</button>
-                                  </div>
-                                `
-                                : ""
-                            }
+                        <div class="recipe-draft-item ${item.isPending ? "is-pending" : ""} ${!item.isMatched ? "is-unmatched" : ""}">
+                          <div class="recipe-draft-item-main">
+                            <strong class="recipe-draft-item-name">${escapeHtml(item.displayName || item.foodName)}</strong>
+                            ${linkNote ? `<span class="recipe-draft-item-note">${escapeHtml(linkNote)}</span>` : ""}
+                            ${item.isPending ? `<span class="recipe-draft-item-note">nova stavka — dodaj je u preview</span>` : ""}
                           </div>
-                          <div class="recipe-editor-item-fields">
-                            ${
-                              item.isPending
-                                ? `<span class="pill strong">nova stavka</span>`
-                                : `
-                                  <select data-recipe-draft-item-food-id="${item.id}">
+                          <div class="recipe-draft-item-amount">
+                            <input
+                              ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`}
+                              type="number"
+                              inputmode="decimal"
+                              min="1"
+                              step="1"
+                              value="${item.grams ? roundValue(item.grams, 0) : ""}"
+                              placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(itemFood)}"
+                              aria-label="Količina — ${escapeHtml(item.displayName || item.foodName)}"
+                              ${item.isPending ? "disabled" : ""}
+                            />
+                            <span class="recipe-draft-item-unit">${unitLabel}</span>
+                          </div>
+                          <span class="recipe-draft-item-kcal" data-recipe-draft-item-kcal="${item.id}">${roundValue(item.totals.kcal, 0)} kcal</span>
+                          ${
+                            item.isPending
+                              ? `<span class="recipe-draft-item-spacer" aria-hidden="true"></span>`
+                              : `<button class="danger-button button-with-icon icon-only-action" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}" aria-label="Izbaci ${escapeHtml(item.displayName || item.foodName)} iz recepta" title="Izbaci iz recepta">${renderButtonContent("Izbaci", "delete")}</button>`
+                          }
+                          ${
+                            !item.isMatched
+                              ? `
+                                <div class="recipe-draft-item-link">
+                                  <select data-recipe-draft-item-food-id="${item.id}" aria-label="Poveži ${escapeHtml(item.displayName || item.foodName)} sa namirnicom">
                                     <option value="">Poveži sa namirnicom</option>
                                     ${selectableFoods
                                       .map((food) => `<option value="${food.id}" ${food.id === item.foodId ? "selected" : ""}>${escapeHtml(food.name)}</option>`)
                                       .join("")}
                                   </select>
-                                `
-                            }
-                            <input ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`} type="number" inputmode="decimal" min="1" step="1" value="${item.grams ? roundValue(item.grams, 0) : ""}" placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(getFoodById(item.foodId))}" ${item.isPending ? "disabled" : ""} />
-                            ${
-                              item.isPending
-                                ? `<span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>`
-                                : `<button class="danger-button" type="button" data-action="remove-draft-favorite-item" data-item-id="${item.id}">Obriši</button>`
-                            }
-                          </div>
-                          <div class="pill-row" style="margin-top:0;">
-                            <span class="pill ${item.isPending ? "strong" : ""}">${item.isPending ? "nova stavka" : "u preview"}</span>
-                            ${!item.isMatched ? `<span class="pill pill--warning">za povezivanje</span>` : ""}
-                            <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
-                            <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
-                            <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
-                            <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
-                          </div>
+                                  ${
+                                    suggestedFood
+                                      ? `<button class="ghost-button" type="button" data-action="apply-draft-favorite-item-suggestion" data-item-id="${item.id}" data-food-id="${suggestedFood.id}">Prihvati „${escapeHtml(suggestedFood.name)}“</button>`
+                                      : ""
+                                  }
+                                </div>
+                              `
+                              : ""
+                          }
                         </div>
                       `;
                     })
@@ -19715,6 +19755,9 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.id === "favorite-grams") {
     state.favoriteDraft.grams = target.value;
+    // Stavka koja se upravo sastavlja stoji u pregledu kao „nova stavka“, pa i
+    // njena kilaža mora da pomeri brojke — isti razlog kao red iznad.
+    syncRecipeDraftPreview();
     return;
   }
 
@@ -19841,6 +19884,7 @@ function handleInput(event) {
           }
         : item
     );
+    syncRecipeDraftPreview();
     return;
   }
 

@@ -3123,33 +3123,190 @@ label.is-invalid textarea:focus {
   box-shadow: 0 10px 22px rgba(25, 34, 31, 0.08);
 }
 
-.recipe-editor-item-row {
+/* ---- Pregled recepta u izradi ------------------------------------------
+   Pre: osam pilula u zaglavlju i pet po stavci (u preview / kcal / P / UH / M),
+   naziv odštampan dva puta, padajuća lista cele baze na svakom redu i crveno
+   „Obriši“ šest puta. Sada: jedan sažetak sa jednim brojem koji se pamti
+   (kcal po porciji), pa redovi razdvojeni hairline-om — naziv, količina, kcal
+   i tiha ikonica. Lista za povezivanje se pojavi samo kad veza fali. */
+.recipe-draft-summary {
   display: grid;
-  gap: 12px;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 22px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
 }
 
-.recipe-editor-item-copy {
+.recipe-draft-summary-main {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
-.recipe-editor-item-suggestion {
+.recipe-draft-summary-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.recipe-draft-summary-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-draft-summary-value span {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.recipe-draft-summary-macros {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  gap: 6px 18px;
+  margin: 0;
 }
 
-.recipe-editor-item-fields {
+.recipe-draft-summary-macros > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.recipe-draft-summary-macros dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.recipe-draft-summary-macros dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-draft-summary-note {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.recipe-draft-items {
+  margin-top: 6px;
+}
+
+.recipe-draft-item {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) 110px auto;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
+  gap: 10px 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-@media (max-width: 720px) {
-  .recipe-editor-item-fields {
+.recipe-draft-item:last-child {
+  border-bottom: 0;
+}
+
+.recipe-draft-item.is-pending {
+  opacity: 0.72;
+}
+
+.recipe-draft-item-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recipe-draft-item-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.recipe-draft-item-note {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.recipe-draft-item.is-unmatched .recipe-draft-item-note {
+  color: var(--status-warning-text);
+}
+
+.recipe-draft-item-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recipe-draft-item-amount input {
+  width: 74px;
+  min-height: 38px;
+  padding: 6px 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-draft-item-unit {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.recipe-draft-item-kcal {
+  min-width: 68px;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.recipe-draft-item-spacer {
+  width: 40px;
+}
+
+.recipe-draft-item-link {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.recipe-draft-item-link select {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .recipe-draft-summary {
     grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  /* Na telefonu naziv ide u svoj red preko cele širine, pa količina, kcal i
+     ikonica stanu u jedan red ispod. (Kad naziv deli red sa njima, red naraste
+     na ~115px jer se količina prelomi u treći red.) */
+  .recipe-draft-item {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px 10px;
+  }
+  .recipe-draft-item-main {
+    grid-column: 1 / -1;
   }
 }
 
