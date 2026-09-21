@@ -11476,16 +11476,6 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 button.meal-entry-body {
   cursor: pointer;
 }
-.meal-entry-hint {
-  flex: 0 0 auto;
-  display: inline-flex;
-  color: var(--line-strong);
-  margin-top: 2px;
-}
-.meal-entry-hint svg {
-  width: 14px;
-  height: 14px;
-}
 @media (hover: hover) and (pointer: fine) {
   button.meal-entry-body:hover {
     background: var(--pill-bg);
@@ -12507,3 +12497,57 @@ button.meal-entry-body:focus-visible {
     grid-column: 1 / -1;
   }
 }
+
+/* Brze akcije u redu obroka.
+   Editing an entry used to mean tapping the row to open the composer and then
+   finding "Obriši stavku" inside it — two taps for the thing you most often do
+   right after adding something. The row stays tappable (it opens the same
+   editor), and the two icons make both actions reachable in one. */
+.meal-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.meal-entry-row > .meal-entry-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.meal-entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.meal-entry-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.meal-entry-action:hover {
+  color: var(--accent);
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.meal-entry-action--danger:hover {
+  color: var(--status-error-text);
+  background: color-mix(in srgb, var(--status-error-text) 10%, transparent);
+}
+.meal-entry-action .button-icon {
+  display: inline-flex;
+}
+.meal-entry-action svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Kept at 36px on a phone too: this is the delete control, and the row has the
+   width to spare — the name does not clip at this size. */

@@ -9432,12 +9432,12 @@ function renderPlanTab(entries) {
                                 .map(
                                   (entry) => `
                                     <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
-                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))} — izmeni ili obriši">`}
+                                      <div class="meal-entry-row">
+                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))} — izmeni količinu">`}
                                         <div class="meal-entry-main">
                                           <div class="meal-entry-title-group">
                                             <strong>${escapeHtml(entry.foodName)}</strong>
                                           </div>
-                                          ${isMealDone ? "" : `<span class="meal-entry-hint" aria-hidden="true">${renderSideChevronIcon(false)}</span>`}
                                         </div>
                                         <div class="meal-entry-stats">
                                           <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
@@ -9445,6 +9445,19 @@ function renderPlanTab(entries) {
                                           <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
                                         </div>
                                       ${isMealDone ? `</div>` : `</button>`}
+                                      ${
+                                        // Izmena i brisanje direktno u redu: ranije se do brisanja
+                                        // stizalo tek kroz kompozitor, dva tapa za nešto što se
+                                        // najčešće radi odmah po unosu. Sakriveno kad je obrok
+                                        // čekiran, jer se tada ionako ništa ne menja.
+                                        isMealDone
+                                          ? ""
+                                          : `<div class="meal-entry-actions">
+                                              <button class="meal-entry-action" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni količinu: ${escapeHtml(entry.foodName)}" title="Izmeni količinu">${renderActionIcon("edit")}</button>
+                                              <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
+                                            </div>`
+                                      }
+                                      </div>
                                     </div>
                                   `
                                 )
