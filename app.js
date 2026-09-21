@@ -5916,6 +5916,21 @@ function resetFavoriteDraft(options = {}) {
   };
 }
 
+// Ima li u kompozitoru išta što bi odustajanje bacilo. Dugme „Odustani“ se
+// prikazuje samo kad ima — na praznoj formi nema šta da se otkaže.
+function hasFavoriteDraftContent() {
+  const draft = state.favoriteDraft || {};
+  if ((draft.items || []).length) {
+    return true;
+  }
+  if (draft.foodId || String(draft.grams || "").trim()) {
+    return true;
+  }
+  return ["favoriteName", "mealLabel", "description", "imageUrl", "instructions", "prepTimeMinutes"].some(
+    (key) => String(draft[key] || "").trim()
+  );
+}
+
 function buildFavoriteDraftItems(items = []) {
   return (items || []).map((item) => ({
     id: item.id || uid("favorite-item"),
@@ -10383,11 +10398,7 @@ function renderRecipesTab() {
             >
               ${renderButtonContent(editingFavorite ? "Sačuvaj izmene" : "Sačuvaj recept", "save")}
             </button>
-            ${
-              editingFavorite
-                ? `<button class="ghost-button" type="button" data-action="cancel-edit-favorite-meal">Odustani</button>`
-                : ""
-            }
+            <button class="ghost-button" type="button" data-action="cancel-favorite-draft">Odustani</button>
           </div>
         </div>
       </article>
@@ -17471,8 +17482,27 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "cancel-edit-favorite-meal") {
+  if (action === "cancel-favorite-draft") {
+    const previousDraft = JSON.parse(JSON.stringify(state.favoriteDraft));
+    const previousEditing = { ...state.editingFavoriteItem };
+    const wasEditing = Boolean(previousEditing.favoriteId);
+    // `hasFavoriteDraftContent` se čita iz state-a pre reseta, a ne iz forme:
+    // polja se pune na input bez render-a, pa je state uvek svežiji od DOM-a.
+    const hadContent = hasFavoriteDraftContent();
     resetFavoriteDraft();
+    // Odustao si od pravljenja — kompozitor se i sklapa, da se ne vraćaš na
+    // praznu formu preko cele visine ekrana.
+    state.recipesBuilderExpanded = false;
+    // Opoziv se postavlja PRE render-a: traka se crta unutar render-a, pa bi
+    // obrnut redosled ostavio opoziv u stanju koji niko nije iscrtao.
+    // Prazna forma nema šta da izgubi, pa nema ni šta da se opoziva.
+    if (hadContent || wasEditing) {
+      queuePendingUndo(wasEditing ? "Izmena recepta je otkazana." : "Pravljenje recepta je otkazano.", () => {
+        state.favoriteDraft = previousDraft;
+        state.editingFavoriteItem = previousEditing;
+        state.recipesBuilderExpanded = true;
+      });
+    }
     render();
     return;
   }
