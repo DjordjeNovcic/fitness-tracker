@@ -873,6 +873,10 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       rawStore.trainingBurnByWeekday && typeof rawStore.trainingBurnByWeekday === "object"
         ? rawStore.trainingBurnByWeekday
         : {},
+    trainingSectionBurnByWeekday:
+      rawStore.trainingSectionBurnByWeekday && typeof rawStore.trainingSectionBurnByWeekday === "object"
+        ? rawStore.trainingSectionBurnByWeekday
+        : {},
     trainingCompletionsByWeekday:
       rawStore.trainingCompletionsByWeekday && typeof rawStore.trainingCompletionsByWeekday === "object"
         ? rawStore.trainingCompletionsByWeekday
@@ -997,6 +1001,7 @@ function ensureStoreCollections(targetStore) {
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
   targetStore.runs = targetStore.runs || [];
   targetStore.trainingBurnByWeekday = targetStore.trainingBurnByWeekday || {};
+  targetStore.trainingSectionBurnByWeekday = targetStore.trainingSectionBurnByWeekday || {};
   targetStore.trainingCompletionsByWeekday = targetStore.trainingCompletionsByWeekday || {};
   targetStore.measurements = targetStore.measurements || [];
   targetStore.labResults = targetStore.labResults || [];
@@ -4989,8 +4994,42 @@ function getTrainingForDay(weekday, weekTrack = state.selectedWeekTrack) {
   );
 }
 
+// Fiksne sekcije za kalorije treninga, u redu u kom se i prikazuju. „Trening“
+// su vežbe iz šablona tog dana; stomak i kardio se rade uz njih pa imaju svoje
+// kalorije, a ukupno je njihov zbir — „cela potrošnja treninga“.
+const TRAINING_BURN_SECTIONS = [
+  { id: "main", label: "Trening" },
+  { id: "abs", label: "Stomak" },
+  { id: "cardio", label: "Kardio" },
+];
+
+function getTrainingSectionBurns(weekday) {
+  const bucket = (store.trainingSectionBurnByWeekday || {})[String(weekday || "").trim()];
+  const record = bucket && typeof bucket === "object" ? bucket : {};
+  return TRAINING_BURN_SECTIONS.map((section) => ({
+    ...section,
+    kcal: Math.max(0, Math.round(toNumber(record[section.id]))),
+  }));
+}
+
+function getTrainingSectionBurnTotal(weekday) {
+  return getTrainingSectionBurns(weekday).reduce((sum, section) => sum + section.kcal, 0);
+}
+
+// Sirov broj iz „Potrošnja sa sata“, bez zbira sekcija. Forma mora da veže
+// ovaj broj — inače bi u polje za sat upao zbir sekcija i sledeće čuvanje bi
+// ga upisalo kao da je došao sa sata.
+function getWatchBurnForDay(weekday) {
+  return Math.max(0, toNumber(store.trainingBurnByWeekday?.[weekday]));
+}
+
 function getTrainingBurnForDay(weekday) {
-  return toNumber(store.trainingBurnByWeekday?.[weekday]);
+  // Zbir sekcija pobeđuje. Broj sa sata je dnevni Move (uključuje i hodanje),
+  // pa sabrati ga sa unosom po sekcijama znači duplo brojanje. Kad postoji
+  // ručni unos po sekcijama, on je tačniji za sam trening i sat se ignoriše;
+  // na danima kad ništa ne upišeš, sat (i njegov uvoz) rade kao i pre.
+  const sections = getTrainingSectionBurnTotal(weekday);
+  return sections > 0 ? sections : getWatchBurnForDay(weekday);
 }
 
 function getHabits() {
@@ -5307,6 +5346,7 @@ function ensureCurrentWeek() {
   });
   store.trainingCompletionsByWeekday = {};
   store.trainingBurnByWeekday = {};
+  store.trainingSectionBurnByWeekday = {};
   store.meta.weekId = weekId;
   return true;
 }
@@ -5532,6 +5572,87 @@ function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
   } else {
     delete store.trainingCompletionsByWeekday[weekday];
   }
+}
+
+// Kalorije treninga. Na danima sa planom se kuca po sekcijama (trening, stomak,
+// kardio) i ukupno je njihov zbir; „Potrošnja sa sata“ ostaje ispod i važi samo
+// kad nijedna sekcija nije upisana (tako uvoz sa sata i dalje radi za dane kad
+// ne kucaš ništa). Na danima bez plana nema šta da se deli na sekcije, pa se
+// prikazuje samo polje sa sata — kao i pre.
+function renderTrainingBurnSection(templates) {
+  const weekday = state.selectedWeekday;
+  const hasTraining = templates.length > 0;
+  const sections = getTrainingSectionBurns(weekday);
+  const sectionTotal = getTrainingSectionBurnTotal(weekday);
+  const watchBurn = getWatchBurnForDay(weekday);
+  const resolved = getTrainingBurnForDay(weekday);
+  const watchField = `
+          <div class="field">
+            <label for="training-burn-kcal">Potrošnja sa sata</label>
+            <input
+              id="training-burn-kcal"
+              name="burnKcal"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              placeholder="npr. 540"
+              value="${watchBurn ? roundValue(watchBurn, 0) : ""}"
+            />
+          </div>`;
+  return `
+      <details class="form-collapse training-burn-collapse" ${resolved > 0 ? "open" : ""}>
+        <summary>
+          <span class="form-collapse-title">Kalorije treninga</span>
+          ${resolved > 0 ? `<span class="pill strong">${roundValue(resolved, 0)} kcal</span>` : ""}
+          <span class="form-collapse-icon" aria-hidden="true">+</span>
+        </summary>
+        <p class="footer-note training-burn-intro">${
+          hasTraining
+            ? "Upiši kalorije po delovima treninga — ukupno je njihov zbir i to ulazi u neto unos na „Danas“."
+            : "Nema plana za ovaj dan, pa nema šta da se deli na sekcije. Upiši ukupnu potrošnju (Apple Watch i sl.) da Danas prikaže neto unos."
+        }</p>
+        <form id="training-burn-form" class="form-grid split training-burn-form">
+          ${
+            hasTraining
+              ? `
+          <div class="form-grid-3">
+            ${sections
+              .map(
+                (section) => `
+              <div class="field">
+                <label for="training-burn-${section.id}">${escapeHtml(section.label)}</label>
+                <input
+                  id="training-burn-${section.id}"
+                  name="section-${section.id}"
+                  type="number"
+                  min="0"
+                  max="5000"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="kcal"
+                  value="${section.kcal || ""}"
+                />
+              </div>`
+              )
+              .join("")}
+          </div>
+          <p class="footer-note field--full training-burn-total">${
+            sectionTotal > 0
+              ? `Ukupno sa treninga: <strong>${sectionTotal} kcal</strong> — ${sections
+                  .filter((section) => section.kcal > 0)
+                  .map((section) => `${escapeHtml(section.label.toLowerCase())} ${section.kcal}`)
+                  .join(" + ")}. Ovo ulazi u neto unos na „Danas“.`
+              : `Dok su sva tri prazna, u neto unos ide broj sa sata ispod.`
+          }</p>`
+              : ""
+          }
+          ${watchField}
+          <div class="training-burn-actions">
+            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+          </div>
+        </form>
+      </details>`;
 }
 
 function getWeeklyTrainingPlan(weekTrack = state.selectedWeekTrack) {
@@ -8810,7 +8931,7 @@ function renderPlanActivitySection() {
       </summary>
       <p class="footer-note plan-activity-intro">${
         hasActivity
-          ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans."
+          ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans, osim na danima gde si kalorije treninga upisao po sekcijama (tamo važi tvoj zbir)."
           : "Povuci dnevni pregled sa Apple Watch-a: kalorije, vežbanje, stajanje, koraci, distanca."
       }</p>
       <div class="run-import-bar ${hasActivity ? "is-loaded" : ""}">
@@ -8832,7 +8953,7 @@ function renderPlanActivitySection() {
           : ""
       }
       ${renderHelpNote(
-        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja).`,
+        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja). Ako za taj dan u Treningu upišeš kalorije po sekcijama, važi taj zbir, a Move se ignoriše — da se isti trening ne broji dva puta.`,
         "Kako da povučem dnevnu aktivnost?",
         true
       )}
@@ -9442,7 +9563,7 @@ function renderPlanTab(entries) {
           <strong>${netCalories}</strong>
         </div>
       </div>
-      <div class="footer-note plan-net-note">Neto = uneto − sagorelo (sa sata)</div>
+      <div class="footer-note plan-net-note">Neto = uneto − sagorelo (kalorije treninga: zbir sekcija, ili broj sa sata kad sekcije nisu upisane)</div>
       `
           : ""
       }
@@ -10397,7 +10518,7 @@ function renderTrainingTab() {
           <h2>Nedeljni plan treninga</h2>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + procenjena potrošnja kalorija koja ulazi u dnevni bilans). <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se na danima sa planom kucaju po sekcijama — <strong>trening, stomak, kardio</strong> — a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${renderWeekTrackRow()}
       <div class="training-week-strip" role="group" aria-label="Izaberi dan">
         ${weeklyTrainingPlan
@@ -10466,7 +10587,7 @@ function renderTrainingTab() {
               <dd>${todayExerciseCompleted}/${todayExerciseTotal || 0}</dd>
             </div>
             <div class="glance-item">
-              <dt>Apple Watch</dt>
+              <dt>Kalorije</dt>
               <dd>${trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : `<span class="glance-sub">nije uneto</span>`}</dd>
             </div>
           </dl>
@@ -10536,32 +10657,7 @@ function renderTrainingTab() {
             : `<div class="empty">Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}. Dodaj šablon ispod${favoriteTrainings.length ? " ili ubaci omiljeni trening" : ""}.</div>`
         }
       </div>
-      <details class="form-collapse training-burn-collapse" ${trainingBurn > 0 ? "open" : ""}>
-        <summary>
-          <span class="form-collapse-title">Potrošnja sa sata</span>
-          ${trainingBurn > 0 ? `<span class="pill strong">${roundValue(trainingBurn, 0)} kcal</span>` : ""}
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
-        </summary>
-        <p class="footer-note training-burn-intro">Upiši kalorije sa treninga (Apple Watch i sl.) da Danas prikaže neto unos.</p>
-        <form id="training-burn-form" class="form-grid split training-burn-form">
-          <div class="field">
-            <label for="training-burn-kcal">Potrošeno kcal</label>
-            <input
-              id="training-burn-kcal"
-              name="burnKcal"
-              type="number"
-              min="0"
-              step="1"
-              inputmode="numeric"
-              placeholder="npr. 540"
-              value="${trainingBurn ? roundValue(trainingBurn, 0) : ""}"
-            />
-          </div>
-          <div class="training-burn-actions">
-            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
-          </div>
-        </form>
-      </details>
+      ${renderTrainingBurnSection(templates)}
     </section>
 
     ${
@@ -12497,7 +12593,7 @@ function renderGoalsTab() {
         <article class="stat-card">
           <strong>Potrošeno trening</strong>
           <div class="macro-value">${roundValue(weeklyOverview.totals.trainingBurn, 0)} kcal</div>
-          <div class="footer-note">Zbir Apple Watch unosa</div>
+          <div class="footer-note">Zbir kalorija treninga po danima</div>
         </article>
         <article class="stat-card">
           <strong>Neto kcal</strong>
@@ -18861,15 +18957,34 @@ async function handleSubmit(event) {
     await runButtonAction(
       submitButton,
       async () => {
+        const weekday = state.selectedWeekday;
         const burnKcal = Math.max(0, toNumber(formData.get("burnKcal")));
-        store.trainingBurnByWeekday[state.selectedWeekday] = burnKcal;
+        store.trainingBurnByWeekday[weekday] = burnKcal;
+        // Polja po sekcijama postoje samo na danima sa planom; na ostalima
+        // formData nema te ključeve i postojeći unos ostaje netaknut.
+        if (TRAINING_BURN_SECTIONS.some((section) => formData.has(`section-${section.id}`))) {
+          const bucket = {};
+          TRAINING_BURN_SECTIONS.forEach((section) => {
+            const kcal = Math.min(5000, Math.max(0, Math.round(toNumber(formData.get(`section-${section.id}`)))));
+            if (kcal > 0) {
+              bucket[section.id] = kcal;
+            }
+          });
+          store.trainingSectionBurnByWeekday = store.trainingSectionBurnByWeekday || {};
+          // Prazan dan se briše, ne čuva kao {} — ovaj objekat ide u cloud i backup.
+          if (Object.keys(bucket).length) {
+            store.trainingSectionBurnByWeekday[weekday] = bucket;
+          } else {
+            delete store.trainingSectionBurnByWeekday[weekday];
+          }
+        }
         persist();
         render();
       },
       {
         busyLabel: "Čuvam...",
         successTitle: "Potrošnja je sačuvana",
-        successDetail: `Apple Watch unos za ${weekdayAccusative(state.selectedWeekday)} je ažuriran.`,
+        successDetail: `Kalorije treninga za ${weekdayAccusative(state.selectedWeekday)} su ažurirane.`,
       }
     );
     return;
