@@ -5656,7 +5656,7 @@ function renderTrainingBurnSection() {
           ${resolved > 0 ? `<span class="pill strong">${roundValue(resolved, 0)} kcal</span>` : ""}
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
-        <p class="footer-note training-burn-intro">Upiši kalorije po delovima treninga — ukupno je njihov zbir i to ulazi u neto unos na „Danas“.</p>
+        <p class="footer-note training-burn-intro">Zbir delova ulazi u neto unos na „Danas“.</p>
         <form id="training-burn-form" class="form-grid split training-burn-form">
           <div class="form-grid-3">
             ${sections
@@ -5681,11 +5681,11 @@ function renderTrainingBurnSection() {
           </div>
           <p class="footer-note field--full training-burn-total">${
             sectionTotal > 0
-              ? `Ukupno sa treninga: <strong>${sectionTotal} kcal</strong> — ${sections
+              ? `Ukupno <strong>${sectionTotal} kcal</strong> (${sections
                   .filter((section) => section.kcal > 0)
                   .map((section) => `${escapeHtml(section.label.toLowerCase())} ${section.kcal}`)
-                  .join(" + ")}. Ovo ulazi u neto unos na „Danas“.`
-              : `Dok su sva tri prazna, u neto unos ide broj sa sata ispod.`
+                  .join(" + ")}).`
+              : `Dok su sva tri prazna, važi broj sa sata.`
           }</p>
           ${watchField}
           <div class="training-burn-actions">
@@ -10853,7 +10853,12 @@ function renderTrainingTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}. Dodaj šablon ispod${favoriteTrainings.length ? " ili ubaci omiljeni trening" : ""}.</div>`
+            : // Prazan dan je jedan red sa radnjom, ne velika siva kutija koja
+              // šalje „ispod“ — dugme samo otvori formu za šablon.
+              `<div class="training-empty-row">
+                <span>Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}${favoriteTrainings.length ? " · ubaci omiljeni ispod" : ""}.</span>
+                <button class="ghost-button button-with-icon" type="button" data-action="open-training-template">${renderButtonContent("Dodaj šablon", "add")}</button>
+              </div>`
         }
       </div>
       ${renderTrainingBurnSection()}
@@ -10905,7 +10910,7 @@ function renderTrainingTab() {
     }
 
     <div class="section-toolbox">
-    <details class="section routine-weekly-section form-collapse">
+    <details id="training-template-details" class="section routine-weekly-section form-collapse">
       <summary>
         <span class="form-collapse-title">Dodaj trening šablon</span>
         ${renderCollapseHint(
@@ -18600,6 +18605,16 @@ async function handleDocumentClick(event) {
     actionTarget.innerHTML = renderPasswordToggleIcon(nextVisible);
     actionTarget.setAttribute("aria-label", nextVisible ? "Sakrij lozinku" : "Prikaži lozinku");
     actionTarget.setAttribute("aria-pressed", String(nextVisible));
+    return;
+  }
+
+  if (action === "open-training-template") {
+    const details = document.querySelector("#training-template-details");
+    if (details) {
+      details.open = true;
+      details.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.requestAnimationFrame(() => details.querySelector("select, input")?.focus({ preventScroll: true }));
+    }
     return;
   }
 

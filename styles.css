@@ -13331,3 +13331,63 @@ button.meal-entry-body:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+/* Trening: an empty day is one line with its action, not a grey box. */
+.training-empty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.training-empty-row .ghost-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* ============================================================
+   2026-09-23 — toolbox on the phone: one grouped list, hint under the
+   title. Four separate boxes each squeezed "Dodaj trening šablon 2 šablona
+   u pla…" into one truncated line; now the title owns the line and the
+   hint reads in full below it, and the boxes join like a settings list.
+   ============================================================ */
+@media (max-width: 899px) {
+  .section-toolbox {
+    gap: 0;
+  }
+  .section-toolbox > .section + .section {
+    margin-top: -1px;
+  }
+  .section-toolbox > .section:not(:first-child) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+  .section-toolbox > .section:not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .section-toolbox .form-collapse > summary {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .section-toolbox .form-collapse > summary .form-collapse-title {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .section-toolbox .form-collapse > summary .form-collapse-icon {
+    order: 2;
+    margin-left: auto;
+  }
+  .section-toolbox .form-collapse > summary .form-collapse-hint {
+    order: 3;
+    flex: 1 0 100%;
+    margin: 0;
+    padding: 0;
+    white-space: normal;
+  }
+}
