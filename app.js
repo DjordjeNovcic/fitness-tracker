@@ -256,7 +256,7 @@ const TAB_META = {
   nutrition: { eyebrow: "Dokumenti", description: "Pregled uvezenih planova, preporuka i recepata sa mestom za sređivanje svega što parser pronađe." },
   foods: { eyebrow: "Baza", description: "Pretraži namirnice, proveri makroe i dopuni bazu novim unosima." },
   training: { eyebrow: "Performans", description: "Plan treninga, potrošnja i progres po vežbama na jednom mestu." },
-  running: { eyebrow: "Kardio", description: "Beleži trčanja — distancu, vreme, tempo i puls, sa pregledom forme kroz vreme." },
+  running: { eyebrow: "Kardio", description: "Beleži trčanja: distancu, vreme, tempo i puls, sa pregledom forme kroz vreme." },
   routine: { eyebrow: "Svakodnevica", description: "Navike, zadaci i nedeljni pregled koji pomažu da plan ostane realan." },
   progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i progress slike za jasan pregled napretka kroz vreme." },
   goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
@@ -546,7 +546,7 @@ const BODY_METRIC_GROUPS = [
     ],
   },
   {
-    group: "Mast — detaljno",
+    group: "Mast · detaljno",
     metrics: [
       { key: "visceralGrade", label: "Visceralna mast (nivo)", unit: "", dir: "down", dec: 0 },
       { key: "visceralArea", label: "Površina visceralne masti", unit: "cm²", dir: "down", dec: 1 },
@@ -561,23 +561,23 @@ const BODY_METRIC_GROUPS = [
     ],
   },
   {
-    group: "Segmenti — mišić",
+    group: "Segmenti · mišić",
     metrics: [
-      { key: "armRMuscle", label: "Desna ruka — mišić", unit: "kg", dir: "up", dec: 1 },
-      { key: "armLMuscle", label: "Leva ruka — mišić", unit: "kg", dir: "up", dec: 1 },
-      { key: "torsoMuscle", label: "Trup — mišić", unit: "kg", dir: "up", dec: 1 },
-      { key: "legRMuscle", label: "Desna noga — mišić", unit: "kg", dir: "up", dec: 1 },
-      { key: "legLMuscle", label: "Leva noga — mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "armRMuscle", label: "Desna ruka · mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "armLMuscle", label: "Leva ruka · mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "torsoMuscle", label: "Trup · mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "legRMuscle", label: "Desna noga · mišić", unit: "kg", dir: "up", dec: 1 },
+      { key: "legLMuscle", label: "Leva noga · mišić", unit: "kg", dir: "up", dec: 1 },
     ],
   },
   {
-    group: "Segmenti — mast",
+    group: "Segmenti · mast",
     metrics: [
-      { key: "armRFat", label: "Desna ruka — mast", unit: "kg", dir: "down", dec: 1 },
-      { key: "armLFat", label: "Leva ruka — mast", unit: "kg", dir: "down", dec: 1 },
-      { key: "torsoFat", label: "Trup — mast", unit: "kg", dir: "down", dec: 1 },
-      { key: "legRFat", label: "Desna noga — mast", unit: "kg", dir: "down", dec: 1 },
-      { key: "legLFat", label: "Leva noga — mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "armRFat", label: "Desna ruka · mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "armLFat", label: "Leva ruka · mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "torsoFat", label: "Trup · mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "legRFat", label: "Desna noga · mast", unit: "kg", dir: "down", dec: 1 },
+      { key: "legLFat", label: "Leva noga · mast", unit: "kg", dir: "down", dec: 1 },
     ],
   },
 ];
@@ -1629,7 +1629,7 @@ async function saveCloudStateNow(options = {}) {
     // Edits are safe locally and flagged dirty; they're retried when we're back
     // online/visible and reconciled on the next hydrate.
     state.syncStatus = isCloudPayloadTooLarge(error)
-      ? "Podaci su preveliki za cloud — ukloni slike recepata"
+      ? "Podaci su preveliki za cloud, ukloni slike recepata"
       : "Sačuvano lokalno · čeka sync";
     if (options.renderAfterSave) {
       render();
@@ -1774,7 +1774,7 @@ async function hydrateStoreFromCloud(user) {
       replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
       persistAccountCopy();
       cloudBaselineReady = true;
-      state.syncStatus = "Cloud podaci su neispravni — radiš lokalno";
+      state.syncStatus = "Cloud podaci su neispravni, radiš lokalno";
       return;
     }
 
@@ -5576,7 +5576,7 @@ function renderExerciseProgression(exerciseName, details) {
     return "";
   }
   if (progression.kind === "increase") {
-    return `<div class="training-progression is-up">Dva puta ${progression.range.max} ponavljanja na ${formatDecimal(progression.lastWeight, 2)} kg — probaj <strong>${formatDecimal(progression.nextWeight, 2)} kg</strong>.</div>`;
+    return `<div class="training-progression is-up">Dva puta ${progression.range.max} ponavljanja na ${formatDecimal(progression.lastWeight, 2)} kg: probaj <strong>${formatDecimal(progression.nextWeight, 2)} kg</strong>.</div>`;
   }
   if (progression.kind === "almost") {
     return `<div class="training-progression">Vrh opsega na ${formatDecimal(progression.lastWeight, 2)} kg. Ponovi to još jednom pa diži kilažu.</div>`;
@@ -5710,7 +5710,7 @@ function renderTrainingBurnSection() {
   // ovonedeljni dan i promenila neto na „Danas“, pa se tamo ne nudi.
   if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
     return `
-      <p class="footer-note training-burn-intro">Kalorije treninga se upisuju za ovu nedelju — prebaci na „Ova nedelja“ da ih uneseš.</p>`;
+      <p class="footer-note training-burn-intro">Kalorije treninga se upisuju za ovu nedelju. Prebaci na „Ova nedelja“ da ih uneseš.</p>`;
   }
   const sections = getTrainingSectionBurns(weekday);
   const sectionTotal = getTrainingSectionBurnTotal(weekday);
@@ -6935,7 +6935,7 @@ async function handleScannedBarcode(barcode) {
   } else {
     showFeedbackToast({
       title: "Nije u bazi",
-      detail: "Unesi vrednosti ručno — sačuvaće se za sve.",
+      detail: "Unesi vrednosti ručno, sačuvaće se za sve.",
       tone: "warning",
     });
   }
@@ -8543,7 +8543,7 @@ function renderQuickEntryDialog() {
             <span>P ${roundValue(totals.protein, 0)} g · UH ${roundValue(totals.carbs, 0)} g · M ${roundValue(totals.fat, 0)} g</span>
           </div>
         `
-            : `<div class="empty">Počni da kucaš — prepoznate namirnice se pojavljuju ovde.</div>`
+            : `<div class="empty">Počni da kucaš. Prepoznate namirnice se pojavljuju ovde.</div>`
         }
 
         <div class="app-dialog-actions">
@@ -8865,7 +8865,7 @@ function renderPlanSupplementsSection() {
                   `
                 )
                 .join("")
-            : `<div class="empty">Još nema suplemenata za danas — dodaj prvi ispod.</div>`
+            : `<div class="empty">Još nema suplemenata za danas, dodaj prvi ispod.</div>`
         }
       </div>
       <details class="form-collapse plan-supplement-manage" ${editingSupplement ? "open" : ""}>
@@ -9212,7 +9212,7 @@ function renderPlanActivitySection() {
       </summary>
       <p class="footer-note plan-activity-intro">${
         hasActivity
-          ? "Učitano sa Apple Watch-a — potrošene (Move) kalorije ulaze u dnevni bilans, osim na danima gde si kalorije treninga upisao po sekcijama (tamo važi tvoj zbir)."
+          ? "Učitano sa Apple Watch-a. Potrošene (Move) kalorije ulaze u dnevni bilans, osim na danima gde si kalorije treninga upisao po sekcijama (tamo važi tvoj zbir)."
           : "Povuci dnevni pregled sa Apple Watch-a: kalorije, vežbanje, stajanje, koraci, distanca."
       }</p>
       <div class="run-import-bar ${hasActivity ? "is-loaded" : ""}">
@@ -9224,8 +9224,8 @@ function renderPlanActivitySection() {
         </button>
         <p class="run-import-hint">${
           hasActivity
-            ? "Učitano — tapni „Sa sata” da osvežiš."
-            : "Tapni „Sa sata” — pokrene tvoju prečicu i vrati te ovde sa današnjom aktivnošću."
+            ? "Učitano. Tapni „Sa sata” da osvežiš."
+            : "Tapni „Sa sata”: pokrene tvoju prečicu i vrati te ovde sa današnjom aktivnošću."
         }</p>
       </div>
       ${
@@ -9234,7 +9234,7 @@ function renderPlanActivitySection() {
           : ""
       }
       ${renderHelpNote(
-        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja). Ako za taj dan u Treningu upišeš kalorije po sekcijama, važi taj zbir, a Move se ignoriše — da se isti trening ne broji dva puta.`,
+        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja). Ako za taj dan u Treningu upišeš kalorije po sekcijama, važi taj zbir, a Move se ignoriše, da se isti trening ne broji dva puta.`,
         "Kako da povučem dnevnu aktivnost?",
         true
       )}
@@ -9309,7 +9309,7 @@ function renderTodayRemindersBanner() {
         <div class="pill-row today-reminders-pills">
           ${reminders
             .map(
-              (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} — ${escapeHtml(reminder.hint || "")}">${reminder.icon ? renderActionIcon(reminder.icon) : ""}<span class="reminder-chip-text">${escapeHtml(reminder.text)}</span>${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
+              (reminder) => `<button class="pill strong pill--info reminder-chip" type="button" data-action="${reminder.action}" ${reminder.ml ? `data-ml="${reminder.ml}"` : ""} aria-label="${escapeHtml(reminder.text)} · ${escapeHtml(reminder.hint || "")}">${reminder.icon ? renderActionIcon(reminder.icon) : ""}<span class="reminder-chip-text">${escapeHtml(reminder.text)}</span>${reminder.hint ? `<span class="reminder-chip-hint">${escapeHtml(reminder.hint)}</span>` : ""}</button>`
             )
             .join("")}
         </div>
@@ -9471,7 +9471,7 @@ function renderPlanShoppingSection() {
               }
               ${stapleHtml}
             `
-            : `<div class="empty">Još nema namirnica u planu — dodaj obroke pa se lista sama sastavi.</div>`
+            : `<div class="empty">Još nema namirnica u planu, dodaj obroke pa se lista sama sastavi.</div>`
         }
       </div>
     </section>`;
@@ -9547,7 +9547,7 @@ function renderMealPrepPanel(mealLabel) {
             `<li><span>${escapeHtml(item.name)}</span><strong>${formatShoppingAmount(item.unit, item.totalGrams)}</strong></li>`
         )
         .join("")
-    : `<li class="prep-cook-empty">Ovaj obrok je prazan — dodaj namirnice.</li>`;
+    : `<li class="prep-cook-empty">Ovaj obrok je prazan, dodaj namirnice.</li>`;
 
   const canConfirm = plan.sourceEntries.length > 0 && plan.targetDays.length > 0;
 
@@ -9564,7 +9564,7 @@ function renderMealPrepPanel(mealLabel) {
       ${pickChips}
       <div class="prep-summary">
         <div class="footer-note">Skuvaj za <strong>${plan.totalDays} dana</strong>${
-          plan.targetDays.length ? ` (${escapeHtml(daysList)})` : " — izaberi bar jedan dan"
+          plan.targetDays.length ? ` (${escapeHtml(daysList)})` : ", izaberi bar jedan dan"
         }:</div>
         <ul class="prep-cook-list">${cookHtml}</ul>
       </div>
@@ -9584,7 +9584,7 @@ function renderPlanWelcomeGuide(calorieGoal) {
     <section class="section plan-welcome-guide">
       <div class="plan-welcome-head">
         <h2>Dobrodošli${name ? `, ${escapeHtml(name)}` : ""} 👋</h2>
-        <p>Tvoj plan je još prazan. Evo kako da ga pokreneš za par tapova — ovaj vodič nestaje čim dodaš prvi obrok.</p>
+        <p>Tvoj plan je još prazan. Evo kako da ga pokreneš za par tapova. Ovaj vodič nestaje čim dodaš prvi obrok.</p>
       </div>
       <ol class="plan-welcome-steps">
         <li class="plan-welcome-step ${hasGoal ? "is-done" : ""}">
@@ -9597,7 +9597,7 @@ function renderPlanWelcomeGuide(calorieGoal) {
             <strong>Postavi dnevni cilj</strong>
             <span>${
               hasGoal
-                ? `Cilj ti je ${calorieGoal} kcal — promeni ga u Ciljevima kad god hoćeš.`
+                ? `Cilj ti je ${calorieGoal} kcal, promeni ga u Ciljevima kad god hoćeš.`
                 : "Kalorije i makroe koje pratimo svaki dan."
             }</span>
             ${
@@ -9611,14 +9611,14 @@ function renderPlanWelcomeGuide(calorieGoal) {
           <span class="plan-welcome-step-num" aria-hidden="true">2</span>
           <div class="plan-welcome-step-body">
             <strong>Sastavi prvi dan</strong>
-            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod — makroi se računaju sami.</span>
+            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod, makroi se računaju sami.</span>
           </div>
         </li>
         <li class="plan-welcome-step">
           <span class="plan-welcome-step-num" aria-hidden="true">3</span>
           <div class="plan-welcome-step-body">
             <strong>Istraži bazu i recepte</strong>
-            <span>Gotova baza namirnica i tvoji recepti — sve ubacuješ u plan jednim tapom.</span>
+            <span>Gotova baza namirnica i tvoji recepti, sve ubacuješ u plan jednim tapom.</span>
             <div class="plan-welcome-actions">
               <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">${renderButtonContent("Namirnice", "open")}</button>
               <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Recepti", "open")}</button>
@@ -9821,7 +9821,7 @@ function renderPlanTab(entries) {
         </div>
         <span class="plan-net-op" aria-hidden="true">−</span>
         <div class="plan-net-item">
-          <span class="plan-net-label">Sagorelo</span>
+          <span class="plan-net-label">Trening</span>
           <strong>${roundValue(trainingBurn, 0)}</strong>
         </div>
         <span class="plan-net-op" aria-hidden="true">=</span>
@@ -9830,7 +9830,7 @@ function renderPlanTab(entries) {
           <strong>${netCalories}</strong>
         </div>
       </div>
-      <div class="footer-note plan-net-note">Neto = uneto − sagorelo (kalorije treninga: zbir sekcija, ili broj sa sata kad sekcije nisu upisane)</div>
+      <div class="footer-note plan-net-note">Neto je unos umanjen za kalorije treninga.</div>
       `
           : ""
       }
@@ -9858,7 +9858,7 @@ function renderPlanTab(entries) {
         </div>
         <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
-      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“) — prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon — isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -9890,7 +9890,7 @@ function renderPlanTab(entries) {
                           ${
                             mealEntries.length
                               ? `
-                                <label class="meal-toggle ${isMealDone ? "is-done" : ""}" title="${isMealDone ? "Obrok je pojeden — klikni da skineš oznaku" : "Označi obrok kao pojeden"}">
+                                <label class="meal-toggle ${isMealDone ? "is-done" : ""}" title="${isMealDone ? "Obrok je pojeden, klikni da skineš oznaku" : "Označi obrok kao pojeden"}">
                                   <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${escapeHtml(mealLabel)}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
                                   <span class="meal-toggle-ui" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
@@ -9954,7 +9954,7 @@ function renderPlanTab(entries) {
                                   (entry) => `
                                     <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
                                       <div class="meal-entry-row">
-                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))} — izmeni količinu">`}
+                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
                                         <div class="meal-entry-main">
                                           <div class="meal-entry-title-group">
                                             <strong>${escapeHtml(entry.foodName)}</strong>
@@ -10215,7 +10215,7 @@ function renderFoodsTab() {
         <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnice", "namirnice", "namirnica")}` : `${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnica", "namirnice", "namirnica")} u bazi`}</p>
       </header>
 
-      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali — „Dodaj“ ih kopira u tvoju bazu. Ovo je samo baza — u obroke se dodaje u <strong>Danas</strong>, iz samog obroka ili preko <strong>Brzog unosa</strong>.")}
+      ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali, „Dodaj“ ih kopira u tvoju bazu. Ovo je samo baza, u obroke se dodaje u <strong>Danas</strong>, iz samog obroka ili preko <strong>Brzog unosa</strong>.")}
 
       ${
         pendingNutritionReviewCount > 0
@@ -10302,7 +10302,7 @@ function renderFoodsTab() {
                   aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
                   aria-pressed="${isFavoriteFood ? "true" : "false"}"
                 >${renderStarIcon(isFavoriteFood)}</button>
-                <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)} — detalji i izmena">
+                <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)}, detalji i izmena">
                   <span class="food-row-line">
                     <span class="food-row-name">${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
@@ -10407,7 +10407,7 @@ function renderRecipesTab() {
           <h2>${editingFavorite ? "Izmeni recept" : "Napravi recept"}</h2>
           <p>${
             editingFavorite
-              ? `Menjaš „${escapeHtml(editingFavorite.name)}“ — čuvanje prepisuje postojeći recept.`
+              ? `Menjaš „${escapeHtml(editingFavorite.name)}“, čuvanje prepisuje postojeći recept.`
               : "Sastavi novi recept iz sastojaka."
           }</p>
         </div>
@@ -10529,7 +10529,7 @@ function renderRecipesTab() {
                           <div class="recipe-draft-item-main">
                             <strong class="recipe-draft-item-name">${escapeHtml(item.displayName || item.foodName)}</strong>
                             ${linkNote ? `<span class="recipe-draft-item-note">${escapeHtml(linkNote)}</span>` : ""}
-                            ${item.isPending ? `<span class="recipe-draft-item-note">nova stavka — dodaj je u preview</span>` : ""}
+                            ${item.isPending ? `<span class="recipe-draft-item-note">nova stavka, dodaj je u preview</span>` : ""}
                           </div>
                           <div class="recipe-draft-item-amount">
                             <input
@@ -10540,7 +10540,7 @@ function renderRecipesTab() {
                               step="1"
                               value="${item.grams ? roundValue(item.grams, 0) : ""}"
                               placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(itemFood)}"
-                              aria-label="Količina — ${escapeHtml(item.displayName || item.foodName)}"
+                              aria-label="Količina, ${escapeHtml(item.displayName || item.foodName)}"
                               ${item.isPending ? "disabled" : ""}
                             />
                             <span class="recipe-draft-item-unit">${unitLabel}</span>
@@ -10599,7 +10599,7 @@ function renderRecipesTab() {
           <p>${favorites.length ? `Trenutno imaš ${favorites.length} ${srPlural(favorites.length, "sačuvan recept", "sačuvana recepta", "sačuvanih recepata")}.` : "Još nema sačuvanih recepata."}</p>
         </div>
       </div>
-      ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom — bez ponovnog kucanja svake namirnice.")}
+      ${renderHelpNote("Recept je sačuvana kombinacija namirnica (npr. „Piletina + pirinač + povrće“) sa ukupnim kalorijama i makroima. Sastaviš ga jednom u <strong>„Napravi recept“</strong>, a posle ga iz <strong>biblioteke</strong> ubaciš u bilo koji obrok jednim tapom, bez ponovnog kucanja svake namirnice.")}
       ${
         favorites.length
           ? `
@@ -10798,7 +10798,7 @@ function renderTrainingTab() {
           <h2>Nedeljni plan treninga</h2>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama — <strong>trening, stomak, kardio</strong> — ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${renderWeekTrackRow()}
       <div class="training-week-strip" role="group" aria-label="Izaberi dan">
         ${weeklyTrainingPlan
@@ -11976,7 +11976,7 @@ function renderRoutineTab() {
           <h2>Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
         </div>
       </div>
-      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
+      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
       <div class="hero-day-picker routine-day-picker">
         <div class="chips hero-day-chips">
           ${WEEKDAYS.map(
@@ -12610,7 +12610,7 @@ function renderGoalCalibrationCard() {
         </div>
         <div class="footer-note">Makroi se preračunavaju uz novi cilj.${
           cal.floored
-            ? ` Niže od ${cal.floorCalories} kcal ne idemo — to je bezbedni minimum (≈ BMR), pa će tempo biti blaži od izabranog.`
+            ? ` Niže od ${cal.floorCalories} kcal ne idemo, to je bezbedni minimum (≈ BMR), pa će tempo biti blaži od izabranog.`
             : cal.capped
               ? " Promena je ograničena na 250 kcal po koraku; sledeća provera stiže za nedelju dana."
               : ""
@@ -12619,7 +12619,7 @@ function renderGoalCalibrationCard() {
       <div class="meta-row meta-row--compact calibration-actions">
         ${
           cal.status === "cooldown"
-            ? `<span class="footer-note">Odloženo — nova provera za ${getDayCountLabel(cal.cooldownDaysLeft)}.</span>
+            ? `<span class="footer-note">Odloženo, nova provera za ${getDayCountLabel(cal.cooldownDaysLeft)}.</span>
                <button class="ghost-button button-with-icon" type="button" data-action="apply-goal-calibration">${renderButtonContent("Primeni ipak", "apply")}</button>`
             : `<button class="solid-button button-with-icon" type="button" data-action="apply-goal-calibration">${renderButtonContent(`Primeni ${cal.proposedTarget} kcal`, "apply")}</button>
                <button class="ghost-button" type="button" data-action="dismiss-goal-calibration">Ne sada</button>`
@@ -12688,7 +12688,7 @@ function renderGoalEtaCard() {
     body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
   } else if (eta.status === "wrong-direction") {
     tone = "warn";
-    body = `Cilj <strong>${formatDecimal(eta.target, 2)} kg</strong> je u suprotnom smeru od izabranog cilja/tempa — proveri podešavanja.`;
+    body = `Cilj <strong>${formatDecimal(eta.target, 2)} kg</strong> je u suprotnom smeru od izabranog cilja/tempa, proveri podešavanja.`;
   } else {
     const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
     body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong> — pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
@@ -12744,7 +12744,7 @@ function renderGoalsTab() {
 
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "")}
-      ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl — sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
+      ${renderHelpNote("Iz profila (pol, godine, visina, težina, aktivnost) računamo <strong>BMR</strong> (potrošnja u mirovanju) i <strong>održavanje</strong> (sa aktivnošću). Tvoj <strong>dnevni cilj</strong> = održavanje ± tempo koji izabereš (npr. −0,5 kg/ned znači manji unos). Kad se težina promeni, ponudimo <strong>ažuriranje cilja</strong> da deficit ostane tačan. <strong>Backup</strong> je izvoz svih podataka u fajl, sigurnosna kopija koju možeš da uvezeš na drugom uređaju.")}
       <div class="goals-cilj-layout">
       <div class="goals-cilj-main">
       ${(() => {
@@ -12772,7 +12772,7 @@ function renderGoalsTab() {
           : showCalibrated
             ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan)${paceLabel ? ` · ${paceLabel}` : ""}`
             : recDiffers
-              ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal — „Izračunaj iz cilja“ ispod da preuzmeš`
+              ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal, „Izračunaj iz cilja“ ispod da preuzmeš`
               : goalRecommendation
                 ? paceLabel
                 : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
@@ -12897,7 +12897,7 @@ function renderGoalsTab() {
           : `<div class="goals-cilj-chart goals-chart-invite">
               <div class="empty">
                 <strong>Još nema merenja težine.</strong>
-                <span>Unesi težinu jednom nedeljno — ovde se crta trend, a cilj počinje da se proverava prema onome što telo stvarno radi, ne prema formuli.</span>
+                <span>Unesi težinu jednom nedeljno. Ovde se crta trend, a cilj počinje da se proverava prema onome što telo stvarno radi, ne prema formuli.</span>
                 <button class="solid-button button-with-icon" type="button" data-action="jump-measurement">${renderButtonContent("Unesi prvo merenje", "add")}</button>
               </div>
             </div>`
@@ -13764,7 +13764,7 @@ function renderTrendCard(field) {
     } else if (eta.status === "no-rate") {
       etaCaption = `<div class="chart-eta">Izaberi tempo (ne „održavanje“) da procenim datum.</div>`;
     } else if (eta.status === "wrong-direction") {
-      etaCaption = `<div class="chart-eta chart-eta--warn">Težina ide suprotno od cilja — proveri podešavanja.</div>`;
+      etaCaption = `<div class="chart-eta chart-eta--warn">Težina ide suprotno od cilja, proveri podešavanja.</div>`;
     }
   }
   const legendHtml = legendItems.length ? `<div class="chart-legend">${legendItems.join("")}</div>` : "";
@@ -13895,7 +13895,7 @@ function getMeasurementCaloriePill(entry) {
 function renderMeasurementGoalNote(date) {
   const goal = getCalorieGoalForDate(date);
   if (!(goal > 0)) {
-    return `<span class="footer-note">Kalorijski cilj se upisuje sam uz merenje — postavi ga u Ciljevima.</span>`;
+    return `<span class="footer-note">Kalorijski cilj se upisuje sam uz merenje, postavi ga u Ciljevima.</span>`;
   }
   return `<span class="footer-note">Kalorijski cilj tog dana: <strong>${goal} kcal</strong> — upisuje se sam, ne kucaš ga.</span>`;
 }
@@ -14008,7 +14008,7 @@ function renderProgressEmptyState() {
       ${renderSectionLead("Napredak", "")}
       <div class="empty progress-empty-guide">
         <strong>Još nema merenja.</strong>
-        <span>Unesi težinu jednom nedeljno — trend, uvidi i poređenje slika se pojavljuju sami kako se podaci skupljaju.</span>
+        <span>Unesi težinu jednom nedeljno. Trend, uvidi i poređenje slika se pojavljuju sami kako se podaci skupljaju.</span>
         <div class="progress-empty-actions">
           <button class="solid-button button-with-icon" type="button" data-action="set-progress-view" data-view="merenja">${renderButtonContent("Unesi prvo merenje", "add")}</button>
           <button class="ghost-button button-with-icon" type="button" data-action="set-progress-view" data-view="slike">${renderButtonContent("Dodaj sliku", "open")}</button>
@@ -14291,7 +14291,7 @@ function renderProgressHistorySection() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Dnevnik ishrane</h2>
-          <p>Čekiraj obroke kao pojedene i unesi vodu — ovde se gradi tvoja istorija: kalendar doslednosti, proseci i niz dana.</p>
+          <p>Čekiraj obroke kao pojedene i unesi vodu. Ovde se gradi tvoja istorija: kalendar doslednosti, proseci i niz dana.</p>
         </div>
       </div>
     </section>`;
@@ -14325,7 +14325,7 @@ function renderProgressHistorySection() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Dnevnik ishrane</h2>
-          <p>Poslednjih 5 nedelja — zeleno je dan na cilju.</p>
+          <p>Poslednjih 5 nedelja. Zeleno je dan na cilju.</p>
         </div>
         ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
       </div>
@@ -14396,11 +14396,11 @@ function renderWeeklyReportSection() {
   }
   const verdict =
     r.onTarget >= 5
-      ? "Sjajna nedelja 💪 — većinu dana na cilju."
+      ? "Sjajna nedelja 💪 Većinu dana na cilju."
       : r.onTarget >= 3
         ? "Solidna nedelja, samo nastavi."
         : r.loggedDays >= 4
-          ? "Unosi su bili redovni — sledeće nedelje fokus na pogađanje cilja."
+          ? "Unosi su bili redovni, sledeće nedelje fokus na pogađanje cilja."
           : "Čekiraj obroke svaki dan pa ćemo imati precizniji uvid.";
   const onTargetDelta = r.onTarget - r.onTargetLast;
   const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
@@ -14517,7 +14517,7 @@ function renderLabSection() {
           <p>Upiši nalaze i prati koliko je bilo pre, koliko je sad.</p>
         </div>
       </div>
-      ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera — deltu i mini-grafik trenda.")}
+      ${renderHelpNote("Izaberi marker (Vitamin D, Glukoza, Holesterol…), upiši vrednost i datum. Za poznate markere dobiješ oznaku „u opsegu / iznad / ispod“ prema orijentacionom referentnom opsegu, a kad imaš više nalaza istog markera, deltu i mini-grafik trenda.")}
 
       ${(() => {
       const editingLab = getEditingRecord(store.labResults, state.editingLabId);
@@ -14549,7 +14549,7 @@ function renderLabSection() {
           </div>
         </form>`;
       })()}
-        <div class="footer-note lab-disclaimer">Referentni opsezi su orijentacioni (zavise od laboratorije, pola i godina) — nije medicinski savet.</div>
+        <div class="footer-note lab-disclaimer">Referentni opsezi su orijentacioni (zavise od laboratorije, pola i godina), nije medicinski savet.</div>
       </details>
 
       ${
@@ -14745,7 +14745,7 @@ function renderBodyCompositionSection() {
           <p>Unesi rezultat analize (InBody, Sonka…) i prati kako se menja kroz vreme.</p>
         </div>
       </div>
-      ${renderHelpNote("Jedan unos = jedna analiza. Prepiši brojeve sa izveštaja (popuni samo polja koja imaš). Za svaku metriku se pamti trend: poslednja vrednost, promena u odnosu na prošli put i mini-grafik. Boja promene prati zdrav smer — mast/visceralna dole = zeleno, mišić/voda gore = zeleno. Nije medicinski savet.")}
+      ${renderHelpNote("Jedan unos = jedna analiza. Prepiši brojeve sa izveštaja (popuni samo polja koja imaš). Za svaku metriku se pamti trend: poslednja vrednost, promena u odnosu na prošli put i mini-grafik. Boja promene prati zdrav smer, mast/visceralna dole = zeleno, mišić/voda gore = zeleno. Nije medicinski savet.")}
 
       <details class="form-collapse" ${editingBodyComp ? "open" : ""}>
         <summary>
@@ -14762,7 +14762,7 @@ function renderBodyCompositionSection() {
             ${editingBodyComp ? `<button class="ghost-button" type="button" data-action="cancel-edit-body-comp">Odustani</button>` : ""}
             <button class="solid-button secondary-button bc-submit" type="submit">${editingBodyComp ? "Sačuvaj izmenu" : "Sačuvaj analizu"}</button>
           </div>
-          <div class="footer-note">Popuni samo polja koja imaš sa izveštaja — ostalo ostavi prazno.${
+          <div class="footer-note">Popuni samo polja koja imaš sa izveštaja, ostalo ostavi prazno.${
             editingBodyComp ? " Pri izmeni ispražnjeno polje skida tu vrednost sa analize." : ""
           }</div>
         </form>
@@ -14904,7 +14904,7 @@ function renderInsightsSection() {
   if (ins.weightChange != null && ins.weightChange !== 0) {
     headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightChange), 2)} kg</strong>${ins.weightRate ? ` (${ins.weightRate < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightRate), 2)} kg/ned)` : ""}.`;
   } else if (ins.loggedCount) {
-    headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
+    headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana, nastavi da gradiš istoriju.`;
   }
 
   const card = (label, value, note) =>
@@ -14928,7 +14928,7 @@ function renderInsightsSection() {
     if (e.actualRate != null && e.expectedRate) {
       const sameDirection = e.actualRate <= 0 === e.expectedRate <= 0;
       if (!sameDirection) {
-        verdict = " Težina ide suprotno od onoga što unos predviđa — proveri unos ili merenja.";
+        verdict = " Težina ide suprotno od onoga što unos predviđa, proveri unos ili merenja.";
       } else if (Math.abs(e.actualRate - e.expectedRate) < 0.15) {
         verdict = " Rezultat se poklapa sa unosom 👍";
       } else if (Math.abs(e.actualRate) > Math.abs(e.expectedRate)) {
@@ -15157,7 +15157,7 @@ async function shareProgressCard() {
     const file = new File([blob], "fit-tracker-napredak.png", { type: "image/png" });
     if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: [file] }) && typeof navigator.share === "function") {
       try {
-        await navigator.share({ files: [file], title: "Moj napredak", text: "Moj napredak — Fit Tracker" });
+        await navigator.share({ files: [file], title: "Moj napredak", text: "Moj napredak · Fit Tracker" });
       } catch (error) {
         if (error && error.name === "AbortError") {
           return;
@@ -15324,7 +15324,7 @@ function renderProgressTab() {
           <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
         </div>
       </div>
-      ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je tempo — gde bi trebalo da budeš pri zadatom tempu (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
+      ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je tempo: gde bi trebalo da budeš pri zadatom tempu (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
       ${(() => {
         // Trend ima smisla tek od dva merenja. Jedno merenje je red sa brojem,
         // mera bez merenja je samo ime u zajedničkoj rečenici — umesto kartice sa
@@ -15382,7 +15382,7 @@ function renderProgressTab() {
         <div class="field photo-picker">
           <label for="photo-file">Slika</label>
           <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> (sada u trajnijem skladištu, bez ograničenja kao ranije) — ne ide u cloud i ne sinhronizuje se na druge uređaje. Da je preneseš na drugi telefon ili sačuvaš za svaki slučaj, izvezi backup (Ciljevi → Izvezi backup) — slike su uključene u njega.</div>
+          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> (sada u trajnijem skladištu, bez ograničenja kao ranije), ne ide u cloud i ne sinhronizuje se na druge uređaje. Da je preneseš na drugi telefon ili sačuvaš za svaki slučaj, izvezi backup (Ciljevi → Izvezi backup), slike su uključene u njega.</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
@@ -15846,7 +15846,7 @@ function render() {
               <span class="offline-banner-dot" aria-hidden="true"></span>
               <div>
                 <strong>Nema interneta</strong>
-                <div class="footer-note" style="margin-top:2px;">Radiš normalno — sve se čuva na uređaju i sinhronizuje čim se vratiš online.</div>
+                <div class="footer-note" style="margin-top:2px;">Radiš normalno, sve se čuva na uređaju i sinhronizuje čim se vratiš online.</div>
               </div>
             </div>
           `
@@ -15859,7 +15859,7 @@ function render() {
             <div class="sync-conflict-banner" role="alertdialog" aria-live="assertive" aria-label="Konflikt sinhronizacije">
               <div class="sync-conflict-copy">
                 <strong>Podaci su izmenjeni na drugom uređaju.</strong>
-                <div class="footer-note" style="margin-top:4px;">Da ne pregazimo ništa slučajno — koju verziju da zadržim? Tvoje lokalne izmene su sačuvane dok ne izabereš.</div>
+                <div class="footer-note" style="margin-top:4px;">Da ne pregazimo ništa slučajno, koju verziju da zadržim? Tvoje lokalne izmene su sačuvane dok ne izabereš.</div>
               </div>
               <div class="sync-conflict-actions">
                 <button class="solid-button secondary-button button-with-icon" data-action="resolve-sync-conflict" data-mode="keep-local">${renderButtonContent("Zadrži moje", "save")}</button>
@@ -19703,7 +19703,7 @@ async function handleSubmit(event) {
     });
 
     if (!(toNumber(measurement.weightKg) > 0)) {
-      window.alert("Unesi težinu — ona je srž merenja, ostalo je opciono.");
+      window.alert("Unesi težinu. Ona je srž merenja, ostalo je opciono.");
       return;
     }
 
@@ -19730,7 +19730,7 @@ async function handleSubmit(event) {
         });
       } catch (error) {
         console.error("Photo optimize failed", error);
-        window.alert(`Sliku „${PHOTO_TAG_LABELS[slot.tag]}“ nisam uspeo da obradim — merenje se čuva bez nje.`);
+        window.alert(`Sliku „${PHOTO_TAG_LABELS[slot.tag]}“ nisam uspeo da obradim, merenje se čuva bez nje.`);
       }
     }
 
@@ -20271,7 +20271,7 @@ async function handleImport(event) {
         return;
       }
       const confirmed = window.confirm(
-        `Uvezi backup "${file.name}"?\n\nOvo ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} sadržajem fajla i upisuje ih u cloud. Ne može da se poništi — ako nisi siguran, otkaži pa prvo izvezi trenutni backup.`
+        `Uvezi backup "${file.name}"?\n\nOvo ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} sadržajem fajla i upisuje ih u cloud. Ne može da se poništi, ako nisi siguran, otkaži pa prvo izvezi trenutni backup.`
       );
       if (!confirmed) {
         target.value = "";
