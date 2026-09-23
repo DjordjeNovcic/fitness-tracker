@@ -1295,7 +1295,7 @@ function updateExternalFoodResults(queryText) {
         </button>
       </div>`;
     const macroMeta = (item) =>
-      `${getFoodNutritionBasisLabel(item)} · <b>${roundValue(toNumber(item.kcal), 0)} kcal</b> · P ${roundValue(toNumber(item.protein), 1)} · UH ${roundValue(toNumber(item.carbs), 1)} · M ${roundValue(toNumber(item.fat), 1)} g`;
+      `${getFoodNutritionBasisLabel(item)} · <b>${roundValue(toNumber(item.kcal), 0)} kcal</b> · P ${formatDecimal(toNumber(item.protein), 1)} · UH ${formatDecimal(toNumber(item.carbs), 1)} · M ${formatDecimal(toNumber(item.fat), 1)} g`;
     container.innerHTML = `
       ${
         catalogMatches.length
@@ -2162,10 +2162,10 @@ function getFileExtension(name) {
 function getFileSizeLabel(size) {
   const bytes = Math.max(0, Number(size) || 0);
   if (bytes >= 1024 * 1024) {
-    return `${roundValue(bytes / (1024 * 1024), 1)} MB`;
+    return `${formatDecimal(bytes / (1024 * 1024), 1)} MB`;
   }
   if (bytes >= 1024) {
-    return `${roundValue(bytes / 1024, 1)} KB`;
+    return `${formatDecimal(bytes / 1024, 1)} KB`;
   }
   return `${bytes} B`;
 }
@@ -4166,7 +4166,7 @@ function formatFieldValue(field, value) {
     return "-";
   }
   if (typeof value === "number") {
-    return `${roundValue(value, 1)}${field.unit ? ` ${field.unit}` : ""}`;
+    return `${formatDecimal(value, 1)}${field.unit ? ` ${field.unit}` : ""}`;
   }
   return String(value);
 }
@@ -5576,12 +5576,12 @@ function renderExerciseProgression(exerciseName, details) {
     return "";
   }
   if (progression.kind === "increase") {
-    return `<div class="training-progression is-up">Dva puta ${progression.range.max} ponavljanja na ${progression.lastWeight} kg — probaj <strong>${progression.nextWeight} kg</strong>.</div>`;
+    return `<div class="training-progression is-up">Dva puta ${progression.range.max} ponavljanja na ${formatDecimal(progression.lastWeight, 2)} kg — probaj <strong>${formatDecimal(progression.nextWeight, 2)} kg</strong>.</div>`;
   }
   if (progression.kind === "almost") {
-    return `<div class="training-progression">Vrh opsega na ${progression.lastWeight} kg. Ponovi to još jednom pa diži kilažu.</div>`;
+    return `<div class="training-progression">Vrh opsega na ${formatDecimal(progression.lastWeight, 2)} kg. Ponovi to još jednom pa diži kilažu.</div>`;
   }
-  return `<div class="training-progression">Poslednje: ${progression.lastWeight} kg × ${progression.lastReps}. Cilj je ${progression.range.max} ponavljanja pre nego što dodaš kilažu.</div>`;
+  return `<div class="training-progression">Poslednje: ${formatDecimal(progression.lastWeight, 2)} kg × ${progression.lastReps}. Cilj je ${progression.range.max} ponavljanja pre nego što dodaš kilažu.</div>`;
 }
 
 // Rest timer. A whole-tab re-render every second would be absurd for a clock,
@@ -6091,9 +6091,9 @@ function renderRecipeDraftSummaryInner(preview) {
         <strong class="recipe-draft-summary-value">${roundValue(preview.perServingTotals.kcal, 0)}<span>kcal</span></strong>
       </div>
       <dl class="recipe-draft-summary-macros">
-        <div><dt>P</dt><dd>${roundValue(preview.perServingTotals.protein, 1)} g</dd></div>
-        <div><dt>UH</dt><dd>${roundValue(preview.perServingTotals.carbs, 1)} g</dd></div>
-        <div><dt>M</dt><dd>${roundValue(preview.perServingTotals.fat, 1)} g</dd></div>
+        <div><dt>P</dt><dd>${formatDecimal(preview.perServingTotals.protein, 1)} g</dd></div>
+        <div><dt>UH</dt><dd>${formatDecimal(preview.perServingTotals.carbs, 1)} g</dd></div>
+        <div><dt>M</dt><dd>${formatDecimal(preview.perServingTotals.fat, 1)} g</dd></div>
       </dl>
       <div class="recipe-draft-summary-note">${escapeHtml(meta.join(" · "))} · ukupno ${roundValue(preview.totals.kcal, 0)} kcal</div>
     </div>`;
@@ -7277,9 +7277,9 @@ function formatPlanDelta(delta, unit) {
     return `Tačno po planu`;
   }
   if (delta > 0) {
-    return `+${roundValue(delta, 1)} ${unit} preko plana`;
+    return `+${formatDecimal(delta, 1)} ${unit} preko plana`;
   }
-  return `${roundValue(Math.abs(delta), 1)} ${unit} ispod plana`;
+  return `${formatDecimal(Math.abs(delta), 1)} ${unit} ispod plana`;
 }
 
 function renderMetricsGrid(metrics) {
@@ -7448,7 +7448,7 @@ function renderOnboardingPreview() {
   return `
     <div class="onboarding-preview-label">Tvoj dnevni cilj</div>
     <div class="onboarding-preview-kcal"><strong>${rec.targetCalories}</strong> kcal</div>
-    ${rec.rateKgPerWeek ? `<div class="footer-note">${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/nedeljno${rec.paceLimited ? " · ograničeno bezbednim minimumom kalorija" : ""}</div>` : ""}
+    ${rec.rateKgPerWeek ? `<div class="footer-note">${rec.rateKgPerWeek > 0 ? "+" : ""}${formatDecimal(rec.rateKgPerWeek, 2)} kg/nedeljno${rec.paceLimited ? " · ograničeno bezbednim minimumom kalorija" : ""}</div>` : ""}
     <div class="onboarding-preview-macros">
       <span>P <strong>${rec.protein}</strong> g</span>
       <span>UH <strong>${rec.carbs}</strong> g</span>
@@ -9031,7 +9031,7 @@ function renderPlanGlanceRows() {
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
   const waterPct = waterTarget ? Math.min(100, Math.round((water / waterTarget) * 100)) : 0;
   const waterDone = waterTarget > 0 && water >= waterTarget;
-  const toL = (ml) => (ml % 1000 === 0 ? String(ml / 1000) : (ml / 1000).toFixed(1));
+  const toL = (ml) => (ml % 1000 === 0 ? String(ml / 1000) : formatDecimal(ml / 1000, 1));
   const steps = getTodaySteps();
   const stepsGoal = Math.max(0, Math.round(toNumber(store.goals?.stepsGoal) || 10000));
   const stepsPct = stepsGoal ? Math.min(100, Math.round((steps / stepsGoal) * 100)) : 0;
@@ -9133,7 +9133,7 @@ function renderPlanWeightRow() {
         <span class="plan-glance-icon" aria-hidden="true">⚖️</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
-            days != null ? `${String(roundValue(latest.weightKg, 1)).replace(".", ",")} kg` : "nije uneto"
+            days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "nije uneto"
           }</span></div>
           ${
             open
@@ -9200,7 +9200,7 @@ function renderPlanActivitySection() {
     if (activity.exerciseMin != null) tiles.push({ text: `${activity.exerciseMin} min vežbanja` });
     if (activity.standHours != null) tiles.push({ text: `${activity.standHours} h stajanja` });
     if (activity.steps != null) tiles.push({ text: `${activity.steps.toLocaleString("sr-RS")} koraka` });
-    if (activity.distanceKm != null) tiles.push({ text: `${roundValue(activity.distanceKm, 2)} km` });
+    if (activity.distanceKm != null) tiles.push({ text: `${formatDecimal(activity.distanceKm, 2)} km` });
   }
 
   return `
@@ -9920,15 +9920,15 @@ function renderPlanTab(entries) {
                                 <div class="meal-card-summary-macros" aria-label="Makroi obroka">
                                   <div class="meal-summary-macro">
                                     <span class="meal-summary-label">Protein</span>
-                                    <strong>P ${roundValue(mealTotals.protein, 1)} g</strong>
+                                    <strong>P ${formatDecimal(mealTotals.protein, 1)} g</strong>
                                   </div>
                                   <div class="meal-summary-macro">
                                     <span class="meal-summary-label">Ugljeni hidrati</span>
-                                    <strong>UH ${roundValue(mealTotals.carbs, 1)} g</strong>
+                                    <strong>UH ${formatDecimal(mealTotals.carbs, 1)} g</strong>
                                   </div>
                                   <div class="meal-summary-macro">
                                     <span class="meal-summary-label">Masti</span>
-                                    <strong>M ${roundValue(mealTotals.fat, 1)} g</strong>
+                                    <strong>M ${formatDecimal(mealTotals.fat, 1)} g</strong>
                                   </div>
                                 </div>
                               </div>
@@ -9963,7 +9963,7 @@ function renderPlanTab(entries) {
                                         <div class="meal-entry-stats">
                                           <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
                                           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                          <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
+                                          <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
                                         </div>
                                       ${isMealDone ? `</div>` : `</button>`}
                                       ${
@@ -10307,7 +10307,7 @@ function renderFoodsTab() {
                     <span class="food-row-name">${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
                   </span>
-                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${roundValue(proteinValue, 1)} g · UH ${roundValue(carbsValue, 1)} g · M ${roundValue(fatValue, 1)} g</span>
+                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
                 </button>
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
@@ -10704,7 +10704,7 @@ function renderRecipesTab() {
                           </div>
                           <div class="recipe-library-stats">
                             <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal <span class="recipe-library-stat-sub">po porciji</span></span>
-                            <span class="recipe-library-stat-macros">P ${roundValue(favorite.perServingTotals.protein, 1)} · UH ${roundValue(favorite.perServingTotals.carbs, 1)} · M ${roundValue(favorite.perServingTotals.fat, 1)} g</span>
+                            <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
                             ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>
                           ${
@@ -10725,7 +10725,7 @@ function renderRecipesTab() {
                                             <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
                                             <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
                                           </div>
-                                          <div class="recipe-library-ingredient-macros"><strong>${roundValue(item.totals.kcal, 0)} kcal</strong> · P ${roundValue(item.totals.protein, 1)} · UH ${roundValue(item.totals.carbs, 1)} · M ${roundValue(item.totals.fat, 1)} g</div>
+                                          <div class="recipe-library-ingredient-macros"><strong>${roundValue(item.totals.kcal, 0)} kcal</strong> · P ${formatDecimal(item.totals.protein, 1)} · UH ${formatDecimal(item.totals.carbs, 1)} · M ${formatDecimal(item.totals.fat, 1)} g</div>
                                         </div>
                                       `
                                     )
@@ -11109,7 +11109,7 @@ function renderTrainingTab() {
                         <button class="danger-button" data-action="delete-training-progress" data-progress-id="${log.id}">Obriši</button>
                       </div>
                       <div class="pill-row">
-                        <span class="pill strong">${roundValue(log.weightKg, 1)} kg</span>
+                        <span class="pill strong">${formatDecimal(log.weightKg, 1)} kg</span>
                         <span class="pill">${new Date(log.date).toLocaleDateString("sr-RS")}</span>
                         <span class="pill">${log.weekday}</span>
                         ${log.reps ? `<span class="pill">${escapeHtml(log.reps)}</span>` : ""}
@@ -11755,10 +11755,10 @@ function renderRunCard(run) {
   const derived = getRunDerived(run);
   const dateLabel = formatDateValueLabel(run.date) || String(run.date || "");
   const pills = [
-    { text: `${roundValue(derived.distanceKm, 2)} km`, strong: true },
+    { text: `${formatDecimal(derived.distanceKm, 2)} km`, strong: true },
     { text: formatRunDuration(derived.durationSec) },
     { text: `${formatRunPace(derived.paceSec)} /km` },
-    { text: derived.speedKmh ? `${roundValue(derived.speedKmh, 1)} km/h` : "— km/h" },
+    { text: derived.speedKmh ? `${formatDecimal(derived.speedKmh, 1)} km/h` : "— km/h" },
   ];
   if (run.avgHr) {
     pills.push({ text: `Pros. ${run.avgHr} bpm` });
@@ -11841,7 +11841,7 @@ function renderRunningTab() {
               </div>
               <div class="glance-item">
                 <dt>Kilometri</dt>
-                <dd>${roundValue(stats.weekKm, 1)} <span class="glance-sub">km</span></dd>
+                <dd>${formatDecimal(stats.weekKm, 1)} <span class="glance-sub">km</span></dd>
               </div>
               <div class="glance-item">
                 <dt>Vreme</dt>
@@ -11906,7 +11906,7 @@ function renderRunningTab() {
             <div class="stats-grid stats-grid--glance running-records-grid">
               <article class="stat-card">
                 <strong>Najduže trčanje</strong>
-                <div class="macro-value">${roundValue(stats.longestKm, 2)} <small>km</small></div>
+                <div class="macro-value">${formatDecimal(stats.longestKm, 2)} <small>km</small></div>
                 <div class="footer-note">Najveća distanca</div>
               </article>
               <article class="stat-card">
@@ -11916,7 +11916,7 @@ function renderRunningTab() {
               </article>
               <article class="stat-card">
                 <strong>Ukupno km</strong>
-                <div class="macro-value">${roundValue(stats.totalKm, 1)} <small>km</small></div>
+                <div class="macro-value">${formatDecimal(stats.totalKm, 1)} <small>km</small></div>
                 <div class="footer-note">${stats.totalCount} ${stats.totalCount === 1 ? "trčanje" : "trčanja"}</div>
               </article>
               <article class="stat-card">
@@ -12349,7 +12349,7 @@ function formatRelativeDayLabel(dateValue) {
 
 // Decimalni zarez, kao što se piše na srpskom („84,5 kg“).
 function formatDecimal(value, digits = 1) {
-  return String(roundValue(toNumber(value), digits)).replace(".", ",");
+  return String(roundValue(toNumber(value), digits)).replace(".", ",").replace(/^-/, "−");
 }
 
 // „a, b i c“ — spisak u rečenici.
@@ -12484,7 +12484,7 @@ function formatSignedRate(rate) {
   if (Math.abs(value) < 0.005) {
     return "0 kg/ned";
   }
-  return `${value > 0 ? "+" : "−"}${Math.abs(value)} kg/ned`;
+  return `${value > 0 ? "+" : "−"}${formatDecimal(Math.abs(value), 2)} kg/ned`;
 }
 
 function applyGoalCalibration() {
@@ -12681,17 +12681,17 @@ function renderGoalEtaCard() {
   let body;
   if (eta.status === "reached") {
     tone = "good";
-    body = `Stigao si do cilja od <strong>${eta.target} kg</strong> 🎉`;
+    body = `Stigao si do cilja od <strong>${formatDecimal(eta.target, 2)} kg</strong> 🎉`;
   } else if (eta.status === "no-profile") {
-    body = `Cilj: <strong>${eta.target} kg</strong> (još ${Math.abs(eta.remaining)} kg). Popuni profil (pol, godine, visina, težina) pa procenim datum.`;
+    body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Popuni profil (pol, godine, visina, težina) pa procenim datum.`;
   } else if (eta.status === "no-rate") {
-    body = `Cilj: <strong>${eta.target} kg</strong> (još ${Math.abs(eta.remaining)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
+    body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
   } else if (eta.status === "wrong-direction") {
     tone = "warn";
-    body = `Cilj <strong>${eta.target} kg</strong> je u suprotnom smeru od izabranog cilja/tempa — proveri podešavanja.`;
+    body = `Cilj <strong>${formatDecimal(eta.target, 2)} kg</strong> je u suprotnom smeru od izabranog cilja/tempa — proveri podešavanja.`;
   } else {
     const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
-    body = `Do cilja <strong>${eta.target} kg</strong> još <strong>${Math.abs(eta.remaining)} kg</strong> — pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
+    body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong> — pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
   }
   return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">🎯</span><p>${body}</p></div>`;
 }
@@ -12756,7 +12756,7 @@ function renderGoalsTab() {
         const recDiffers = goalRecommendation && activeCalories > 0 && Math.abs(goalRecommendation.targetCalories - activeCalories) > 25;
         const paceLabel = goalRecommendation
           ? goalRecommendation.rateKgPerWeek
-            ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${goalRecommendation.rateKgPerWeek} kg/ned${
+            ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${formatDecimal(goalRecommendation.rateKgPerWeek, 2)} kg/ned${
                 goalRecommendation.paceLimited ? " (tempo ograničen bezbednim minimumom kalorija)" : ""
               }`
             : goalRecommendation.goalMode.label
@@ -13054,9 +13054,9 @@ function renderNutritionPlansSection(plans) {
                 </div>
                 <div class="pill-row">
                   <span class="pill note">${roundValue(mealTotals.kcal, 0)} kcal</span>
-                  <span class="pill">P ${roundValue(mealTotals.protein, 1)} g</span>
-                  <span class="pill">UH ${roundValue(mealTotals.carbs, 1)} g</span>
-                  <span class="pill">M ${roundValue(mealTotals.fat, 1)} g</span>
+                  <span class="pill">P ${formatDecimal(mealTotals.protein, 1)} g</span>
+                  <span class="pill">UH ${formatDecimal(mealTotals.carbs, 1)} g</span>
+                  <span class="pill">M ${formatDecimal(mealTotals.fat, 1)} g</span>
                 </div>
                 ${
                   meal.items?.length
@@ -13231,9 +13231,9 @@ function renderNutritionTab() {
                         <span class="pill">${recipe.prepTimeMinutes ? `${recipe.prepTimeMinutes} min` : "Vreme nije nađeno"}</span>
                         <span class="pill note">Ukupno ${roundValue(recipe.totals.kcal, 0)} kcal</span>
                         <span class="pill">Po porciji ${roundValue(recipe.perServingTotals.kcal, 0)} kcal</span>
-                        <span class="pill">P ${roundValue(recipe.perServingTotals.protein, 1)} g</span>
-                        <span class="pill">UH ${roundValue(recipe.perServingTotals.carbs, 1)} g</span>
-                        <span class="pill">M ${roundValue(recipe.perServingTotals.fat, 1)} g</span>
+                        <span class="pill">P ${formatDecimal(recipe.perServingTotals.protein, 1)} g</span>
+                        <span class="pill">UH ${formatDecimal(recipe.perServingTotals.carbs, 1)} g</span>
+                        <span class="pill">M ${formatDecimal(recipe.perServingTotals.fat, 1)} g</span>
                         ${pendingReviewCount ? `<span class="pill pill--warning">${pendingReviewCount} ${srPlural(pendingReviewCount, "stavka", "stavke", "stavki")} za povezivanje</span>` : ""}
                       </div>
                       ${renderNutritionSourcePills(recipe.importSourceDocNames)}
@@ -13400,9 +13400,9 @@ function renderNutritionTab() {
                       </div>
                       <div class="pill-row">
                         <span class="pill">${food.nutritionStatus.displayKcal || 0} kcal${food.nutritionStatus.isEstimatedKcal ? "*" : ""}</span>
-                        <span class="pill">P ${roundValue(food.protein, 1)} g</span>
-                        <span class="pill">UH ${roundValue(food.carbs, 1)} g</span>
-                        <span class="pill">M ${roundValue(food.fat, 1)} g</span>
+                        <span class="pill">P ${formatDecimal(food.protein, 1)} g</span>
+                        <span class="pill">UH ${formatDecimal(food.carbs, 1)} g</span>
+                        <span class="pill">M ${formatDecimal(food.fat, 1)} g</span>
                         <span class="pill strong pill--${food.nutritionStatus.tone}">${food.nutritionStatus.statusLabel}</span>
                       </div>
                       <div class="footer-note nutrition-food-meta">
@@ -13494,7 +13494,7 @@ function renderAccountSection() {
         const facts = [];
         if (toNumber(store.profile?.age) > 0) facts.push(["Godine", `${roundValue(toNumber(store.profile.age), 0)}`]);
         if (toNumber(store.profile?.heightCm) > 0) facts.push(["Visina", `${roundValue(toNumber(store.profile.heightCm), 0)} cm`]);
-        if (toNumber(store.profile?.weightKg) > 0) facts.push(["Težina", `${roundValue(toNumber(store.profile.weightKg), 1)} kg`]);
+        if (toNumber(store.profile?.weightKg) > 0) facts.push(["Težina", `${formatDecimal(toNumber(store.profile.weightKg), 1)} kg`]);
         if (toNumber(store.goals?.calories) > 0) facts.push(["Dnevni cilj", `${roundValue(toNumber(store.goals.calories), 0)} kcal`]);
         return `
           <div class="profile-hero">
@@ -13742,10 +13742,10 @@ function renderTrendCard(field) {
     if (Math.abs(diff) < 0.3) {
       trackPill = `<span class="pill strong pill--success">na cilju</span>`;
     } else {
-      trackPill = `<span class="pill strong pill--${aheadGood ? "success" : "warning"}">${Math.abs(diff)} kg ${aheadGood ? "ispred plana" : "iza plana"}</span>`;
+      trackPill = `<span class="pill strong pill--${aheadGood ? "success" : "warning"}">${formatDecimal(Math.abs(diff), 2)} kg ${aheadGood ? "ispred plana" : "iza plana"}</span>`;
     }
     legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>`);
-    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>tempo (${goalRate > 0 ? "+" : ""}${goalRate} kg/ned)</span>`);
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>tempo (${goalRate > 0 ? "+" : ""}${formatDecimal(goalRate, 2)} kg/ned)</span>`);
   }
   if (targetWeight) {
     const ty = toY(targetWeight);
@@ -13753,7 +13753,7 @@ function renderTrendCard(field) {
     if (!legendItems.length) {
       legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>`);
     }
-    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--target"></span>ciljna težina (${roundValue(targetWeight, 1)} kg)</span>`);
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--target"></span>ciljna težina (${formatDecimal(targetWeight, 1)} kg)</span>`);
     const eta = getGoalEta();
     if (eta.status === "ok") {
       etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
@@ -13827,7 +13827,7 @@ function renderExerciseProgressCard(group) {
     <article class="chart-card">
       <div class="chart-card-top">
         <h3>${escapeHtml(group.exerciseName)}</h3>
-        <span class="pill strong">${roundValue(group.latest.weightKg, 1)} kg</span>
+        <span class="pill strong">${formatDecimal(group.latest.weightKg, 1)} kg</span>
       </div>
       <svg class="trend-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Trend za ${escapeHtml(group.exerciseName)}">
         <line x1="${paddingX}" y1="${height - paddingY}" x2="${width - paddingX}" y2="${height - paddingY}" class="chart-axis"></line>
@@ -13842,16 +13842,16 @@ function renderExerciseProgressCard(group) {
           .join("")}
       </svg>
       <div class="pill-row">
-        <span class="pill">Najbolje ${roundValue(group.best.weightKg, 1)} kg</span>
+        <span class="pill">Najbolje ${formatDecimal(group.best.weightKg, 1)} kg</span>
         <span class="pill">Unosa ${group.logs.length}</span>
-        <span class="pill note">${group.delta > 0 ? "+" : ""}${group.delta} kg od prvog</span>
+        <span class="pill note">${group.delta > 0 ? "+" : ""}${formatDecimal(group.delta, 2)} kg od prvog</span>
       </div>
       <div class="pill-row">
         ${recentLogs
           .map(
             (log) => `
               <span class="pill">
-                ${new Date(log.date).toLocaleDateString("sr-RS")} · ${roundValue(log.weightKg, 1)} kg${log.reps ? ` · ${log.reps}` : ""}
+                ${new Date(log.date).toLocaleDateString("sr-RS")} · ${formatDecimal(log.weightKg, 1)} kg${log.reps ? ` · ${log.reps}` : ""}
               </span>
             `
           )
@@ -13949,10 +13949,10 @@ function renderCompareDelta(leftPhoto, rightPhoto) {
   const newerWeight = leftIsOlder ? rightWeight : leftWeight;
   const delta = roundValue(newerWeight - olderWeight, 1);
   const tone = delta < 0 ? "measure-delta--down" : delta > 0 ? "measure-delta--up" : "measure-delta--flat";
-  const deltaLabel = delta === 0 ? "bez promene" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} kg`;
+  const deltaLabel = delta === 0 ? "bez promene" : `${delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(delta), 2)} kg`;
   return `
     <div class="compare-delta">
-      <span class="compare-delta-range">${olderWeight} kg → ${newerWeight} kg</span>
+      <span class="compare-delta-range">${formatDecimal(olderWeight, 2)} kg → ${formatDecimal(newerWeight, 2)} kg</span>
       <span class="measure-delta ${tone}">${deltaLabel}</span>
       <span class="footer-note">${days === 0 ? "isti dan" : `za ${days} ${days === 1 ? "dan" : "dana"}`}</span>
     </div>`;
@@ -14338,7 +14338,7 @@ function renderProgressHistorySection() {
           const parts = [];
           if (stats.avgKcal7) parts.push(`<strong>${stats.avgKcal7}</strong> kcal`);
           if (stats.avgProtein7) parts.push(`<strong>${stats.avgProtein7} g</strong> proteina`);
-          if (stats.avgWater7) parts.push(`<strong>${(stats.avgWater7 / 1000).toFixed(1)} L</strong> vode`);
+          if (stats.avgWater7) parts.push(`<strong>${formatDecimal(stats.avgWater7 / 1000, 1)} L</strong> vode`);
           return parts.length ? `<p class="history-averages">Prosek za 7 dana: ${parts.join(" · ")}</p>` : "";
         })()
       }
@@ -14429,12 +14429,12 @@ function renderWeeklyReportSection() {
           r.weightDelta !== null
             ? `<article class="stat-card">
                  <strong>Težina</strong>
-                 <div class="macro-value">${r.weightDelta > 0 ? "+" : ""}${r.weightDelta} kg</div>
+                 <div class="macro-value">${r.weightDelta > 0 ? "+" : ""}${formatDecimal(r.weightDelta, 2)} kg</div>
                  <div class="footer-note">ove nedelje</div>
                </article>`
             : `<article class="stat-card">
                  <strong>Prosek vode</strong>
-                 <div class="macro-value">${r.avgWater ? `${(r.avgWater / 1000).toFixed(1)} L` : "—"}</div>
+                 <div class="macro-value">${r.avgWater ? `${formatDecimal(r.avgWater / 1000, 1)} L` : "—"}</div>
                  <div class="footer-note">poslednjih 7 dana</div>
                </article>`
         }
@@ -14582,7 +14582,7 @@ function renderLabSection() {
                           ${statusLabel ? `<span class="lab-status lab-status--${status}">${statusLabel}</span>` : ""}
                         </div>
                         <div class="lab-row-value">
-                          <strong>${roundValue(value, 2)}</strong>
+                          <strong>${formatDecimal(value, 2)}</strong>
                           ${latest.unit ? `<span class="lab-unit">${escapeHtml(latest.unit)}</span>` : ""}
                           ${deltaHtml}
                         </div>
@@ -14902,14 +14902,14 @@ function renderInsightsSection() {
 
   let headline = `Pregled za poslednjih ${period} dana.`;
   if (ins.weightChange != null && ins.weightChange !== 0) {
-    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${Math.abs(ins.weightChange)} kg</strong>${ins.weightRate ? ` (${ins.weightRate < 0 ? "−" : "+"}${Math.abs(ins.weightRate)} kg/ned)` : ""}.`;
+    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightChange), 2)} kg</strong>${ins.weightRate ? ` (${ins.weightRate < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightRate), 2)} kg/ned)` : ""}.`;
   } else if (ins.loggedCount) {
     headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana — nastavi da gradiš istoriju.`;
   }
 
   const card = (label, value, note) =>
     `<article class="stat-card"><strong>${label}</strong><div class="macro-value">${value}</div><div class="footer-note">${note}</div></article>`;
-  const signed = (value) => `${value > 0 ? "+" : ""}${value}`;
+  const signed = (value) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatDecimal(Math.abs(value), 2)}`;
   const cards = [];
   if (ins.weightChange != null) cards.push(card("Težina", `${signed(ins.weightChange)} kg`, ins.weightRate ? `${signed(ins.weightRate)} kg/ned` : "u periodu"));
   if (ins.fatChange != null) cards.push(card("Mast", `${signed(ins.fatChange)} %`, "telesna mast"));
@@ -14917,7 +14917,7 @@ function renderInsightsSection() {
   if (ins.avgKcal) cards.push(card("Kalorije", `${ins.avgKcal}`, `prosek/dan · cilj ${ins.kcalOnTargetPct}% dana`));
   if (ins.avgProtein) cards.push(card("Protein", `${ins.avgProtein} g`, ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · ${ins.proteinHitPct}% dana` : "prosek/dan"));
   if (ins.trainingSessions) cards.push(card("Trening", `${ins.trainingSessions}`, "zabeleženih"));
-  if (ins.avgWater) cards.push(card("Voda", `${(ins.avgWater / 1000).toFixed(1)} L`, "prosek/dan"));
+  if (ins.avgWater) cards.push(card("Voda", `${formatDecimal(ins.avgWater / 1000, 1)} L`, "prosek/dan"));
 
   let energyHtml = "";
   if (ins.energy) {
@@ -14940,7 +14940,7 @@ function renderInsightsSection() {
     energyHtml = `
       <div class="insights-callout">
         <strong>Energija</strong>
-        <p>Prosečno unosiš <strong>${e.avgKcal} kcal/dan</strong>, procena održavanja je <strong>${e.maintenance} kcal</strong> → ${deficitWord}, što predviđa <strong>${e.expectedRate} kg/ned</strong>.${e.actualRate != null ? ` Stvarno: <strong>${e.actualRate} kg/ned</strong>.` : ""}${verdict}</p>
+        <p>Prosečno unosiš <strong>${e.avgKcal} kcal/dan</strong>, procena održavanja je <strong>${e.maintenance} kcal</strong> → ${deficitWord}, što predviđa <strong>${formatDecimal(e.expectedRate, 2)} kg/ned</strong>.${e.actualRate != null ? ` Stvarno: <strong>${formatDecimal(e.actualRate, 2)} kg/ned</strong>.` : ""}${verdict}</p>
       </div>`;
   }
 
@@ -15101,8 +15101,8 @@ async function buildShareCardCanvas(data) {
 
   // Stat tiles
   const tiles = [];
-  if (data.weight) tiles.push({ value: `${data.weight.delta > 0 ? "+" : "−"}${Math.abs(data.weight.delta)} kg`, label: "težina", good: data.weight.delta < 0 });
-  if (data.fat) tiles.push({ value: `${data.fat.delta > 0 ? "+" : "−"}${Math.abs(data.fat.delta)} %`, label: "telesna mast", good: data.fat.delta < 0 });
+  if (data.weight) tiles.push({ value: `${data.weight.delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(data.weight.delta), 2)} kg`, label: "težina", good: data.weight.delta < 0 });
+  if (data.fat) tiles.push({ value: `${data.fat.delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(data.fat.delta), 2)} %`, label: "telesna mast", good: data.fat.delta < 0 });
   if (data.weight) tiles.push({ value: `${data.weight.to}`, label: "kg sada", good: null });
   const shown = tiles.slice(0, 3);
   if (shown.length) {
@@ -15453,7 +15453,7 @@ function renderProgressTab() {
                                 <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
                                 <div class="pill-row">
                                   <span class="pill strong">${escapeHtml(getPhotoTagLabel(photo.tag))}</span>
-                                  ${weight !== null ? `<span class="pill note">${weight} kg</span>` : ""}
+                                  ${weight !== null ? `<span class="pill note">${formatDecimal(weight, 2)} kg</span>` : ""}
                                 </div>
                                 ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
                               </div>
@@ -15480,7 +15480,7 @@ function renderProgressTab() {
                     <article class="photo-session">
                       <div class="food-card-top">
                         <strong>${formatDateValueLabel(session.date) || new Date(session.date).toLocaleDateString("sr-RS")}</strong>
-                        ${weight !== null ? `<span class="pill note strong">${weight} kg</span>` : ""}
+                        ${weight !== null ? `<span class="pill note strong">${formatDecimal(weight, 2)} kg</span>` : ""}
                       </div>
                       <div class="photo-session-row">
                         ${session.photos
@@ -19650,7 +19650,7 @@ async function handleSubmit(event) {
     }
     state.quickWeightOpen = false;
     persist();
-    queuePendingUndo(`Težina sačuvana: ${roundValue(weightKg, 1)} kg (danas).`, () => {
+    queuePendingUndo(`Težina sačuvana: ${formatDecimal(weightKg, 1)} kg (danas).`, () => {
       store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
       store.profile.weightKg = previousProfileWeight;
       persist();
