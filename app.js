@@ -9048,7 +9048,7 @@ function renderPlanWeightRow() {
   const when = days == null ? "" : days <= 0 ? "danas" : days === 1 ? "juče" : `pre ${days} dana`;
   const open = state.quickWeightOpen;
   return `
-      <div class="plan-glance-row ${days === 0 ? "is-done" : ""}">
+      <div class="plan-glance-row">
         <span class="plan-glance-icon" aria-hidden="true">⚖️</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
@@ -9797,7 +9797,6 @@ function renderPlanTab(entries) {
                       <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
                       <div class="meal-card-header">
                         <div class="meal-card-topline">
-                          ${mealParts.order ? `<span class="meal-order">${mealParts.order}</span>` : ""}
                           <div class="meal-card-heading">
                             <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
                             ${
@@ -9882,7 +9881,7 @@ function renderPlanTab(entries) {
                                         </div>
                                         <div class="meal-entry-stats">
                                           <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
-                                          <span class="pill note">${roundValue(entry.totals.kcal, 0)} kcal</span>
+                                          <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
                                           <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 1)} · UH ${roundValue(entry.totals.carbs, 1)} · M ${roundValue(entry.totals.fat, 1)} g</span>
                                         </div>
                                       ${isMealDone ? `</div>` : `</button>`}

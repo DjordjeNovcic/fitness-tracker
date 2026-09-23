@@ -80,7 +80,7 @@
   --status-error-text: #7a4e38;
   --bar-track: var(--bg-strong);
   --bar-ok: linear-gradient(90deg, #27738c 0%, #4fa3bd 100%);
-  --bar-low: linear-gradient(90deg, #9aacb4 0%, #b5c3c9 100%);
+  --bar-low: linear-gradient(90deg, #5f95a8 0%, #8db5c3 100%);
   --bar-near: linear-gradient(90deg, #e0a83a 0%, #cf8a26 100%);
   --bar-over: linear-gradient(90deg, #df7a48 0%, #c8442c 100%);
   --tabbar-bg: rgba(252, 248, 242, 0.82);
@@ -10936,7 +10936,7 @@ body {
   --status-info-border: rgba(31, 95, 117, 0.14);
   --status-info-text: #1c5a6e;
   --bar-ok: linear-gradient(90deg, #27738c 0%, #4fa3bd 100%);
-  --bar-low: linear-gradient(90deg, #9aacb4 0%, #b5c3c9 100%);
+  --bar-low: linear-gradient(90deg, #5f95a8 0%, #8db5c3 100%);
 }
 
 /* Flat surfaces: cream, hairline, no gradient/inset/stripe. */
@@ -13022,4 +13022,260 @@ button.meal-entry-body:focus-visible {
   content: "";
   position: absolute;
   inset: -14px -6px;
+}
+
+/* ============================================================
+   2026-09-23 — Danas as a ledger. The day was five boxed meal cards
+   on top of a section, with numbered badges and kcal pills inside:
+   three levels of containers for one list. Now the meals are one
+   surface and each meal is a row divided by a hairline, like a page
+   in a journal. Meal title + kcal carry the row; macros are a quiet
+   second line; entries are hairline rows with plain tabular figures.
+   ============================================================ */
+.plan-meals-section > .stack,
+:root[data-theme="dark"] .plan-meals-section > .stack {
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-tight);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .plan-meals-section > .stack {
+  background: var(--surface);
+  box-shadow: none;
+}
+.plan-meals-section .meal-card,
+:root[data-theme="dark"] .plan-meals-section .meal-card,
+.plan-meals-section .meal-card.is-collapsed,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-collapsed {
+  --meal-order-size: 0px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.plan-meals-section .meal-card:first-child {
+  border-top: 0;
+}
+.plan-meals-section .meal-card::before {
+  content: none;
+}
+/* The meal being edited gets a tint across the whole row instead of a ring
+   around a card that no longer exists. */
+.plan-meals-section .meal-card.is-editing,
+:root[data-theme="dark"] .plan-meals-section .meal-card.is-editing {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: none;
+}
+.plan-meals-section .meal-card-summary {
+  padding-left: 0;
+}
+.plan-meals-section .meal-title {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  letter-spacing: -0.012em;
+}
+.plan-meals-section .meal-card-summary-kcal,
+:root[data-theme="dark"] .plan-meals-section .meal-card-summary-kcal {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.plan-meals-section .meal-card.is-done .meal-title,
+.plan-meals-section .meal-card.is-done .meal-card-summary-kcal strong {
+  color: var(--muted);
+}
+
+/* Entries: hairline rows, one figure column. */
+.plan-meals-section .meal-card-content {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.plan-meals-section .meal-card-content.is-hidden {
+  margin-top: 0;
+  border-top: 0;
+}
+.plan-meals-section .meal-entry,
+:root[data-theme="dark"] .plan-meals-section .meal-entry {
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.plan-meals-section .meal-entry-title-group strong {
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+.plan-meals-section .meal-entry-stats {
+  gap: 4px 10px;
+  margin-top: 3px;
+}
+.meal-entry-kcal {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plan-meals-section .meal-entry-action {
+  color: var(--muted);
+}
+.plan-meals-section .meal-entry-action--danger:hover {
+  color: var(--status-error-text);
+}
+
+/* Adding is a quiet row at the end of the list, not a dashed box. */
+.plan-meals-section .meal-add-row,
+:root[data-theme="dark"] .plan-meals-section .meal-add-row {
+  justify-content: flex-start;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 0.9375rem;
+}
+.plan-meals-section .meal-add-row:hover {
+  background: none;
+  color: var(--accent-strong);
+}
+.plan-meals-section .meal-card-content:not(:has(.meal-entry)) {
+  margin-top: 6px;
+  border-top: 0;
+}
+.plan-meals-section .meal-secondary-actions {
+  margin-top: 2px;
+  padding: 0;
+}
+.plan-meals-section .meal-done-note {
+  padding: 10px 0 0;
+  background: none;
+  border: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* Section header: the title never wraps under the Brzi unos button. */
+.plan-meals-section > .section-header {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.plan-meals-section > .section-header h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-meals-section > .section-header p:empty {
+  display: none;
+}
+.plan-meals-section .plan-quick-entry-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* Calorie ring: the planned arc has to read as "the plan", not as a grey
+   track. Track steps back to a hairline tone; plan is a clear accent tint;
+   eaten stays the solid accent on top. */
+.cal-ring-track,
+.plan-summary-compact .cal-ring-track {
+  stroke: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+/* Petrol is dark and low-chroma, so any transparency over cream turns it
+   grey; the plan arc is a lighter, clearer tint of the same hue instead. */
+.cal-ring-planned,
+.cal-ring[data-state] .cal-ring-planned,
+.plan-summary-compact[data-state] .cal-ring-planned {
+  stroke: oklch(0.8 0.07 225);
+  opacity: 1;
+}
+.cal-ring[data-state="near"] .cal-ring-planned,
+.plan-summary-compact[data-state="near"] .cal-ring-planned {
+  stroke: oklch(0.85 0.09 80);
+}
+.cal-ring[data-state="over"] .cal-ring-planned,
+.plan-summary-compact[data-state="over"] .cal-ring-planned {
+  stroke: oklch(0.8 0.09 45);
+}
+:root[data-theme="dark"] .cal-ring-planned,
+:root[data-theme="dark"] .cal-ring[data-state] .cal-ring-planned,
+:root[data-theme="dark"] .plan-summary-compact[data-state] .cal-ring-planned {
+  stroke: oklch(0.45 0.06 225);
+}
+:root[data-theme="dark"] .cal-ring[data-state="near"] .cal-ring-planned,
+:root[data-theme="dark"] .plan-summary-compact[data-state="near"] .cal-ring-planned {
+  stroke: oklch(0.5 0.08 80);
+}
+:root[data-theme="dark"] .cal-ring[data-state="over"] .cal-ring-planned,
+:root[data-theme="dark"] .plan-summary-compact[data-state="over"] .cal-ring-planned {
+  stroke: oklch(0.48 0.09 45);
+}
+
+/* Glance rows: one anatomy. Value column right-aligned, every action the
+   same width, and the weight is ink (green is reserved for "goal reached"). */
+.plan-glance-btn,
+:root[data-theme="dark"] .plan-glance-btn {
+  min-width: 68px;
+  min-height: 36px;
+  text-align: center;
+}
+.plan-glance-btn--quiet,
+:root[data-theme="dark"] .plan-glance-btn--quiet {
+  min-width: 36px;
+}
+.plan-glance-value {
+  font-weight: 650;
+  color: var(--ink);
+}
+.plan-glance-row.is-done .plan-glance-value {
+  color: var(--status-success-text);
+}
+/* Ledger follow-ups: the meals section has no surface of its own, so it has
+   no padding either (dark kept 16px and the list sat inset from the summary
+   card above it); a finished meal is muted, not struck through, and loses the
+   old dark header sheen. */
+.section.plan-meals-section,
+:root[data-theme="dark"] .section.plan-meals-section {
+  padding: 0;
+}
+.plan-meals-section .meal-card .meal-card-header,
+:root[data-theme="dark"] .plan-meals-section .meal-card .meal-card-header {
+  background: none;
+}
+.plan-meals-section .meal-card.is-done .meal-title {
+  text-decoration: none;
+}
+
+/* Danas: the three collapsed utilities at the bottom (Alati, Vitamini,
+   Lista za kupovinu) read as one grouped list instead of three stacked
+   boxes — joined edges, a hairline between them, one outer radius. The
+   12px grid gap is pulled back with a negative margin. */
+.app-main > .plan-quick-section + .plan-supplements-section,
+.app-main > .plan-supplements-section + .plan-shopping-section,
+.app-main > .plan-quick-section + .plan-shopping-section {
+  margin-top: -12px;
+  border-top-color: transparent;
+  box-shadow: inset 0 1px 0 var(--line);
+}
+.app-main > .plan-quick-section:has(+ .plan-supplements-section, + .plan-shopping-section),
+.app-main > .plan-supplements-section:has(+ .plan-shopping-section) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+.app-main > .plan-quick-section + .plan-supplements-section,
+.app-main > .plan-supplements-section + .plan-shopping-section,
+.app-main > .plan-quick-section + .plan-shopping-section {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
