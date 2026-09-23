@@ -4977,9 +4977,23 @@ function getWeeklySummary(weekTrack = getCurrentWeekTrack()) {
   });
 }
 
+// Datum (lokalni ključ) za dan u tekućoj nedelji, od ponedeljka iz weekId-a.
+function getCurrentWeekDateValue(weekday) {
+  const index = WEEKDAYS.indexOf(weekday);
+  const [year, month, day] = getCurrentWeekId().split("-").map(Number);
+  const date = new Date(year, month - 1, day + Math.max(0, index));
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function getWeeklyOverview(weekTrack = getCurrentWeekTrack()) {
+  const isCurrentTrack = weekTrack === getCurrentWeekTrack();
   const days = getWeeklySummary(weekTrack).map((day) => {
     const trainingBurn = getTrainingBurnForDay(day.weekday);
+    // Kafa se ne planira nego pije, pa je vezana za datum; „Danas“ je već
+    // dodaje u pojedeno, a nedeljni zbir bez nje se nije slagao sa danima.
+    if (isCurrentTrack) {
+      day.totals = addTotals(day.totals, getCoffeeTotalsForDate(getCurrentWeekDateValue(day.weekday)));
+    }
     return {
       ...day,
       trainingBurn,
