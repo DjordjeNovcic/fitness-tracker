@@ -12545,10 +12545,15 @@ function renderGoalsTab() {
             : goalRecommendation.goalMode.label
           : "";
         const calibrated = getCalibrationState();
+        // „Kalibrisano“ važi samo dok je cilj baš onaj koji je kalibracija
+        // postavila; čim ga ručno promeniš, natpis bi lagao. A kad profil nije
+        // popunjen, preporuke nema — pa ni oznake tempa (ranije je tu pucalo).
+        const calibratedTarget = Array.isArray(calibrated.log) && calibrated.log[0] ? toNumber(calibrated.log[0].to) : 0;
+        const showCalibrated = calibrated.lastAppliedAt && (!calibratedTarget || calibratedTarget === activeCalories);
         const note = !headline
           ? "Popuni profil i izaberi cilj ispod"
-          : calibrated.lastAppliedAt
-            ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan) · ${paceLabel || goalRecommendation.goalMode.label}`
+          : showCalibrated
+            ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan)${paceLabel ? ` · ${paceLabel}` : ""}`
             : recDiffers
               ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal — „Izračunaj iz cilja“ ispod da preuzmeš`
               : goalRecommendation
