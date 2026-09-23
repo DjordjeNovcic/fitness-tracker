@@ -1423,8 +1423,89 @@ function isDemoAccount() {
 
 // Vrati trenutni nalog na originalni seed (jelovnik, namirnice, trening, obroci).
 // Briše i lokalne slike napretka (one ionako nisu na cloudu) i forsira upis u cloud.
+// Demo nalog je izlog za nekog ko app vidi prvi put. Bez istorije je Napredak
+// bio niz praznih stanja („još nema merenja“, siv kalendar), pa se nije videlo
+// šta app zapravo radi. Ovo dopuni poslednjih pet nedelja: dnevnik ishrane
+// (većinom kompletni dani oko cilja, poneki nepotpun ili preko), nedeljna
+// merenja sa blagim padom težine i stomaka. Deterministično po datumu, pa isti
+// dan uvek ima iste brojeve. Samo za demo, i samo kad istorije skoro nema —
+// nikad ne prepisuje ono što je neko već upisao.
+const DEMO_HISTORY_DAYS = 35;
+
+function demoDateValue(daysAgo) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function demoRandom(key) {
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 10000) / 10000;
+}
+
+function seedDemoHistory(targetStore) {
+  if (!isDemoAccount()) {
+    return false;
+  }
+  targetStore.history = targetStore.history && typeof targetStore.history === "object" ? targetStore.history : {};
+  const today = demoDateValue(0);
+  const pastDays = Object.keys(targetStore.history).filter((date) => date < today);
+  if (pastDays.length >= 7) {
+    return false;
+  }
+  const goal = roundValue(toNumber(targetStore.goals?.calories) || 2061, 0);
+  const protein = toNumber(targetStore.goals?.protein) || 190;
+  for (let daysAgo = DEMO_HISTORY_DAYS; daysAgo >= 1; daysAgo -= 1) {
+    const date = demoDateValue(daysAgo);
+    if (targetStore.history[date]) {
+      continue;
+    }
+    const r = demoRandom(date);
+    const complete = r < 0.82;
+    const over = complete && demoRandom(`${date}o`) > 0.86;
+    const kcal = complete
+      ? Math.round(goal + (demoRandom(`${date}k`) - 0.5) * 280 + (over ? 320 : 0))
+      : Math.round(goal * (0.55 + demoRandom(`${date}p`) * 0.25));
+    targetStore.history[date] = {
+      date,
+      kcal,
+      protein: roundValue(protein * (kcal / goal) * (0.92 + demoRandom(`${date}pr`) * 0.12), 1),
+      carbs: roundValue((kcal * 0.3) / 4, 1),
+      fat: roundValue((kcal * 0.3) / 9, 1),
+      calorieGoal: goal,
+      waterMl: 1750 + Math.round(demoRandom(`${date}w`) * 5) * 250,
+      coffeeCups: 1 + Math.round(demoRandom(`${date}c`)),
+      mealsDone: complete ? 5 : 3,
+      mealsTotal: 5,
+    };
+  }
+  targetStore.measurements = Array.isArray(targetStore.measurements) ? targetStore.measurements : [];
+  const hasOlderWeighIn = targetStore.measurements.some((entry) => entry.date && entry.date <= demoDateValue(7));
+  if (!hasOlderWeighIn) {
+    const startWeight = toNumber(targetStore.goals?.basisWeightKg) || toNumber(targetStore.profile?.weightKg) || 90;
+    [35, 28, 21, 14, 7].forEach((daysAgo, index) => {
+      targetStore.measurements.push({
+        id: `measurement-demo-${daysAgo}`,
+        date: demoDateValue(daysAgo),
+        weightKg: roundValue(startWeight - index * 0.5 - demoRandom(`w${daysAgo}`) * 0.2, 1),
+        upperWaistCm: roundValue(98 - index * 0.6, 1),
+        lowerWaistCm: roundValue(101 - index * 0.5, 1),
+        calorieGoal: goal,
+      });
+    });
+    const latest = targetStore.measurements.reduce((a, b) => (String(b.date) > String(a.date) ? b : a));
+    targetStore.profile = { ...(targetStore.profile || {}), weightKg: latest.weightKg };
+  }
+  return true;
+}
+
 async function resetDemoToFactory() {
   replaceStore(cloneSeed());
+  seedDemoHistory(store);
   persistLocal();
   const saved = await saveCloudStateNow({ force: true, overwrite: true });
   if (!saved) {
@@ -20675,8 +20756,12 @@ onAuthStateChanged(firebaseAuth, async (user) => {
   // Cloud hydrate rebuilds progressPhotos from the (now blob-free) localStorage
   // snapshot, so stitch the IDB blobs back on / migrate any that aren't there yet.
   await reconcilePhotos();
-  if (isDemoAccount() && mirrorSingleTrackPlan(store)) {
-    persist();
+  if (isDemoAccount()) {
+    const mirrored = mirrorSingleTrackPlan(store);
+    const seeded = seedDemoHistory(store);
+    if (mirrored || seeded) {
+      persist();
+    }
   }
   if (ensureCurrentWeek()) {
     persist();
