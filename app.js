@@ -9142,7 +9142,7 @@ function renderPlanWeightRow() {
                   <span class="quick-weight-unit">kg</span>
                   <button class="solid-button" type="submit">Sačuvaj</button>
                 </form>`
-              : `<div class="plan-glance-sub">${days != null ? `poslednje merenje ${when}` : "upiši današnju težinu"} · <button type="button" class="text-link-button" data-action="jump-measurement">više mera</button></div>`
+              : `<div class="plan-glance-sub">${days != null ? `merenje ${when}` : "upiši današnju težinu"} · <button type="button" class="text-link-button" data-action="jump-measurement">više mera</button></div>`
           }
         </div>
         <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-quick-weight" aria-label="${open ? "Zatvori unos težine" : "Unesi težinu danas"}">${open ? "Zatvori" : "Unesi"}</button>
@@ -12737,9 +12737,9 @@ function renderGoalsTab() {
 
     ${gView === "cilj" ? `
     ${
-      // Kalibracija koja tek skuplja podatke nije radnja nego status — ide ispod
-      // cilja, kao jedan red. Kad ima predlog, ostaje na vrhu: tad je poziv.
-      getGoalCalibration().status === "insufficient" ? renderAdaptiveGoalNudge() : renderGoalCalibrationCard()
+      // Kalibracija je na vrhu samo kad ima predlog (tad je poziv na radnju);
+      // inače (skuplja podatke, u cilju, odloženo) je status ispod cilja.
+      getGoalCalibration().status === "suggest" ? renderGoalCalibrationCard() : getGoalCalibration().status === "insufficient" ? renderAdaptiveGoalNudge() : ""
     }
 
     <section class="section goals-profile-section">
@@ -12904,7 +12904,7 @@ function renderGoalsTab() {
       }
       </div>
     </section>
-    ${getGoalCalibration().status === "insufficient" ? renderGoalCalibrationCard() : ""}
+    ${getGoalCalibration().status === "suggest" ? "" : renderGoalCalibrationCard()}
     ` : ""}
 
     ${gView === "nedeljno" ? `
