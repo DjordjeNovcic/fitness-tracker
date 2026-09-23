@@ -13987,19 +13987,22 @@ function recordTodaySnapshot() {
   };
 }
 
-// A history day is "final" when it's in the past with any intake, or it's today
-// and every planned meal is checked off (an unplanned day counts as soon as
-// something is logged).
+// Dan je „kompletan“ kad je svaki planirani obrok čekiran — isto pravilo za
+// danas i za prošle dane, kao što i piše na kartici kalibracije. Ranije je
+// prošli dan važio čim je imao bilo kakav unos, pa je dan sa samo jednom kafom
+// (20 kcal) ulazio u prosek kao ceo dan i vukao kalibraciju ka manjem cilju.
+// Dan bez plana nema obroke koje bi čekirao — jedini unos mu je kafa — pa se
+// ne računa. Stari snimci bez mealsTotal zadržavaju staro pravilo.
 function isHistoryDayFinal(day) {
   const snap = day && day.snap;
   if (!snap || !(snap.kcal > 0)) {
     return false;
   }
-  if (day.date !== getTodayDateValue()) {
-    return true;
+  if (snap.mealsTotal == null) {
+    return day.date !== getTodayDateValue();
   }
   const total = toNumber(snap.mealsTotal);
-  return total <= 0 || toNumber(snap.mealsDone) >= total;
+  return total > 0 && toNumber(snap.mealsDone) >= total;
 }
 
 function getHistoryDays(count) {
