@@ -65,7 +65,7 @@
   --pill-strong-bg: rgba(220, 233, 221, 0.88);
   --pill-strong-border: rgba(43, 109, 125, 0.1);
   --pill-note-bg: rgba(233, 238, 219, 0.84);
-  --pill-note-border: rgba(125, 139, 90, 0.1);
+  --pill-note-border: rgba(31, 95, 117, 0.1);
   --status-success-bg: rgba(220, 234, 221, 0.92);
   --status-success-border: rgba(63, 121, 87, 0.12);
   --status-success-text: #234f3c;
@@ -201,7 +201,7 @@ textarea::placeholder {
   color: var(--ink);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
-  transition: padding 0.22s ease;
+  /* no layout transition: animating padding on a sticky header reflowed the page on every scroll tick */
 }
 
 .hero h1,
@@ -248,7 +248,7 @@ textarea::placeholder {
   box-shadow: none;
   display: grid;
   gap: 8px;
-  transition: margin-top 0.22s ease;
+
 }
 
 .hero-day-label {
@@ -614,7 +614,7 @@ textarea::placeholder {
   background: var(--secondary);
   border-color: var(--secondary);
   color: #fff9f3;
-  box-shadow: 0 10px 18px rgba(125, 139, 90, 0.22);
+  box-shadow: 0 10px 18px rgba(31, 95, 117, 0.22);
 }
 
 .macro-grid,.stats-grid {
@@ -751,9 +751,9 @@ textarea::placeholder {
 }
 
 .meal-card.is-editing {
-  border-color: rgba(125, 139, 90, 0.34);
+  border-color: rgba(31, 95, 117, 0.34);
   box-shadow:
-    0 0 0 3px rgba(125, 139, 90, 0.08),
+    0 0 0 3px rgba(31, 95, 117, 0.08),
     var(--shadow-tight);
 }
 
@@ -831,8 +831,8 @@ textarea::placeholder {
 
 .meal-card-summary-kcal {
   background:
-    linear-gradient(135deg, rgba(204, 216, 173, 0.62), rgba(244, 239, 226, 0.92) 58%, rgba(255, 255, 255, 0.9));
-  border-color: rgba(125, 139, 90, 0.18);
+    linear-gradient(135deg, rgba(219, 233, 239, 0.7), rgba(244, 239, 226, 0.92) 58%, rgba(255, 255, 255, 0.9));
+  border-color: rgba(31, 95, 117, 0.18);
 }
 
 .meal-card-summary-kcal strong {
@@ -947,7 +947,7 @@ textarea::placeholder {
   right: 18px;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(43, 109, 125, 0.08), rgba(125, 139, 90, 0.14), rgba(255, 250, 242, 0));
+  background: linear-gradient(90deg, rgba(43, 109, 125, 0.08), rgba(31, 95, 117, 0.14), rgba(255, 250, 242, 0));
   pointer-events: none;
 }
 
@@ -3946,7 +3946,7 @@ label.is-invalid textarea:focus {
 }
 
 .weekday-choice:has(input:checked) {
-  background: linear-gradient(180deg, rgba(152, 166, 108, 0.18), rgba(216, 234, 223, 0.88));
+  background: linear-gradient(180deg, rgba(219, 233, 239, 0.9), rgba(219, 233, 239, 0.9));
   border-color: rgba(43, 109, 125, 0.14);
   color: var(--accent);
 }
@@ -5055,7 +5055,7 @@ body.menu-open .menu-fab {
     max-height: 64px;
     overflow: hidden;
     opacity: 1;
-    transition: max-height 0.22s ease, opacity 0.16s ease;
+    transition: opacity 0.16s ease;
   }
 
   body.plan-compact .hero-top {
@@ -6050,7 +6050,7 @@ body.menu-open .tab-bar {
   -webkit-tap-highlight-color: transparent;
   transition:
     color 0.2s ease,
-    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 0.24s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .tab-bar-item .tab-icon {
@@ -6388,6 +6388,12 @@ body.menu-open .tab-bar {
 :root[data-theme="dark"] .weekday-choice:has(input:checked) {
   background: linear-gradient(135deg, oklch(0.7 0.085 225 / 0.3), oklch(0.7 0.085 225 / 0.16));
   border-color: oklch(0.7 0.085 225 / 0.5);
+}
+
+/* The chip's .is-active text colour is the dark on-accent ink meant for a
+   solid accent fill; over this translucent tint it measured 1.5:1. */
+:root[data-theme="dark"] .weekday-choice:has(input:checked) {
+  color: var(--ink);
 }
 
 :root[data-theme="dark"] .update-banner,
@@ -6852,30 +6858,22 @@ body.app-header-hidden .workspace-header {
    label ("Naziv"). Hide it here. */
 
 /* ============================================================
-   Orchestrated entrance: a single staggered reveal when a tab
-   opens (one-shot via .is-entering; consumed after first render).
+   Tab entrance: one short opacity crossfade of the whole tab. It used to
+   be a 0.5s staggered rise per section (~760ms until the last one landed),
+   which made every tab switch in a short, frequent-session app feel slow.
    ============================================================ */
 @keyframes section-rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
 .app-main.is-entering > * {
-  animation: section-rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: section-rise 0.16s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
-
-.app-main.is-entering > *:nth-child(1) { animation-delay: 0.02s; }
-.app-main.is-entering > *:nth-child(2) { animation-delay: 0.07s; }
-.app-main.is-entering > *:nth-child(3) { animation-delay: 0.12s; }
-.app-main.is-entering > *:nth-child(4) { animation-delay: 0.17s; }
-.app-main.is-entering > *:nth-child(5) { animation-delay: 0.22s; }
-.app-main.is-entering > *:nth-child(n + 6) { animation-delay: 0.26s; }
 
 @media (prefers-reduced-motion: reduce) {
   .app-main.is-entering > * {
@@ -7056,7 +7054,7 @@ body.app-header-hidden .workspace-header {
   font-size: 1.25rem;
   line-height: 1;
   flex: 0 0 auto;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 }
 .form-collapse[open] > summary {
   margin-bottom: 16px;
@@ -7263,7 +7261,7 @@ body.app-header-hidden .workspace-header {
 .routine-check-ui::after {
   transition:
     border-color 0.2s ease,
-    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
   transform-origin: center;
 }
 .meal-toggle-checkbox:checked + .meal-toggle-ui::after,
@@ -9561,7 +9559,7 @@ body.app-header-hidden .workspace-header {
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
@@ -9616,7 +9614,7 @@ body.app-header-hidden .workspace-header {
   background: var(--accent-soft);
   color: var(--accent);
   font-family: inherit;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
@@ -12810,7 +12808,7 @@ button.meal-entry-body:focus-visible {
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   color: var(--muted);
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 }
 .measurement-extra-icon svg {
   width: 15px;
@@ -12999,4 +12997,29 @@ button.meal-entry-body:focus-visible {
 }
 .plan-glance-sub .text-link-button {
   font-size: inherit;
+}
+
+/* ============================================================
+   2026-09-23 — tap targets. Several controls were drawn smaller than a
+   fingertip (favourite star 26x32, inline text links ~15px tall, glance
+   buttons 34px). The visible size stays; an invisible ::after grows the
+   hit area to ~44px so layout and rhythm do not move.
+   ============================================================ */
+.food-row-star,
+.food-row-menu,
+.text-link-button,
+.plan-glance-btn {
+  position: relative;
+}
+.food-row-star::after,
+.food-row-menu::after,
+.plan-glance-btn::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.text-link-button::after {
+  content: "";
+  position: absolute;
+  inset: -14px -6px;
 }
