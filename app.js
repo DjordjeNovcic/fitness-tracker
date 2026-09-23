@@ -617,6 +617,7 @@ const state = {
   activeTab: getInitialTab(),
   lastTabInGroup: {},
   quickWeightOpen: false,
+  planBurnEditOpen: false,
   onboarding: null,
   lastAddedEntryId: "",
   trainingProgressOpen: false,
@@ -5616,12 +5617,12 @@ function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
   }
 }
 
-// Kalorije treninga. Na danima sa planom se kuca po sekcijama (trening, stomak,
-// kardio) i ukupno je njihov zbir; „Potrošnja sa sata“ ostaje ispod i važi samo
-// kad nijedna sekcija nije upisana (tako uvoz sa sata i dalje radi za dane kad
-// ne kucaš ništa). Na danima bez plana nema šta da se deli na sekcije, pa se
-// prikazuje samo polje sa sata — kao i pre.
-function renderTrainingBurnSection(templates) {
+// Kalorije treninga. Kucaju se po sekcijama (trening, stomak, kardio) i ukupno
+// je njihov zbir; „Potrošnja sa sata“ ostaje ispod i važi samo kad nijedna
+// sekcija nije upisana (tako uvoz sa sata i dalje radi za dane kad ne kucaš
+// ništa). Sekcije stoje na svakom danu, ne samo na danima sa šablonom — kardio
+// se radi i na dan odmora. Ista polja su i u redu „Trening“ na „Danas“.
+function renderTrainingBurnSection() {
   const weekday = state.selectedWeekday;
   // Kalorije su stvarni podaci tekuće nedelje (ključ je samo dan u nedelji), a
   // šablon za „Sledeću nedelju“ je plan. Forma na tom prikazu bi prepisala
@@ -5630,12 +5631,8 @@ function renderTrainingBurnSection(templates) {
     return `
       <p class="footer-note training-burn-intro">Kalorije treninga se upisuju za ovu nedelju — prebaci na „Ova nedelja“ da ih uneseš.</p>`;
   }
-  const hasTraining = templates.length > 0;
   const sections = getTrainingSectionBurns(weekday);
   const sectionTotal = getTrainingSectionBurnTotal(weekday);
-  // Sekcije ostaju vidljive i kad šablon nestane, dok god u njima ima upisanih
-  // kalorija — inače bi stari zbir i dalje važio, a ne bi bilo polja da se obriše.
-  const showSections = hasTraining || sectionTotal > 0;
   const watchBurn = getWatchBurnForDay(weekday);
   const resolved = getTrainingBurnForDay(weekday);
   const watchField = `
@@ -5653,23 +5650,14 @@ function renderTrainingBurnSection(templates) {
             />
           </div>`;
   return `
-      <details class="form-collapse training-burn-collapse" ${resolved > 0 ? "open" : ""}>
+      <details class="form-collapse training-burn-collapse" ${resolved > 0 || isSelectedDayToday() ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">Kalorije treninga</span>
           ${resolved > 0 ? `<span class="pill strong">${roundValue(resolved, 0)} kcal</span>` : ""}
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
-        <p class="footer-note training-burn-intro">${
-          hasTraining
-            ? "Upiši kalorije po delovima treninga — ukupno je njihov zbir i to ulazi u neto unos na „Danas“."
-            : showSections
-              ? "Ovaj dan više nema trening u planu, ali ranije upisane sekcije i dalje važe. Obriši ih ako više ne stoje."
-              : "Nema plana za ovaj dan, pa nema šta da se deli na sekcije. Upiši ukupnu potrošnju (Apple Watch i sl.) da Danas prikaže neto unos."
-        }</p>
+        <p class="footer-note training-burn-intro">Upiši kalorije po delovima treninga — ukupno je njihov zbir i to ulazi u neto unos na „Danas“.</p>
         <form id="training-burn-form" class="form-grid split training-burn-form">
-          ${
-            showSections
-              ? `
           <div class="form-grid-3">
             ${sections
               .map(
@@ -5698,9 +5686,7 @@ function renderTrainingBurnSection(templates) {
                   .map((section) => `${escapeHtml(section.label.toLowerCase())} ${section.kcal}`)
                   .join(" + ")}. Ovo ulazi u neto unos na „Danas“.`
               : `Dok su sva tri prazna, u neto unos ide broj sa sata ispod.`
-          }</p>`
-              : ""
-          }
+          }</p>
           ${watchField}
           <div class="training-burn-actions">
             <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
@@ -7257,6 +7243,25 @@ function getInitialPlanSupplementsExpanded() {
   return window.innerWidth >= 720;
 }
 
+// Pregled i suplementi pamte tvoj poslednji izbor (store.ui, putuje sa nalogom).
+// Širina ekrana je samo podrazumevana vrednost dok ih jednom ne otvoriš ili
+// zatvoriš — ranije su se na telefonu sklapali pri svakom otvaranju app-a.
+function isPlanSummaryExpanded() {
+  const saved = store.ui?.plan?.summaryExpanded;
+  return typeof saved === "boolean" ? saved : state.planSummaryExpanded;
+}
+
+function isPlanSupplementsExpanded() {
+  const saved = store.ui?.plan?.supplementsExpanded;
+  return typeof saved === "boolean" ? saved : state.planSupplementsExpanded;
+}
+
+function rememberPlanSectionExpanded(key, expanded) {
+  store.ui = store.ui || {};
+  store.ui.plan = store.ui.plan || {};
+  store.ui.plan[key] = expanded;
+}
+
 function renderHero(entries, totals) {
   return `
     <section class="hero hero--plan">
@@ -8716,12 +8721,12 @@ function renderPlanSupplementsSection() {
   const allSupplements = getSupplements();
 
   return `
-    <section class="section plan-supplements-section ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
+    <section class="section plan-supplements-section ${isPlanSupplementsExpanded() ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
         type="button"
         data-action="toggle-plan-supplements"
-        aria-expanded="${state.planSupplementsExpanded}"
+        aria-expanded="${isPlanSupplementsExpanded()}"
       >
         <div class="section-disclosure-copy">
           <h2>Vitamini i suplementi</h2>
@@ -8729,10 +8734,10 @@ function renderPlanSupplementsSection() {
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${supplements.length} ${srPlural(supplements.length, "stavka", "stavke", "stavki")}</span>
-          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSupplementsExpanded)}</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(isPlanSupplementsExpanded())}</span>
         </div>
       </button>
-      <div class="plan-section-body ${state.planSupplementsExpanded ? "is-expanded" : "is-collapsed"}">
+      <div class="plan-section-body ${isPlanSupplementsExpanded() ? "is-expanded" : "is-collapsed"}">
       <div class="stats-grid stats-grid--glance plan-supplement-summary">
         <article class="stat-card">
           <strong>Za danas</strong>
@@ -8978,7 +8983,89 @@ function renderPlanGlanceRows() {
         </div>
         <button class="plan-glance-btn ${state.stepsEditOpen ? "is-active" : ""}" type="button" data-action="toggle-steps-edit" aria-label="${state.stepsEditOpen ? "Zatvori unos koraka" : "Unesi korake"}">${state.stepsEditOpen ? "Zatvori" : "Unesi"}</button>
       </div>
+      ${renderPlanTrainingBurnRow()}
+      ${renderPlanWeightRow()}
     </div>`;
+}
+
+// Kalorije treninga (trening, stomak, kardio) za dan na ekranu — isti podaci
+// kao forma na Treningu, samo bez odlaska tamo. Samo za ovu nedelju: potrošnja
+// je stvarni podatak tekuće nedelje, „Sledeća nedelja“ je plan.
+function renderPlanTrainingBurnRow() {
+  if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
+    return "";
+  }
+  const weekday = state.selectedWeekday;
+  const sections = getTrainingSectionBurns(weekday);
+  const sectionTotal = getTrainingSectionBurnTotal(weekday);
+  const watchBurn = getWatchBurnForDay(weekday);
+  const resolved = getTrainingBurnForDay(weekday);
+  const filled = sections.filter((section) => section.kcal > 0);
+  const sub = sectionTotal > 0
+    ? filled.map((section) => `${section.label.toLowerCase()} ${section.kcal}`).join(" + ")
+    : watchBurn > 0
+      ? "sa sata"
+      : "trening, stomak, kardio";
+  const open = state.planBurnEditOpen;
+  return `
+      <div class="plan-glance-row plan-glance-row--burn">
+        <span class="plan-glance-icon" aria-hidden="true">🔥</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">Trening</span><span class="plan-glance-value">${
+            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"
+          }</span></div>
+          ${
+            open
+              ? `<form id="plan-burn-form" class="plan-burn-form">
+                  ${sections
+                    .map(
+                      (section) => `
+                  <label class="plan-burn-field">
+                    <span>${escapeHtml(section.label)}</span>
+                    <input name="section-${section.id}" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="kcal" value="${section.kcal || ""}" />
+                  </label>`
+                    )
+                    .join("")}
+                  <button class="solid-button" type="submit">Sačuvaj</button>
+                  ${
+                    watchBurn > 0 && sectionTotal === 0
+                      ? `<p class="plan-glance-sub plan-burn-note">Zbir zamenjuje ${roundValue(watchBurn, 0)} kcal sa sata.</p>`
+                      : ""
+                  }
+                </form>`
+              : `<div class="plan-glance-sub">${escapeHtml(sub)}</div>`
+          }
+        </div>
+        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-plan-burn-edit" aria-label="${open ? "Zatvori unos kalorija treninga" : "Unesi kalorije treninga"}">${open ? "Zatvori" : "Unesi"}</button>
+      </div>`;
+}
+
+// Težina danas — stalno na „Danas“, a ne samo kad podsetnik iskoči posle
+// nedelju dana bez merenja.
+function renderPlanWeightRow() {
+  const latest = getLatestMeasurement();
+  const days = latest && toNumber(latest.weightKg) > 0 ? daysBetweenDateValues(latest.date, getTodayDateValue()) : null;
+  const when = days == null ? "" : days <= 0 ? "danas" : days === 1 ? "juče" : `pre ${days} dana`;
+  const open = state.quickWeightOpen;
+  return `
+      <div class="plan-glance-row ${days === 0 ? "is-done" : ""}">
+        <span class="plan-glance-icon" aria-hidden="true">⚖️</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
+            days != null ? `${String(roundValue(latest.weightKg, 1)).replace(".", ",")} kg` : "nije uneto"
+          }</span></div>
+          ${
+            open
+              ? `<form id="quick-weight-form" class="plan-glance-edit">
+                  <input class="steps-input" id="quick-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="npr. 84,5" aria-label="Težina danas u kilogramima" required />
+                  <span class="quick-weight-unit">kg</span>
+                  <button class="solid-button" type="submit">Sačuvaj</button>
+                </form>`
+              : `<div class="plan-glance-sub">${days != null ? `poslednje merenje ${when}` : "upiši današnju težinu"} · <button type="button" class="text-link-button" data-action="jump-measurement">više mera</button></div>`
+          }
+        </div>
+        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-quick-weight" aria-label="${open ? "Zatvori unos težine" : "Unesi težinu danas"}">${open ? "Zatvori" : "Unesi"}</button>
+      </div>`;
 }
 
 function getTodaySteps() {
@@ -9147,20 +9234,6 @@ function renderTodayRemindersBanner() {
         </div>
         <button class="ghost-button button-with-icon icon-only-action today-reminders-close" type="button" data-action="dismiss-reminders" aria-label="Sakrij podsetnike za danas" title="Sakrij za danas">${renderButtonContent("Sakrij", "close")}</button>
       </div>
-      ${
-        state.quickWeightOpen
-          ? `
-          <form id="quick-weight-form" class="quick-weight-form">
-            <label for="quick-weight" class="quick-weight-label">Težina danas</label>
-            <div class="quick-weight-controls">
-              <input id="quick-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="npr. 84,5" required />
-              <span class="quick-weight-unit">kg</span>
-              <button class="solid-button button-with-icon" type="submit">${renderButtonContent("Sačuvaj", "save")}</button>
-              <button class="ghost-button" type="button" data-action="jump-measurement">Više mera</button>
-            </div>
-          </form>`
-          : ""
-      }
     </section>`;
 }
 
@@ -9607,26 +9680,26 @@ function renderPlanTab(entries) {
   return `
     ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal) : ""}
 
-    <section class="section plan-summary-section ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
+    <section class="section plan-summary-section ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
         type="button"
         data-action="toggle-plan-summary"
-        aria-expanded="${state.planSummaryExpanded}"
+        aria-expanded="${isPlanSummaryExpanded()}"
       >
         <div class="section-disclosure-copy">
           <h2>Dnevni pregled</h2>
           ${
-            !state.planSummaryExpanded && calorieGoal
+            !isPlanSummaryExpanded() && calorieGoal
               ? renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState, ringFacts)
               : `<p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>`
           }
         </div>
         <div class="section-disclosure-meta">
-          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planSummaryExpanded)}</span>
+          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(isPlanSummaryExpanded())}</span>
         </div>
       </button>
-      <div class="plan-section-body ${state.planSummaryExpanded ? "is-expanded" : "is-collapsed"}">
+      <div class="plan-section-body ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
       ${
         calorieGoal
           ? `
@@ -9682,9 +9755,14 @@ function renderPlanTab(entries) {
       }
       <div class="plan-summary-layout">
         ${renderMacroCards(totals, { excludeCalories: true })}
-        ${renderPlanGlanceRows()}
+        ${isPlanSummaryExpanded() ? renderPlanGlanceRows() : ""}
       </div>
       </div>
+      ${
+        // Voda, kafa, koraci, trening i težina se kucaju svaki dan — ne smeju da
+        // budu iza sklopljenog pregleda (na telefonu je on sklopljen podrazumevano).
+        isPlanSummaryExpanded() ? "" : renderPlanGlanceRows()
+      }
     </section>
 
     ${renderTodayRemindersBanner()}
@@ -10639,7 +10717,7 @@ function renderTrainingTab() {
           <h2>Nedeljni plan treninga</h2>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se na danima sa planom kucaju po sekcijama — <strong>trening, stomak, kardio</strong> — a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama — <strong>trening, stomak, kardio</strong> — ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu — beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje — isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${renderWeekTrackRow()}
       <div class="training-week-strip" role="group" aria-label="Izaberi dan">
         ${weeklyTrainingPlan
@@ -10778,7 +10856,7 @@ function renderTrainingTab() {
             : `<div class="empty">Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}. Dodaj šablon ispod${favoriteTrainings.length ? " ili ubaci omiljeni trening" : ""}.</div>`
         }
       </div>
-      ${renderTrainingBurnSection(templates)}
+      ${renderTrainingBurnSection()}
     </section>
 
     ${
@@ -15962,13 +16040,15 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "toggle-plan-summary") {
-    state.planSummaryExpanded = !state.planSummaryExpanded;
+    rememberPlanSectionExpanded("summaryExpanded", !isPlanSummaryExpanded());
+    persist();
     render();
     return;
   }
 
   if (action === "toggle-plan-supplements") {
-    state.planSupplementsExpanded = !state.planSupplementsExpanded;
+    rememberPlanSectionExpanded("supplementsExpanded", !isPlanSupplementsExpanded());
+    persist();
     render();
     return;
   }
@@ -18523,6 +18603,15 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-plan-burn-edit") {
+    state.planBurnEditOpen = !state.planBurnEditOpen;
+    render();
+    if (state.planBurnEditOpen) {
+      window.requestAnimationFrame(() => document.querySelector("#plan-burn-form input")?.focus());
+    }
+    return;
+  }
+
   if (action === "toggle-quick-weight") {
     state.quickWeightOpen = !state.quickWeightOpen;
     render();
@@ -19288,7 +19377,7 @@ async function handleSubmit(event) {
     return;
   }
 
-  if (event.target.id === "training-burn-form") {
+  if (event.target.id === "training-burn-form" || event.target.id === "plan-burn-form") {
     const submitButton = event.submitter instanceof HTMLButtonElement ? event.submitter : null;
     await runButtonAction(
       submitButton,
@@ -19299,10 +19388,11 @@ async function handleSubmit(event) {
         if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
           return;
         }
-        const burnKcal = Math.max(0, toNumber(formData.get("burnKcal")));
-        store.trainingBurnByWeekday[weekday] = burnKcal;
-        // Polja po sekcijama postoje samo na danima sa planom; na ostalima
-        // formData nema te ključeve i postojeći unos ostaje netaknut.
+        // Polje sa sata postoji samo u formi na Treningu; red na „Danas“ kuca
+        // samo sekcije i broj sa sata ostavlja kakav jeste.
+        if (formData.has("burnKcal")) {
+          store.trainingBurnByWeekday[weekday] = Math.max(0, toNumber(formData.get("burnKcal")));
+        }
         if (TRAINING_BURN_SECTIONS.some((section) => formData.has(`section-${section.id}`))) {
           const bucket = {};
           TRAINING_BURN_SECTIONS.forEach((section) => {
@@ -19319,6 +19409,7 @@ async function handleSubmit(event) {
             delete store.trainingSectionBurnByWeekday[weekday];
           }
         }
+        state.planBurnEditOpen = false;
         persist();
         render();
       },

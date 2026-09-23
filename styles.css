@@ -12955,3 +12955,48 @@ button.meal-entry-body:focus-visible {
   border-color: var(--line-strong);
   box-shadow: none;
 }
+
+/* Danas: red „Trening“ — tri mala polja (trening, stomak, kardio) u jednom
+   redu ispod naslova, dugme ispod njih. Uklapa se u visinu ostalih redova. */
+.plan-burn-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.plan-burn-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.plan-burn-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+.plan-burn-form .solid-button {
+  grid-column: 1 / -1;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}
+.plan-burn-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  white-space: normal;
+}
+/* Težina: polje za kilažu treba mesta za „84,5“, a ne za koraka-širinu. */
+.plan-glance-edit #quick-weight {
+  width: 90px;
+  flex: 0 1 90px;
+}
+.plan-glance-sub .text-link-button {
+  font-size: inherit;
+}
