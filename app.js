@@ -10130,7 +10130,7 @@ function renderFoodsTab() {
   return `
     <section class="section foods-section">
       <header class="foods-head">
-        <h2>Namirnice</h2>
+        <h2 class="sr-only">Namirnice</h2>
         <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnice", "namirnice", "namirnica")}` : `${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnica", "namirnice", "namirnica")} u bazi`}</p>
       </header>
 
@@ -10613,7 +10613,7 @@ function renderRecipesTab() {
                           </div>
                           <div class="recipe-library-meta">
                             ${[
-                              favorite.mealLabel || favorite.name,
+                              getMealDisplayParts(favorite.mealLabel).title || favorite.name,
                               `${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}`,
                               favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
                             ]
@@ -10644,12 +10644,7 @@ function renderRecipesTab() {
                                             <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
                                             <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
                                           </div>
-                                          <div class="pill-row recipe-library-ingredient-macros">
-                                            <span class="pill note">${roundValue(item.totals.kcal, 0)} kcal</span>
-                                            <span class="pill">P ${roundValue(item.totals.protein, 1)} g</span>
-                                            <span class="pill">UH ${roundValue(item.totals.carbs, 1)} g</span>
-                                            <span class="pill">M ${roundValue(item.totals.fat, 1)} g</span>
-                                          </div>
+                                          <div class="recipe-library-ingredient-macros"><strong>${roundValue(item.totals.kcal, 0)} kcal</strong> · P ${roundValue(item.totals.protein, 1)} · UH ${roundValue(item.totals.carbs, 1)} · M ${roundValue(item.totals.fat, 1)} g</div>
                                         </div>
                                       `
                                     )
@@ -10658,16 +10653,22 @@ function renderRecipesTab() {
                               `
                               : ""
                           }
-                          <div class="entry-actions" style="gap:8px; justify-content:flex-start; flex-wrap:wrap; margin-top:12px;">
+                          <div class="entry-actions recipe-library-actions">
                             <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
                               ${renderButtonContent("Dodaj u plan", "add")}
                             </button>
-                            <button class="ghost-button button-with-icon icon-only-action" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Izmeni recept" title="Izmeni recept">
+                            ${
+                              // Izmena i brisanje su retke radnje — stoje u otvorenom receptu,
+                              // ne na svakom redu biblioteke pored glavne radnje.
+                              isExpanded
+                                ? `<button class="ghost-button button-with-icon icon-only-action" data-action="prefill-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Izmeni recept" title="Izmeni recept">
                               ${renderButtonContent("Izmeni recept", "edit")}
                             </button>
                             <button class="danger-button button-with-icon icon-only-action" data-action="delete-favorite-meal" data-favorite-id="${favorite.id}" aria-label="Obriši recept" title="Obriši recept">
                               ${renderButtonContent("Obriši recept", "delete")}
-                            </button>
+                            </button>`
+                                : ""
+                            }
                           </div>
                         </div>
                       </div>

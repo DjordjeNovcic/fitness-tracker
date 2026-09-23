@@ -13279,3 +13279,55 @@ button.meal-entry-body:focus-visible {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
+
+/* ============================================================
+   2026-09-23 — Hrana polish.
+   ============================================================ */
+/* Recepti: one primary per row. "Dodaj u plan" is a compact tinted button;
+   edit and delete live in the opened recipe (quiet, pushed right). */
+.recipe-library-actions,
+.entry-actions.recipe-library-actions {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.recipe-library-actions .solid-button {
+  min-height: 38px;
+  padding: 7px 14px;
+  font-size: 0.875rem;
+}
+.recipe-library-actions .icon-only-action:first-of-type {
+  margin-left: auto;
+}
+.recipe-library-ingredient-macros {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.recipe-library-ingredient-macros strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+/* Namirnice: the horizontally scrolling chip row fades out at the edge so a
+   half-cut last chip reads as "more this way", not as a clipping bug. */
+.foods-chips {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  padding-right: 24px;
+}
+/* The segmented control right above already says "Namirnice"; a third copy
+   of the word as the card title was noise. Kept for screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
