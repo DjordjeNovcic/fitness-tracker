@@ -6200,9 +6200,12 @@ function saveFavoriteMealMetadata(payload = {}) {
     updatedAt: new Date().toISOString(),
   };
 
+  // Menja se samo recept otvoren olovkom. Nov recept sa istim imenom kao
+  // postojeći je ranije tiho prepisivao stari (sastojke, opis, sliku); to sada
+  // sprečava provera pre čuvanja, a ovde se po imenu više ne traži.
   const existingFavorite = state.editingFavoriteItem.favoriteId
     ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId)
-    : getFavoriteMealByName(normalizedFavoriteName);
+    : null;
 
   if (existingFavorite) {
     const imageChanged = existingFavorite.imageUrl !== normalizedImageUrl;
@@ -17549,6 +17552,17 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    const sameName = getFavoriteMealByName(draftPreview.favoriteName);
+    if (sameName && sameName.id !== state.editingFavoriteItem.favoriteId) {
+      showFeedbackToast({
+        title: "Recept sa tim imenom već postoji",
+        detail: `Promeni naziv, ili otvori postojeći „${sameName.name}“ olovkom ako hoćeš da ga izmeniš.`,
+        tone: "warning",
+      });
+      return;
+    }
+
+    const wasEditing = Boolean(state.editingFavoriteItem.favoriteId);
     const saved = saveFavoriteMealDraft({
       favoriteName: state.favoriteDraft.favoriteName,
       mealLabel: state.favoriteDraft.mealLabel,
@@ -17567,7 +17581,10 @@ async function handleDocumentClick(event) {
     const savedName = draftPreview.favoriteName;
     resetFavoriteDraft();
     render();
-    showFeedbackToast({ title: "Recept je sačuvan", detail: `"${savedName}" je dodat u biblioteku recepata.` });
+    showFeedbackToast({
+      title: "Recept je sačuvan",
+      detail: wasEditing ? `Izmene u „${savedName}“ su sačuvane.` : `„${savedName}“ je dodat u biblioteku recepata.`,
+    });
     return;
   }
 
