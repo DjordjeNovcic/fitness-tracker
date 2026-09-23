@@ -7853,7 +7853,7 @@ function renderUnitField(id, label, unit, inputHtml, full = false) {
   return `
     <div class="field ${full ? "field--full" : ""}">
       <label for="${id}">${escapeHtml(label)}</label>
-      <div class="input-unit">
+      <div class="input-unit" style="--unit-len:${String(unit || "").length}">
         ${inputHtml}
         ${unit ? `<span class="input-unit-suffix" aria-hidden="true">${escapeHtml(unit)}</span>` : ""}
       </div>
@@ -12226,7 +12226,7 @@ function renderAdaptiveGoalNudge() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Ažuriraj cilj</h2>
-          <p>Težina se promenila (${roundValue(basis, 1)} → ${roundValue(currentWeight, 1)} kg). Da deficit ostane tačan, predlog je <strong>${rec.targetCalories} kcal</strong>${rec.rateKgPerWeek ? ` (${rec.rateKgPerWeek > 0 ? "+" : ""}${rec.rateKgPerWeek} kg/ned)` : ""}.</p>
+          <p>Težina se promenila (${formatDecimal(basis, 1)} → ${formatDecimal(currentWeight, 1)} kg). Da deficit ostane tačan, predlog je <strong>${rec.targetCalories} kcal</strong>${rec.rateKgPerWeek ? ` (${rec.rateKgPerWeek > 0 ? "+" : "−"}${formatDecimal(Math.abs(rec.rateKgPerWeek), 2)} kg/ned)` : ""}.</p>
         </div>
         <button class="solid-button secondary-button button-with-icon" type="button" data-action="apply-adaptive-goal">${renderButtonContent("Ažuriraj", "apply")}</button>
       </div>
@@ -12264,6 +12264,11 @@ function formatRelativeDayLabel(dateValue) {
   if (days === 0) return "danas";
   if (days === 1) return "juče";
   return `pre ${days} ${srPlural(days, "dan", "dana", "dana")}`;
+}
+
+// Decimalni zarez, kao što se piše na srpskom („84,5 kg“).
+function formatDecimal(value, digits = 1) {
+  return String(roundValue(toNumber(value), digits)).replace(".", ",");
 }
 
 // „a, b i c“ — spisak u rečenici.
@@ -12447,20 +12452,16 @@ function renderGoalCalibrationCard() {
   if (cal.status === "insufficient") {
     return `
     <section class="section calibration-section is-waiting">
-      ${renderSectionLead("Kalibracija cilja", "Kad se skupi dovoljno podataka, cilj se proverava prema onome što telo stvarno radi, ne prema formuli.")}
-      <div class="calibration-progress">
-        <div class="calibration-progress-item">
-          <span class="plan-net-label">Kompletni dani</span>
-          <strong>${cal.loggedDays}/${CALIBRATION_MIN_LOGGED_DAYS}</strong>
-          <span class="footer-note">u poslednjih ${cal.windowDays} dana</span>
+      <div class="calibration-waiting">
+        <div class="calibration-waiting-copy">
+          <h2>Kalibracija cilja</h2>
+          <p>Proverava cilj prema tome šta telo stvarno radi. Počinje kad se skupi dovoljno podataka; dan se računa kad su svi obroci čekirani.</p>
         </div>
-        <div class="calibration-progress-item">
-          <span class="plan-net-label">Merenja težine</span>
-          <strong>${cal.weighIns}/${CALIBRATION_MIN_WEIGHINS}</strong>
-          <span class="footer-note">u poslednjih ${CALIBRATION_WEIGHT_WINDOW_DAYS} dan${CALIBRATION_WEIGHT_WINDOW_DAYS % 10 === 1 && CALIBRATION_WEIGHT_WINDOW_DAYS % 100 !== 11 ? "" : "a"}</span>
-        </div>
+        <dl class="calibration-waiting-stats">
+          <div><dt>Kompletni dani</dt><dd>${cal.loggedDays}<span>/${CALIBRATION_MIN_LOGGED_DAYS}</span></dd></div>
+          <div><dt>Merenja</dt><dd>${cal.weighIns}<span>/${CALIBRATION_MIN_WEIGHINS}</span></dd></div>
+        </dl>
       </div>
-      <div class="footer-note">Fali: ${escapeHtml(cal.missing.join(", "))}. Čekiraj sve obroke u danu da bi se dan računao.</div>
       ${lastLine}
     </section>`;
   }
@@ -12654,8 +12655,11 @@ function renderGoalsTab() {
     ${gSegNav}
 
     ${gView === "cilj" ? `
-    ${renderGoalCalibrationCard()}
-    ${getGoalCalibration().status === "insufficient" ? renderAdaptiveGoalNudge() : ""}
+    ${
+      // Kalibracija koja tek skuplja podatke nije radnja nego status — ide ispod
+      // cilja, kao jedan red. Kad ima predlog, ostaje na vrhu: tad je poziv.
+      getGoalCalibration().status === "insufficient" ? renderAdaptiveGoalNudge() : renderGoalCalibrationCard()
+    }
 
     <section class="section goals-profile-section">
       ${renderSectionLead("Profil i ciljevi", "")}
@@ -12819,6 +12823,7 @@ function renderGoalsTab() {
       }
       </div>
     </section>
+    ${getGoalCalibration().status === "insufficient" ? renderGoalCalibrationCard() : ""}
     ` : ""}
 
     ${gView === "nedeljno" ? `

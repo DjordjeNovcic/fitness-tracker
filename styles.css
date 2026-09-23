@@ -12588,8 +12588,10 @@ button.meal-entry-body:focus-visible {
   position: relative;
   display: block;
 }
+/* Room for the suffix scales with its length: a flat 52px ate half of a
+   narrow three-column field, so "198" in a "g" field showed as "19". */
 .input-unit input {
-  padding-right: 52px;
+  padding-right: calc(22px + var(--unit-len, 4) * 0.6em);
 }
 .input-unit-suffix {
   position: absolute;
@@ -13430,4 +13432,78 @@ button.meal-entry-body:focus-visible {
   border-radius: 0;
   background: none;
   box-shadow: none;
+}
+
+/* Ciljevi: calibration that is still collecting data is a status line under
+   the goal, not a card above it. Copy left, two small counters right. */
+.calibration-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.calibration-waiting-copy {
+  min-width: 0;
+}
+.calibration-waiting-copy h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.calibration-waiting-copy p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.calibration-waiting-stats {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.calibration-waiting-stats div {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+.calibration-waiting-stats dt {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.calibration-waiting-stats dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.calibration-waiting-stats dd span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+@media (max-width: 520px) {
+  .calibration-waiting {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calibration-waiting-stats div {
+    justify-items: start;
+  }
+}
+
+/* Ciljevi has no ring, so the daily goal is this screen's one hero number:
+   display scale, like the ring's figure on Danas. */
+.goals-profile-section .stat-hero-value strong {
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.goals-profile-section .stat-hero-value {
+  margin-top: 6px;
+  font-size: 1rem;
 }
