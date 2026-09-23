@@ -19397,12 +19397,28 @@ async function handleSubmit(event) {
       return;
     }
     store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
-    const measurement = { id: uid("measurement"), date: getTodayDateValue(), weightKg: roundValue(weightKg, 1) };
+    const date = getTodayDateValue();
+    // Isto kao puna forma merenja: cilj se zamrzava na dan unosa, a profil
+    // prati težinu samo ako je ovo najnovije merenje.
+    const measurement = {
+      id: uid("measurement"),
+      date,
+      weightKg: roundValue(weightKg, 1),
+      calorieGoal: getCalorieGoalForDate(date),
+    };
     store.measurements.push(measurement);
+    const previousProfileWeight = store.profile.weightKg;
+    const isLatestMeasurement = !store.measurements.some(
+      (entry) => entry.id !== measurement.id && normalizeDateValue(entry.date) > date
+    );
+    if (isLatestMeasurement) {
+      store.profile.weightKg = measurement.weightKg;
+    }
     state.quickWeightOpen = false;
     persist();
     queuePendingUndo(`Težina sačuvana: ${roundValue(weightKg, 1)} kg (danas).`, () => {
       store.measurements = store.measurements.filter((entry) => entry.id !== measurement.id);
+      store.profile.weightKg = previousProfileWeight;
       persist();
     });
     render();
