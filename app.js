@@ -5609,9 +5609,19 @@ function toggleTrainingExerciseCompletion(weekday, templateId, exerciseId) {
 // prikazuje samo polje sa sata — kao i pre.
 function renderTrainingBurnSection(templates) {
   const weekday = state.selectedWeekday;
+  // Kalorije su stvarni podaci tekuće nedelje (ključ je samo dan u nedelji), a
+  // šablon za „Sledeću nedelju“ je plan. Forma na tom prikazu bi prepisala
+  // ovonedeljni dan i promenila neto na „Danas“, pa se tamo ne nudi.
+  if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
+    return `
+      <p class="footer-note training-burn-intro">Kalorije treninga se upisuju za ovu nedelju — prebaci na „Ova nedelja“ da ih uneseš.</p>`;
+  }
   const hasTraining = templates.length > 0;
   const sections = getTrainingSectionBurns(weekday);
   const sectionTotal = getTrainingSectionBurnTotal(weekday);
+  // Sekcije ostaju vidljive i kad šablon nestane, dok god u njima ima upisanih
+  // kalorija — inače bi stari zbir i dalje važio, a ne bi bilo polja da se obriše.
+  const showSections = hasTraining || sectionTotal > 0;
   const watchBurn = getWatchBurnForDay(weekday);
   const resolved = getTrainingBurnForDay(weekday);
   const watchField = `
@@ -5638,11 +5648,13 @@ function renderTrainingBurnSection(templates) {
         <p class="footer-note training-burn-intro">${
           hasTraining
             ? "Upiši kalorije po delovima treninga — ukupno je njihov zbir i to ulazi u neto unos na „Danas“."
-            : "Nema plana za ovaj dan, pa nema šta da se deli na sekcije. Upiši ukupnu potrošnju (Apple Watch i sl.) da Danas prikaže neto unos."
+            : showSections
+              ? "Ovaj dan više nema trening u planu, ali ranije upisane sekcije i dalje važe. Obriši ih ako više ne stoje."
+              : "Nema plana za ovaj dan, pa nema šta da se deli na sekcije. Upiši ukupnu potrošnju (Apple Watch i sl.) da Danas prikaže neto unos."
         }</p>
         <form id="training-burn-form" class="form-grid split training-burn-form">
           ${
-            hasTraining
+            showSections
               ? `
           <div class="form-grid-3">
             ${sections
@@ -10583,7 +10595,8 @@ function renderTrainingTab() {
   const templates = getTrainingForDay(state.selectedWeekday);
   const favoriteTrainings = getFavoriteTrainingsDetailed();
   const logs = store.trainingLogs.filter((log) => log.weekday === state.selectedWeekday);
-  const trainingBurn = getTrainingBurnForDay(state.selectedWeekday);
+  // Kao i na „Danas“ i u nedeljnoj traci: sledeća nedelja još nema potrošnju.
+  const trainingBurn = state.selectedWeekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(state.selectedWeekday) : 0;
   const weeklyTrainingPlan = getWeeklyTrainingPlan();
   const exerciseOptions = getTrainingExerciseOptions();
   const progressGroups = getTrainingProgressGroups();
@@ -19250,6 +19263,11 @@ async function handleSubmit(event) {
       submitButton,
       async () => {
         const weekday = state.selectedWeekday;
+        // Forma se na „Sledećoj nedelji“ ne prikazuje; ovo je samo osigurač da
+        // plan za sledeću nedelju nikad ne prepiše ovonedeljne kalorije.
+        if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
+          return;
+        }
         const burnKcal = Math.max(0, toNumber(formData.get("burnKcal")));
         store.trainingBurnByWeekday[weekday] = burnKcal;
         // Polja po sekcijama postoje samo na danima sa planom; na ostalima
