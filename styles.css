@@ -13391,3 +13391,43 @@ button.meal-entry-body:focus-visible {
     white-space: normal;
   }
 }
+
+/* Napredak › Merenja: empty measures are one sentence, a single weigh-in is
+   one row — no chart cards with a lone dot, no stacked grey boxes. */
+.measure-empty-line {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.measure-single-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.measure-single-row > span:first-child {
+  font-weight: 700;
+  color: var(--ink);
+}
+.measure-single-row strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+.measure-single-note {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+/* Trend cards inside the Trend section are hairline rows, not cards in a card. */
+.section .chart-grid > .chart-card,
+:root[data-theme="dark"] .section .chart-grid > .chart-card {
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}

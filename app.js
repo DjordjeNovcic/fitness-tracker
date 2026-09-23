@@ -9045,7 +9045,7 @@ function renderPlanTrainingBurnRow() {
 function renderPlanWeightRow() {
   const latest = getLatestMeasurement();
   const days = latest && toNumber(latest.weightKg) > 0 ? daysBetweenDateValues(latest.date, getTodayDateValue()) : null;
-  const when = days == null ? "" : days <= 0 ? "danas" : days === 1 ? "juče" : `pre ${days} dana`;
+  const when = days == null ? "" : formatRelativeDayLabel(latest.date);
   const open = state.quickWeightOpen;
   return `
       <div class="plan-glance-row">
@@ -12254,6 +12254,25 @@ function getCalibrationState() {
   return raw && typeof raw === "object" ? raw : {};
 }
 
+// „danas“ / „juče“ / „pre 5 dana“ — kratko i čitljivo u sažecima; puni datum
+// („23. septembar 2026.“) je u dva reda jeo mesto za sam broj.
+function formatRelativeDayLabel(dateValue) {
+  const days = daysBetweenDateValues(dateValue, getTodayDateValue());
+  if (days == null || days < 0) {
+    return formatDateValueLabel(dateValue) || String(dateValue || "");
+  }
+  if (days === 0) return "danas";
+  if (days === 1) return "juče";
+  return `pre ${days} ${srPlural(days, "dan", "dana", "dana")}`;
+}
+
+// „a, b i c“ — spisak u rečenici.
+function joinSerbianList(items) {
+  const list = items.filter(Boolean);
+  if (list.length <= 1) return list.join("");
+  return `${list.slice(0, -1).join(", ")} i ${list[list.length - 1]}`;
+}
+
 function daysBetweenDateValues(fromValue, toValue) {
   const from = getDateValueAsLocalDate(normalizeDateValue(fromValue));
   const to = getDateValueAsLocalDate(normalizeDateValue(toValue));
@@ -13920,19 +13939,19 @@ function renderProgressSummary(summary) {
       <dl class="glance-list progress-glance">
         <div class="glance-item">
           <dt>Poslednje merenje</dt>
-          <dd>${summary.latestMeasurement ? formatDateValueLabel(summary.latestMeasurement.date) || new Date(summary.latestMeasurement.date).toLocaleDateString("sr-RS") : "još nema"}</dd>
+          <dd>${summary.latestMeasurement ? formatRelativeDayLabel(summary.latestMeasurement.date) : "još nema"}</dd>
         </div>
         <div class="glance-item">
           <dt>Merenja</dt>
           <dd>${summary.measurementCount}</dd>
         </div>
         <div class="glance-item">
-          <dt>Progress slike</dt>
+          <dt>Slike napretka</dt>
           <dd>${summary.photoCount}${summary.latestPhoto ? ` <span class="glance-sub">poslednja ${formatDateValueLabel(summary.latestPhoto.date) || new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}</span>` : ""}</dd>
         </div>
         <div class="glance-item">
           <dt>Poređenje</dt>
-          <dd>${summary.compareReadyTags.length ? `spremno (${summary.compareReadyTags.join(", ")})` : `<span class="glance-sub">treba još slika sa istim tagom</span>`}</dd>
+          <dd>${summary.compareReadyTags.length ? `spremno (${summary.compareReadyTags.join(", ")})` : `<span class="glance-sub">treba bar dve slike iste poze</span>`}</dd>
         </div>
       </dl>
       ${
@@ -14149,8 +14168,13 @@ function getHistoryStats() {
   // A year back so the streak isn't silently capped at the window size (it used
   // to freeze at "30 dana u nizu" forever); averages still use the last 7 days.
   const days = getHistoryDays(366);
+  // Unos (kcal, protein) se proseči samo preko kompletnih dana — dan sa samo
+  // doručkom je pisao „prosek 377 kcal“. Voda se broji za svaki dan sa unosom.
   const avgOver = (windowDays, key) => {
-    const xs = windowDays.map((d) => d.snap && d.snap[key]).filter((v) => v > 0);
+    const xs = windowDays
+      .filter((d) => key === "waterMl" || isHistoryDayFinal(d))
+      .map((d) => d.snap && d.snap[key])
+      .filter((v) => v > 0);
     return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
   };
   const last7 = days.slice(-7);
@@ -14787,7 +14811,6 @@ function renderInsightsSection() {
             <p>Čim počneš da čekiraš obroke i unosiš težinu, ovde dobijaš sažetak: napredak, proseci i šta je uticalo na rezultat.</p>
           </div>
         </div>
-        <div class="insights-period">${periodChips}</div>
       </section>`;
   }
 
@@ -15195,12 +15218,17 @@ function renderProgressTab() {
           <h2>Ostale mere</h2>
         </div>
       </div>
-      <div class="stats-grid stats-grid--glance">
-        ${measurementFields
-          .filter((field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id))
-          .map((field) => renderMeasurementCard(field))
-          .join("")}
-      </div>
+      ${(() => {
+        // Mere bez ijednog unosa su bile po jedna kartica sa crticom i „Još nema
+        // unosa“ — tri prazne kartice za jednu rečenicu. Kartice ostaju samo za
+        // mere koje imaju broj; prazne se nabroje u jednom redu.
+        const otherFields = measurementFields.filter((field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id));
+        const filled = otherFields.filter((field) => getMeasurementSeries(field.id).length);
+        const empty = otherFields.filter((field) => !getMeasurementSeries(field.id).length);
+        return `
+          ${filled.length ? `<div class="stats-grid stats-grid--glance">${filled.map((field) => renderMeasurementCard(field)).join("")}</div>` : ""}
+          ${empty.length ? `<p class="measure-empty-line">${escapeHtml(joinSerbianList(empty.map((field, index) => (index ? field.label.toLowerCase() : field.label))))} još nemaju unos. Upisuju se u „Dodaj merenje“.</p>` : ""}`;
+      })()}
     </section>
 
     <section class="section">
@@ -15211,9 +15239,23 @@ function renderProgressTab() {
         </div>
       </div>
       ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je tempo — gde bi trebalo da budeš pri zadatom tempu (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
-      <div class="chart-grid">
-        ${chartFields.map((field) => renderTrendCard(field)).join("")}
-      </div>
+      ${(() => {
+        // Trend ima smisla tek od dva merenja. Jedno merenje je red sa brojem,
+        // mera bez merenja je samo ime u zajedničkoj rečenici — umesto kartice sa
+        // grafikom od jedne tačke ili sive kutije „Dodaj makar jedno merenje“.
+        const charted = chartFields.filter((field) => getMeasurementSeries(field.id).length >= 2);
+        const single = chartFields.filter((field) => getMeasurementSeries(field.id).length === 1);
+        const none = chartFields.filter((field) => !getMeasurementSeries(field.id).length);
+        return `
+          ${charted.length ? `<div class="chart-grid">${charted.map((field) => renderTrendCard(field)).join("")}</div>` : ""}
+          ${single
+            .map((field) => {
+              const point = getMeasurementSeries(field.id)[0];
+              return `<div class="measure-single-row"><span>${escapeHtml(field.label)}</span><strong>${String(roundValue(point.value, 1)).replace(".", ",")} ${escapeHtml(field.unit || "")}</strong><span class="measure-single-note">prvo merenje, ${formatRelativeDayLabel(point.date)} · trend od drugog</span></div>`;
+            })
+            .join("")}
+          ${none.length ? `<p class="measure-empty-line">${escapeHtml(joinSerbianList(none.map((field, index) => (index ? field.label.toLowerCase() : field.label))))} još nemaju merenja.</p>` : ""}`;
+      })()}
     </section>
     ` : ""}
 
