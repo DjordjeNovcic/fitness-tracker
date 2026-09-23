@@ -257,7 +257,7 @@ const TAB_META = {
   foods: { eyebrow: "Baza", description: "Pretraži namirnice, proveri makroe i dopuni bazu novim unosima." },
   training: { eyebrow: "Performans", description: "Plan treninga, potrošnja i progres po vežbama na jednom mestu." },
   running: { eyebrow: "Kardio", description: "Beleži trčanja — distancu, vreme, tempo i puls, sa pregledom forme kroz vreme." },
-  routine: { eyebrow: "Svakodnevica", description: "Navike, taskovi i nedeljni pregled koji pomažu da plan ostane realan." },
+  routine: { eyebrow: "Svakodnevica", description: "Navike, zadaci i nedeljni pregled koji pomažu da plan ostane realan." },
   progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i progress slike za jasan pregled napretka kroz vreme." },
   goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
   settings: { eyebrow: "Sigurnost", description: "Nalog, cloud sync i backup opcije za mirniji rad sa podacima." },
@@ -11895,7 +11895,7 @@ function renderRoutineTab() {
           <h2>Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
         </div>
       </div>
-      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Taskovi</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni streakovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule. Taskovi su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i streakovi su isti svake nedelje.")}
+      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“ — prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
       <div class="hero-day-picker routine-day-picker">
         <div class="chips hero-day-chips">
           ${WEEKDAYS.map(
@@ -11915,11 +11915,11 @@ function renderRoutineTab() {
           <strong>${summary.doneHabits}/${summary.habits.length}</strong>
         </div>
         <div class="plan-net-item">
-          <span class="plan-net-label">Taskovi</span>
+          <span class="plan-net-label">Zadaci</span>
           <strong>${summary.doneTasks}/${summary.tasks.length}</strong>
         </div>
         <div class="plan-net-item">
-          <span class="plan-net-label">Streakovi</span>
+          <span class="plan-net-label">Nizovi</span>
           <strong>${summary.streakHabits.length}</strong>
         </div>
       </div>
@@ -11927,9 +11927,9 @@ function renderRoutineTab() {
         ${
           summary.streakHabits.length
             ? summary.longestStreakDays
-              ? `Najduži aktivni streak: ${getDayCountLabel(summary.longestStreakDays)}`
-              : "Streakovi su dodati, još nema aktivnog niza"
-            : "Dodaj prvi streak ispod i kreni da brojiš"
+              ? `Najduži aktivni niz: ${getDayCountLabel(summary.longestStreakDays)}`
+              : "Nizovi su dodati, još nijedan nije aktivan"
+            : "Dodaj prvi niz ispod i kreni da brojiš"
         }
       </div>`
           : ""
@@ -11977,7 +11977,7 @@ function renderRoutineTab() {
           />
         </div>
         <div class="footer-note routine-habit-form-note">
-          Za streak naviku upiši naziv onako kako želiš da piše u evidenciji, npr. "bez alkohola". Ako ostane
+          Za naviku sa nizom upiši naziv onako kako želiš da piše u evidenciji, npr. "bez alkohola". Ako ostane
           nedeljna navika, datum se ignoriše.
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
@@ -12030,7 +12030,7 @@ function renderRoutineTab() {
     <section class="section routine-streak-section">
       <div class="section-header">
         <div>
-          <h2>Dugoročni streakovi</h2>
+          <h2>Dugoročni nizovi</h2>
           ${summary.streakHabits.length ? "" : `<p>Za stvari koje meriš na duže staze, tipa bez alkohola, bez cigareta ili doslednost mesecima.</p>`}
         </div>
       </div>
@@ -12039,7 +12039,7 @@ function renderRoutineTab() {
           ? `
             <article class="routine-streak-spotlight">
               <div>
-                <div class="routine-streak-spotlight-label">Najduži aktivni streak</div>
+                <div class="routine-streak-spotlight-label">Najduži aktivni niz</div>
                 <h3>${escapeHtml(topStreakHabit.name)}</h3>
                 <p>${getHabitStreakSentence(topStreakHabit)}</p>
               </div>
@@ -12089,7 +12089,7 @@ function renderRoutineTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi streak i dobićeš brojač tipa "90 dana bez alkohola".</div>`
+            : `<div class="empty">Dodaj prvi niz i dobićeš brojač tipa "90 dana bez alkohola".</div>`
         }
       </div>
     </section>
@@ -12097,7 +12097,7 @@ function renderRoutineTab() {
     <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
-          <h2>Taskovi za ${weekdayAccusative(state.selectedWeekday)}</h2>
+          <h2>Zadaci za ${weekdayAccusative(state.selectedWeekday)}</h2>
           <p>Sitne obaveze za izabrani dan.</p>
         </div>
       </div>
@@ -12116,12 +12116,12 @@ function renderRoutineTab() {
       </div>
       <details class="form-collapse" ${editingTask ? "open" : ""}>
         <summary>
-          <span class="form-collapse-title">${editingTask ? "Izmena taska" : "Dodaj task"}</span>
+          <span class="form-collapse-title">${editingTask ? "Izmena zadatka" : "Dodaj zadatak"}</span>
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
       <form id="task-form" class="form-grid split">
         <div class="field">
-          <label for="task-title">${editingTask ? "Izmena taska" : "Novi task"}</label>
+          <label for="task-title">${editingTask ? "Izmena zadatka" : "Novi zadatak"}</label>
           <input id="task-title" name="title" placeholder="npr. Spremi ručak" value="${escapeHtml(editingTask?.title || "")}" required />
         </div>
         <div class="field">
@@ -12129,7 +12129,7 @@ function renderRoutineTab() {
           <input id="task-note" name="note" placeholder="opciono" value="${escapeHtml(editingTask?.note || "")}" />
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button secondary-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj task"}</button>
+          <button class="solid-button secondary-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj zadatak"}</button>
           ${editingTask ? '<button class="ghost-button" type="button" data-action="cancel-edit-task">Odustani</button>' : ""}
         </div>
       </form>
@@ -12158,15 +12158,15 @@ function renderRoutineTab() {
                           ${task.note ? `<div class="footer-note">${escapeHtml(task.note)}</div>` : ""}
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-task" data-task-id="${task.id}" aria-label="Izmeni task" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
-                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-task" data-task-id="${task.id}" aria-label="Obriši task" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
+                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-task" data-task-id="${task.id}" aria-label="Izmeni zadatak" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
+                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-task" data-task-id="${task.id}" aria-label="Obriši zadatak" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                         </div>
                       </div>
                     </article>
                   `
                 )
                 .join("")
-            : `<div class="empty">Još nema taskova za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
+            : `<div class="empty">Još nema zadataka za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
         }
       </div>
     </section>
@@ -14210,7 +14210,7 @@ function renderProgressHistorySection() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Dnevnik ishrane</h2>
-          <p>Čekiraj obroke kao pojedene i unesi vodu — ovde se gradi tvoja istorija: kalendar doslednosti, proseci i streak.</p>
+          <p>Čekiraj obroke kao pojedene i unesi vodu — ovde se gradi tvoja istorija: kalendar doslednosti, proseci i niz dana.</p>
         </div>
       </div>
     </section>`;
@@ -16474,7 +16474,7 @@ async function handleDocumentClick(event) {
 
     const currentStreakDays = getHabitCurrentStreakDays(habit);
     const confirmed = window.confirm(
-      `Resetuj streak za "${habit.name}"? Trenutno broji ${getDayCountLabel(currentStreakDays)}.`
+      `Resetuj niz za "${habit.name}"? Trenutno broji ${getDayCountLabel(currentStreakDays)}.`
     );
     if (!confirmed) {
       return;
@@ -16633,7 +16633,7 @@ async function handleDocumentClick(event) {
 
   if (action === "delete-task") {
     const task = store.dayTasks.find((entry) => entry.id === actionTarget.dataset.taskId);
-    const confirmed = window.confirm(task ? `Obriši task "${task.title}"?` : "Obriši ovaj task?");
+    const confirmed = window.confirm(task ? `Obriši zadatak "${task.title}"?` : "Obriši ovaj zadatak?");
     if (!confirmed) {
       return;
     }
@@ -16703,7 +16703,7 @@ async function handleDocumentClick(event) {
     if (!hasCompleted) {
       return;
     }
-    const confirmed = window.confirm(`Obriši sve završene taskove za ${weekdayAccusative(state.selectedWeekday)}?`);
+    const confirmed = window.confirm(`Obriši sve završene zadatke za ${weekdayAccusative(state.selectedWeekday)}?`);
     if (!confirmed) {
       return;
     }
@@ -16717,7 +16717,7 @@ async function handleDocumentClick(event) {
     }
     persist();
     queuePendingUndo(
-      `Obrisano ${removedCount} ${srPlural(removedCount, "završen task", "završena taska", "završenih taskova")}.`,
+      `Obrisano ${removedCount} ${srPlural(removedCount, "završen zadatak", "završena zadatka", "završenih zadataka")}.`,
       () => {
         store.dayTasks = prevDayTasks;
         persist();

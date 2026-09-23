@@ -13507,3 +13507,37 @@ button.meal-entry-body:focus-visible {
   margin-top: 6px;
   font-size: 1rem;
 }
+
+/* ============================================================
+   2026-09-23 — Rutina: empty sections sit right under their own "Dodaj"
+   row, so the big grey box with a plus icon said nothing the row above did
+   not. Three of them stacked were most of the screen for a new account.
+   Here the empty state is one muted line.
+   ============================================================ */
+.section.routine-habits-section .empty,
+.section.routine-streak-section .empty,
+.section.routine-tasks-section .empty,
+:root[data-theme="dark"] .section.routine-habits-section .empty,
+:root[data-theme="dark"] .section.routine-streak-section .empty,
+:root[data-theme="dark"] .section.routine-tasks-section .empty,
+.section.routine-weekly-section > .empty,
+:root[data-theme="dark"] .section.routine-weekly-section > .empty {
+  display: block;
+  min-height: 0;
+  text-wrap: pretty;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.routine-habits-section .empty::before,
+.routine-streak-section .empty::before,
+.routine-tasks-section .empty::before,
+.routine-weekly-section > .empty::before {
+  content: none;
+  display: none;
+}
