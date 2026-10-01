@@ -12189,41 +12189,33 @@ async function maybeAutoImportRunFromClipboard() {
   }
 }
 
+// Trčanje je red, ne kartica u kartici sa gomilom pilula: datum i vrsta levo,
+// distanca desno, ostalo jedna linija teksta; izmena i brisanje kao ikone.
 function renderRunCard(run) {
   const derived = getRunDerived(run);
   const dateLabel = formatDateValueLabel(run.date) || String(run.date || "");
-  const pills = [
-    { text: `${formatDecimal(derived.distanceKm, 2)} km`, strong: true },
-    { text: formatRunDuration(derived.durationSec) },
-    { text: `${formatRunPace(derived.paceSec)} /km` },
-    { text: derived.speedKmh ? `${formatDecimal(derived.speedKmh, 1)} km/h` : "— km/h" },
-  ];
-  if (run.avgHr) {
-    pills.push({ text: `Pros. ${run.avgHr} bpm` });
-  }
-  if (run.maxHr) {
-    pills.push({ text: `Maks. ${run.maxHr} bpm` });
-  }
-  if (derived.calories) {
-    pills.push({ text: `${derived.calories} kcal` });
-  }
+  const meta = [
+    formatRunDuration(derived.durationSec),
+    `${formatRunPace(derived.paceSec)} /km`,
+    run.avgHr ? `pros. ${run.avgHr} bpm` : "",
+    derived.calories ? `${derived.calories} kcal` : "",
+  ].filter(Boolean);
 
   return `
-    <article class="food-card run-card">
-      <div class="food-card-top run-card-top">
-        <div class="run-card-head">
-          <strong>${escapeHtml(dateLabel)}</strong>
-          <span class="run-type-pill run-type-${escapeHtml(run.type || "lagano")}">${escapeHtml(getRunTypeLabel(run.type))}</span>
+    <article class="run-row">
+      <div class="run-row-main">
+        <div class="run-row-head">
+          <strong>${escapeHtml(dateLabel.replace(/ \d{4}\.$/, ""))}</strong>
+          <span class="run-row-type">${escapeHtml(getRunTypeLabel(run.type))}</span>
         </div>
-        <div class="record-row-actions">
-          ${renderEditRecordButton("edit-run", "data-run-id", run.id, `Izmeni trčanje od ${escapeHtml(dateLabel)}`)}
-          <button class="danger-button" data-action="delete-run" data-run-id="${run.id}">Obriši</button>
-        </div>
+        <div class="run-row-meta">${escapeHtml(meta.join(" · "))}</div>
+        ${run.note ? `<div class="run-row-note">${escapeHtml(run.note)}</div>` : ""}
       </div>
-      <div class="pill-row">
-        ${pills.map((pill) => `<span class="pill${pill.strong ? " strong" : ""}">${escapeHtml(pill.text)}</span>`).join("")}
+      <strong class="run-row-distance">${formatDecimal(derived.distanceKm, 1)} <span>km</span></strong>
+      <div class="run-row-actions">
+        <button class="meal-entry-action" type="button" data-action="edit-run" data-run-id="${run.id}" aria-label="Izmeni trčanje od ${escapeHtml(dateLabel)}" title="Izmeni">${renderActionIcon("edit")}</button>
+        <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-run" data-run-id="${run.id}" aria-label="Obriši trčanje od ${escapeHtml(dateLabel)}" title="Obriši">${renderActionIcon("delete")}</button>
       </div>
-      ${run.note ? `<div class="footer-note run-card-note">${escapeHtml(run.note)}</div>` : ""}
     </article>
   `;
 }
@@ -12341,28 +12333,12 @@ function renderRunningTab() {
                 <h2>Rekordi i ukupno</h2>
               </div>
             </div>
-            <div class="stats-grid stats-grid--glance running-records-grid">
-              <article class="stat-card">
-                <strong>Najduže trčanje</strong>
-                <div class="macro-value">${formatDecimal(stats.longestKm, 2)} <small>km</small></div>
-                <div class="footer-note">Najveća distanca</div>
-              </article>
-              <article class="stat-card">
-                <strong>Najbrži tempo</strong>
-                <div class="macro-value">${formatRunPace(stats.bestPaceSec)} <small>/km</small></div>
-                <div class="footer-note">Na ≥ 1 km</div>
-              </article>
-              <article class="stat-card">
-                <strong>Ukupno km</strong>
-                <div class="macro-value">${formatDecimal(stats.totalKm, 1)} <small>km</small></div>
-                <div class="footer-note">${stats.totalCount} ${stats.totalCount === 1 ? "trčanje" : "trčanja"}</div>
-              </article>
-              <article class="stat-card">
-                <strong>Ukupno vreme</strong>
-                <div class="macro-value">${stats.totalSec ? formatRunDuration(stats.totalSec) : "0:00"}</div>
-                <div class="footer-note">Provedeno u trčanju</div>
-              </article>
-            </div>
+            ${renderStatRows([
+              { label: "Najduže trčanje", value: `${formatDecimal(stats.longestKm, 1)} km` },
+              { label: "Najbrži tempo", note: "na bar 1 km", value: `${formatRunPace(stats.bestPaceSec)} /km` },
+              { label: "Ukupno", note: `${stats.totalCount} ${srPlural(stats.totalCount, "trčanje", "trčanja", "trčanja")}`, value: `${formatDecimal(stats.totalKm, 1)} km` },
+              { label: "Ukupno vreme", value: stats.totalSec ? formatRunDuration(stats.totalSec) : "0:00" },
+            ])}
           </section>
         `
         : ""
@@ -12374,7 +12350,6 @@ function renderRunningTab() {
       <div class="section-header">
         <div>
           <h2>Istorija trčanja</h2>
-          <p>Sva tvoja trčanja, od najnovijeg ka starijem.</p>
         </div>
       </div>
       <div class="stack running-history-stack">
@@ -12403,9 +12378,6 @@ function renderRoutineTab() {
       progress: summary.habits.length ? roundValue((doneCount / summary.habits.length) * 100, 0) : 0,
     };
   });
-  const topStreakHabit = [...summary.streakHabits].sort(
-    (left, right) => getHabitCurrentStreakDays(right) - getHabitCurrentStreakDays(left)
-  )[0];
 
   return `
     ${renderDayBar({ headingLevel: 2 })}
@@ -12543,24 +12515,7 @@ function renderRoutineTab() {
           ${summary.streakHabits.length ? "" : `<p>Za stvari koje meriš na duže staze, tipa bez alkohola, bez cigareta ili doslednost mesecima.</p>`}
         </div>
       </div>
-      ${
-        topStreakHabit && summary.streakHabits.length > 1
-          ? `
-            <article class="routine-streak-spotlight">
-              <div>
-                <div class="routine-streak-spotlight-label">Najduži aktivni niz</div>
-                <h3>${escapeHtml(topStreakHabit.name)}</h3>
-                <p>${getHabitStreakSentence(topStreakHabit)}</p>
-              </div>
-              <div class="routine-streak-spotlight-metric">
-                <span>${getHabitCurrentStreakDays(topStreakHabit)}</span>
-                <small>${getHabitCurrentStreakDays(topStreakHabit) === 1 ? "dan" : "dana"}</small>
-              </div>
-            </article>
-          `
-          : ""
-      }
-      <div class="stack routine-streak-stack" style="margin-top:${topStreakHabit ? "16px" : "0"};">
+      <div class="stack routine-streak-stack">
         ${
           summary.streakHabits.length
             ? summary.streakHabits
@@ -12568,7 +12523,6 @@ function renderRoutineTab() {
                   const currentStreakDays = getHabitCurrentStreakDays(habit);
                   const bestStreakDays = getHabitBestStreakDays(habit);
                   const startedLabel = formatDateValueLabel(habit.streakStartDate);
-                  const lastResetLabel = formatDateValueLabel(habit.lastResetAt);
 
                   return `
                     <article class="food-card routine-card routine-streak-card">
@@ -12579,14 +12533,14 @@ function renderRoutineTab() {
                         </div>
                         <div class="routine-content routine-streak-content">
                           <strong>${escapeHtml(habit.name)}</strong>
-                          <div class="footer-note">${escapeHtml(habit.note || "Dugoročna evidencija je uključena za ovu naviku.")}</div>
-                          <div class="pill-row">
-                            <span class="pill strong">${getHabitStreakSentence(habit)}</span>
-                            ${startedLabel ? `<span class="pill">Od ${startedLabel}</span>` : ""}
-                            <span class="pill">Najduže ${getDayCountLabel(bestStreakDays)}</span>
-                            <span class="pill note">${habit.resetCount ? `Resetovano ${habit.resetCount}x` : "Bez reseta"}</span>
-                            ${lastResetLabel ? `<span class="pill note">Poslednji reset ${lastResetLabel}</span>` : ""}
-                          </div>
+                          ${habit.note ? `<div class="footer-note">${escapeHtml(habit.note)}</div>` : ""}
+                          <div class="routine-streak-meta">${[
+                            startedLabel ? `od ${startedLabel.replace(/ \d{4}\.$/, "")}` : "",
+                            bestStreakDays > currentStreakDays ? `najduže ${getDayCountLabel(bestStreakDays)}` : "",
+                            habit.resetCount ? `resetovano ${habit.resetCount}×` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}</div>
                         </div>
                         <div class="entry-actions routine-streak-actions" style="justify-content:flex-start; margin-top:0;">
                           <button class="ghost-button" data-action="reset-habit-streak" data-habit-id="${habit.id}">Resetuj</button>

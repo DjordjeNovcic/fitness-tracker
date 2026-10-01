@@ -13984,3 +13984,86 @@ button.meal-entry-body:focus-visible {
   text-align: left;
   padding-block: 14px;
 }
+
+/* Istorija trčanja i nizovi kao redovi (2026-10-01). */
+.running-history-stack {
+  gap: 0;
+}
+.run-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.run-row:last-child {
+  border-bottom: 0;
+}
+.run-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.run-row-head strong {
+  font-size: var(--fs-15);
+  font-weight: 700;
+  color: var(--ink);
+}
+.run-row-type {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+}
+.run-row-meta,
+.run-row-note {
+  margin-top: 2px;
+  font-size: var(--fs-13);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.run-row-distance {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.run-row-distance span {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+}
+.run-row-actions {
+  display: flex;
+}
+@media (min-width: 900px) {
+  .running-history-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 720px;
+  }
+}
+
+.routine-streak-meta {
+  margin-top: 4px;
+  font-size: var(--fs-13);
+  color: var(--muted);
+}
+/* Niz: broj dana levo, naziv/meta/akcije desno, jedan red po nizu. */
+.routine-streak-card .routine-streak-card-layout {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 8px;
+  align-items: start;
+}
+.routine-streak-card .routine-streak-meter {
+  grid-row: 1 / span 2;
+  display: grid;
+  justify-items: start;
+}
+.routine-streak-card .routine-streak-actions {
+  grid-column: 2;
+}
