@@ -14381,3 +14381,12 @@ button.meal-entry-body:focus-visible {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+
+/* Traka dana: tačka znači samo „ima plan“ (Trening); današnji dan je
+   istaknut bojom i ivicom, bez druge tačke u uglu. */
+.hero-day-chips .chip.is-today::after {
+  content: none;
+}
+.hero-day-chips .chip.is-today:not(.is-active) {
+  font-weight: 800;
+}

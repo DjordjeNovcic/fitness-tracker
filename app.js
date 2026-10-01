@@ -3184,7 +3184,7 @@ function loadExternalScript(src, globalName) {
     const existingScript = document.querySelector(`script[data-external-src="${src}"]`);
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(globalName ? window[globalName] : true), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error(`Učitavanje biblioteke nije uspelo: ${src}`)), {
+      existingScript.addEventListener("error", () => reject(new Error("Skener nije mogao da se učita. Proveri internet i probaj ponovo.")), {
         once: true,
       });
       return;
@@ -3195,7 +3195,7 @@ function loadExternalScript(src, globalName) {
     script.async = true;
     script.dataset.externalSrc = src;
     script.onload = () => resolve(globalName ? window[globalName] : true);
-    script.onerror = () => reject(new Error(`Učitavanje biblioteke nije uspelo: ${src}`));
+    script.onerror = () => reject(new Error("Skener nije mogao da se učita. Proveri internet i probaj ponovo."));
     document.head.appendChild(script);
   }).catch((error) => {
     externalScriptPromises.delete(src);
@@ -6057,7 +6057,7 @@ function renderTrainingBurnSection() {
           <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"}</span>
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
-        <p class="footer-note training-burn-intro">Zbir delova ulazi u neto unos na „Danas“.</p>
+        <p class="footer-note training-burn-intro">Zbir se oduzima od unosa na Danas.</p>
         <form id="training-burn-form" class="form-grid split training-burn-form">
           <div class="form-grid-3">
             ${sections
@@ -7942,7 +7942,7 @@ function renderOnboarding() {
           ${
             ob.targetMode !== "maintain"
               ? `<div class="field">
-            <label>Tempo</label>
+            <label>Brzina</label>
             <div class="chips onboarding-chips">
               ${PACE_LEVELS.map((level) => `<button type="button" class="chip ${level.id === (ob.paceLevel || "umereno") ? "is-active" : ""}" data-action="set-onboarding-pace" data-pace="${level.id}">${level.label}</button>`).join("")}
             </div>
@@ -10423,7 +10423,7 @@ function renderPlanTab(entries) {
         </div>
         <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
-      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj „Pojedeno“</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu; kanta pored je briše. Kad pojedeš obrok, <strong>čekiraj „Pojedeno“</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Pripremi za više dana</strong> (u otvorenom obroku) kopira obrok na više dana odjednom, a <strong>Alati za plan</strong> ispod prebacuju ceo dan na drugi. P, UH i M su proteini, ugljeni hidrati i masti. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -12973,7 +12973,7 @@ function renderGoalCalibrationCard() {
 
   const gapWord =
     Math.abs(cal.rateGap) < 0.1
-      ? "Tempo se poklapa sa ciljem."
+      ? "Promena težine se poklapa sa planom."
       : cal.actualRate < cal.expectedRate
         ? "Ide brže nego što je planirano."
         : "Ide sporije nego što je planirano.";
@@ -13021,7 +13021,7 @@ function renderGoalCalibrationCard() {
         </div>
         <div class="footer-note">Makroi se preračunavaju uz novi cilj.${
           cal.floored
-            ? ` Niže od ${cal.floorCalories} kcal ne idemo, to je bezbedni minimum (≈ BMR), pa će tempo biti blaži od izabranog.`
+            ? ` Niže od ${cal.floorCalories} kcal ne idemo, to je bezbedni minimum (≈ BMR), pa će promena biti sporija od izabrane.`
             : cal.capped
               ? " Promena je ograničena na 250 kcal po koraku; sledeća provera stiže za nedelju dana."
               : ""
@@ -13096,7 +13096,7 @@ function renderGoalEtaCard() {
   } else if (eta.status === "no-profile") {
     body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Popuni profil (pol, godine, visina, težina) pa procenim datum.`;
   } else if (eta.status === "no-rate") {
-    body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Izaberi tempo (ne „održavanje“) pa procenim datum.`;
+    body = `Cilj: <strong>${formatDecimal(eta.target, 2)} kg</strong> (još ${formatDecimal(Math.abs(eta.remaining), 2)} kg). Izaberi cilj mršavljenja ili dobijanja (ne „održavanje“) pa procenim datum.`;
   } else if (eta.status === "wrong-direction") {
     tone = "warn";
     body = `Cilj <strong>${formatDecimal(eta.target, 2)} kg</strong> je u suprotnom smeru od izabranog cilja/tempa, proveri podešavanja.`;
@@ -13211,7 +13211,7 @@ function renderGoalsTab() {
       ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">
         ${(() => {
-          // Profil i tempo se popune jednom; kad su kompletni, sklope se u jedan
+          // Profil i cilj se popune jednom; kad su kompletni, sklope se u jedan
           // red sa sažetkom, pa ekran počinje od dnevnih ciljeva.
           const p = store.profile || {};
           const complete = Boolean(p.sex && toNumber(p.age) && toNumber(p.weightKg) && toNumber(p.heightCm) && p.activityLevel);
@@ -13227,7 +13227,7 @@ function renderGoalsTab() {
           ].filter(Boolean);
           return `<details class="goals-profile-fold field--full" ${complete ? "" : "open"}>
             <summary>
-              <span class="goals-profile-fold-title">Profil i tempo</span>
+              <span class="goals-profile-fold-title">Profil i cilj</span>
               <span class="goals-profile-fold-sub">${complete ? escapeHtml(summary.join(" · ")) : "Popuni da bi cilj mogao da se izračuna"}</span>
               <span class="goals-profile-fold-icon" aria-hidden="true">${renderChevronIcon(false)}</span>
             </summary>
@@ -13255,10 +13255,10 @@ function renderGoalsTab() {
             hint: ACTIVITY_HINTS[activity.id] || "",
           }))
         )}
-        <div class="form-group-label">Cilj i tempo</div>
+        <div class="form-group-label">Cilj</div>
         ${renderChoiceField("Cilj", "targetMode", store.goals.targetMode, GOAL_MODES.map((mode) => ({ id: mode.id, label: mode.label })))}
         ${renderChoiceField(
-          "Tempo",
+          "Brzina",
           "paceLevel",
           store.goals.paceLevel || "umereno",
           PACE_LEVELS.map((level) => ({ id: level.id, label: level.label, hint: paceHintFor(level.id, store.goals.targetMode) }))
@@ -14166,7 +14166,7 @@ function renderTrendCard(field) {
       trackPill = `<span class="pill strong pill--${aheadGood ? "success" : "warning"}">${formatDecimal(Math.abs(diff), 2)} kg ${aheadGood ? "ispred plana" : "iza plana"}</span>`;
     }
     legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--actual"></span>stvarno</span>`);
-    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>tempo (${goalRate > 0 ? "+" : ""}${formatDecimal(goalRate, 2)} kg/ned)</span>`);
+    legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--goal"></span>plan (${goalRate > 0 ? "+" : ""}${formatDecimal(goalRate, 2)} kg/ned)</span>`);
   }
   if (targetWeight) {
     const ty = toY(targetWeight);
@@ -14183,7 +14183,7 @@ function renderTrendCard(field) {
     } else if (eta.status === "no-profile") {
       etaCaption = `<div class="chart-eta">Popuni profil (pol, godine, visina, težina) da procenim datum.</div>`;
     } else if (eta.status === "no-rate") {
-      etaCaption = `<div class="chart-eta">Izaberi tempo (ne „održavanje“) da procenim datum.</div>`;
+      etaCaption = `<div class="chart-eta">Izaberi cilj mršavljenja ili dobijanja (ne „održavanje“) da procenim datum.</div>`;
     } else if (eta.status === "wrong-direction") {
       etaCaption = `<div class="chart-eta chart-eta--warn">Težina ide suprotno od cilja, proveri podešavanja.</div>`;
     }
@@ -15763,7 +15763,7 @@ function renderProgressTab() {
           <p>Kratak vizuelni pregled kako idu težina i stomak kroz vreme.</p>
         </div>
       </div>
-      ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je tempo: gde bi trebalo da budeš pri zadatom tempu (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
+      ${renderHelpNote("Puna linija je stvarna težina. <strong>Isprekidana</strong> je plan: gde bi trebalo da budeš pri izabranoj brzini (npr. −0,5 kg/ned), računato od prvog merenja; oznaka kaže koliko si „ispred/iza plana“. <strong>Tačkasta</strong> linija je tvoja ciljna težina (postavljaš je u Ciljevima), a ispod grafika piše procena kad ćeš je dostići. Pojavljuje se kad popuniš profil i imaš bar dva merenja.")}
       ${(() => {
         // Trend ima smisla tek od dva merenja. Jedno merenje je red sa brojem,
         // mera bez merenja je samo ime u zajedničkoj rečenici — umesto kartice sa
