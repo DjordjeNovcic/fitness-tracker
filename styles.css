@@ -13947,3 +13947,27 @@ button.meal-entry-body:focus-visible {
   border: 0;
   background: none;
 }
+
+/* ============================================================
+   Mete za dodir od 44 px (2026-10-01). Vidljiva veličina ostaje,
+   raste površina koja prima tap: krug „Pojedeno“ (već 44 kroz
+   labelu), strelica obroka, kanta u stavci, zvezdica i meni u
+   Namirnicama.
+   ============================================================ */
+.meal-entry-action {
+  width: 44px;
+  height: 44px;
+}
+.meal-collapse-toggle {
+  position: relative;
+}
+.meal-collapse-toggle::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+.food-row-star,
+.food-row-menu {
+  width: 44px;
+  height: 44px;
+}

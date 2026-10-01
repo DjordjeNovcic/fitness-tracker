@@ -10363,14 +10363,14 @@ function renderPlanTab(entries) {
                                         </div>
                                       ${isMealDone ? `</div>` : `</button>`}
                                       ${
-                                        // Izmena i brisanje direktno u redu: ranije se do brisanja
-                                        // stizalo tek kroz kompozitor, dva tapa za nešto što se
-                                        // najčešće radi odmah po unosu. Sakriveno kad je obrok
-                                        // čekiran, jer se tada ionako ništa ne menja.
+                                        // Brisanje direktno u redu: ranije se do brisanja stizalo tek
+                                        // kroz kompozitor, dva tapa za nešto što se najčešće radi odmah
+                                        // po unosu. Izmena je tap na sam red (ceo red je dugme), pa
+                                        // olovka tik uz kantu nije dodavala ništa osim šanse za
+                                        // pogrešan tap. Sakriveno kad je obrok čekiran.
                                         isMealDone
                                           ? ""
                                           : `<div class="meal-entry-actions">
-                                              <button class="meal-entry-action" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="Izmeni količinu: ${escapeHtml(entry.foodName)}" title="Izmeni količinu">${renderActionIcon("edit")}</button>
                                               <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
                                             </div>`
                                       }
