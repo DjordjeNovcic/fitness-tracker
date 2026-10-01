@@ -6780,7 +6780,7 @@ function getMealPrepBadgeCount(mealLabel, mealEntries) {
   }, 0);
 }
 
-function applyFavoriteMealToDay(favorite, options = {}) {
+async function applyFavoriteMealToDay(favorite, options = {}) {
   if (!favorite?.items?.length) {
     return false;
   }
@@ -6802,7 +6802,7 @@ function applyFavoriteMealToDay(favorite, options = {}) {
   }
 
   if (mode === "replace" && existingEntries.length) {
-    const confirmed = window.confirm(`Da li želiš da zameniš sve stavke za "${targetMealLabel}" receptom "${favorite.name}"?`);
+    const confirmed = await confirmAction({ title: `Zameniti „${targetMealLabel}“ receptom?`, message: `Sve stavke u obroku „${targetMealLabel}“ zameniće recept „${favorite.name}“.`, confirmLabel: "Zameni" });
     if (!confirmed) {
       return false;
     }
@@ -7943,6 +7943,63 @@ function announce(message) {
     if (a11yLiveRegion) {
       a11yLiveRegion.textContent = message;
     }
+  });
+}
+
+// Potvrda unutar aplikacije umesto window.confirm: browserov dijalog ima
+// „OK/Cancel“ umesto glagola („Obriši“), izgleda kao greška sistema baš u
+// najosetljivijem trenutku, a na iOS-u blokira stranicu. Živi van render()-a
+// (direktno u <body>), pa ga pun render ne briše dok čeka odgovor.
+function confirmAction({ title, message = "", confirmLabel = "Potvrdi", cancelLabel = "Otkaži" }) {
+  return new Promise((resolve) => {
+    document.querySelector(".confirm-sheet-shell")?.remove();
+    const previousFocus = document.activeElement;
+    const shell = document.createElement("div");
+    shell.className = "app-dialog-shell confirm-sheet-shell";
+    shell.innerHTML = `
+      <button class="app-dialog-backdrop" type="button" data-confirm="no" aria-label="${escapeHtml(cancelLabel)}"></button>
+      <section class="app-dialog confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirm-sheet-title" ${message ? 'aria-describedby="confirm-sheet-message"' : ""}>
+        <h3 id="confirm-sheet-title">${escapeHtml(title)}</h3>
+        ${message ? `<p id="confirm-sheet-message">${escapeHtml(message)}</p>` : ""}
+        <div class="app-dialog-actions">
+          <button class="danger-button confirm-sheet-yes" type="button" data-confirm="yes">${escapeHtml(confirmLabel)}</button>
+          <button class="ghost-button confirm-sheet-no" type="button" data-confirm="no">${escapeHtml(cancelLabel)}</button>
+        </div>
+      </section>`;
+    const finish = (value) => {
+      document.removeEventListener("keydown", onKey, true);
+      shell.remove();
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus();
+      }
+      resolve(value);
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        finish(false);
+        return;
+      }
+      if (event.key === "Tab") {
+        // Fokus ostaje u dijalogu: kruži između dva dugmeta.
+        const buttons = [shell.querySelector(".confirm-sheet-yes"), shell.querySelector(".confirm-sheet-no")];
+        const index = buttons.indexOf(document.activeElement);
+        event.preventDefault();
+        buttons[(index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+      }
+    };
+    shell.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-confirm]");
+      event.stopPropagation();
+      if (button) {
+        finish(button.dataset.confirm === "yes");
+      }
+    });
+    document.addEventListener("keydown", onKey, true);
+    document.body.appendChild(shell);
+    // Fokus na „Otkaži“: Enter odmah posle otvaranja ne sme da obriše.
+    shell.querySelector(".confirm-sheet-no").focus();
   });
 }
 
@@ -16412,9 +16469,7 @@ async function handleDocumentClick(event) {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Resetuj ceo nutricionista import? Obrisaću importovane dokumente, preporuke, recepte i namirnice da možeš ponovo da uvezeš fajlove od nule."
-    );
+    const confirmed = await confirmAction({ title: "Resetovati nutricionista import?", message: "Brišu se uvezeni dokumenti, preporuke, recepti i namirnice, pa fajlove možeš da uvezeš ponovo od nule.", confirmLabel: "Resetuj" });
     if (!confirmed) {
       return;
     }
@@ -16832,9 +16887,7 @@ async function handleDocumentClick(event) {
     }
 
     const currentStreakDays = getHabitCurrentStreakDays(habit);
-    const confirmed = window.confirm(
-      `Resetuj niz za "${habit.name}"? Trenutno broji ${getDayCountLabel(currentStreakDays)}.`
-    );
+    const confirmed = await confirmAction({ title: `Resetovati niz „${habit.name}“?`, message: `Trenutno broji ${getDayCountLabel(currentStreakDays)}.`, confirmLabel: "Resetuj" });
     if (!confirmed) {
       return;
     }
@@ -16992,7 +17045,7 @@ async function handleDocumentClick(event) {
 
   if (action === "delete-task") {
     const task = store.dayTasks.find((entry) => entry.id === actionTarget.dataset.taskId);
-    const confirmed = window.confirm(task ? `Obriši zadatak "${task.title}"?` : "Obriši ovaj zadatak?");
+    const confirmed = await confirmAction({ title: task ? `Obrisati zadatak „${task.title}“?` : "Obrisati ovaj zadatak?", confirmLabel: "Obriši" });
     if (!confirmed) {
       return;
     }
@@ -17034,9 +17087,7 @@ async function handleDocumentClick(event) {
 
   if (action === "delete-supplement") {
     const supplement = store.supplements.find((entry) => entry.id === actionTarget.dataset.supplementId);
-    const confirmed = window.confirm(
-      supplement ? `Obriši suplement "${supplement.name}"?` : "Obriši ovaj suplement?"
-    );
+    const confirmed = await confirmAction({ title: supplement ? `Obrisati suplement „${supplement.name}“?` : "Obrisati ovaj suplement?", confirmLabel: "Obriši" });
     if (!confirmed) {
       return;
     }
@@ -17062,7 +17113,7 @@ async function handleDocumentClick(event) {
     if (!hasCompleted) {
       return;
     }
-    const confirmed = window.confirm(`Obriši sve završene zadatke za ${weekdayAccusative(state.selectedWeekday)}?`);
+    const confirmed = await confirmAction({ title: `Obrisati završene zadatke za ${weekdayAccusative(state.selectedWeekday)}?`, confirmLabel: "Obriši završene" });
     if (!confirmed) {
       return;
     }
@@ -17146,7 +17197,7 @@ async function handleDocumentClick(event) {
     }
 
     if (mode === "replace") {
-      const confirmed = window.confirm(`Da li želiš da zameniš ceo ${weekdayLabel(state.selectedWeekday)} dnevnim planom "${plan.title}"?`);
+      const confirmed = await confirmAction({ title: `Zameniti ceo ${weekdayLabel(state.selectedWeekday).toLowerCase()}?`, message: `Sve stavke tog dana zameniće dnevni plan „${plan.title}“.`, confirmLabel: "Zameni" });
       if (!confirmed) {
         return;
       }
@@ -18111,7 +18162,7 @@ async function handleDocumentClick(event) {
     if (!favorite) {
       return;
     }
-    if (!applyFavoriteMealToDay(favorite)) {
+    if (!(await applyFavoriteMealToDay(favorite))) {
       return;
     }
 
@@ -18131,7 +18182,7 @@ async function handleDocumentClick(event) {
     if (!favorite || !mealLabel) {
       return;
     }
-    if (!applyFavoriteMealToDay(favorite, { mealLabel, mode })) {
+    if (!(await applyFavoriteMealToDay(favorite, { mealLabel, mode }))) {
       return;
     }
 
@@ -18190,7 +18241,7 @@ async function handleDocumentClick(event) {
       return;
     }
 
-    const confirmed = window.confirm(`Obriši "${item.foodName}" iz recepta "${favorite.name}"?`);
+    const confirmed = await confirmAction({ title: `Izbaciti „${item.foodName}“ iz recepta?`, message: `Recept „${favorite.name}“ ostaje, bez ove stavke.`, confirmLabel: "Izbaci" });
     if (!confirmed) {
       return;
     }
@@ -18370,7 +18421,7 @@ async function handleDocumentClick(event) {
     if (!store.weeklyPlanEntries.length) {
       return;
     }
-    const confirmed = window.confirm("Obriši sve obroke iz celog plana (Ova nedelja i Sledeća nedelja)? Čekirani (pojedeni) obroci ostaju.");
+    const confirmed = await confirmAction({ title: "Obrisati ceo plan?", message: "Brišu se svi obroci iz obe nedelje, ove i sledeće. Čekirani (pojedeni) obroci ostaju.", confirmLabel: "Obriši plan" });
     if (!confirmed) {
       return;
     }
@@ -18630,9 +18681,7 @@ async function handleDocumentClick(event) {
     const favoriteTraining = store.favoriteTrainings.find(
       (entry) => entry.id === actionTarget.dataset.favoriteTrainingId
     );
-    const confirmed = window.confirm(
-      favoriteTraining ? `Obriši omiljeni trening "${favoriteTraining.name}"?` : "Obriši omiljeni trening?"
-    );
+    const confirmed = await confirmAction({ title: favoriteTraining ? `Obrisati omiljeni trening „${favoriteTraining.name}“?` : "Obrisati omiljeni trening?", confirmLabel: "Obriši" });
     if (!confirmed) {
       return;
     }
@@ -18936,9 +18985,7 @@ async function handleDocumentClick(event) {
     if (!isDemoAccount()) {
       return;
     }
-    const confirmed = window.confirm(
-      "Vrati demo nalog na fabrička podešavanja?\n\nOvo briše SVE izmene na demo nalogu i vraća početni plan, namirnice, trening i obroke. Ne može da se poništi."
-    );
+    const confirmed = await confirmAction({ title: "Vratiti demo nalog na početak?", message: "Briše sve izmene na demo nalogu i vraća početni plan, namirnice, trening i obroke. Ne može da se poništi.", confirmLabel: "Vrati na početak" });
     if (!confirmed) {
       return;
     }
@@ -18960,9 +19007,7 @@ async function handleDocumentClick(event) {
     if (isDemoAccount()) {
       return;
     }
-    const confirmed = window.confirm(
-      `Obriši plan, trening, rutinu, dnevnik, merenja i slike na nalogu ${state.authUser?.email || ""}?\n\nNamirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi. Ako želiš da nešto sačuvaš, otkaži pa prvo izvezi backup.`
-    );
+    const confirmed = await confirmAction({ title: "Obrisati podatke na nalogu?", message: `Brišu se plan, trening, rutina, dnevnik, merenja i slike na nalogu ${state.authUser?.email || ""}. Namirnice, recepti, profil i ciljevi ostaju. Ne može da se poništi; ako želiš nešto da sačuvaš, otkaži i prvo izvezi backup.`, confirmLabel: "Obriši podatke" });
     if (!confirmed) {
       return;
     }
@@ -19366,9 +19411,7 @@ async function handleSubmit(event) {
       (entry) => entry.weekday === targetWeekday && normalizeWeekTrack(entry.weekTrack) === targetWeekTrack
     );
     if (mode === "replace" && targetHasEntries) {
-      const confirmed = window.confirm(
-        `Da li želiš da zameniš sve stavke za ${weekdayAccusative(targetWeekday)} (${getWeekTrackLabel(targetWeekTrack).toLowerCase()})?`
-      );
+      const confirmed = await confirmAction({ title: `Zameniti ${weekdayAccusative(targetWeekday)} (${getWeekTrackLabel(targetWeekTrack).toLowerCase()})?`, message: "Sve stavke tog dana biće zamenjene.", confirmLabel: "Zameni" });
       if (!confirmed) {
         return;
       }
@@ -19737,7 +19780,7 @@ async function handleSubmit(event) {
       return;
     }
 
-    if (!applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel })) {
+    if (!(await applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel }))) {
       return;
     }
 
@@ -20569,9 +20612,7 @@ async function handleImport(event) {
         target.value = "";
         return;
       }
-      const confirmed = window.confirm(
-        `Uvezi backup "${file.name}"?\n\nOvo ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} sadržajem fajla i upisuje ih u cloud. Ne može da se poništi, ako nisi siguran, otkaži pa prvo izvezi trenutni backup.`
-      );
+      const confirmed = await confirmAction({ title: `Uvesti backup „${file.name}“?`, message: `Sadržaj fajla ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} i upisuje se u cloud. Ne može da se poništi; ako nisi siguran, otkaži i prvo izvezi trenutni backup.`, confirmLabel: "Uvezi i zameni" });
       if (!confirmed) {
         target.value = "";
         return;

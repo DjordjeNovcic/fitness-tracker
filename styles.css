@@ -13839,3 +13839,33 @@ button.meal-entry-body:focus-visible {
     transition: none;
   }
 }
+
+/* Potvrda (confirmAction): kratak naslov-pitanje, jedna rečenica posledice,
+   glagol na dugmetu. Iznad svih ostalih dijaloga. */
+.confirm-sheet-shell {
+  z-index: 120;
+}
+.confirm-sheet {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 10px;
+}
+.confirm-sheet h3 {
+  margin: 0;
+  font-size: var(--fs-18);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.confirm-sheet p {
+  margin: 0;
+  font-size: var(--fs-15);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.confirm-sheet .app-dialog-actions {
+  margin-top: 8px;
+}
+.confirm-sheet-yes {
+  font-weight: 700;
+}
