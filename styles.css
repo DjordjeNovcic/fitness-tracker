@@ -14084,3 +14084,145 @@ button.meal-entry-body:focus-visible {
   min-height: 44px;
   font-weight: 700;
 }
+
+/* ============================================================
+   Sklopljen Dnevni pregled = pravi prsten (2026-10-02).
+   Broj je unutra (Fraunces, jedini veliki broj na Danas), plan je
+   tanka neutralna senka ispod punog luka pojedenog, pa prazan dan
+   ne izgleda kao završen krug.
+   ============================================================ */
+.day-ring {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 18px;
+  margin-top: 6px;
+}
+.day-ring-dial {
+  position: relative;
+  width: 132px;
+  height: 132px;
+}
+.day-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.day-ring-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 7%, transparent);
+  stroke-width: 9;
+}
+.day-ring-ghost {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 22%, transparent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.day-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.day-ring[data-state="near"] .day-ring-fill {
+  stroke: var(--status-warning-text);
+}
+.day-ring[data-state="over"] .day-ring-fill {
+  stroke: var(--status-error-text);
+}
+.day-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  padding: 0 18px;
+}
+.day-ring-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--fs-36);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.day-ring[data-state="over"] .day-ring-value {
+  color: var(--status-error-text);
+}
+.day-ring-label {
+  margin-top: 4px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--muted);
+}
+.day-ring-side {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.day-ring-meta {
+  display: grid;
+  gap: 1px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.day-ring-meta span:first-child {
+  color: var(--ink);
+}
+.day-ring-macros {
+  display: grid;
+  gap: 7px;
+}
+.day-ring-macro {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 3px;
+}
+.day-ring-macro-label {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--muted);
+}
+.day-ring-macro-value {
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.day-ring-macro-value span {
+  font-weight: 500;
+  color: var(--muted);
+}
+.day-ring-macro > :last-child {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+:root[data-theme="dark"] .day-ring-track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .day-ring-ghost {
+  stroke: rgba(255, 255, 255, 0.28);
+}
+@media (prefers-reduced-motion: reduce) {
+  .day-ring-fill {
+    transition: none;
+  }
+}
+/* Raširen prsten: ista neutralna senka plana, ne svetli akcent. */
+.cal-ring .cal-ring-planned,
+.cal-ring[data-state] .cal-ring-planned {
+  stroke: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+:root[data-theme="dark"] .cal-ring .cal-ring-planned,
+:root[data-theme="dark"] .cal-ring[data-state] .cal-ring-planned {
+  stroke: rgba(255, 255, 255, 0.28);
+}

@@ -10243,49 +10243,57 @@ function getDayRingFacts(entries, totals, calorieGoal, extraEaten = null, diary 
     label: diary ? (remaining >= 0 ? "preostalo" : "preko cilja") : remaining >= 0 ? "slobodno u planu" : "plan preko cilja",
     fillFraction: clamp(heroKcal),
     ghostFraction: diary ? clamp(plannedKcal) : 0,
-    metaLabel: diary
-      ? `<span class="nowrap">${eatenKcal} / ${calorieGoal} pojedeno</span>${plannedKcal > eatenKcal ? ` · <span class="nowrap">${plannedKcal} u planu${planOver}</span>` : ""}`
-      : `<span class="nowrap">${plannedKcal} / ${calorieGoal} kcal u planu</span>`,
+    metaParts: diary
+      ? [`${eatenKcal} / ${calorieGoal} pojedeno`, ...(plannedKcal > eatenKcal ? [`${plannedKcal} u planu${planOver}`] : [])]
+      : [`${plannedKcal} / ${calorieGoal} kcal u planu`],
+    get metaLabel() {
+      return this.metaParts.map((part) => `<span class="nowrap">${part}</span>`).join(" · ");
+    },
   };
 }
 
+// Sklopljen „Dnevni pregled“ (podrazumevano na telefonu): pravi prsten sa
+// brojem unutra, isti kao raširen, samo manji, a desno pojedeno/plan i tri
+// makroa. Ranije je ovde stajao prsten od 40 px pored broja, pa je potpis
+// aplikacije na telefonu bio ukras.
 function renderPlanSummaryCompact(ring) {
   const totals = ring.intake;
-  const radius = 15;
+  const radius = 52;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - ring.fillFraction);
-  const plannedOffset = circumference * (1 - ring.ghostFraction);
-  // The three macros as slim bars under the headline — same ok/near/over
-  // semantics as the expanded macro cards (renderProgress), just quieter.
+  const ghostOffset = circumference * (1 - ring.ghostFraction);
   const macros = [
     { short: "P", label: "Proteini", value: totals.protein, goal: store.goals.protein, kind: "target" },
     { short: "UH", label: "Ugljeni hidrati", value: totals.carbs, goal: store.goals.carbs, kind: "limit" },
     { short: "M", label: "Masti", value: totals.fat, goal: store.goals.fat, kind: "limit" },
   ];
   return `
-    <div class="plan-summary-compact" data-state="${ring.state}">
-      <div class="plan-summary-compact-main">
-        <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
-          <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
-          <circle class="cal-ring-planned" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${plannedOffset.toFixed(2)};"></circle>
-          <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
+    <div class="day-ring" data-state="${ring.state}">
+      <div class="day-ring-dial">
+        <svg class="day-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="day-ring-track" cx="60" cy="60" r="${radius}"></circle>
+          ${ring.ghostFraction > 0 ? `<circle class="day-ring-ghost" cx="60" cy="60" r="${radius}" style="stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${ghostOffset.toFixed(1)};"></circle>` : ""}
+          <circle class="day-ring-fill" cx="60" cy="60" r="${radius}" style="stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${offset.toFixed(1)};"></circle>
         </svg>
-        <div class="plan-summary-compact-copy">
-          <strong class="plan-summary-compact-value">${Math.abs(ring.remaining)}<span>kcal ${ring.label}</span></strong>
-          <span class="plan-summary-compact-meta">${ring.metaLabel}</span>
+        <div class="day-ring-center">
+          <strong class="day-ring-value">${Math.abs(ring.remaining)}</strong>
+          <span class="day-ring-label">kcal ${ring.label}</span>
         </div>
       </div>
-      <div class="plan-summary-compact-macros" aria-label="Makroi danas">
-        ${macros
-          .map(
-            (macro) => `
-          <div class="plan-summary-compact-macro">
-            <span class="plan-summary-compact-macro-label"><span class="plan-summary-compact-macro-short">${macro.short}</span><span class="plan-summary-compact-macro-long">${macro.label}</span></span>
-            <span class="plan-summary-compact-macro-value">${roundValue(macro.value, 0)}<span>${macro.goal ? ` / ${roundValue(macro.goal, 0)}` : ""} g</span></span>
-            ${renderProgress(toNumber(macro.value), toNumber(macro.goal), macro.kind)}
-          </div>`
-          )
-          .join("")}
+      <div class="day-ring-side">
+        <div class="day-ring-meta">${ring.metaParts.map((part) => `<span>${part}</span>`).join("")}</div>
+        <div class="day-ring-macros" aria-label="Makroi">
+          ${macros
+            .map(
+              (macro) => `
+            <div class="day-ring-macro" title="${macro.label}">
+              <span class="day-ring-macro-label">${macro.short}</span>
+              <span class="day-ring-macro-value">${roundValue(macro.value, 0)}${macro.goal ? `<span> / ${roundValue(macro.goal, 0)} g</span>` : " g"}</span>
+              ${renderProgress(toNumber(macro.value), toNumber(macro.goal), macro.kind)}
+            </div>`
+            )
+            .join("")}
+        </div>
       </div>
     </div>`;
 }
