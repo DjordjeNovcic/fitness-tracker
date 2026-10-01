@@ -13869,3 +13869,47 @@ button.meal-entry-body:focus-visible {
 .confirm-sheet-yes {
   font-weight: 700;
 }
+
+/* Desktop: svaki tab ima naslov stranice kao Danas (ikona grupe + naslov),
+   bez kartice, opisa i dugmeta za meni (sidebar je već tu). Ranije je
+   zaglavlje bilo sakriveno iznad 720 px, pa su Hrana, Trening, Napredak i
+   Ciljevi počinjali golim segmentnim prekidačem. */
+@media (min-width: 720px) {
+  .workspace-header,
+  .workspace-header.section,
+  :root[data-theme="dark"] .workspace-header {
+    display: block;
+    padding: 4px 0 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .workspace-header-eyebrow,
+  .workspace-header p,
+  .workspace-header-menu {
+    display: none;
+  }
+  .workspace-header-icon,
+  :root[data-theme="dark"] .workspace-header-icon {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--accent);
+  }
+  :root[data-theme="dark"] .workspace-header-icon .tab-icon {
+    color: var(--accent);
+  }
+  .workspace-header h1 {
+    font-size: var(--fs-30);
+  }
+  .workspace-header + .group-seg-nav {
+    margin-top: 16px;
+  }
+}

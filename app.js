@@ -7665,7 +7665,6 @@ function renderHero(entries, totals) {
   return `
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
-        <span class="hero-tag">Plan</span>
         <div class="hero-title-wrap">
           <h1 class="hero-title">${state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "Danas" : weekdayLabel(state.selectedWeekday)}</h1>
           ${
@@ -7703,7 +7702,7 @@ function renderWorkspaceHeader() {
         <div class="workspace-header-copy">
           <span class="workspace-header-eyebrow">${tabMeta.eyebrow}</span>
           <div class="workspace-header-title-row">
-            <span class="workspace-header-icon" aria-hidden="true">${renderTabIcon(activeTab.id)}</span>
+            <span class="workspace-header-icon" aria-hidden="true">${renderTabIcon(navGroup.icon)}</span>
             <div>
               <h1>${headerTitle}</h1>
               <p>${tabMeta.description}</p>
