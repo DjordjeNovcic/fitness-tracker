@@ -8196,7 +8196,7 @@ function renderGoalMacroCheck(goals = {}) {
   }
   const diff = fromMacros - calories;
   if (Math.abs(diff) <= 30) {
-    return `Makroi daju <strong>${fromMacros} kcal</strong> — poklapa se sa ciljem.`;
+    return `Makroi daju <strong>${fromMacros} kcal</strong>, poklapa se sa ciljem.`;
   }
   return `<span class="macro-check-warn">Makroi daju <strong>${fromMacros} kcal</strong>, a cilj je ${calories} kcal (${diff > 0 ? "+" : ""}${diff}).</span>`;
 }
@@ -12847,26 +12847,13 @@ function renderGoalCalibrationCard() {
       ? "Poklapa se sa procenom iz profila."
       : `${Math.abs(tdeeDiff)} kcal ${tdeeDiff > 0 ? "više" : "manje"} nego što formula iz profila kaže.`;
 
-  const comparison = `
-      <dl class="glance-list calibration-glance">
-        <div class="glance-item">
-          <dt>Očekivano</dt>
-          <dd>${formatSignedRate(cal.expectedRate)}</dd>
-        </div>
-        <div class="glance-item">
-          <dt>Stvarno</dt>
-          <dd>${formatSignedRate(cal.actualRate)}</dd>
-        </div>
-        <div class="glance-item">
-          <dt>Prosečan unos</dt>
-          <dd>${cal.avgKcal} kcal</dd>
-        </div>
-      </dl>
-      <div class="calibration-tdee">
-        <span class="plan-net-label">Stvarna potrošnja</span>
-        <strong>${cal.measuredTdee} kcal/dan</strong>
-        <span class="footer-note">${tdeeNote}</span>
-      </div>`;
+  // Stvarna potrošnja je bila drugi veliki broj na ekranu, odmah ispod
+  // dnevnog cilja; sad je red kao i ostala poređenja.
+  const comparison = renderStatRows([
+    { label: "Tempo", note: `očekivano ${formatSignedRate(cal.expectedRate)}`, value: formatSignedRate(cal.actualRate) },
+    { label: "Prosečan unos", value: `${cal.avgKcal} kcal` },
+    { label: "Stvarna potrošnja", note: tdeeNote, value: `${cal.measuredTdee} kcal/dan` },
+  ]);
 
   if (cal.status === "on-track") {
     const appliedAt = getCalibrationState().lastAppliedAt;
@@ -13060,17 +13047,11 @@ function renderGoalsTab() {
           : showCalibrated
             ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan)${paceLabel ? ` · ${paceLabel}` : ""}`
             : recDiffers
-              ? `Iz profila bi bilo ${goalRecommendation.targetCalories} kcal, „Izračunaj iz cilja“ ispod da preuzmeš`
+              ? `Profil predlaže ${goalRecommendation.targetCalories} kcal. Preuzmi ga dugmetom „Izračunaj iz cilja“.`
               : goalRecommendation
                 ? paceLabel
                 : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
-        const macro = (key) => {
-          const stored = toNumber(store.goals[key]);
-          if (stored > 0) return `${roundValue(stored, 0)} g`;
-          if (goalRecommendation) return `${goalRecommendation[key]} g`;
-          return "—";
-        };
-        return `
+                return `
       <div class="stat-hero">
         <span class="hero-day-label">Dnevni cilj</span>
         <div class="stat-hero-value">
@@ -13079,37 +13060,38 @@ function renderGoalsTab() {
         <div class="footer-note">${note}</div>
       </div>
       ${
+        // BMR → održavanje je bio red sa strelicom i stručnim skraćenicama, a
+        // makroi su ponavljali polja koja stoje odmah ispod u formi.
         goalRecommendation
-          ? `<div class="plan-net-row goals-calc-row">
-        <div class="plan-net-item">
-          <span class="plan-net-label">BMR</span>
-          <strong>${goalRecommendation.bmr}</strong>
-        </div>
-        <span class="plan-net-op">→</span>
-        <div class="plan-net-item">
-          <span class="plan-net-label">Održavanje</span>
-          <strong>${goalRecommendation.maintenance}</strong>
-        </div>
-      </div>`
+          ? `<p class="goals-calc-line">U mirovanju trošiš oko <strong>${goalRecommendation.bmr} kcal</strong>, sa aktivnošću oko <strong>${goalRecommendation.maintenance} kcal</strong> dnevno.</p>`
           : ""
-      }
-      <div class="plan-net-row goals-macro-row">
-        <div class="plan-net-item">
-          <span class="plan-net-label">Proteini</span>
-          <strong>${macro("protein")}</strong>
-        </div>
-        <div class="plan-net-item">
-          <span class="plan-net-label">UH</span>
-          <strong>${macro("carbs")}</strong>
-        </div>
-        <div class="plan-net-item">
-          <span class="plan-net-label">Masti</span>
-          <strong>${macro("fat")}</strong>
-        </div>
-      </div>`;
+      }`;
       })()}
       ${renderGoalEtaCard()}
       <form id="goals-form" class="form-grid split goals-form-layout">
+        ${(() => {
+          // Profil i tempo se popune jednom; kad su kompletni, sklope se u jedan
+          // red sa sažetkom, pa ekran počinje od dnevnih ciljeva.
+          const p = store.profile || {};
+          const complete = Boolean(p.sex && toNumber(p.age) && toNumber(p.weightKg) && toNumber(p.heightCm) && p.activityLevel);
+          const mode = GOAL_MODES.find((m) => m.id === store.goals.targetMode);
+          const pace = PACE_LEVELS.find((l) => l.id === (store.goals.paceLevel || "umereno"));
+          const summary = [
+            p.sex === "female" ? "Žensko" : p.sex === "male" ? "Muško" : "",
+            toNumber(p.age) ? `${roundValue(p.age, 0)} god.` : "",
+            toNumber(p.heightCm) ? `${roundValue(p.heightCm, 0)} cm` : "",
+            toNumber(p.weightKg) ? `${formatDecimal(p.weightKg, 1)} kg` : "",
+            ACTIVITY_SHORT_LABELS[p.activityLevel] || "",
+            mode ? `${mode.label}${mode.id !== "maintain" && pace ? `, ${pace.label.toLowerCase()}` : ""}` : "",
+          ].filter(Boolean);
+          return `<details class="goals-profile-fold field--full" ${complete ? "" : "open"}>
+            <summary>
+              <span class="goals-profile-fold-title">Profil i tempo</span>
+              <span class="goals-profile-fold-sub">${complete ? escapeHtml(summary.join(" · ")) : "Popuni da bi cilj mogao da se izračuna"}</span>
+              <span class="goals-profile-fold-icon" aria-hidden="true">${renderChevronIcon(false)}</span>
+            </summary>
+            <div class="form-grid split goals-form-layout goals-profile-fold-body">`;
+        })()}
         <div class="form-group-label">Profil</div>
         <div class="field field--full">
           <label for="profile-name">Ime</label>
@@ -13141,6 +13123,8 @@ function renderGoalsTab() {
           PACE_LEVELS.map((level) => ({ id: level.id, label: level.label, hint: paceHintFor(level.id, store.goals.targetMode) }))
         )}
         ${renderUnitField("goal-target-weight", "Ciljna težina", "kg", `<input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />`, true)}
+            </div>
+          </details>
         <div class="form-group-label">Dnevni unos</div>
         ${renderUnitField("goal-calories", "Dnevni cilj", "kcal", `<input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />`, true)}
         <div class="form-grid-3">
@@ -13161,13 +13145,13 @@ function renderGoalsTab() {
           <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
         </div>
         <div class="field">
-          <label for="goal-coffee">Kafa (kcal/šoljica)</label>
+          <label for="goal-coffee">Kcal po kafi</label>
           <input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />
         </div>
         </div>
         <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
-        <p class="footer-note field--full">Kafa: crna ~10 kcal po šoljici, sa kašičicom šećera ~26, sa mlekom i šećerom ~50. Stavi 0 ako želiš samo da brojiš šoljice.</p>
+        <p class="footer-note field--full">Crna kafa ~10 kcal, sa šećerom ~26, sa mlekom i šećerom ~50. Nula znači da se šoljice samo broje.</p>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
           <button class="solid-button" type="submit">Sačuvaj</button>

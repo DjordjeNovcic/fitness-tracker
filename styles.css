@@ -13754,3 +13754,88 @@ button.meal-entry-body:focus-visible {
 .stat-rows {
   max-width: 640px;
 }
+
+/* ============================================================
+   Ciljevi (2026-10-01): izabrani čip nije više puna akcent-ploča
+   kao dugme „Sačuvaj“ (pet „glavnih“ dugmadi na jednom ekranu),
+   nego blaga podloga sa akcent ivicom i tekstom.
+   ============================================================ */
+.choice-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.choice-chip.is-active .choice-chip-hint {
+  color: var(--accent-strong);
+  opacity: 0.85;
+}
+:root[data-theme="dark"] .choice-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="dark"] .choice-chip.is-active .choice-chip-hint {
+  color: var(--accent);
+}
+
+.goals-calc-line {
+  margin: 10px 0 0;
+  max-width: 62ch;
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.goals-calc-line strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.goals-profile-fold {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.goals-profile-fold > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-height: 56px;
+  padding: 10px 0;
+  list-style: none;
+  cursor: pointer;
+}
+.goals-profile-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.goals-profile-fold-title {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--ink);
+}
+.goals-profile-fold-sub {
+  grid-column: 1;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--muted);
+}
+.goals-profile-fold-icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  color: var(--muted);
+  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.goals-profile-fold[open] .goals-profile-fold-icon {
+  transform: rotate(180deg);
+}
+.goals-profile-fold-body {
+  padding: 4px 0 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .goals-profile-fold-icon {
+    transition: none;
+  }
+}
