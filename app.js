@@ -7661,14 +7661,21 @@ function rememberPlanSectionExpanded(key, expanded) {
   store.ui.plan[key] = expanded;
 }
 
-function renderHero(entries, totals) {
+// Jedna traka za dan i nedelju (naslov dana, Ova/Sledeća, sedam dana), ista na
+// Danas, Treningu i Rutini. Ranije je svaki tab imao svoj raspored: na Danas u
+// zaglavlju, na Treningu u kartici sa natpisom „NEDELJA“, na Rutini dani u
+// jednoj kartici, a nedelja u trećoj. `dayHint(weekday)` vraća { planned,
+// title } za tačkicu ispod dana (npr. trening u planu).
+function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
+  const isToday = state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack();
+  const tag = headingLevel === 1 ? "h1" : "h2";
   return `
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
         <div class="hero-title-wrap">
-          <h1 class="hero-title">${state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "Danas" : weekdayLabel(state.selectedWeekday)}</h1>
+          <${tag} class="hero-title">${isToday ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
           ${
-            state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack()
+            isToday
               ? `<span class="hero-date">${weekdayLabel(getTodayWeekday()).toLowerCase()}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "")}</span>`
               : ""
           }
@@ -7677,17 +7684,22 @@ function renderHero(entries, totals) {
       </div>
       <div class="hero-day-picker">
         <div class="chips hero-day-chips" role="group" aria-label="Izaberi dan">
-        ${WEEKDAYS.map(
-          (weekday) => `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
-              ${weekdayLabel(weekday).slice(0, 3)}
+        ${WEEKDAYS.map((weekday) => {
+          const hint = dayHint ? dayHint(weekday) : null;
+          return `
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${hint?.planned ? "has-plan" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}"${hint?.title ? ` title="${escapeHtml(hint.title)}"` : ""}>
+              ${weekdayLabel(weekday).slice(0, 3)}${dayHint ? `<span class="day-bar-dot" aria-hidden="true"></span>` : ""}
             </button>
-          `
-        ).join("")}
+          `;
+        }).join("")}
         </div>
       </div>
     </section>
   `;
+}
+
+function renderHero() {
+  return renderDayBar();
 }
 
 function renderWorkspaceHeader() {
@@ -10039,13 +10051,6 @@ function renderWeekTrackToggle() {
       </div>`;
 }
 
-function renderWeekTrackRow() {
-  return `
-      <div class="week-track-row">
-        <span class="hero-day-label">Nedelja</span>
-        ${renderWeekTrackToggle()}
-      </div>`;
-}
 
 // The collapsed daily-overview row on phones. The remaining-calories glance is
 // the reason people open the app mid-day; hiding it behind a tap (a text line
@@ -11136,6 +11141,14 @@ function renderTrainingTab() {
   );
 
   return `
+    ${renderDayBar({
+      headingLevel: 2,
+      dayHint: (weekday) => {
+        const day = weeklyTrainingPlan.find((entry) => entry.weekday === weekday);
+        const names = day ? day.templates.map((template) => template.name) : [];
+        return { planned: names.length > 0, title: `${weekdayLabel(weekday)} · ${names.length ? names.join(", ") : "odmor"}` };
+      },
+    })}
     <section class="section routine-overview-section">
       <div class="section-header">
         <div>
@@ -11143,19 +11156,6 @@ function renderTrainingTab() {
         </div>
       </div>
       ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
-      ${renderWeekTrackRow()}
-      <div class="training-week-strip" role="group" aria-label="Izaberi dan">
-        ${weeklyTrainingPlan
-          .map(
-            (day) => `
-              <button class="chip training-day-chip ${day.weekday === state.selectedWeekday ? "is-active" : ""} ${day.weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${day.templates.length ? "has-plan" : ""}" type="button" data-action="select-weekday" data-weekday="${day.weekday}" aria-pressed="${day.weekday === state.selectedWeekday}" title="${weekdayLabel(day.weekday)}${day.templates.length ? ` · ${escapeHtml(day.templates.map((template) => template.name).join(", "))}` : " · odmor"}">
-                <span>${weekdayLabel(day.weekday).slice(0, 3)}</span>
-                <span class="training-day-dot" aria-hidden="true"></span>
-              </button>
-            `
-          )
-          .join("")}
-      </div>
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
@@ -12314,6 +12314,7 @@ function renderRoutineTab() {
   )[0];
 
   return `
+    ${renderDayBar({ headingLevel: 2 })}
     <section class="section routine-overview-section">
       <div class="section-header">
         <div>
@@ -12321,17 +12322,6 @@ function renderRoutineTab() {
         </div>
       </div>
       ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
-      <div class="hero-day-picker routine-day-picker">
-        <div class="chips hero-day-chips">
-          ${WEEKDAYS.map(
-            (weekday) => `
-              <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() ? "is-today" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}">
-                ${weekdayLabel(weekday).slice(0, 3)}
-              </button>
-            `
-          ).join("")}
-        </div>
-      </div>
       ${
         summary.habits.length || summary.tasks.length || summary.streakHabits.length
           ? `<div class="plan-net-row">
@@ -12526,7 +12516,6 @@ function renderRoutineTab() {
           <p>Sitne obaveze za izabrani dan.</p>
         </div>
       </div>
-      ${renderWeekTrackRow()}
       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         ${
           previousWeekday && previousDayTaskCount

@@ -13913,3 +13913,37 @@ button.meal-entry-body:focus-visible {
     margin-top: 16px;
   }
 }
+
+/* Tačkica ispod dana u traci (Trening: dan ima trening u planu). */
+.hero-day-chips .chip {
+  position: relative;
+}
+.day-bar-dot {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+}
+.hero-day-chips .chip.has-plan .day-bar-dot {
+  opacity: 0.7;
+}
+/* Na Treningu i Rutini traka je ispod naslova stranice, pa je dan h2
+   (sans, kao naslovi sekcija), bez podrazumevane margine koja je gurala
+   datum ispod vidljivog dela. */
+.hero-top h2.hero-title {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+}
+/* Ikona naslova je goli znak, i na telefonu u tamnoj temi (ostala je ivica). */
+:root[data-theme="dark"] .workspace-header-icon {
+  border: 0;
+  background: none;
+}
