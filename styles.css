@@ -9713,7 +9713,7 @@ body.app-header-hidden .workspace-header {
   border-left: 1px solid currentColor;
   opacity: 0.75;
   font-weight: 800;
-  font-size: 0.78em;
+  font-size: var(--fs-12);
   letter-spacing: 0.02em;
 }
 .meal-empty-actions {
@@ -13629,4 +13629,14 @@ button.meal-entry-body:focus-visible {
 
 .nowrap {
   white-space: nowrap;
+}
+
+/* Voda, kafa, koraci, trening, težina: svoja sekcija ispod obroka, pa nema
+   gornje linije ni razmaka koji su ih odvajali od makroa u pregledu. */
+.plan-glance-section .plan-glance-rows {
+  margin-top: 0;
+  border-top: 0;
+}
+.plan-glance-section .plan-glance-row:first-child {
+  padding-top: 2px;
 }

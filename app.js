@@ -677,6 +677,7 @@ const state = {
   foodEditorOpen: false,
   quickEntryOpen: false,
   quickEntryEaten: false,
+  autoOpenMealDismissed: "",
   quickEntryText: "",
   quickEntryOverrides: {},
   scannerOpen: false,
@@ -9621,23 +9622,8 @@ function getTodayReminders() {
       hint: `${calibration.delta > 0 ? "+" : ""}${calibration.delta} kcal`,
     });
   }
-  const measurements = store.measurements || [];
-  const nagSnoozedUntil = String(store.ui?.plan?.measurementNagSnoozedUntil || "");
-  if (!measurements.length) {
-    if (!nagSnoozedUntil || nagSnoozedUntil < getTodayDateValue()) {
-      reminders.push({ text: "Dodaj prvo merenje", icon: "add", action: "toggle-quick-weight", hint: "Unesi težinu" });
-    }
-  } else {
-    const latest = measurements.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
-    // Compare local calendar days (both at noon), not raw ms: `new Date("YYYY-MM-DD")`
-    // is UTC midnight, which lagged the count by up to 2h and delayed the reminder.
-    const latestDay = getDateValueAsLocalDate(normalizeDateValue(latest.date));
-    const todayDay = getDateValueAsLocalDate(getTodayDateValue());
-    const days = latestDay && todayDay ? Math.round((todayDay.getTime() - latestDay.getTime()) / DAY_IN_MS) : 0;
-    if (days >= 7) {
-      reminders.push({ text: `Merenje: poslednje pre ${days} dana`, icon: "add", action: "toggle-quick-weight", hint: "Unesi težinu" });
-    }
-  }
+  // Merenje se ne podseća ovde: red „Težina“ na Danas već kaže „merenje pre
+  // N dana“ i ima „Unesi“, pa je baner bio isti podsetnik dva puta.
   return reminders;
 }
 
@@ -10103,6 +10089,7 @@ function renderPlanTab(entries) {
     ]),
   ];
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
+  const autoOpenMeal = getAutoOpenMealLabel(planMeals);
   const favoriteFoods = getFavoriteFoodsDetailed();
   const mealPreviewRows = getMealPreviewRows(groupedEntries);
   const companionSuggestions = generateCompanionSuggestions();
@@ -10186,14 +10173,8 @@ function renderPlanTab(entries) {
       }
       <div class="plan-summary-layout">
         ${renderMacroCards(intake, { excludeCalories: true })}
-        ${isPlanSummaryExpanded() ? renderPlanGlanceRows() : ""}
       </div>
       </div>
-      ${
-        // Voda, kafa, koraci, trening i težina se kucaju svaki dan — ne smeju da
-        // budu iza sklopljenog pregleda (na telefonu je on sklopljen podrazumevano).
-        isPlanSummaryExpanded() ? "" : renderPlanGlanceRows()
-      }
     </section>
 
     ${renderTodayRemindersBanner()}
@@ -10220,7 +10201,8 @@ function renderPlanTab(entries) {
                   // Empty meals have no checkbox/chevron to expand them (those only render
                   // once there are entries), so never collapse an empty meal - otherwise
                   // "Dodaj namirnicu" is stuck hidden with no way to reveal it.
-                  const isMealCollapsed = mealEntries.length > 0 && isMealCollapsedForWeekday(state.selectedWeekday, mealLabel);
+                  const isMealCollapsed =
+                    mealEntries.length > 0 && isMealCollapsedForWeekday(state.selectedWeekday, mealLabel) && mealLabel !== autoOpenMeal;
                   const mealTotals = getDayTotals(mealEntries);
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
@@ -10377,6 +10359,13 @@ function renderPlanTab(entries) {
         }
       </div>
     </section>
+
+    ${
+      // Voda, kafa, koraci, trening i težina idu odmah ispod obroka: Danas je
+      // pre svega unos hrane, a ovo su brzi tapovi koji ne moraju prvi na ekran.
+      // Nikad iza sklopljenog pregleda.
+      `<section class="section plan-glance-section" aria-label="Voda, koraci, trening i težina">${renderPlanGlanceRows()}</section>`
+    }
 
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
@@ -10706,6 +10695,18 @@ function getPreviousPlanDay(weekday, weekTrack) {
 
 // First meal of the selected day that isn't checked off yet — where a quick
 // "log what I'm eating" most likely belongs.
+// Danas je sledeći nepojeden obrok otvoren sam od sebe, da se do „Dodaj
+// namirnicu“ i stavki stigne bez traženja. Ako ga korisnik zatvori, ostaje
+// zatvoren do kraja sesije (ne upisuje se u store).
+function getAutoOpenMealLabel(planMeals) {
+  if (!isSelectedDayToday()) {
+    return "";
+  }
+  const next = planMeals.find(([, mealEntries]) => mealEntries.length && !mealEntries.every((entry) => entry.done));
+  const label = next ? next[0] : "";
+  return label && state.autoOpenMealDismissed !== `${getTodayDateValue()}|${label}` ? label : "";
+}
+
 function getNextOpenMealLabel() {
   const meals = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])];
   return meals.find((label) => !isMealCompletedForWeekday(state.selectedWeekday, label)) || "";
@@ -17704,6 +17705,13 @@ async function handleDocumentClick(event) {
     if (state.editingMealLabel === mealLabel && !isMealCollapsedForWeekday(state.selectedWeekday, mealLabel)) {
       state.editingMealLabel = "";
       resetPlanDraft();
+    }
+    if (isMealCollapsedForWeekday(state.selectedWeekday, mealLabel) && actionTarget.closest(".meal-card")?.classList.contains("is-collapsed") === false) {
+      // Obrok je bio otvoren samo automatski (sledeći nepojeden): zatvori ga za
+      // ovu sesiju, bez upisa u sačuvano stanje.
+      state.autoOpenMealDismissed = `${getTodayDateValue()}|${normalizeMealLabel(mealLabel)}`;
+      render();
+      return;
     }
     toggleMealCollapsedState(state.selectedWeekday, mealLabel);
     persist();
