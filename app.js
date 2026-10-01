@@ -12767,6 +12767,19 @@ function getWeightTrendSlope(points) {
   return den > 0 ? num / den : null;
 }
 
+// Jedan broj za „koliko trošiš dnevno“, svuda isti. Kad kalibracija ima dovoljno
+// podataka, to je potrošnja izmerena iz unosa i vage; inače procena iz profila
+// (formula). Ranije je Napredak pisao održavanje iz formule (2582), a Ciljevi
+// „stvarnu potrošnju“ (2676), pa se nije znalo kom broju verovati.
+function getMaintenanceEstimate() {
+  const cal = getGoalCalibration();
+  if (cal.status !== "insufficient" && cal.measuredTdee > 0) {
+    return { kcal: cal.measuredTdee, measured: true, formulaKcal: cal.profileTdee };
+  }
+  const rec = getGoalRecommendation();
+  return rec ? { kcal: rec.maintenance, measured: false, formulaKcal: rec.maintenance } : null;
+}
+
 function getGoalCalibration() {
   const currentGoal = roundValue(toNumber(store.goals?.calories), 0);
   const rec = getGoalRecommendation();
@@ -12943,9 +12956,9 @@ function renderGoalCalibrationCard() {
   // Stvarna potrošnja je bila drugi veliki broj na ekranu, odmah ispod
   // dnevnog cilja; sad je red kao i ostala poređenja.
   const comparison = renderStatRows([
-    { label: "Tempo", note: `očekivano ${formatSignedRate(cal.expectedRate)}`, value: formatSignedRate(cal.actualRate) },
-    { label: "Prosečan unos", value: `${cal.avgKcal} kcal` },
-    { label: "Stvarna potrošnja", note: tdeeNote, value: `${cal.measuredTdee} kcal/dan` },
+    { label: "Promena težine", note: `plan je ${formatSignedRate(cal.expectedRate)}`, value: formatSignedRate(cal.actualRate) },
+    { label: "Prosečan unos", note: `poslednjih ${CALIBRATION_INTAKE_WINDOW_DAYS} dana, ${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletan dan", "kompletna dana", "kompletnih dana")}`, value: `${cal.avgKcal} kcal` },
+    { label: "Potrošnja iz tvojih podataka", note: tdeeNote, value: `${cal.measuredTdee} kcal/dan` },
   ]);
 
   if (cal.status === "on-track") {
@@ -13140,7 +13153,7 @@ function renderGoalsTab() {
           : showCalibrated
             ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan)${paceLabel ? ` · ${paceLabel}` : ""}`
             : recDiffers
-              ? `Profil predlaže ${goalRecommendation.targetCalories} kcal. Preuzmi ga dugmetom „Izračunaj iz cilja“.`
+              ? `Profil predlaže ${goalRecommendation.targetCalories} kcal. Preuzmi ga dugmetom „Izračunaj iz profila“.`
               : goalRecommendation
                 ? paceLabel
                 : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
@@ -13156,7 +13169,12 @@ function renderGoalsTab() {
         // BMR → održavanje je bio red sa strelicom i stručnim skraćenicama, a
         // makroi su ponavljali polja koja stoje odmah ispod u formi.
         goalRecommendation
-          ? `<p class="goals-calc-line">U mirovanju trošiš oko <strong>${goalRecommendation.bmr} kcal</strong>, sa aktivnošću oko <strong>${goalRecommendation.maintenance} kcal</strong> dnevno.</p>`
+          ? (() => {
+              const estimate = getMaintenanceEstimate();
+              return estimate && estimate.measured
+                ? `<p class="goals-calc-line">Po tvojim podacima trošiš oko <strong>${estimate.kcal} kcal</strong> dnevno. Formula iz profila kaže ${goalRecommendation.maintenance} kcal (${goalRecommendation.bmr} u mirovanju).</p>`
+                : `<p class="goals-calc-line">Po proceni iz profila trošiš oko <strong>${goalRecommendation.maintenance} kcal</strong> dnevno (${goalRecommendation.bmr} u mirovanju).</p>`;
+            })()
           : ""
       }`;
       })()}
@@ -13246,7 +13264,7 @@ function renderGoalsTab() {
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
         <p class="footer-note field--full">Crna kafa ~10 kcal, sa šećerom ~26, sa mlekom i šećerom ~50. Nula znači da se šoljice samo broje.</p>
         <div class="meta-row">
-          <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz cilja</button>
+          <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz profila</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
         </div>
       </form>
@@ -14699,7 +14717,9 @@ function renderProgressHistorySection() {
         // is here for the consistency calendar.
         (() => {
           const parts = [];
-          if (stats.avgKcal7) parts.push(`<strong>${stats.avgKcal7}</strong> kcal`);
+          // Kalorije za 7 dana već stoje u Nedeljnom izveštaju odmah iznad; dva
+          // „proseka za 7 dana“ sa različitim brojem (drugačije brojanje dana)
+          // jedan ispod drugog su rušila poverenje u oba.
           if (stats.avgProtein7) parts.push(`<strong>${stats.avgProtein7} g</strong> proteina`);
           if (stats.avgWater7) parts.push(`<strong>${formatDecimal(stats.avgWater7 / 1000, 1)} L</strong> vode`);
           return parts.length ? `<p class="history-averages">Prosek za 7 dana: ${parts.join(" · ")}</p>` : "";
@@ -14780,7 +14800,7 @@ function renderWeeklyReportSection() {
       </div>
       ${renderStatRows([
         { label: "Dana na cilju", note: vsLast(onTargetDelta, "više", "manje"), value: `${r.onTarget} od 7` },
-        r.avgKcal && { label: "Prosek", note: vsLast(kcalDelta, "kcal više", "kcal manje"), value: `${r.avgKcal} kcal` },
+        r.avgKcal && { label: "Prosečan unos", note: `ovih 7 dana · ${vsLast(kcalDelta, "kcal više", "kcal manje")}`, value: `${r.avgKcal} kcal` },
         r.weightDelta !== null
           ? { label: "Težina", note: "za poslednjih 7 dana", value: `${r.weightDelta > 0 ? "+" : r.weightDelta < 0 ? "−" : ""}${formatDecimal(Math.abs(r.weightDelta), 1)} kg` }
           : r.avgWater && { label: "Voda", note: "prosek za 7 dana", value: `${formatDecimal(r.avgWater / 1000, 1)} L` },
@@ -15191,15 +15211,18 @@ function getInsights(periodDays) {
     (store.trainingProgressLogs || []).map((log) => log.date).filter((date) => inPeriod(date))
   ).size;
 
-  // Energy link: average intake vs estimated maintenance → expected weekly
-  // rate, then compared to what actually happened on the scale.
-  const rec = getGoalRecommendation();
+  // Energy link: average intake vs maintenance. With the formula estimate it
+  // predicts a weekly rate and compares it to the scale; with measured
+  // maintenance (calibration) that comparison would be circular (it is derived
+  // from the same scale), so only the deficit is stated.
+  const maintenanceEstimate = getMaintenanceEstimate();
   let energy = null;
   // An energy → weight projection from fewer than five logged days is noise.
-  if (rec && avgKcal > 0 && loggedCount >= 5) {
-    const dailyDelta = avgKcal - rec.maintenance; // negative = deficit
+  if (maintenanceEstimate && avgKcal > 0 && loggedCount >= 5) {
+    const dailyDelta = avgKcal - maintenanceEstimate.kcal; // negative = deficit
     energy = {
-      maintenance: rec.maintenance,
+      maintenance: maintenanceEstimate.kcal,
+      measured: maintenanceEstimate.measured,
       avgKcal,
       dailyDelta: roundValue(dailyDelta, 0),
       expectedRate: roundValue((dailyDelta * 7) / KCAL_PER_KG, 2),
@@ -15271,7 +15294,7 @@ function renderInsightsSection() {
   // Jedan glavni broj: promena težine u periodu. Bez nje (nema dva merenja)
   // vodi rečenica o tome koliko je dana uneto.
   let verdict = "";
-  if (ins.energy && ins.energy.actualRate != null && ins.energy.expectedRate) {
+  if (ins.energy && !ins.energy.measured && ins.energy.actualRate != null && ins.energy.expectedRate) {
     const e = ins.energy;
     const sameDirection = e.actualRate <= 0 === e.expectedRate <= 0;
     verdict = !sameDirection
@@ -15292,7 +15315,7 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: "Kalorije", note: `na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: "Prosečan unos", note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
       note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct} % dana` : "",
@@ -15309,10 +15332,13 @@ function renderInsightsSection() {
     const e = ins.energy;
     const deficitWord =
       e.dailyDelta < 0 ? `deficit oko ${Math.abs(e.dailyDelta)} kcal dnevno` : e.dailyDelta > 0 ? `višak oko ${e.dailyDelta} kcal dnevno` : "održavanje";
-    energyHtml = `
-      <p class="insights-energy">Prosečno unosiš ${e.avgKcal} kcal, a održavanje ti je oko ${e.maintenance} kcal: ${deficitWord}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
+    energyHtml = e.measured
+      ? `
+      <p class="insights-energy">Po tvojim podacima (unos i vaga) trošiš oko ${e.maintenance} kcal dnevno, pa je prosečan unos od ${e.avgKcal} kcal ${deficitWord}.</p>`
+      : `
+      <p class="insights-energy">Po proceni iz profila trošiš oko ${e.maintenance} kcal dnevno, pa je prosečan unos od ${e.avgKcal} kcal ${deficitWord}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
         e.actualRate != null ? ` Vaga kaže ${formatDecimal(e.actualRate, 2)} kg nedeljno.` : ""
-      }</p>`;
+      } Kad se skupi dovoljno dana, procena se zamenjuje potrošnjom iz tvojih podataka.</p>`;
   }
 
   return `
