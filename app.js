@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { collection, doc, getDoc, getDocs, getFirestore, limit, query, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { collection, deleteDoc, doc, getDoc, getDocs, getFirestore, limit, query, runTransaction, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const STORAGE_KEY = "fitness-tracker-state-v1";
 // Local copies are kept PER ACCOUNT (`${STORAGE_KEY}:${uid}`) so one person's
@@ -82,14 +82,51 @@ const PHOTO_DB_STORE = "photos";
 // IndexedDB store under a prefixed id. They used to ride along inside the cloud
 // doc: 2-4 phone photos pushed it past Firestore's 1 MiB document limit, every
 // save then failed silently, and the next launch's hydrate rolled the account
-// back to the last good cloud copy. Like progress photos they now stay on the
-// device (stitched back in by reconcilePhotos) and never enter the cloud doc.
+// back to the last good cloud copy. Like progress photos they live in
+// IndexedDB (stitched back in by reconcilePhotos) and never enter the cloud doc.
 const RECIPE_IMAGE_KEY_PREFIX = "recipe-image:";
 function getRecipeImageKey(favoriteId) {
   return `${RECIPE_IMAGE_KEY_PREFIX}${favoriteId}`;
 }
 function isInlineImageData(url) {
   return typeof url === "string" && url.startsWith("data:");
+}
+
+// Photo blobs also go to the cloud, one Firestore doc per image under
+// users/{uid}/photos/{id} (recipe photos under their recipe-image: key), so a
+// photo added on the phone shows up on the computer. The state doc carries
+// only the metadata. Per-account map {id: sig} = what this device has uploaded
+// or downloaded; an id in the map that is gone from the store was deleted
+// (here or on another device) and its cloud doc gets removed.
+const PHOTO_SYNC_KEY_PREFIX = "fitness-tracker-photo-sync-v1";
+// Firestore caps a document at 1 MiB; leave room for the other fields.
+const CLOUD_PHOTO_MAX_CHARS = 900000;
+function readPhotoSyncMap(uid) {
+  if (!uid) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(safeLocalGet(`${PHOTO_SYNC_KEY_PREFIX}:${uid}`) || "null");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+function writePhotoSyncMap(uid, map) {
+  if (uid) {
+    safeLocalSet(`${PHOTO_SYNC_KEY_PREFIX}:${uid}`, JSON.stringify(map));
+  }
+}
+// Cheap content fingerprint (length + FNV-1a). Recipe photos keep the same id
+// when replaced, so the other device needs this to tell its copy is stale.
+function getPhotoSignature(dataUrl) {
+  const text = String(dataUrl || "");
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `${text.length.toString(36)}-${(hash >>> 0).toString(36)}`;
 }
 const photoIdsInIdb = new Set();
 let photoDbPromise = null;
@@ -1387,7 +1424,12 @@ function getSerializableStoreSnapshot(source = store) {
 
 function getCloudStoreSnapshot(source = store) {
   const snapshot = getSerializableStoreSnapshot(source);
-  delete snapshot.progressPhotos;
+  if (isDemoAccount() || !Array.isArray(snapshot.progressPhotos)) {
+    // The demo account is shared by strangers: its photos stay on the device.
+    delete snapshot.progressPhotos;
+  } else {
+    snapshot.progressPhotos = snapshot.progressPhotos.filter((photo) => photo && photo.id).map(({ previewUrl, ...meta }) => meta);
+  }
   if (Array.isArray(snapshot.favoriteMeals)) {
     snapshot.favoriteMeals = snapshot.favoriteMeals.map((favorite) =>
       favorite && isInlineImageData(favorite.imageUrl) ? { ...favorite, imageUrl: "" } : favorite
@@ -1422,7 +1464,7 @@ function isDemoAccount() {
 }
 
 // Vrati trenutni nalog na originalni seed (jelovnik, namirnice, trening, obroci).
-// Briše i lokalne slike napretka (one ionako nisu na cloudu) i forsira upis u cloud.
+// Briše i lokalne slike napretka (demo ih ne šalje u cloud) i forsira upis u cloud.
 // Demo nalog je izlog za nekog ko app vidi prvi put. Bez istorije je Napredak
 // bio niz praznih stanja („još nema merenja“, siv kalendar), pa se nije videlo
 // šta app zapravo radi. Ovo dopuni poslednjih pet nedelja: dnevnik ishrane
@@ -1616,6 +1658,7 @@ async function saveCloudStateNow(options = {}) {
     if (options.renderAfterSave) {
       render();
     }
+    syncPhotosWithCloud();
     return true;
   } catch (error) {
     if (error && error.code === "sync-conflict") {
@@ -1671,6 +1714,10 @@ async function retryCloudSync() {
       render();
     } else if (readSyncMeta(uid).dirty && !cloudSaveTimer) {
       await saveCloudStateNow({ renderAfterSave: true });
+    } else {
+      // Photos the other device hadn't uploaded at the last look may be there now.
+      cloudPhotoMisses.clear();
+      syncPhotosWithCloud();
     }
   } finally {
     cloudSyncRetryInFlight = false;
@@ -1760,10 +1807,13 @@ async function hydrateStoreFromCloud(user) {
         }
 
         knownRev = remoteRev;
-        replaceStore({ ...cloudData, progressPhotos: localPhotos });
+        replaceStore({ ...cloudData, progressPhotos: mergeCloudPhotoMeta(cloudData.progressPhotos, localPhotos, user.uid) });
         persistAccountCopy();
         writeSyncMeta(user.uid, { rev: remoteRev, dirty: false });
         cloudBaselineReady = true;
+        // The cloud doc predates photo sync: write the photo list right away so
+        // other devices see these photos without waiting for some other edit.
+        pushPhotoMetaAfterHydrate = !isDemoAccount() && !Array.isArray(cloudData.progressPhotos) && store.progressPhotos.length > 0;
         state.syncStatus = "Sync je uključen";
         return;
       }
@@ -1810,11 +1860,39 @@ async function hydrateStoreFromCloud(user) {
     state.syncStatus = "Cloud nije dostupan, radiš lokalno";
   } finally {
     isHydratingCloudState = false;
+    if (pushPhotoMetaAfterHydrate) {
+      pushPhotoMetaAfterHydrate = false;
+      scheduleCloudPersist();
+    }
     if (legacyAdopted && persistedToAccountKey) {
       // The blob now lives under the account key — free the duplicate.
       safeLocalRemove(STORAGE_KEY);
     }
   }
+}
+
+// Photo list after a clean hydrate. The cloud list is authoritative (it carries
+// deletions from other devices); local blobs are carried over by id. Two kinds
+// of local photos survive even though the cloud doesn't list them: all of them
+// when the cloud doc predates photo sync (no list at all), and any photo this
+// device never synced — it was taken before the update and must not vanish.
+function mergeCloudPhotoMeta(cloudPhotos, localPhotos, uid) {
+  if (isDemoAccount() || !Array.isArray(cloudPhotos)) {
+    return localPhotos;
+  }
+  const synced = readPhotoSyncMap(uid);
+  const localById = new Map(localPhotos.filter((photo) => photo && photo.id).map((photo) => [photo.id, photo]));
+  const cloudIds = new Set();
+  const merged = cloudPhotos
+    .filter((photo) => photo && photo.id)
+    .map((photo) => {
+      cloudIds.add(photo.id);
+      const { previewUrl, ...meta } = photo;
+      const localBlob = localById.get(photo.id)?.previewUrl;
+      return localBlob ? { ...meta, previewUrl: localBlob } : meta;
+    });
+  const neverSynced = localPhotos.filter((photo) => photo && photo.id && !cloudIds.has(photo.id) && !(photo.id in synced));
+  return [...neverSynced, ...merged];
 }
 
 // The localStorage snapshot drops the heavy previewUrl from photos already saved
@@ -1901,19 +1979,31 @@ async function reconcilePhotos() {
 
   // Recipe photos: same migrate/stitch dance. Content is compared (not just the
   // id) so a replaced photo overwrites the stored one instead of resurrecting
-  // the old image on the next load.
+  // the old image on the next load. A stored copy is stitched only if it is the
+  // version the recipe points at (imageSig) — after a replace on another device
+  // the old one waits for syncPhotosWithCloud to bring the new one.
+  const photoSync = readPhotoSyncMap(state.authUser?.uid);
+  let signed = 0;
   (store.favoriteMeals || []).forEach((favorite) => {
     if (!favorite || !favorite.id) {
       return;
     }
     const key = getRecipeImageKey(favorite.id);
     if (isInlineImageData(favorite.imageUrl)) {
+      if (!favorite.imageSig) {
+        // Imported / pre-sync recipe photo: give it a version so it syncs.
+        favorite.imageSig = getPhotoSignature(favorite.imageUrl);
+        signed += 1;
+      }
       if (idbMap.get(key) !== favorite.imageUrl) {
         toMigrate.push({ id: key, previewUrl: favorite.imageUrl });
       }
     } else if (!favorite.imageUrl && idbMap.has(key)) {
-      favorite.imageUrl = idbMap.get(key);
-      stitched += 1;
+      const stored = idbMap.get(key);
+      if (!favorite.imageSig || photoSync[key] === favorite.imageSig || getPhotoSignature(stored) === favorite.imageSig) {
+        favorite.imageUrl = stored;
+        stitched += 1;
+      }
     }
   });
 
@@ -1921,8 +2011,130 @@ async function reconcilePhotos() {
     // Blobs are durable in IndexedDB now — shrink the localStorage snapshot.
     persistLocal();
   }
+  if (signed) {
+    persist();
+  }
   if (stitched || toMigrate.length) {
     render();
+  }
+  syncPhotosWithCloud();
+}
+
+// Firestore docs cap at 1 MiB. A 1280 px JPEG nearly always fits; a very
+// detailed one is re-encoded smaller for the cloud copy only.
+async function fitPhotoForCloud(dataUrl) {
+  if (dataUrl.length <= CLOUD_PHOTO_MAX_CHARS) {
+    return dataUrl;
+  }
+  const image = await loadImageFromDataUrl(dataUrl);
+  for (const [maxWidth, quality] of [[1280, 0.7], [1024, 0.7], [800, 0.65]]) {
+    const ratio = Math.min(1, maxWidth / image.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * ratio);
+    canvas.height = Math.round(image.height * ratio);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    const smaller = canvas.toDataURL("image/jpeg", quality);
+    if (smaller.length <= CLOUD_PHOTO_MAX_CHARS) {
+      return smaller;
+    }
+  }
+  return "";
+}
+
+let photoSyncInFlight = false;
+let pushPhotoMetaAfterHydrate = false;
+let photoSyncQueued = false;
+// "id|sig" pairs not in the cloud yet (the other device hasn't uploaded them);
+// not asked again until the app comes back online / to the foreground.
+const cloudPhotoMisses = new Set();
+
+// Pushes photos this device has and the cloud doesn't, pulls the ones it lacks,
+// and deletes cloud copies of photos removed from the store. Runs after every
+// successful state save (so metadata always lands first) and after reconcile.
+async function syncPhotosWithCloud() {
+  if (!state.authUser || isDemoAccount() || !cloudBaselineReady || isHydratingCloudState || state.syncConflict) {
+    return;
+  }
+  if (photoSyncInFlight) {
+    photoSyncQueued = true;
+    return;
+  }
+  photoSyncInFlight = true;
+  const uid = state.authUser.uid;
+  const synced = readPhotoSyncMap(uid);
+  const wanted = new Set();
+  const uploads = [];
+  const downloads = [];
+  (store.progressPhotos || []).forEach((photo) => {
+    if (!photo || !photo.id) {
+      return;
+    }
+    wanted.add(photo.id);
+    const job = { id: photo.id, sig: "1", data: photo.previewUrl || "", apply: (data) => (photo.previewUrl = data) };
+    (job.data ? uploads : downloads).push(job);
+  });
+  (store.favoriteMeals || []).forEach((favorite) => {
+    if (!favorite || !favorite.id || !favorite.imageSig) {
+      return;
+    }
+    const id = getRecipeImageKey(favorite.id);
+    wanted.add(id);
+    const data = isInlineImageData(favorite.imageUrl) ? favorite.imageUrl : "";
+    const job = { id, sig: favorite.imageSig, data, apply: (next) => (favorite.imageUrl = next) };
+    (data ? uploads : downloads).push(job);
+  });
+
+  let pulled = 0;
+  try {
+    for (const job of uploads) {
+      if (synced[job.id] === job.sig) {
+        continue;
+      }
+      const data = await fitPhotoForCloud(job.data);
+      if (!data) {
+        continue;
+      }
+      await setDoc(doc(firebaseDb, "users", uid, "photos", job.id), { data, sig: job.sig, updatedAt: serverTimestamp() });
+      synced[job.id] = job.sig;
+    }
+    const pending = downloads.filter((job) => !cloudPhotoMisses.has(`${job.id}|${job.sig}`));
+    for (let i = 0; i < pending.length; i += 4) {
+      await Promise.all(
+        pending.slice(i, i + 4).map(async (job) => {
+          const snapshot = await getDoc(doc(firebaseDb, "users", uid, "photos", job.id));
+          const remote = snapshot.exists() ? snapshot.data() || {} : null;
+          if (!remote || remote.sig !== job.sig || !isInlineImageData(remote.data)) {
+            cloudPhotoMisses.add(`${job.id}|${job.sig}`);
+            return;
+          }
+          job.apply(remote.data);
+          await idbPutPhotos([{ id: job.id, previewUrl: remote.data }]);
+          synced[job.id] = job.sig;
+          pulled += 1;
+        })
+      );
+    }
+    for (const id of Object.keys(synced)) {
+      if (!wanted.has(id)) {
+        await deleteDoc(doc(firebaseDb, "users", uid, "photos", id));
+        delete synced[id];
+      }
+    }
+  } catch (error) {
+    // Offline or a failed write: what got done is recorded below, the rest is
+    // retried on the next save / when the app is back online.
+    console.error("Photo cloud sync failed", error);
+  } finally {
+    writePhotoSyncMap(uid, synced);
+    photoSyncInFlight = false;
+  }
+  if (pulled && state.authUser?.uid === uid) {
+    persistLocal();
+    render();
+  }
+  if (photoSyncQueued) {
+    photoSyncQueued = false;
+    syncPhotosWithCloud();
   }
 }
 
@@ -6363,23 +6575,32 @@ function saveFavoriteMealMetadata(payload = {}) {
     return null;
   }
 
-  const recipeDetails = {
-    name: normalizedFavoriteName,
-    mealLabel: normalizedMealLabel,
-    description: normalizedDescription,
-    imageUrl: normalizedImageUrl,
-    instructions: normalizedInstructions,
-    servings: normalizedServings,
-    prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
-    updatedAt: new Date().toISOString(),
-  };
-
   // Menja se samo recept otvoren olovkom. Nov recept sa istim imenom kao
   // postojeći je ranije tiho prepisivao stari (sastojke, opis, sliku); to sada
   // sprečava provera pre čuvanja, a ovde se po imenu više ne traži.
   const existingFavorite = state.editingFavoriteItem.favoriteId
     ? store.favoriteMeals.find((entry) => entry.id === state.editingFavoriteItem.favoriteId)
     : null;
+
+  // imageSig je verzija slike za cloud. Recept čija slika još nije stigla sa
+  // drugog uređaja ima prazan imageUrl, pa njegova izmena ne sme da je obriše.
+  const imageSig = isInlineImageData(normalizedImageUrl)
+    ? getPhotoSignature(normalizedImageUrl)
+    : !normalizedImageUrl && existingFavorite && !existingFavorite.imageUrl
+      ? existingFavorite.imageSig || ""
+      : "";
+
+  const recipeDetails = {
+    name: normalizedFavoriteName,
+    mealLabel: normalizedMealLabel,
+    description: normalizedDescription,
+    imageUrl: normalizedImageUrl,
+    imageSig,
+    instructions: normalizedInstructions,
+    servings: normalizedServings,
+    prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
+    updatedAt: new Date().toISOString(),
+  };
 
   if (existingFavorite) {
     const imageChanged = existingFavorite.imageUrl !== normalizedImageUrl;
@@ -13547,7 +13768,7 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Nalog</strong>
-              <div class="footer-note">Cloud sync čuva plan, obroke, trening, rutinu, merenja i ciljeve. Slike ostaju na ovom uređaju.</div>
+              <div class="footer-note">Cloud sync čuva plan, obroke, trening, rutinu, merenja, ciljeve i slike, pa su isti na telefonu i računaru.</div>
             </div>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
@@ -14473,7 +14694,8 @@ function renderWeeklyReportSection() {
 // stitched in, render a neutral placeholder instead of a broken-image icon.
 function renderProgressPhotoImg(photo, alt) {
   if (!photo || !photo.previewUrl) {
-    return `<div class="photo-loading">Učitavanje…</div>`;
+    const waiting = photo && cloudPhotoMisses.has(`${photo.id}|1`);
+    return `<div class="photo-loading">${waiting ? "Slika još nije stigla sa drugog uređaja" : "Učitavanje…"}</div>`;
   }
   return `<img src="${escapeHtml(photo.previewUrl)}" alt="${escapeHtml(alt)}" loading="lazy" />`;
 }
@@ -15282,7 +15504,7 @@ function renderProgressTab() {
               `
             ).join("")}
           </div>
-          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. Čuvaju se <strong>samo na ovom uređaju</strong> — za prenos na drugi telefon izvezi backup (Ciljevi → Izvezi backup).${
+          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. ${isDemoAccount() ? "Na demo nalogu ostaju samo na ovom uređaju." : "Čuvaju se u cloudu, pa ih vidiš i na drugim uređajima."}${
             editing
               ? " Postojeće slike se izmenom ne diraju: vezane su za datum, pa ako promeniš datum ostaju na starom."
               : ""
@@ -15409,7 +15631,7 @@ function renderProgressTab() {
         <div class="field photo-picker">
           <label for="photo-file">Slika</label>
           <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">Slika se smanjuje i čuva <strong>samo na ovom uređaju</strong> (sada u trajnijem skladištu, bez ograničenja kao ranije), ne ide u cloud i ne sinhronizuje se na druge uređaje. Da je preneseš na drugi telefon ili sačuvaš za svaki slučaj, izvezi backup (Ciljevi → Izvezi backup), slike su uključene u njega.</div>
+          <div class="footer-note">${isDemoAccount() ? "Slika se smanjuje i na demo nalogu ostaje samo na ovom uređaju." : "Slika se smanjuje i čuva u cloudu, pa je vidiš i na telefonu i na računaru."}</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>

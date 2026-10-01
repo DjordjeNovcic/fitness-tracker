@@ -6,9 +6,10 @@ rules_version = '2';
 // (ili copy-paste u Firebase Console -> Firestore -> Rules)
 //
 // Model podataka koji app koristi (vidi app.js):
-//   users/{uid}/app/state   -> ceo lични store jednog naloga (plan, namirnice,
-//                              trening, obroci, ciljevi...). Slike napretka NE
-//                              idu u cloud (ostaju lokalno na uređaju).
+//   users/{uid}/app/state   -> ceo lični store jednog naloga (plan, namirnice,
+//                              trening, obroci, ciljevi...), bez samih slika.
+//   users/{uid}/photos/{id} -> jedna slika po dokumentu (napredak i recepti),
+//                              pokriveno istim pravilom za users/{userId}.
 //   sharedFoods/{barcode}   -> deljeni keš makroa po barkodu (barcode skener).
 
 service cloud.firestore {
