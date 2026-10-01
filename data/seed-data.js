@@ -91,7 +91,7 @@ window.SEED_DATA = {
     },
     {
       "id": "food-8",
-      "name": "Intergralni pirinac",
+      "name": "Integralni pirinac",
       "servingBaseGrams": 100.0,
       "kcal": 362.0,
       "protein": 7.5,

@@ -1549,9 +1549,107 @@ function seedDemoHistory(targetStore) {
   return true;
 }
 
+// Demo nalog je izlog za nekog ko app vidi prvi put. Rutina i Trčanje su
+// bili potpuno prazni (četiri prazne kartice), Vitamini „0/0“, a trening
+// samo ponedeljkom, pa su dva od pet odredišta izgledala napušteno. Ovo
+// doda po malo svega, jednom (meta.demoExtrasSeedVersion), samo za demo.
+const DEMO_EXTRAS_SEED_VERSION = 1;
+function seedDemoExtras(targetStore) {
+  if (!isDemoAccount()) {
+    return false;
+  }
+  targetStore.meta = targetStore.meta || {};
+  if (Number(targetStore.meta.demoExtrasSeedVersion || 0) >= DEMO_EXTRAS_SEED_VERSION) {
+    return false;
+  }
+  const now = new Date().toISOString();
+  targetStore.habits = Array.isArray(targetStore.habits) ? targetStore.habits : [];
+  if (!targetStore.habits.length) {
+    targetStore.habits.push(
+      { id: "habit-demo-walk", name: "Šetnja 30 min", note: "", trackingMode: "weekly", completions: { Ponedeljak: true, Utorak: true }, streakStartDate: "", bestStreakDays: 0, resetCount: 0, lastResetAt: "", createdAt: now },
+      { id: "habit-demo-sleep", name: "U krevet pre 23 h", note: "", trackingMode: "weekly", completions: { Ponedeljak: true }, streakStartDate: "", bestStreakDays: 0, resetCount: 0, lastResetAt: "", createdAt: now },
+      { id: "habit-demo-sugar", name: "Bez slatkiša", note: "", trackingMode: "streak", completions: {}, streakStartDate: demoDateValue(12), bestStreakDays: 19, resetCount: 1, lastResetAt: demoDateValue(12), createdAt: now },
+      { id: "habit-demo-alcohol", name: "Bez alkohola", note: "", trackingMode: "streak", completions: {}, streakStartDate: demoDateValue(41), bestStreakDays: 41, resetCount: 0, lastResetAt: "", createdAt: now }
+    );
+  }
+  targetStore.dayTasks = Array.isArray(targetStore.dayTasks) ? targetStore.dayTasks : [];
+  if (!targetStore.dayTasks.length) {
+    const tasksByDay = {
+      Ponedeljak: ["Nabavka za nedelju"],
+      Utorak: ["Spremi ručak za sutra"],
+      Sreda: ["Izmeri se ujutru"],
+      Četvrtak: ["Spremi ručak za sutra"],
+      Petak: ["Plan obroka za vikend", "Istegni se 10 min"],
+      Subota: ["Duža šetnja"],
+      Nedelja: ["Pripremi obroke za ponedeljak i utorak"],
+    };
+    [0, 1].forEach((weekTrack) => {
+      Object.entries(tasksByDay).forEach(([weekday, titles]) => {
+        titles.forEach((title, index) => {
+          targetStore.dayTasks.push({ id: `task-demo-${weekTrack}-${weekday}-${index}`, weekday, weekTrack, title, note: "", done: false, createdAt: now });
+        });
+      });
+    });
+  }
+  targetStore.runs = Array.isArray(targetStore.runs) ? targetStore.runs : [];
+  if (!targetStore.runs.length) {
+    targetStore.runs.push(
+      { id: "run-demo-1", date: demoDateValue(2), distanceKm: 5.2, durationSec: 31 * 60 + 40, type: "lagano", avgHr: 148, maxHr: 163, note: "", createdAt: now },
+      { id: "run-demo-2", date: demoDateValue(6), distanceKm: 6.5, durationSec: 37 * 60 + 5, type: "tempo", avgHr: 158, maxHr: 174, note: "", createdAt: now },
+      { id: "run-demo-3", date: demoDateValue(10), distanceKm: 8.1, durationSec: 50 * 60 + 12, type: "dugo", avgHr: 145, maxHr: 160, note: "", createdAt: now }
+    );
+  }
+  targetStore.supplements = Array.isArray(targetStore.supplements) ? targetStore.supplements : [];
+  if (!targetStore.supplements.length) {
+    targetStore.supplements.push(
+      { id: "supplement-demo-d3", name: "Vitamin D3", timing: "breakfast", note: "2000 IU", weekdays: [...WEEKDAYS], completions: {}, createdAt: now },
+      { id: "supplement-demo-omega", name: "Omega-3", timing: "lunch", note: "", weekdays: [...WEEKDAYS], completions: {}, createdAt: now },
+      { id: "supplement-demo-mg", name: "Magnezijum", timing: "evening", note: "", weekdays: [...WEEKDAYS], completions: {}, createdAt: now }
+    );
+  }
+  targetStore.trainingTemplates = Array.isArray(targetStore.trainingTemplates) ? targetStore.trainingTemplates : [];
+  const extraTrainings = [
+    {
+      weekday: "Sreda",
+      name: "Gornji deo",
+      exercises: ["Potisak sa klupe 4x8-10 ponavljanja", "Veslanje sa šipkom 4x8-10 ponavljanja", "Potisak iznad glave 3x10-12 ponavljanja", "Zgibovi 3x6-10 ponavljanja", "Biceps pregib 3x12 ponavljanja"],
+    },
+    {
+      weekday: "Petak",
+      name: "Donji deo",
+      exercises: ["Čučanj 4x6-8 ponavljanja", "Rumunsko mrtvo dizanje 3x8-10 ponavljanja", "Iskorak 3x10-12 ponavljanja", "Podizanje na prste 3x15 ponavljanja", "Plank 3x45 s"],
+    },
+  ];
+  [0, 1].forEach((weekTrack) => {
+    extraTrainings.forEach((training) => {
+      if (targetStore.trainingTemplates.some((entry) => entry.weekday === training.weekday && normalizeWeekTrack(entry.weekTrack) === weekTrack)) {
+        return;
+      }
+      targetStore.trainingTemplates.push({
+        id: `training-demo-${weekTrack}-${training.weekday}`,
+        weekday: training.weekday,
+        weekTrack,
+        name: training.name,
+        exercises: training.exercises.map((details, index) => ({
+          id: `exercise-demo-${weekTrack}-${training.weekday}-${index}`,
+          name: details.split(/\s+\d/)[0] || details,
+          details,
+        })),
+      });
+    });
+  });
+  if (!String(targetStore.profile?.name || "").trim()) {
+    targetStore.profile = { ...(targetStore.profile || {}), name: "Demo" };
+  }
+  targetStore.meta.demoExtrasSeedVersion = DEMO_EXTRAS_SEED_VERSION;
+  return true;
+}
+
 async function resetDemoToFactory() {
   replaceStore(cloneSeed());
+  mirrorSingleTrackPlan(store);
   seedDemoHistory(store);
+  seedDemoExtras(store);
   persistLocal();
   const saved = await saveCloudStateNow({ force: true, overwrite: true });
   if (!saved) {
@@ -5663,6 +5761,11 @@ function getWeekTrackLabel(weekTrack) {
   return weekTrack === getCurrentWeekTrack() ? "Ova nedelja" : "Sledeća nedelja";
 }
 
+// Za rečenice („iz plana za ovu nedelju“); naziv iznad je nominativ za oznake.
+function getWeekTrackAccusative(weekTrack) {
+  return weekTrack === getCurrentWeekTrack() ? "ovu nedelju" : "sledeću nedelju";
+}
+
 // When a new week starts, clear this-week's completion marks so the new week
 // doesn't start pre-checked with last week's state. Returns true if it changed
 // anything (so the caller can persist). Leaves dated history (training/weight
@@ -7331,7 +7434,7 @@ function renderFoodEditorDialog() {
         <form id="food-form" class="food-form-v2">
           ${
             isScannedDraft
-              ? `<p class="food-form-scan-note">Vrednosti su povučene sa barkoda <strong>${escapeHtml(state.scannedBarcode)}</strong> — proveri ih i sačuvaj.</p>`
+              ? `<p class="food-form-scan-note">Vrednosti su povučene sa barkoda <strong>${escapeHtml(state.scannedBarcode)}</strong>. Proveri ih i sačuvaj.</p>`
               : ""
           }
           <section class="food-form-section">
@@ -9218,26 +9321,17 @@ function renderPlanSupplementsSection() {
       >
         <div class="section-disclosure-copy">
           <h2>Vitamini i suplementi</h2>
-          <p>${doneCount}/${supplements.length || 0} označeno za ${weekdayAccusative(state.selectedWeekday)}.</p>
+          <p>${
+            supplements.length
+              ? `${doneCount} od ${supplements.length} uzeto za ${weekdayAccusative(state.selectedWeekday)}.`
+              : "Dodaj vitamine koje uzimaš, pa ih čekiraj po danu."
+          }</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="pill note">${supplements.length} ${srPlural(supplements.length, "stavka", "stavke", "stavki")}</span>
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(isPlanSupplementsExpanded())}</span>
         </div>
       </button>
       <div class="plan-section-body ${isPlanSupplementsExpanded() ? "is-expanded" : "is-collapsed"}">
-      <div class="stats-grid stats-grid--glance plan-supplement-summary">
-        <article class="stat-card">
-          <strong>Za danas</strong>
-          <div class="macro-value">${supplements.length}</div>
-          <div class="footer-note">Planiranih stavki</div>
-        </article>
-        <article class="stat-card">
-          <strong>Označeno</strong>
-          <div class="macro-value">${doneCount}/${supplements.length || 0}</div>
-          <div class="footer-note">Čekirano za ${weekdayAccusative(state.selectedWeekday)}</div>
-        </article>
-      </div>
       <div class="stack plan-supplement-stack" style="margin-top:14px;">
         ${
           supplements.length
@@ -9850,7 +9944,7 @@ function renderPlanShoppingSection() {
       <button class="section-disclosure" type="button" data-action="toggle-plan-shopping" aria-expanded="${state.shoppingExpanded}">
         <div class="section-disclosure-copy">
           <h2>Lista za kupovinu</h2>
-          <p>${activeItems.length ? `${activeItems.length} ${srPlural(activeItems.length, "namirnica", "namirnice", "namirnica")} iz plana za ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
+          <p>${activeItems.length ? `${activeItems.length} ${srPlural(activeItems.length, "namirnica", "namirnice", "namirnica")} iz plana za ${getWeekTrackAccusative(state.selectedWeekTrack)}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="pill note">${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
@@ -12173,7 +12267,7 @@ function renderRunningTab() {
         </div>
       </div>
       ${renderHelpNote(
-        "Upiši svako trčanje sa <strong>distancom</strong> i <strong>vremenom</strong> — aplikacija sama računa <strong>tempo</strong> (min/km), brzinu i grubu procenu potrošnje kalorija (na osnovu tvoje težine iz profila). Puls je opcioni, ali pomaže da pratiš da li trčiš lagano ili napadaš. Tip trčanja (lagano, tempo, intervali, dugačko, trka) ti kasnije olakšava da prepoznaš kakva je sesija bila."
+        "Upiši svako trčanje sa <strong>distancom</strong> i <strong>vremenom</strong>, a aplikacija sama računa <strong>tempo</strong> (min/km), brzinu i grubu procenu potrošnje kalorija (na osnovu tvoje težine iz profila). Puls je opcioni, ali pomaže da pratiš da li trčiš lagano ili napadaš. Tip trčanja (lagano, tempo, intervali, dugačko, trka) ti kasnije olakšava da prepoznaš kakva je sesija bila."
       )}
       ${
         hasRuns
@@ -12504,7 +12598,7 @@ function renderRoutineTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi niz i dobićeš brojač tipa "90 dana bez alkohola".</div>`
+            : `<div class="empty">Dodaj prvi niz i dobićeš brojač tipa „90 dana bez alkohola“.</div>`
         }
       </div>
     </section>
@@ -13011,7 +13105,7 @@ function renderGoalEtaCard() {
     body = `Cilj <strong>${formatDecimal(eta.target, 2)} kg</strong> je u suprotnom smeru od izabranog cilja/tempa, proveri podešavanja.`;
   } else {
     const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
-    body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong> — pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
+    body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong>, pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
   }
   return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">🎯</span><p>${body}</p></div>`;
 }
@@ -14214,7 +14308,7 @@ function renderMeasurementGoalNote(date) {
   if (!(goal > 0)) {
     return `<span class="footer-note">Kalorijski cilj se upisuje sam uz merenje, postavi ga u Ciljevima.</span>`;
   }
-  return `<span class="footer-note">Kalorijski cilj tog dana: <strong>${goal} kcal</strong> — upisuje se sam, ne kucaš ga.</span>`;
+  return `<span class="footer-note">Kalorijski cilj tog dana: <strong>${goal} kcal</strong>. Upisuje se sam, ne kucaš ga.</span>`;
 }
 
 function getPhotoTagLabel(tag) {
@@ -21087,7 +21181,8 @@ onAuthStateChanged(firebaseAuth, async (user) => {
   if (isDemoAccount()) {
     const mirrored = mirrorSingleTrackPlan(store);
     const seeded = seedDemoHistory(store);
-    if (mirrored || seeded) {
+    const extras = seedDemoExtras(store);
+    if (mirrored || seeded || extras) {
       persist();
     }
   }

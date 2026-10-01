@@ -13971,3 +13971,16 @@ button.meal-entry-body:focus-visible {
   width: 44px;
   height: 44px;
 }
+
+/* Prazna stanja bez ⊕ (2026-10-01): krug sa plusom je izgledao kao dugme,
+   a nije radio ništa; prava radnja je uvek u redu iznad ili ispod. Jedan
+   miran red, levo kao i naslov sekcije. */
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide):not(.empty-passive)::before {
+  content: none;
+  display: none;
+}
+.empty:not(.nutrition-plan-notes):not(.progress-empty-guide):not(.empty-passive) {
+  align-items: flex-start;
+  text-align: left;
+  padding-block: 14px;
+}
