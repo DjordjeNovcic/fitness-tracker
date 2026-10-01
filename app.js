@@ -12620,7 +12620,7 @@ function renderRoutineTab() {
                             .join(" · ")}</div>
                         </div>
                         <div class="entry-actions routine-streak-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button" data-action="reset-habit-streak" data-habit-id="${habit.id}">Resetuj</button>
+                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="reset-habit-streak" data-habit-id="${habit.id}" aria-label="Počni „${escapeHtml(habit.name)}“ ispočetka" title="Počni ispočetka">${renderButtonContent("Počni ispočetka", "refresh")}</button>
                           <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
                           <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
                         </div>
@@ -17052,7 +17052,14 @@ async function handleDocumentClick(event) {
     }
 
     const currentStreakDays = getHabitCurrentStreakDays(habit);
-    const confirmed = await confirmAction({ title: `Resetovati niz „${habit.name}“?`, message: `Trenutno broji ${getDayCountLabel(currentStreakDays)}.`, confirmLabel: "Resetuj" });
+    // Reset niza je trenutak kad je nešto već krenulo naopako; potvrda ne sme da
+    // zvuči kao kazna. Rekord se pamti i to piše.
+    const bestDays = Math.max(getHabitBestStreakDays(habit), currentStreakDays);
+    const confirmed = await confirmAction({
+      title: `Počni „${habit.name}“ ispočetka?`,
+      message: `Brojač kreće od nule${bestDays > 0 ? `, a rekord od ${getDayCountLabel(bestDays)} ostaje zapisan` : ""}. Svaki novi dan se opet broji.`,
+      confirmLabel: "Počni ispočetka",
+    });
     if (!confirmed) {
       return;
     }

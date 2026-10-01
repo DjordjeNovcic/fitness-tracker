@@ -14304,3 +14304,26 @@ button.meal-entry-body:focus-visible {
     margin-top: 10px;
   }
 }
+
+/* Jedan izgled za brisanje svuda (2026-10-02): siva ikona u mirovanju,
+   crvena tek na hover/dodir. Na Rutini su kante bile crvene stalno, na
+   Danas i Trčanju sive. */
+.routine-row > .entry-actions .danger-button,
+.routine-streak-actions .danger-button,
+.danger-button.icon-only-action,
+:root[data-theme="dark"] .routine-row > .entry-actions .danger-button,
+:root[data-theme="dark"] .routine-streak-actions .danger-button,
+:root[data-theme="dark"] .danger-button.icon-only-action,
+.meal-entry-action--danger {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+}
+.routine-row > .entry-actions .danger-button:hover,
+.routine-streak-actions .danger-button:hover,
+.danger-button.icon-only-action:hover,
+.danger-button.icon-only-action:active,
+.meal-entry-action--danger:hover,
+.meal-entry-action--danger:active {
+  color: var(--status-error-text);
+}
