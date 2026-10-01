@@ -14226,3 +14226,81 @@ button.meal-entry-body:focus-visible {
 :root[data-theme="dark"] .cal-ring[data-state] .cal-ring-planned {
   stroke: rgba(255, 255, 255, 0.28);
 }
+
+/* ============================================================
+   Desktop raspored (2026-10-02)
+   ============================================================ */
+/* Ciljevi: desna kolona = trend težine + kalibracija (bez svoje kartice). */
+.goals-cilj-side {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-width: 0;
+}
+.goals-cilj-side .goals-cilj-chart {
+  position: static;
+}
+.calibration-inline {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+.calibration-inline h2 {
+  font-size: var(--fs-17);
+}
+.calibration-inline .stat-rows {
+  max-width: none;
+}
+@media (min-width: 1280px) {
+  .goals-cilj-side {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+/* Trening: vežbe u jednoj koloni i na desktopu. U dve kolone je čekboks
+   desne kolone stajao 2 px od „kg“ leve, pa se čitalo kao jedan red sa dva
+   čekboksa. */
+@media (min-width: 720px) {
+  .training-exercise-list {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 760px;
+  }
+}
+
+/* Recepti u mreži: svaka kartica ima istu gornju liniju i isti razmak, ne
+   samo prva u listi (u mreži je „prva“ bila pomerena i bez linije). */
+@media (min-width: 900px) {
+  .recipes-library-stack > .recipe-library-card:first-child {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+}
+/* Napredak na širokom ekranu: dve kolone kartica umesto kartica od 1060 px
+   sa redovima do 640 px; na telefonu ostaje jedna kolona, isti redosled. */
+.progress-overview-grid,
+.progress-overview-col {
+  display: grid;
+  gap: inherit;
+  min-width: 0;
+}
+.progress-overview-grid {
+  gap: var(--section-gap, 16px);
+}
+.progress-overview-col {
+  gap: var(--section-gap, 16px);
+  align-content: start;
+}
+@media (min-width: 1100px) {
+  .progress-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .progress-overview-grid .stat-rows {
+    max-width: none;
+  }
+}
+@media (max-width: 1279px) {
+  .goals-cilj-side {
+    margin-top: 10px;
+  }
+}

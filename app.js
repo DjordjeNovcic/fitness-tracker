@@ -12994,6 +12994,14 @@ function dismissGoalCalibration() {
   persist();
 }
 
+// Ista kalibracija kao kartica, ali kao deo kolone „Profil i ciljevi“ (bez
+// svoje sekcije, da ne bude kartica u kartici).
+function renderGoalCalibrationInline() {
+  return renderGoalCalibrationCard()
+    .replace(/<section class="section calibration-section/g, '<div class="calibration-inline calibration-section')
+    .replace(/<\/section>\s*$/, "</div>");
+}
+
 function renderGoalCalibrationCard() {
   const cal = getGoalCalibration();
   const lastLog = (getCalibrationState().log || [])[0];
@@ -13352,7 +13360,8 @@ function renderGoalsTab() {
         // the column used to sit empty — a 500px void beside a capped form.
         // The prompt that fills it is also the thing that unlocks both the
         // chart and the goal calibration, so the space earns its place.
-        getMeasurementSeries("weightKg").length
+        `<div class="goals-cilj-side">` +
+        (getMeasurementSeries("weightKg").length
           ? `<div class="goals-cilj-chart">${renderTrendCard(measurementFields.find((field) => field.id === "weightKg"))}</div>`
           : `<div class="goals-cilj-chart goals-chart-invite">
               <div class="empty">
@@ -13360,11 +13369,18 @@ function renderGoalsTab() {
                 <span>Unesi težinu jednom nedeljno. Ovde se crta trend, a cilj počinje da se proverava prema onome što telo stvarno radi, ne prema formuli.</span>
                 <button class="solid-button button-with-icon" type="button" data-action="jump-measurement">${renderButtonContent("Unesi prvo merenje", "add")}</button>
               </div>
-            </div>`
+            </div>`)
+      }
+      ${
+        // Kalibracija (kad nema predloga) je status cilja, pa stoji u istoj
+        // koloni kao trend težine: na desktopu desno ispod grafikona (ranije je
+        // ta kolona bila upola prazna, a kalibracija ispod preko cele širine sa
+        // redovima do pola kartice), na telefonu ispod forme.
+        getGoalCalibration().status === "suggest" ? "" : renderGoalCalibrationInline()
       }
       </div>
+      </div>
     </section>
-    ${getGoalCalibration().status === "suggest" ? "" : renderGoalCalibrationCard()}
     ` : ""}
 
     ${gView === "nedeljno" ? `
@@ -14761,7 +14777,8 @@ function renderProgressHistorySection() {
   const toneColor = {
     none: "var(--bar-track)",
     low: "color-mix(in srgb, var(--status-success-text) 40%, transparent)",
-    ok: "var(--status-success-text)",
+    // 78 %: pun ton je bio najteža masa na stranici, teža od glavnog broja.
+    ok: "color-mix(in srgb, var(--status-success-text) 78%, transparent)",
     over: "var(--status-error-text)",
   };
   const cellTone = (snap) => {
@@ -15679,13 +15696,16 @@ function renderProgressTab() {
       !summary.measurementCount && !summary.photoCount && !getInsights(30).hasAnything
         ? renderProgressEmptyState()
         : `
-    ${renderInsightsSection()}
-
-    ${renderProgressSummary(summary)}
-
-    ${renderWeeklyReportSection()}
-
-    ${renderProgressHistorySection()}
+    <div class="progress-overview-grid">
+      <div class="progress-overview-col">
+        ${renderInsightsSection()}
+        ${renderProgressSummary(summary)}
+      </div>
+      <div class="progress-overview-col">
+        ${renderWeeklyReportSection()}
+        ${renderProgressHistorySection()}
+      </div>
+    </div>
     `
     ) : ""}
 
