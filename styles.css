@@ -14327,3 +14327,57 @@ button.meal-entry-body:focus-visible {
 .meal-entry-action--danger:active {
   color: var(--status-error-text);
 }
+
+/* Navika: nedelja kao sedam slova u redu (popunjeno = urađeno), umesto
+   posebne kartice sa sedam pločica „0% · 0/2 navike“. */
+.habit-week {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.habit-week-day {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.habit-week-day.is-done {
+  background: var(--accent);
+  color: var(--button-primary-text);
+}
+.habit-week-day.is-selected:not(.is-done) {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="dark"] .habit-week-day {
+  background: rgba(255, 255, 255, 0.07);
+}
+:root[data-theme="dark"] .habit-week-day.is-done {
+  background: var(--accent);
+  color: oklch(0.19 0.03 225);
+}
+.habit-week-count {
+  margin-left: 6px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.training-exercise-log {
+  min-width: 44px;
+}
+/* Sažetak dana jednom rečenicom (Rutina, Trening) umesto trake od tri
+   jednako podebljana broja sa natpisima velikim slovima. */
+.day-summary-line {
+  margin: 4px 0 0;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}

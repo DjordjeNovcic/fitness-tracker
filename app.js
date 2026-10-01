@@ -6051,10 +6051,10 @@ function renderTrainingBurnSection() {
             />
           </div>`;
   return `
-      <details class="form-collapse training-burn-collapse" ${resolved > 0 || isSelectedDayToday() ? "open" : ""}>
+      <details class="form-collapse training-burn-collapse">
         <summary>
           <span class="form-collapse-title">Kalorije treninga</span>
-          ${resolved > 0 ? `<span class="pill strong">${roundValue(resolved, 0)} kcal</span>` : ""}
+          <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"}</span>
           <span class="form-collapse-icon" aria-hidden="true">+</span>
         </summary>
         <p class="footer-note training-burn-intro">Zbir delova ulazi u neto unos na „Danas“.</p>
@@ -7777,10 +7777,10 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
     <section class="hero hero--plan">
       <div class="hero-top" data-role="hero-top">
         <div class="hero-title-wrap">
-          <${tag} class="hero-title">${isToday ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
+          <${tag} class="hero-title">${isToday && headingLevel === 1 ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
           ${
             isToday
-              ? `<span class="hero-date">${weekdayLabel(getTodayWeekday()).toLowerCase()}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "")}</span>`
+              ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "")}</span>`
               : ""
           }
         </div>
@@ -11371,22 +11371,9 @@ function renderTrainingTab() {
         ${
           templates.length
             ? `
-        <article class="food-card suggestion-surface training-day-summary-card">
-          <dl class="glance-list training-day-glance">
-            <div class="glance-item">
-              <dt>Vežbe</dt>
-              <dd>${todayExerciseTotal}</dd>
-            </div>
-            <div class="glance-item">
-              <dt>Odrađeno</dt>
-              <dd>${todayExerciseCompleted}/${todayExerciseTotal || 0}</dd>
-            </div>
-            <div class="glance-item">
-              <dt>Kalorije</dt>
-              <dd>${trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : `<span class="glance-sub">nije uneto</span>`}</dd>
-            </div>
-          </dl>
-        </article>
+        <p class="day-summary-line">${todayExerciseCompleted} od ${todayExerciseTotal} ${srPlural(todayExerciseTotal, "vežbe", "vežbe", "vežbi")} odrađeno · ${
+          trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : "kalorije nisu unete"
+        }</p>
 
             `
             : ""
@@ -11426,14 +11413,20 @@ function renderTrainingTab() {
                                 </label>
                                 <div class="training-exercise-copy">
                                   <strong class="training-exercise-name">${escapeHtml(exercise.name)}</strong>
-                                  <div class="training-exercise-detail">${escapeHtml(exercise.details)}</div>
+                                  ${(() => {
+                                    // Opis je često „Čučanj 4x6-8 ponavljanja“ ispod naslova „Čučanj“.
+                                    const name = String(exercise.name || "").trim();
+                                    const details = String(exercise.details || "").trim();
+                                    const rest = name && details.toLowerCase().startsWith(name.toLowerCase()) ? details.slice(name.length).trim() : details;
+                                    return rest && rest !== name ? `<div class="training-exercise-detail">${escapeHtml(rest)}</div>` : "";
+                                  })()}
                                   ${renderExerciseProgression(exercise.name, exercise.details)}
                                 </div>
                                 <div class="training-exercise-actions">
                                   <button class="training-rest" type="button" data-action="toggle-rest-timer" data-rest-key="${template.id}:${exercise.id}" aria-label="Pokreni odmor" title="Odmor ${REST_TIMER_SECONDS} sekundi">
                                     ${renderRestIcon()}<span class="training-rest-label">Odmor</span>
                                   </button>
-                                  <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">kg</button>
+                                  <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">Kilaža</button>
                                 </div>
                               </div>
                             `
@@ -12446,15 +12439,6 @@ function renderRoutineTab() {
   const selectedDayIndex = WEEKDAYS.indexOf(state.selectedWeekday);
   const previousWeekday = selectedDayIndex > 0 ? WEEKDAYS[selectedDayIndex - 1] : "";
   const previousDayTaskCount = previousWeekday ? getTasksForDay(previousWeekday).length : 0;
-  const weeklyHabitProgress = WEEKDAYS.map((weekday) => {
-    const doneCount = summary.habits.filter((habit) => isHabitDoneForDay(habit, weekday)).length;
-    return {
-      weekday,
-      doneCount,
-      totalCount: summary.habits.length,
-      progress: summary.habits.length ? roundValue((doneCount / summary.habits.length) * 100, 0) : 0,
-    };
-  });
 
   return `
     ${renderDayBar({ headingLevel: 2 })}
@@ -12467,29 +12451,13 @@ function renderRoutineTab() {
       ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
       ${
         summary.habits.length || summary.tasks.length || summary.streakHabits.length
-          ? `<div class="plan-net-row">
-        <div class="plan-net-item">
-          <span class="plan-net-label">Navike</span>
-          <strong>${summary.doneHabits}/${summary.habits.length}</strong>
-        </div>
-        <div class="plan-net-item">
-          <span class="plan-net-label">Zadaci</span>
-          <strong>${summary.doneTasks}/${summary.tasks.length}</strong>
-        </div>
-        <div class="plan-net-item">
-          <span class="plan-net-label">Nizovi</span>
-          <strong>${summary.streakHabits.length}</strong>
-        </div>
-      </div>
-      <div class="footer-note plan-net-note">
-        ${
-          summary.streakHabits.length
-            ? summary.longestStreakDays
-              ? `Najduži aktivni niz: ${getDayCountLabel(summary.longestStreakDays)}`
-              : "Nizovi su dodati, još nijedan nije aktivan"
-            : "Dodaj prvi niz ispod i kreni da brojiš"
-        }
-      </div>`
+          ? `<p class="day-summary-line">${[
+              summary.habits.length ? `${summary.doneHabits} od ${summary.habits.length} ${srPlural(summary.habits.length, "navike", "navike", "navika")}` : "",
+              summary.tasks.length ? `${summary.doneTasks} od ${summary.tasks.length} ${srPlural(summary.tasks.length, "zadatka", "zadatka", "zadataka")}` : "",
+              summary.longestStreakDays ? `najduži niz ${getDayCountLabel(summary.longestStreakDays)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}</p>`
           : ""
       }
     </section>
@@ -12566,9 +12534,12 @@ function renderRoutineTab() {
                         <div class="routine-content">
                           <strong>${escapeHtml(habit.name)}</strong>
                           ${habit.note ? `<div class="footer-note">${escapeHtml(habit.note)}</div>` : ""}
-                          <div class="pill-row">
-                            <span class="pill">${getHabitWeeklyCount(habit)}/7 dana</span>
-                            <span class="pill note">${isHabitDoneForDay(habit, state.selectedWeekday) ? "Označeno danas" : "Čeka za danas"}</span>
+                          <div class="habit-week" aria-label="${getHabitWeeklyCount(habit)} od 7 dana ove nedelje">
+                            ${WEEKDAYS.map(
+                              (weekday) =>
+                                `<span class="habit-week-day ${isHabitDoneForDay(habit, weekday) ? "is-done" : ""} ${weekday === state.selectedWeekday ? "is-selected" : ""}" title="${weekdayLabel(weekday)}">${weekdayLabel(weekday).slice(0, 1)}</span>`
+                            ).join("")}
+                            <span class="habit-week-count">${getHabitWeeklyCount(habit)}/7</span>
                           </div>
                         </div>
                         <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
@@ -12710,32 +12681,6 @@ function renderRoutineTab() {
       </div>
     </section>
 
-    <section class="section routine-weekly-section">
-      <div class="section-header">
-        <div>
-          <h2>Nedeljni pregled navika</h2>
-        </div>
-      </div>
-      ${
-        summary.habits.length
-          ? `
-            <div class="stats-grid stats-grid--glance">
-              ${weeklyHabitProgress
-                .map(
-                  (day) => `
-                    <article class="stat-card">
-                      <strong>${weekdayLabel(day.weekday)}</strong>
-                      <div class="macro-value">${day.progress}%</div>
-                      <div class="footer-note">${day.doneCount}/${day.totalCount} ${srPlural(day.totalCount, "navika", "navike", "navika")}</div>
-                    </article>
-                  `
-                )
-                .join("")}
-            </div>
-          `
-          : `<div class="empty empty-passive">Kad dodaš nedeljne navike, ovde ćeš videti pregled po danima.</div>`
-      }
-    </section>
   `;
 }
 
