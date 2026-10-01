@@ -679,6 +679,7 @@ const state = {
   foodEditorOpen: false,
   quickEntryOpen: false,
   quickEntryEaten: false,
+  quickEntryReturn: null,
   autoOpenMealDismissed: "",
   quickEntryText: "",
   quickEntryOverrides: {},
@@ -8910,11 +8911,57 @@ function quickEntryAmountFor(food, item) {
   return roundValue(convertImportedPortionToGrams(item.amount, item.unit, item.query), 0) || 0;
 }
 
+// Tipična težina jednog komada za namirnice koje se vode na 100 g. „1 banana“
+// je ranije postajala 1 g (1 kcal), uz upozorenje koje se lako previdi.
+// Kad namirnica nije ovde, red traži grame i ne može da se doda bez njih.
+const QUICK_ENTRY_PIECE_GRAMS = [
+  [/^jaj|^jaje/, 60],
+  [/^banan/, 120],
+  [/^jabuk/, 180],
+  [/^krušk|^krusk/, 170],
+  [/^pomorand/, 200],
+  [/^mandarin/, 80],
+  [/^kivi/, 75],
+  [/^breskv/, 150],
+  [/^paradajz/, 120],
+  [/^krastav/, 200],
+  [/^krompir/, 170],
+  [/^avokad/, 160],
+  [/^kroasan/, 60],
+  [/^tortilj/, 60],
+  [/^kifl/, 60],
+];
+function getQuickEntryPieceGrams(food, item) {
+  const names = [normalizeLookupValue(food?.name), normalizeLookupValue(item?.query)];
+  for (const [pattern, grams] of QUICK_ENTRY_PIECE_GRAMS) {
+    if (names.some((name) => name && name.split(/\s+/).some((word) => pattern.test(word)))) {
+      return grams;
+    }
+  }
+  return 0;
+}
+
+// Obrok po dobu dana kad se unosi za danas (večera u 21 h ne ide u doručak);
+// za druge dane prvi nepojeden obrok kao do sada.
+function getQuickEntryDefaultMeal() {
+  if (isSelectedDayToday()) {
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+    // Posle ponoći do 4 h je još „kasna večera“, ne doručak.
+    const index = hour < 4 ? 4 : hour < 10 ? 0 : hour < 12 ? 1 : hour < 16 ? 2 : hour < 18.5 ? 3 : 4;
+    const label = defaultMeals[index];
+    if (label && (state.quickEntryEaten || !isMealCompletedForWeekday(state.selectedWeekday, label))) {
+      return label;
+    }
+  }
+  return getNextOpenMealLabel() || defaultMeals[0];
+}
+
 // Rows are derived from the text on every render; per-row edits live in
 // state.quickEntryOverrides keyed by position, so retyping resets cleanly.
 function getQuickEntryRows() {
   const parsed = parseQuickEntryText(state.quickEntryText);
-  const fallbackMeal = parsed.mealLabel || getNextOpenMealLabel() || defaultMeals[0];
+  const fallbackMeal = parsed.mealLabel || getQuickEntryDefaultMeal();
   return parsed.items.map((item, index) => {
     const override = state.quickEntryOverrides[index] || {};
     if (override.removed) {
@@ -8923,14 +8970,24 @@ function getQuickEntryRows() {
     const matches = rankQuickEntryMatches(item.query);
     const picked = override.foodId ? getFoodById(override.foodId) : pickQuickEntryMatch(matches, item);
     const food = picked || null;
-    const amount = override.amount != null ? toNumber(override.amount) : food ? quickEntryAmountFor(food, item) : 0;
     // A small bare number on a per-100 g food means the user counted pieces but
-    // no per-piece entry exists — "2 jajeta" would silently log 2 grams.
+    // no per-piece entry exists — "2 jajeta" would silently log 2 grams. With a
+    // known typical piece weight the count is converted (and said so); without
+    // one the row asks for grams and blocks the commit until they're typed.
     const countOnWeightFood =
       Boolean(food) &&
       override.amount == null &&
       quickEntryPrefersPieces(item) &&
       getFoodServingUnit(food) !== "piece";
+    const pieceGrams = countOnWeightFood ? getQuickEntryPieceGrams(food, item) : 0;
+    const amount =
+      override.amount != null
+        ? toNumber(override.amount)
+        : countOnWeightFood
+          ? roundValue(toNumber(item.amount) * pieceGrams, 0)
+          : food
+            ? quickEntryAmountFor(food, item)
+            : 0;
     return {
       index,
       item,
@@ -8938,6 +8995,8 @@ function getQuickEntryRows() {
       matches,
       amount,
       countOnWeightFood,
+      pieceGrams,
+      needsGrams: countOnWeightFood && !pieceGrams,
       mealLabel: normalizeMealLabel(override.mealLabel || fallbackMeal),
       totals: food && amount ? calculateEntry(food, amount) : { kcal: 0, protein: 0, carbs: 0, fat: 0 },
     };
@@ -8951,6 +9010,7 @@ function renderQuickEntryDialog() {
   const rows = getQuickEntryRows();
   const live = rows.filter((row) => !row.removed && row.food && row.amount > 0);
   const unmatched = rows.filter((row) => !row.removed && !row.food);
+  const missingGrams = rows.filter((row) => !row.removed && row.food && !(row.amount > 0)).length;
   const totals = live.reduce(
     (acc, row) => ({
       kcal: acc.kcal + row.totals.kcal,
@@ -8969,7 +9029,7 @@ function renderQuickEntryDialog() {
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
             <div class="hero-picker-label">Brzi unos</div>
-            <h3 id="quick-entry-title">Upiši ceo obrok</h3>
+            <h3 id="quick-entry-title">Brzi unos</h3>
             <p>Napiši obrok običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-quick-entry" aria-label="Zatvori brzi unos">
@@ -8980,7 +9040,7 @@ function renderQuickEntryDialog() {
         <div class="field">
           <label for="quick-entry-input">Šta je bilo u obroku</label>
           <textarea id="quick-entry-input" rows="3" placeholder="npr. 200 g piletine, 150 pirinča i 2 jajeta u ručak" autocomplete="off" spellcheck="false">${escapeHtml(state.quickEntryText)}</textarea>
-          <p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice znači grame, a „u ručak“ na kraju bira obrok.</p>
+          <p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice znači grame, a mali broj („2 jajeta“) komade; „u ručak“ na kraju bira obrok.</p>
         </div>
 
         ${
@@ -9016,7 +9076,7 @@ function renderQuickEntryDialog() {
                         </label>
                         <label class="field quick-entry-field quick-entry-field--amount">
                           <span>${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}</span>
-                          <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.amount}" data-action="set-quick-entry-amount" data-index="${row.index}" />
+                          <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.needsGrams && !row.amount ? "" : row.amount}" placeholder="${row.needsGrams ? "grama" : ""}" data-action="set-quick-entry-amount" data-index="${row.index}" />
                         </label>
                         <label class="field quick-entry-field">
                           <span>Obrok</span>
@@ -9028,9 +9088,18 @@ function renderQuickEntryDialog() {
                         </label>
                       </div>
                       <div class="quick-entry-row-totals">${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g</div>
-                      ${row.countOnWeightFood ? `<div class="quick-entry-warn">„${escapeHtml(String(row.item.amount))}“ je shvaćeno kao ${roundValue(row.amount, 0)} g, jer se ova namirnica vodi na ${escapeHtml(getFoodNutritionBasisLabel(row.food))}. Ispravi količinu ako si mislio/la na komade.</div>` : ""}
+                      ${
+                        row.needsGrams
+                          ? `<div class="quick-entry-warn">Koliko je to grama? „${escapeHtml(row.food.name)}“ se vodi na ${escapeHtml(getFoodNutritionBasisLabel(row.food))}, pa „${escapeHtml(String(row.item.amount))}“ ne može da se preračuna. Upiši grame.</div>`
+                          : row.countOnWeightFood
+                            ? `<div class="quick-entry-note">${escapeHtml(String(row.item.amount))} kom ≈ ${roundValue(row.amount, 0)} g${toNumber(row.item.amount) !== 1 ? ` (oko ${row.pieceGrams} g po komadu)` : ""}. Ispravi ako je drugačije.</div>`
+                            : ""
+                      }
                     `
-                        : `<div class="quick-entry-miss">Nema „${escapeHtml(row.item.query)}“ u tvojoj bazi. Dodaj je u Namirnice pa probaj ponovo.</div>`
+                        : `<div class="quick-entry-miss">
+                            <span>Nema „${escapeHtml(row.item.query)}“ u tvojoj bazi.</span>
+                            <button class="text-link-button" type="button" data-action="quick-entry-add-food" data-index="${row.index}">Dodaj namirnicu</button>
+                          </div>`
                     }
                   </div>
                 </div>
@@ -9052,7 +9121,7 @@ function renderQuickEntryDialog() {
               ? `<label class="quick-entry-eaten"><input type="checkbox" data-action="toggle-quick-entry-eaten" ${state.quickEntryEaten ? "checked" : ""} /><span>Već pojedeno, računaj odmah</span></label>`
               : ""
           }
-          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length ? "" : "disabled"}>${renderButtonContent(
+          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length && !missingGrams ? "" : "disabled"}>${renderButtonContent(
             !live.length
               ? state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"
               : `${state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"} ${live.length} ${srPlural(live.length, "stavku", "stavke", "stavki")}`,
@@ -16852,6 +16921,12 @@ async function handleDocumentClick(event) {
 
   if (action === "close-food-editor-dialog") {
     closeFoodEditorDialog();
+    if (state.quickEntryReturn) {
+      state.quickEntryReturn = null;
+      state.quickEntryOpen = true;
+      render();
+      return;
+    }
     render();
     restoreFocusAfterDialog();
     return;
@@ -19172,6 +19247,25 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "quick-entry-add-food") {
+    // Nova namirnica bez napuštanja unosa: forma za namirnicu se otvara preko
+    // Danas sa imenom iz teksta, a posle čuvanja (ili odustajanja) Brzi unos se
+    // vraća sa istim tekstom i novom namirnicom u tom redu.
+    const index = toNumber(actionTarget.dataset.index);
+    const row = getQuickEntryRows().find((entry) => entry.index === index);
+    const name = String(row?.item?.query || "").trim();
+    state.quickEntryReturn = { index };
+    state.quickEntryOpen = false;
+    state.nutritionEditingFoodId = "";
+    state.editingFoodId = "";
+    state.scannedBarcode = "";
+    state.scannedFood = name ? { name: name.charAt(0).toUpperCase() + name.slice(1) } : null;
+    state.foodEditorOpen = true;
+    render();
+    document.querySelector("#food-name")?.focus();
+    return;
+  }
+
   if (action === "close-quick-entry") {
     state.quickEntryOpen = false;
     render();
@@ -19538,6 +19632,13 @@ async function handleSubmit(event) {
         ...nextFood,
       };
       store.foods.push(createdFood);
+      if (state.quickEntryReturn) {
+        // Vraćanje u Brzi unos: novi red dobija baš ovu namirnicu.
+        const { index } = state.quickEntryReturn;
+        state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), foodId: createdFood.id, amount: undefined };
+        state.quickEntryReturn = null;
+        state.quickEntryOpen = true;
+      }
       // Scanned from the Plan composer: the new product becomes the composer's food.
       if (state.scannerReturnTo === "composer" && state.editingMealLabel) {
         state.planDraft.foodId = createdFood.id;

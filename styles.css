@@ -14067,3 +14067,20 @@ button.meal-entry-body:focus-visible {
 .routine-streak-card .routine-streak-actions {
   grid-column: 2;
 }
+
+/* Brzi unos: preračunati komadi su informacija, ne upozorenje. */
+.quick-entry-note {
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  color: var(--muted);
+}
+.quick-entry-miss {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.quick-entry-miss .text-link-button {
+  min-height: 44px;
+  font-weight: 700;
+}
