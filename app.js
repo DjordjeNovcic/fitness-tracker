@@ -334,7 +334,9 @@ const NAV_GROUPS = [
   { id: "routine", label: "Rutina", icon: "routine", tabs: ["routine"] },
   { id: "goals", label: "Ciljevi", icon: "goals", tabs: ["goals"] },
 ];
-const PRIMARY_GROUPS = ["plan", "food", "training", "routine"];
+// Napredak je na traci umesto Rutine (2026-10-01): to je ekran koji
+// odgovara na „da li ovo radi?“, a bio je sakriven iza „Više“.
+const PRIMARY_GROUPS = ["plan", "food", "training", "progress"];
 
 function getNavGroupForTab(tabId) {
   return NAV_GROUPS.find((group) => group.tabs.includes(tabId)) || NAV_GROUPS[0];
