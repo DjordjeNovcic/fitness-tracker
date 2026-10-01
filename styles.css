@@ -13640,3 +13640,117 @@ button.meal-entry-body:focus-visible {
 .plan-glance-section .plan-glance-row:first-child {
   padding-top: 2px;
 }
+
+/* ============================================================
+   Napredak bez mreže pločica (2026-10-01). Jedan glavni broj u
+   Uvidima (Fraunces), ostalo su redovi sa tankom linijom.
+   ============================================================ */
+.insights-section .insights-period {
+  margin: 2px 0 0;
+}
+.insights-hero {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0 14px;
+}
+.progress-history-section .section-header .pill {
+  white-space: nowrap;
+}
+.insights-hero-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--fs-48);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.insights-hero-value span {
+  margin-left: 6px;
+  font-family: inherit;
+  font-size: var(--fs-24);
+  font-weight: 600;
+  color: var(--muted);
+}
+.insights-hero-copy {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--muted);
+}
+.insights-energy {
+  margin: 14px 0 0;
+  max-width: 62ch;
+  font-size: var(--fs-14);
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.stat-rows {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.stat-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+.stat-row dt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--ink);
+}
+.stat-row-note {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--muted);
+}
+.stat-row dd {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.progress-share-button {
+  margin-top: 14px;
+}
+
+.history-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--muted);
+}
+.history-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.history-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+/* Naziv i broj ne smeju da se razdvoje preko cele širine desktopa. */
+.stat-rows {
+  max-width: 640px;
+}

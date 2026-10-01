@@ -14309,28 +14309,26 @@ function renderProgressEmptyState() {
 function renderProgressSummary(summary) {
   return `
     <section class="section progress-overview-section">
-      ${renderSectionLead("Napredak na prvi pogled", "")}
-      <dl class="glance-list progress-glance">
-        <div class="glance-item">
-          <dt>Poslednje merenje</dt>
-          <dd>${summary.latestMeasurement ? formatRelativeDayLabel(summary.latestMeasurement.date) : "još nema"}</dd>
-        </div>
-        <div class="glance-item">
-          <dt>Merenja</dt>
-          <dd>${summary.measurementCount}</dd>
-        </div>
-        <div class="glance-item">
-          <dt>Slike napretka</dt>
-          <dd>${summary.photoCount}${summary.latestPhoto ? ` <span class="glance-sub">poslednja ${formatDateValueLabel(summary.latestPhoto.date) || new Date(summary.latestPhoto.date).toLocaleDateString("sr-RS")}</span>` : ""}</dd>
-        </div>
-        <div class="glance-item">
-          <dt>Poređenje</dt>
-          <dd>${summary.compareReadyTags.length ? `spremno (${summary.compareReadyTags.join(", ")})` : `<span class="glance-sub">treba bar dve slike iste poze</span>`}</dd>
-        </div>
-      </dl>
+      ${renderSectionLead("Merenja i slike", "")}
+      ${renderStatRows([
+        {
+          label: "Poslednje merenje",
+          note: `${summary.measurementCount} ${srPlural(summary.measurementCount, "merenje", "merenja", "merenja")} ukupno`,
+          value: summary.latestMeasurement ? formatRelativeDayLabel(summary.latestMeasurement.date) : "još nema",
+        },
+        {
+          label: "Slike napretka",
+          note: summary.compareReadyTags.length
+            ? `poređenje spremno: ${summary.compareReadyTags.join(", ")}`
+            : summary.photoCount
+              ? "za poređenje treba bar dve slike iste poze"
+              : "",
+          value: summary.photoCount ? `${summary.photoCount}` : "nema",
+        },
+      ])}
       ${
         getShareProgressData().hasData
-          ? `<button class="solid-button secondary-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli napredak", "share")}</button>`
+          ? `<button class="ghost-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli napredak", "share")}</button>`
           : ""
       }
       ${
@@ -14590,7 +14588,7 @@ function renderProgressHistorySection() {
   // what the day was; the accent stays reserved for active/CTA/progress.
   const toneColor = {
     none: "var(--bar-track)",
-    low: "color-mix(in srgb, var(--status-success-text) 26%, transparent)",
+    low: "color-mix(in srgb, var(--status-success-text) 40%, transparent)",
     ok: "var(--status-success-text)",
     over: "var(--status-error-text)",
   };
@@ -14633,14 +14631,16 @@ function renderProgressHistorySection() {
       <div class="history-heatmap">
         ${cells}
       </div>
-      <div class="meta-row" style="margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="footer-note">Manje</span>
-        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.low};display:inline-block;"></span>
-        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.ok};display:inline-block;"></span>
-        <span class="footer-note">na cilju</span>
-        <span style="width:14px;height:14px;border-radius:4px;background:${toneColor.over};display:inline-block;"></span>
-        <span class="footer-note">preko</span>
-      </div>
+      <ul class="history-legend" aria-label="Legenda">
+        ${[
+          ["ok", "na cilju"],
+          ["low", "ispod 80 %"],
+          ["over", "preko 110 %"],
+          ["none", "bez unosa"],
+        ]
+          .map(([tone, label]) => `<li><span class="history-legend-swatch" style="background:${toneColor[tone]};"></span>${label}</li>`)
+          .join("")}
+      </ul>
     </section>`;
 }
 
@@ -14692,8 +14692,7 @@ function renderWeeklyReportSection() {
           : "Čekiraj obroke svaki dan pa ćemo imati precizniji uvid.";
   const onTargetDelta = r.onTarget - r.onTargetLast;
   const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
-  const deltaTag = (value, unit) =>
-    value ? `<span class="footer-note">${value > 0 ? "▲" : "▼"} ${Math.abs(value)}${unit} od prošle nedelje</span>` : "";
+  const vsLast = (value, more, less) => (value ? `${Math.abs(value)} ${value > 0 ? more : less} nego prošle nedelje` : "kao prošle nedelje");
   return `
     <section class="section weekly-report-section">
       <div class="section-header">
@@ -14702,31 +14701,13 @@ function renderWeeklyReportSection() {
           <p>${verdict}</p>
         </div>
       </div>
-      <div class="stats-grid stats-grid--glance">
-        <article class="stat-card">
-          <strong>Dana na cilju</strong>
-          <div class="macro-value">${r.onTarget}/7</div>
-          ${onTargetDelta ? deltaTag(onTargetDelta, "") : `<div class="footer-note">poslednjih 7 dana</div>`}
-        </article>
-        <article class="stat-card">
-          <strong>Prosek kcal</strong>
-          <div class="macro-value">${r.avgKcal || "—"}</div>
-          ${kcalDelta ? deltaTag(kcalDelta, "") : `<div class="footer-note">poslednjih 7 dana</div>`}
-        </article>
-        ${
-          r.weightDelta !== null
-            ? `<article class="stat-card">
-                 <strong>Težina</strong>
-                 <div class="macro-value">${r.weightDelta > 0 ? "+" : ""}${formatDecimal(r.weightDelta, 2)} kg</div>
-                 <div class="footer-note">ove nedelje</div>
-               </article>`
-            : `<article class="stat-card">
-                 <strong>Prosek vode</strong>
-                 <div class="macro-value">${r.avgWater ? `${formatDecimal(r.avgWater / 1000, 1)} L` : "—"}</div>
-                 <div class="footer-note">poslednjih 7 dana</div>
-               </article>`
-        }
-      </div>
+      ${renderStatRows([
+        { label: "Dana na cilju", note: vsLast(onTargetDelta, "više", "manje"), value: `${r.onTarget} od 7` },
+        r.avgKcal && { label: "Prosek", note: vsLast(kcalDelta, "kcal više", "kcal manje"), value: `${r.avgKcal} kcal` },
+        r.weightDelta !== null
+          ? { label: "Težina", note: "za poslednjih 7 dana", value: `${r.weightDelta > 0 ? "+" : r.weightDelta < 0 ? "−" : ""}${formatDecimal(Math.abs(r.weightDelta), 1)} kg` }
+          : r.avgWater && { label: "Voda", note: "prosek za 7 dana", value: `${formatDecimal(r.avgWater / 1000, 1)} L` },
+      ])}
     </section>`;
 }
 
@@ -15167,6 +15148,25 @@ function getInsights(periodDays) {
   };
 }
 
+// Brojke koje nisu glavni broj ekrana: red sa nazivom levo i vrednošću desno,
+// odvojen tankom linijom. Zamenjuje mreže jednakih pločica (malo slovo, veliki
+// podebljan broj) koje su na Napretku davale ~11 brojeva iste težine.
+function renderStatRows(rows) {
+  const items = rows.filter(Boolean);
+  if (!items.length) {
+    return "";
+  }
+  return `<dl class="stat-rows">${items
+    .map(
+      (row) => `
+      <div class="stat-row">
+        <dt>${row.label}${row.note ? `<span class="stat-row-note">${row.note}</span>` : ""}</dt>
+        <dd>${row.value}</dd>
+      </div>`
+    )
+    .join("")}</dl>`;
+}
+
 function renderInsightsSection() {
   const period = [30, 60, 90].includes(state.insightsPeriod) ? state.insightsPeriod : 30;
   const ins = getInsights(period);
@@ -15189,48 +15189,53 @@ function renderInsightsSection() {
       </section>`;
   }
 
-  let headline = `Pregled za poslednjih ${period} dana.`;
-  if (ins.weightChange != null && ins.weightChange !== 0) {
-    headline = `Za ${period} dana: <strong>${ins.weightChange < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightChange), 2)} kg</strong>${ins.weightRate ? ` (${ins.weightRate < 0 ? "−" : "+"}${formatDecimal(Math.abs(ins.weightRate), 2)} kg/ned)` : ""}.`;
-  } else if (ins.loggedCount) {
-    headline = `Uneto <strong>${ins.loggedCount}</strong> od ${period} dana, nastavi da gradiš istoriju.`;
-  }
+  const signed = (value, digits = 2) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatDecimal(Math.abs(value), digits)}`;
 
-  const card = (label, value, note) =>
-    `<article class="stat-card"><strong>${label}</strong><div class="macro-value">${value}</div><div class="footer-note">${note}</div></article>`;
-  const signed = (value) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatDecimal(Math.abs(value), 2)}`;
-  const cards = [];
-  if (ins.weightChange != null) cards.push(card("Težina", `${signed(ins.weightChange)} kg`, ins.weightRate ? `${signed(ins.weightRate)} kg/ned` : "u periodu"));
-  if (ins.fatChange != null) cards.push(card("Mast", `${signed(ins.fatChange)} %`, "telesna mast"));
-  if (ins.muscleChange != null) cards.push(card("Mišić", `${signed(ins.muscleChange)} kg`, "mišićna masa"));
-  if (ins.avgKcal) cards.push(card("Kalorije", `${ins.avgKcal}`, `prosek/dan · cilj ${ins.kcalOnTargetPct}% dana`));
-  if (ins.avgProtein) cards.push(card("Protein", `${ins.avgProtein} g`, ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · ${ins.proteinHitPct}% dana` : "prosek/dan"));
-  if (ins.trainingSessions) cards.push(card("Trening", `${ins.trainingSessions}`, "zabeleženih"));
-  if (ins.avgWater) cards.push(card("Voda", `${formatDecimal(ins.avgWater / 1000, 1)} L`, "prosek/dan"));
+  // Jedan glavni broj: promena težine u periodu. Bez nje (nema dva merenja)
+  // vodi rečenica o tome koliko je dana uneto.
+  let verdict = "";
+  if (ins.energy && ins.energy.actualRate != null && ins.energy.expectedRate) {
+    const e = ins.energy;
+    const sameDirection = e.actualRate <= 0 === e.expectedRate <= 0;
+    verdict = !sameDirection
+      ? "ide suprotno od unosa"
+      : Math.abs(e.actualRate - e.expectedRate) < 0.15
+        ? "poklapa se sa unosom"
+        : Math.abs(e.actualRate) > Math.abs(e.expectedRate)
+          ? "brže nego što unos predviđa"
+          : "sporije nego što unos predviđa";
+  }
+  const hero =
+    ins.weightChange != null
+      ? `
+      <div class="insights-hero">
+        <strong class="insights-hero-value">${signed(ins.weightChange, 1)}<span>kg</span></strong>
+        <p class="insights-hero-copy">za ${period} dana${ins.weightRate ? ` · ${signed(ins.weightRate)} kg nedeljno` : ""}${verdict ? ` · ${verdict}` : ""}</p>
+      </div>`
+      : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
+
+  const rows = renderStatRows([
+    ins.avgKcal && { label: "Kalorije", note: `na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgProtein && {
+      label: "Protein",
+      note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct} % dana` : "",
+      value: `${ins.avgProtein} g/dan`,
+    },
+    ins.fatChange != null && { label: "Telesna mast", value: `${signed(ins.fatChange, 1)} %` },
+    ins.muscleChange != null && { label: "Mišićna masa", value: `${signed(ins.muscleChange, 1)} kg` },
+    ins.trainingSessions && { label: "Treninzi", value: `${ins.trainingSessions}` },
+    ins.avgWater && { label: "Voda", value: `${formatDecimal(ins.avgWater / 1000, 1)} L/dan` },
+  ]);
 
   let energyHtml = "";
   if (ins.energy) {
     const e = ins.energy;
     const deficitWord =
-      e.dailyDelta < 0 ? `deficit ~${Math.abs(e.dailyDelta)} kcal/dan` : e.dailyDelta > 0 ? `višak ~${e.dailyDelta} kcal/dan` : "na održavanju";
-    let verdict = "";
-    if (e.actualRate != null && e.expectedRate) {
-      const sameDirection = e.actualRate <= 0 === e.expectedRate <= 0;
-      if (!sameDirection) {
-        verdict = " Težina ide suprotno od onoga što unos predviđa, proveri unos ili merenja.";
-      } else if (Math.abs(e.actualRate - e.expectedRate) < 0.15) {
-        verdict = " Rezultat se poklapa sa unosom 👍";
-      } else if (Math.abs(e.actualRate) > Math.abs(e.expectedRate)) {
-        verdict = " Menjaš se brže nego što kalorije predviđaju (voda/glikogen ili je održavanje precenjeno).";
-      } else {
-        verdict = " Sporije nego što unos predviđa (možda je unos potcenjen ili održavanje niže).";
-      }
-    }
+      e.dailyDelta < 0 ? `deficit oko ${Math.abs(e.dailyDelta)} kcal dnevno` : e.dailyDelta > 0 ? `višak oko ${e.dailyDelta} kcal dnevno` : "održavanje";
     energyHtml = `
-      <div class="insights-callout">
-        <strong>Energija</strong>
-        <p>Prosečno unosiš <strong>${e.avgKcal} kcal/dan</strong>, procena održavanja je <strong>${e.maintenance} kcal</strong> → ${deficitWord}, što predviđa <strong>${formatDecimal(e.expectedRate, 2)} kg/ned</strong>.${e.actualRate != null ? ` Stvarno: <strong>${formatDecimal(e.actualRate, 2)} kg/ned</strong>.` : ""}${verdict}</p>
-      </div>`;
+      <p class="insights-energy">Prosečno unosiš ${e.avgKcal} kcal, a održavanje ti je oko ${e.maintenance} kcal: ${deficitWord}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
+        e.actualRate != null ? ` Vaga kaže ${formatDecimal(e.actualRate, 2)} kg nedeljno.` : ""
+      }</p>`;
   }
 
   return `
@@ -15238,13 +15243,13 @@ function renderInsightsSection() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Uvidi</h2>
-          <p class="insights-headline">${headline}</p>
         </div>
       </div>
-      ${renderHelpNote("Sažetak tvojih podataka za izabrani period (30/60/90 dana). Kartice pokazuju promenu težine, masti i mišića, prosečne kalorije i koliko dana si pogodio cilj. „Energija“ uparuje tvoj prosečan unos sa procenom održavanja i pokazuje da li težina stvarno prati ono što kalorije predviđaju.")}
       <div class="insights-period">${periodChips}</div>
-      <div class="stats-grid stats-grid--glance insights-grid">${cards.join("")}</div>
+      ${hero}
+      ${rows}
       ${energyHtml}
+      ${renderHelpNote("Sažetak za izabrani period. Veliki broj je promena težine između prvog i poslednjeg merenja u periodu; ispod su proseci po danu i koliko dana si pogodio cilj. Poslednja rečenica upoređuje šta kalorije predviđaju sa onim što vaga stvarno pokazuje.")}
     </section>`;
 }
 
