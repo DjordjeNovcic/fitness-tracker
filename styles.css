@@ -13568,3 +13568,65 @@ button.meal-entry-body:focus-visible {
   content: none;
   display: none;
 }
+
+/* ============================================================
+   „Pojedeno“ uz krug obroka (2026-10-01). Krug bez natpisa je bio
+   jedini signal da hrana ulazi u zbir tek kad se čekira. Natpis je
+   deo labele, pa i cela reč prima dodir (veća meta od samog kruga).
+   ============================================================ */
+.meal-toggle {
+  gap: 6px;
+  padding: 7px 5px 7px 10px;
+  min-height: 44px;
+}
+
+/* Stoji posle kruga u DOM-u (selektor :checked + .meal-toggle-ui traži da
+   krug bude odmah iza checkboxa), a order ga vizuelno stavlja ispred. */
+.meal-toggle-text {
+  order: -1;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.meal-toggle.is-done .meal-toggle-text {
+  color: var(--teal);
+}
+
+:root[data-theme="dark"] .meal-toggle.is-done .meal-toggle-text {
+  color: var(--accent);
+}
+
+/* Brzi unos: „Već pojedeno“ stoji uz dugme koje menja natpis. */
+.quick-entry-eaten {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.quick-entry-eaten input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* Plan je senka, ne napredak: tanka linija po sredini staze, a puni luk
+   je samo ono što je pojedeno. Isti ton bledog luka kao do sada. */
+.cal-ring-planned,
+.cal-ring[data-state] .cal-ring-planned {
+  stroke-width: 3;
+}
+.plan-summary-compact .cal-ring-planned,
+.plan-summary-compact[data-state] .cal-ring-planned {
+  stroke-width: 1.5;
+}
+
+.nowrap {
+  white-space: nowrap;
+}

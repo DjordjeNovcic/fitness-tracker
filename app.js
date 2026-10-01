@@ -676,6 +676,7 @@ const state = {
   foodMenuOpenId: "",
   foodEditorOpen: false,
   quickEntryOpen: false,
+  quickEntryEaten: false,
   quickEntryText: "",
   quickEntryOverrides: {},
   scannerOpen: false,
@@ -8489,9 +8490,12 @@ function recordFoodUsage(foodId, grams) {
 // submit, the instant-add amount presets, quick-add chips and companion
 // suggestions, so all four ways of adding a food behave identically (same
 // persistence, same usage tracking, same toast) instead of drifting apart.
-function commitPlanDraftEntry(food, grams, mealLabelOverride) {
+// `done: true` beleži stavku odmah kao pojedenu (Brzi unos na danu-dnevniku);
+// takva sme i u već pojeden obrok, jer ga ne otvara ponovo.
+function commitPlanDraftEntry(food, grams, mealLabelOverride, options = {}) {
   const mealLabel = normalizeMealLabel(mealLabelOverride || state.planDraft.mealLabel || defaultMeals[0]);
-  if (!food || !grams || !mealLabel || isMealCompletedForWeekday(state.selectedWeekday, mealLabel)) {
+  const done = Boolean(options.done);
+  if (!food || !grams || !mealLabel || (!done && isMealCompletedForWeekday(state.selectedWeekday, mealLabel))) {
     return false;
   }
   const newEntryId = uid("plan");
@@ -8503,12 +8507,20 @@ function commitPlanDraftEntry(food, grams, mealLabelOverride) {
     foodId: food.id,
     foodName: food.name,
     grams,
-    done: false,
+    done,
   });
   state.lastAddedEntryId = newEntryId;
   recordFoodUsage(food.id, grams);
   expandMealForWeekday(state.selectedWeekday, mealLabel);
   persist();
+  // Prvo dodavanje u plan na danu-dnevniku: jednom objasni zašto se preostale
+  // kalorije još nisu pomerile.
+  if (!done && isSelectedDayLoggable() && !store.ui?.hints?.checkMeal) {
+    store.ui = store.ui || {};
+    store.ui.hints = { ...(store.ui.hints || {}), checkMeal: true };
+    persist();
+    showFeedbackToast({ title: "Dodato u plan", detail: "Čekiraj „Pojedeno“ kad pojedeš obrok. Tek tad se računa u preostale kalorije.", duration: 5200 });
+  }
   // No banner here: the new row lights up in the meal (`.meal-entry.is-new`)
   // and removing it is one tap on its trash icon. The undo banner stays for
   // deletes, where it actually protects something.
@@ -8784,7 +8796,7 @@ function renderQuickEntryDialog() {
           <div class="stack" style="gap:4px;">
             <div class="hero-picker-label">Brzi unos</div>
             <h3 id="quick-entry-title">Upiši ceo obrok</h3>
-            <p>Napiši šta si jeo/la običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
+            <p>Napiši obrok običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-quick-entry" aria-label="Zatvori brzi unos">
             ${renderMenuToggleIcon(true)}
@@ -8792,7 +8804,7 @@ function renderQuickEntryDialog() {
         </div>
 
         <div class="field">
-          <label for="quick-entry-input">Šta si jeo/la</label>
+          <label for="quick-entry-input">Šta je bilo u obroku</label>
           <textarea id="quick-entry-input" rows="3" placeholder="npr. 200 g piletine, 150 pirinča i 2 jajeta u ručak" autocomplete="off" spellcheck="false">${escapeHtml(state.quickEntryText)}</textarea>
           <p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice znači grame, a „u ručak“ na kraju bira obrok.</p>
         </div>
@@ -8861,7 +8873,17 @@ function renderQuickEntryDialog() {
         }
 
         <div class="app-dialog-actions">
-          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length ? "" : "disabled"}>${renderButtonContent(live.length ? `Dodaj ${live.length} ${srPlural(live.length, "stavku", "stavke", "stavki")}` : "Dodaj u plan", "add")}</button>
+          ${
+            isSelectedDayLoggable()
+              ? `<label class="quick-entry-eaten"><input type="checkbox" data-action="toggle-quick-entry-eaten" ${state.quickEntryEaten ? "checked" : ""} /><span>Već pojedeno, računaj odmah</span></label>`
+              : ""
+          }
+          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length ? "" : "disabled"}>${renderButtonContent(
+            !live.length
+              ? state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"
+              : `${state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"} ${live.length} ${srPlural(live.length, "stavku", "stavke", "stavki")}`,
+            "add"
+          )}</button>
           <button class="ghost-button" type="button" data-action="close-quick-entry">Otkaži</button>
         </div>
         ${unmatched.length ? `<p class="footer-note">${unmatched.length} ${srPlural(unmatched.length, "stavka nije prepoznata", "stavke nisu prepoznate", "stavki nije prepoznato")} i ${srPlural(unmatched.length, "biće preskočena", "biće preskočene", "biće preskočeno")}.</p>` : ""}
@@ -9286,6 +9308,16 @@ function getCoffeeTotalsForDate(date) {
 // prati potrošnja sa treninga (getTrainingBurnForDay u renderPlanTab).
 function isSelectedDayToday() {
   return state.selectedWeekTrack === getCurrentWeekTrack() && state.selectedWeekday === getTodayWeekday();
+}
+
+// Danas i raniji dani ove nedelje su dnevnik: oznake „pojedeno“ na njima su
+// stvarne (resetuju se tek u ponedeljak), pa se tu broji pojedeno. Ostali dani
+// (kasnije ove nedelje, sledeća nedelja) su samo plan.
+function isSelectedDayLoggable() {
+  return (
+    state.selectedWeekTrack === getCurrentWeekTrack() &&
+    WEEKDAYS.indexOf(state.selectedWeekday) <= WEEKDAYS.indexOf(getTodayWeekday())
+  );
 }
 
 function getSelectedDayCoffeeTotals() {
@@ -9974,37 +10006,43 @@ function renderWeekTrackRow() {
 // The collapsed daily-overview row on phones. The remaining-calories glance is
 // the reason people open the app mid-day; hiding it behind a tap (a text line
 // with eaten totals) buried the one number that matters.
-// Eaten vs planned for the selected day. The plan is the whole day's food; what
-// you've actually checked off is a subset. The ring draws both: strong arc =
-// eaten, faint arc = still planned, so "is my plan inside the budget" and "how
-// far into the day am I" are both readable at a glance.
-function getDayRingFacts(entries, totals, calorieGoal, extraEaten = null) {
+// Eaten vs planned for the selected day. On a diary day (today or earlier this
+// week) the hero is what is left to EAT: goal minus checked-off food, with the
+// rest of the plan as a faint ghost arc. It used to be goal minus everything
+// planned, so a day with nothing eaten yet read "223 left" instead of 2061. On
+// a plan-only day (later this week, next week) nothing can be eaten yet, so
+// the hero says how much room the plan leaves, and says so in its label.
+function getDayRingFacts(entries, totals, calorieGoal, extraEaten = null, diary = false) {
   // Kafa (i sve što se beleži tapom, a ne planira kao obrok) je popijena u
   // trenutku unosa, pa ide direktno na stranu „pojedeno“ — nema čekboks da ga
   // čeka. U `totals` je već uračunata (renderPlanTab), ovde ulazi u „eaten“.
   const eaten = addTotals(getDayTotals(entries.filter((entry) => entry.done)), extraEaten || {});
   const plannedKcal = roundValue(totals.kcal, 0);
   const eatenKcal = roundValue(eaten.kcal, 0);
-  const allDone = entries.length > 0 && entries.every((entry) => entry.done);
+  const heroKcal = diary ? eatenKcal : plannedKcal;
+  const remaining = roundValue(calorieGoal - heroKcal, 0);
+  const ratio = calorieGoal ? heroKcal / calorieGoal : 0;
   const clamp = (value) => (calorieGoal > 0 ? Math.min(1, Math.max(0, value / calorieGoal)) : 0);
+  const planOver = plannedKcal > calorieGoal ? " (preko cilja)" : "";
   return {
-    plannedKcal,
-    eatenKcal,
-    allDone,
-    plannedFraction: clamp(plannedKcal),
-    eatenFraction: clamp(eatenKcal),
-    // "1838 / 2061 kcal u planu" while the day is open, "pojedeno" once every
-    // meal is checked; the eaten count sits alongside while it differs.
-    metaLabel: `${plannedKcal} / ${calorieGoal} kcal ${allDone ? "pojedeno" : "u planu"}`,
-    eatenNote: !allDone && eatenKcal > 0 ? `${eatenKcal} pojedeno` : "",
+    intake: diary ? eaten : totals,
+    remaining,
+    state: !calorieGoal ? "neutral" : ratio > 1.1 ? "over" : ratio > 1.0 ? "near" : "ok",
+    label: diary ? (remaining >= 0 ? "preostalo" : "preko cilja") : remaining >= 0 ? "slobodno u planu" : "plan preko cilja",
+    fillFraction: clamp(heroKcal),
+    ghostFraction: diary ? clamp(plannedKcal) : 0,
+    metaLabel: diary
+      ? `<span class="nowrap">${eatenKcal} / ${calorieGoal} pojedeno</span>${plannedKcal > eatenKcal ? ` · <span class="nowrap">${plannedKcal} u planu${planOver}</span>` : ""}`
+      : `<span class="nowrap">${plannedKcal} / ${calorieGoal} kcal u planu</span>`,
   };
 }
 
-function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState, ring) {
+function renderPlanSummaryCompact(ring) {
+  const totals = ring.intake;
   const radius = 15;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - ring.eatenFraction);
-  const plannedOffset = circumference * (1 - ring.plannedFraction);
+  const offset = circumference * (1 - ring.fillFraction);
+  const plannedOffset = circumference * (1 - ring.ghostFraction);
   // The three macros as slim bars under the headline — same ok/near/over
   // semantics as the expanded macro cards (renderProgress), just quieter.
   const macros = [
@@ -10013,7 +10051,7 @@ function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calori
     { short: "M", label: "Masti", value: totals.fat, goal: store.goals.fat, kind: "limit" },
   ];
   return `
-    <div class="plan-summary-compact" data-state="${calorieState}">
+    <div class="plan-summary-compact" data-state="${ring.state}">
       <div class="plan-summary-compact-main">
         <svg class="plan-mini-ring" viewBox="0 0 36 36" aria-hidden="true">
           <circle class="cal-ring-track" cx="18" cy="18" r="${radius}"></circle>
@@ -10021,8 +10059,8 @@ function renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calori
           <circle class="cal-ring-fill" cx="18" cy="18" r="${radius}" style="stroke-dasharray:${circumference.toFixed(2)};stroke-dashoffset:${offset.toFixed(2)};"></circle>
         </svg>
         <div class="plan-summary-compact-copy">
-          <strong class="plan-summary-compact-value">${Math.abs(remainingCalories)}<span>kcal ${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span></strong>
-          <span class="plan-summary-compact-meta">${ring.metaLabel}${ring.eatenNote ? ` · <span class="plan-summary-compact-eaten">${ring.eatenNote}</span>` : ""}</span>
+          <strong class="plan-summary-compact-value">${Math.abs(ring.remaining)}<span>kcal ${ring.label}</span></strong>
+          <span class="plan-summary-compact-meta">${ring.metaLabel}</span>
         </div>
       </div>
       <div class="plan-summary-compact-macros" aria-label="Makroi danas">
@@ -10049,16 +10087,14 @@ function renderPlanTab(entries) {
   // Burn is logged per weekday for the current week only (it isn't a template),
   // so the other track has nothing to show — don't mirror this week's numbers.
   const trainingBurn = state.selectedWeekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(state.selectedWeekday) : 0;
-  const netCalories = roundValue(totals.kcal - trainingBurn, 0);
   const calorieGoal = roundValue(store.goals.calories, 0);
-  const remainingCalories = roundValue(calorieGoal - totals.kcal, 0);
-  const calorieRatio = calorieGoal ? totals.kcal / calorieGoal : 0;
-  const calorieState = !calorieGoal ? "neutral" : calorieRatio > 1.1 ? "over" : calorieRatio > 1.0 ? "near" : "ok";
   const ringCircumference = 326.7; // 2π·52
-  const ringFacts = getDayRingFacts(entries, totals, calorieGoal, coffeeTotals);
-  const ringOffset = roundValue(ringCircumference * (1 - ringFacts.eatenFraction), 1);
-  const ringPlannedOffset = roundValue(ringCircumference * (1 - ringFacts.plannedFraction), 1);
-  const caloriePct = calorieGoal ? Math.round(calorieRatio * 100) : 0;
+  const ringFacts = getDayRingFacts(entries, totals, calorieGoal, coffeeTotals, isSelectedDayLoggable());
+  // Makroi, „Uneto“ i neto prate isto što i prsten: na danu-dnevniku pojedeno.
+  const intake = ringFacts.intake;
+  const netCalories = roundValue(intake.kcal - trainingBurn, 0);
+  const ringOffset = roundValue(ringCircumference * (1 - ringFacts.fillFraction), 1);
+  const ringPlannedOffset = roundValue(ringCircumference * (1 - ringFacts.ghostFraction), 1);
   const favorites = getFavoriteMealsDetailed();
   const meals = [
     ...new Set([
@@ -10086,8 +10122,8 @@ function renderPlanTab(entries) {
           <h2>Dnevni pregled</h2>
           ${
             !isPlanSummaryExpanded() && calorieGoal
-              ? renderPlanSummaryCompact(totals, calorieGoal, remainingCalories, calorieState, ringFacts)
-              : `<p>${roundValue(totals.kcal, 0)} kcal · P ${roundValue(totals.protein, 0)} · UH ${roundValue(totals.carbs, 0)} · M ${roundValue(totals.fat, 0)} g</p>`
+              ? renderPlanSummaryCompact(ringFacts)
+              : `<p>${roundValue(intake.kcal, 0)} kcal · P ${roundValue(intake.protein, 0)} · UH ${roundValue(intake.carbs, 0)} · M ${roundValue(intake.fat, 0)} g</p>`
           }
         </div>
         <div class="section-disclosure-meta">
@@ -10098,7 +10134,7 @@ function renderPlanTab(entries) {
       ${
         calorieGoal
           ? `
-      <div class="cal-ring" data-state="${calorieState}">
+      <div class="cal-ring" data-state="${ringFacts.state}">
         <div class="cal-ring-dial">
           <svg class="cal-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
             <circle class="cal-ring-track" cx="60" cy="60" r="52"></circle>
@@ -10106,19 +10142,19 @@ function renderPlanTab(entries) {
             <circle class="cal-ring-fill" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringOffset};"></circle>
           </svg>
           <div class="cal-ring-center">
-            <span class="cal-ring-label">${remainingCalories >= 0 ? "preostalo" : "preko cilja"}</span>
-            <strong class="cal-ring-value">${Math.abs(remainingCalories)}</strong>
+            <span class="cal-ring-label">${ringFacts.label}</span>
+            <strong class="cal-ring-value">${Math.abs(ringFacts.remaining)}</strong>
             <span class="cal-ring-unit">kcal</span>
           </div>
         </div>
-        <div class="cal-ring-meta">${ringFacts.metaLabel}${ringFacts.eatenNote ? ` · <span class="cal-ring-eaten">${ringFacts.eatenNote}</span>` : ""}</div>
+        <div class="cal-ring-meta">${ringFacts.metaLabel}</div>
       </div>
       `
           : `
       <div class="plan-summary-headline is-empty">
         <div class="plan-summary-headline-main">
-          <span class="plan-summary-headline-label">Danas uneto</span>
-          <strong class="plan-summary-headline-value plan-summary-headline-value--prompt">${roundValue(totals.kcal, 0)}<span class="plan-summary-headline-unit">kcal</span></strong>
+          <span class="plan-summary-headline-label">${isSelectedDayLoggable() ? "Pojedeno" : "U planu"}</span>
+          <strong class="plan-summary-headline-value plan-summary-headline-value--prompt">${roundValue(intake.kcal, 0)}<span class="plan-summary-headline-unit">kcal</span></strong>
           <span class="footer-note">Postavi kalorijski cilj da pratiš koliko ti je ostalo.</span>
         </div>
         <button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "open")}</button>
@@ -10131,7 +10167,7 @@ function renderPlanTab(entries) {
       <div class="plan-net-row">
         <div class="plan-net-item">
           <span class="plan-net-label">Uneto</span>
-          <strong>${roundValue(totals.kcal, 0)}</strong>
+          <strong>${roundValue(intake.kcal, 0)}</strong>
         </div>
         <span class="plan-net-op" aria-hidden="true">−</span>
         <div class="plan-net-item">
@@ -10149,7 +10185,7 @@ function renderPlanTab(entries) {
           : ""
       }
       <div class="plan-summary-layout">
-        ${renderMacroCards(totals, { excludeCalories: true })}
+        ${renderMacroCards(intake, { excludeCalories: true })}
         ${isPlanSummaryExpanded() ? renderPlanGlanceRows() : ""}
       </div>
       </div>
@@ -10172,7 +10208,7 @@ function renderPlanTab(entries) {
         </div>
         <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
-      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj ga</strong> — tek tad ulazi u dnevni zbir kalorija i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>čekiraj „Pojedeno“</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Kuvaj unapred</strong> kopira obrok na više dana odjednom (meal-prep), a <strong>Kopiraj dan</strong> prebacuje ceo dan na drugi. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -10196,7 +10232,7 @@ function renderPlanTab(entries) {
                             <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
                             ${
                               prepBadgeCount >= 2
-                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 Spremljeno za ${prepBadgeCount} dana</span>`
+                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 ${prepBadgeCount} dana</span>`
                                 : ""
                             }
                             ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
@@ -10209,6 +10245,7 @@ function renderPlanTab(entries) {
                                   <span class="meal-toggle-ui" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
                                   </span>
+                                  <span class="meal-toggle-text" aria-hidden="true">Pojedeno</span>
                                 </label>
                                 <button
                                   class="ghost-button meal-collapse-toggle"
@@ -17460,6 +17497,12 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-quick-entry-eaten") {
+    state.quickEntryEaten = !state.quickEntryEaten;
+    render();
+    return;
+  }
+
   if (action === "toggle-plan-meal-done") {
     const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || "").trim());
     const mealEntries = getMealEntriesForWeekday(state.selectedWeekday, mealLabel);
@@ -19018,6 +19061,7 @@ async function handleDocumentClick(event) {
     state.quickEntryOpen = true;
     state.quickEntryText = "";
     state.quickEntryOverrides = {};
+    state.quickEntryEaten = isSelectedDayLoggable();
     render();
     return;
   }
@@ -19040,12 +19084,13 @@ async function handleDocumentClick(event) {
     const rows = getQuickEntryRows().filter((row) => !row.removed && row.food && row.amount > 0);
     const addedIds = [];
     let blockedMeals = 0;
+    const done = state.quickEntryEaten && isSelectedDayLoggable();
     rows.forEach((row) => {
-      if (isMealCompletedForWeekday(state.selectedWeekday, row.mealLabel)) {
+      if (!done && isMealCompletedForWeekday(state.selectedWeekday, row.mealLabel)) {
         blockedMeals += 1;
         return;
       }
-      if (commitPlanDraftEntry(row.food, row.amount, row.mealLabel)) {
+      if (commitPlanDraftEntry(row.food, row.amount, row.mealLabel, { done })) {
         addedIds.push(state.lastAddedEntryId);
       }
     });
@@ -19054,7 +19099,7 @@ async function handleDocumentClick(event) {
     state.quickEntryOverrides = {};
     if (addedIds.length) {
       queuePendingUndo(
-        `Dodato ${addedIds.length} ${srPlural(addedIds.length, "stavka", "stavke", "stavki")} iz brzog unosa.${blockedMeals ? " Zatvoreni obroci su preskočeni." : ""}`,
+        `${done ? "Zabeleženo kao pojedeno" : "Dodato u plan"}: ${addedIds.length} ${srPlural(addedIds.length, "stavka", "stavke", "stavki")}.${blockedMeals ? " Zatvoreni obroci su preskočeni." : ""}`,
         () => {
           store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !addedIds.includes(entry.id));
           persist();
