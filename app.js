@@ -14705,7 +14705,8 @@ function renderProgressHistorySection() {
     low: "color-mix(in srgb, var(--status-success-text) 40%, transparent)",
     // 78 %: pun ton je bio najteža masa na stranici, teža od glavnog broja.
     ok: "color-mix(in srgb, var(--status-success-text) 78%, transparent)",
-    over: "var(--status-error-text)",
+    // Pun crveni ton je u tamnoj temi bio najsvetlija tačka na Napretku.
+    over: "color-mix(in srgb, var(--status-error-text) 70%, transparent)",
   };
   const cellTone = (snap) => {
     if (!snap || !(snap.kcal > 0)) return "none";
@@ -14746,11 +14747,20 @@ function renderProgressHistorySection() {
         })()
       }
       <div class="history-heatmap">
+        ${days
+          .slice(0, 7)
+          .map((d) => {
+            // Kolone počinju od dana pre pet nedelja, ne od ponedeljka, pa
+            // natpisi idu po stvarnom datumu (ručno, ne Intl: sr-RS je ćirilica).
+            const date = getDateValueAsLocalDate(d.date);
+            return `<span class="history-weekday" aria-hidden="true">${date ? "NPUSČPS"[date.getDay()] : ""}</span>`;
+          })
+          .join("")}
         ${cells}
       </div>
       <ul class="history-legend" aria-label="Legenda">
         ${[
-          ["ok", "na cilju"],
+          ["ok", "na cilju (80–110 %)"],
           ["low", "ispod 80 %"],
           ["over", "preko 110 %"],
           ["none", "bez unosa"],
