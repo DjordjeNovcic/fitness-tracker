@@ -9706,11 +9706,13 @@ body.app-header-hidden .workspace-header {
   gap: 8px;
   flex: 0 0 auto;
 }
+/* Only a banner with two actions needs its own button row on a phone; with
+   just "Vrati" it stays one line instead of a 132px slab over the list. */
 @media (max-width: 520px) {
-  .undo-banner {
+  .undo-banner:has(.undo-banner-actions > :nth-child(2)) {
     flex-wrap: wrap;
   }
-  .undo-banner-actions {
+  .undo-banner:has(.undo-banner-actions > :nth-child(2)) .undo-banner-actions {
     width: 100%;
     justify-content: flex-end;
   }
@@ -15187,3 +15189,57 @@ button.meal-entry-body:focus-visible {
   padding: 0;
 }
 :root[data-theme] .day-block .plan-summary-section.is-expanded .plan-section-body { margin-top: 4px; }
+
+/* Traka za poništavanje je tamna u obe teme, pa njena dugmad moraju biti
+   svetla: „Vrati“ je bio mastilo na tamnom (1,1:1), nevidljiv u svetloj temi. */
+:root[data-theme] .undo-banner .ghost-button {
+  color: #fff9f3;
+  border-color: rgba(255, 249, 243, 0.3);
+  background: rgba(255, 249, 243, 0.08);
+  box-shadow: none;
+}
+:root[data-theme] .undo-banner .ghost-button:hover { background: rgba(255, 249, 243, 0.16); }
+:root[data-theme] .undo-banner .footer-note { color: rgba(255, 249, 243, 0.72); }
+
+/* Natpis iznad naslova bio je krem (napravljen za tamnu traku), pa je na
+   svetloj podlozi bio nevidljiv. Na papiru je prigušeno mastilo. */
+.hero-picker-label,
+:root[data-theme] .app-dialog .hero-picker-label,
+:root[data-theme] .week-track-day-picker-row .hero-picker-label {
+  color: var(--muted);
+}
+
+/* Pojedeno nije „otkazano“: bez precrtavanja na stavkama, obrocima i
+   vitaminima, samo prigušeno. Precrtano ostaje samo za kupljeno sa liste. */
+.meal-entry.is-done .meal-entry-title-group strong,
+.meal-card.is-done .meal-title,
+.supplement-plan-card.is-done .routine-content strong {
+  text-decoration: none;
+}
+.meal-entry.is-done .meal-entry-title-group strong { color: var(--muted); }
+
+/* Potvrda: Otkaži levo, radnja desno; na telefonu pola-pola i viša dugmad,
+   na računaru uz desnu ivicu. */
+.confirm-sheet .app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .confirm-sheet .app-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .confirm-sheet .app-dialog-actions > button { min-height: 48px; justify-content: center; }
+}
+
+/* Izborni čip sa jednim redom teksta stoji u sredini svoje visine. */
+.choice-chip { align-content: center; }
+.quick-entry-coffee {
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--ink);
+}

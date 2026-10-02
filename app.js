@@ -7375,7 +7375,6 @@ function renderBarcodeScanner() {
       <section class="app-dialog scanner-dialog" role="dialog" aria-modal="true" aria-label="Skeniranje barkoda">
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
-            <div class="hero-picker-label">Skener</div>
             <h3>Skeniraj barkod</h3>
             <p>Drži telefon mirno, ~10-15 cm od barkoda. Ne fokusira se? Dodirni barkod na slici.</p>
           </div>
@@ -8069,8 +8068,8 @@ function confirmAction({ title, message = "", confirmLabel = "Potvrdi", cancelLa
         <h3 id="confirm-sheet-title">${escapeHtml(title)}</h3>
         ${message ? `<p id="confirm-sheet-message">${escapeHtml(message)}</p>` : ""}
         <div class="app-dialog-actions">
-          <button class="danger-button confirm-sheet-yes" type="button" data-confirm="yes">${escapeHtml(confirmLabel)}</button>
           <button class="ghost-button confirm-sheet-no" type="button" data-confirm="no">${escapeHtml(cancelLabel)}</button>
+          <button class="danger-button confirm-sheet-yes" type="button" data-confirm="yes">${escapeHtml(confirmLabel)}</button>
         </div>
       </section>`;
     const finish = (value) => {
@@ -8106,7 +8105,7 @@ function confirmAction({ title, message = "", confirmLabel = "Potvrdi", cancelLa
     document.addEventListener("keydown", onKey, true);
     document.body.appendChild(shell);
     // Fokus na „Otkaži“: Enter odmah posle otvaranja ne sme da obriše.
-    shell.querySelector(".confirm-sheet-no").focus();
+    shell.querySelector(".confirm-sheet-no").focus({ focusVisible: false });
   });
 }
 
@@ -8818,7 +8817,19 @@ function parseQuickEntryText(text) {
     .split(/[\n,;]+|\s+\bi\b\s+/i)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
-  return { mealLabel, items: chunks.map(parseQuickEntryChunk).filter(Boolean) };
+  // Obična „kafa“ ide na brojač kafe sa Danas (kcal po šoljici iz Ciljeva),
+  // ne kao 100 g neke kafe iz baze. „Turska kafa 200 g“ ostaje namirnica.
+  let coffeeCups = 0;
+  const foodChunks = chunks.filter((chunk) => {
+    const plain = normalizeLookupValue(stripQuickEntryMealPhrase(chunk));
+    const match = plain.match(/^(?:(\d+)\s*(?:x\s*)?)?(?:soljic[aeiu]\s+|solj[aeu]\s+)?(?:kaf[aeu]|kafic[aeu]|espres+o|nes ?kaf[aeu])$/);
+    if (!match) {
+      return true;
+    }
+    coffeeCups += Math.max(1, Math.min(10, Math.round(toNumber(match[1]) || 1)));
+    return false;
+  });
+  return { mealLabel, coffeeCups, items: foodChunks.map(parseQuickEntryChunk).filter(Boolean) };
 }
 
 // Serbian inflects the noun ("piletine", "jajeta"), and the ranked search is
@@ -9007,6 +9018,7 @@ function renderQuickEntryDialog() {
   }
   const rows = getQuickEntryRows();
   const live = rows.filter((row) => !row.removed && row.food && row.amount > 0);
+  const coffeeCups = parseQuickEntryText(state.quickEntryText).coffeeCups;
   const unmatched = rows.filter((row) => !row.removed && !row.food);
   const missingGrams = rows.filter((row) => !row.removed && row.food && !(row.amount > 0)).length;
   const totals = live.reduce(
@@ -9026,7 +9038,6 @@ function renderQuickEntryDialog() {
       <section class="app-dialog quick-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-entry-title">
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
-            <div class="hero-picker-label">Brzi unos</div>
             <h3 id="quick-entry-title">Brzi unos</h3>
             <p>Napiši obrok običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
           </div>
@@ -9113,13 +9124,18 @@ function renderQuickEntryDialog() {
             : `<div class="empty">Počni da kucaš. Prepoznate namirnice se pojavljuju ovde.</div>`
         }
 
+        ${
+          coffeeCups
+            ? `<p class="quick-entry-coffee"><span aria-hidden="true">☕</span> Kafa: +${coffeeCups} ${srPlural(coffeeCups, "šoljica", "šoljice", "šoljica")} na današnji brojač${getCoffeeCupKcal() ? ` (${coffeeCups * getCoffeeCupKcal()} kcal)` : ""}</p>`
+            : ""
+        }
         <div class="app-dialog-actions">
           ${
             isSelectedDayLoggable()
               ? `<label class="quick-entry-eaten"><input type="checkbox" data-action="toggle-quick-entry-eaten" ${state.quickEntryEaten ? "checked" : ""} /><span>Već pojedeno, računaj odmah</span></label>`
               : ""
           }
-          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${live.length && !missingGrams ? "" : "disabled"}>${renderButtonContent(
+          <button class="solid-button button-with-icon" type="button" data-action="commit-quick-entry" ${(live.length || coffeeCups) && !missingGrams ? "" : "disabled"}>${renderButtonContent(
             !live.length
               ? state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"
               : `${state.quickEntryEaten && isSelectedDayLoggable() ? "Zabeleži" : "Dodaj u plan"} ${live.length} ${srPlural(live.length, "stavku", "stavke", "stavki")}`,
@@ -9187,7 +9203,7 @@ function renderEntryPreviewInner(food, grams) {
   return `
     <div class="meal-composer-preview-line">
       <strong>${roundValue(totals.kcal, 0)} kcal</strong>
-      <span>P ${totals.protein} · UH ${totals.carbs} · M ${totals.fat} g</span>
+      <span>P ${formatDecimal(totals.protein, 1)} · UH ${formatDecimal(totals.carbs, 1)} · M ${formatDecimal(totals.fat, 1)} g</span>
     </div>`;
 }
 
@@ -16264,7 +16280,6 @@ function render() {
             <div class="undo-banner" role="status" aria-live="polite">
               <div>
                 <strong>${escapeHtml(state.pendingUndo.message)}</strong>
-                <div class="footer-note" style="margin-top:4px;">Jedan tap da poništiš.</div>
               </div>
               <div class="undo-banner-actions">
                 ${
@@ -16811,6 +16826,20 @@ async function handleDocumentClick(event) {
       store.goals.basisWeightKg = toNumber(profile.weightKg) || null;
     }
     store.goals.waterMl = suggestWaterMl(profile.weightKg);
+    // Težina iz uvoda je prvo merenje: bez ovoga Danas odmah traži da je
+    // ponovo upišeš, a trend i kalibracija nemaju početnu tačku.
+    if (toNumber(profile.weightKg) > 0) {
+      store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
+      const today = getTodayDateValue();
+      if (!store.measurements.some((entry) => normalizeDateValue(entry.date) === today && toNumber(entry.weightKg) > 0)) {
+        store.measurements.push({
+          id: uid("measurement"),
+          date: today,
+          weightKg: roundValue(toNumber(profile.weightKg), 1),
+          calorieGoal: store.goals.calories || 0,
+        });
+      }
+    }
     store.onboarded = true;
     state.onboarding = null;
     state.activeTab = "plan";
@@ -16819,7 +16848,7 @@ async function handleDocumentClick(event) {
     render();
     showFeedbackToast({
       title: "Spremno! 🎉",
-      detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal. Dodaj prvi obrok.` : "Cilj možeš da postaviš u tabu Ciljevi.",
+      detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal.` : "Cilj možeš da postaviš u tabu Ciljevi.",
       tone: "success",
       duration: 3600,
     });
@@ -17422,6 +17451,25 @@ async function handleDocumentClick(event) {
       return;
     }
 
+    // Brisanje se preliva na plan i recepte: kad ih dotiče, prvo pitaj, jer to
+    // menja i druge dane, ne samo ovaj spisak.
+    const usedInPlan = (store.weeklyPlanEntries || []).filter((entry) => entry.foodId === foodId).length;
+    const usedInRecipes = (store.favoriteMeals || []).filter((meal) => (meal.items || []).some((item) => item.foodId === foodId)).length;
+    if (usedInPlan || usedInRecipes) {
+      const where = [
+        usedInPlan ? `${usedInPlan} ${srPlural(usedInPlan, "obroka", "obroka", "obroka")} u planu` : "",
+        usedInRecipes ? `${usedInRecipes} ${srPlural(usedInRecipes, "recepta", "recepta", "recepata")}` : "",
+      ].filter(Boolean);
+      const confirmed = await confirmAction({
+        title: `Obrisati „${food.name}“?`,
+        message: `Uklanja se i iz ${joinSerbianList(where)}.`,
+        confirmLabel: "Obriši",
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     // Deleting a food cascades (plan entries, recipe items, favorite refs), so
     // snapshot the affected collections for a clean one-tap undo.
     const undoSnapshot = {
@@ -17449,9 +17497,9 @@ async function handleDocumentClick(event) {
     if (result.removedRecipes) {
       detailParts.push(`${result.removedRecipes} praznih recepata`);
     }
-    const cascadeNote = detailParts.length ? ` (uklonjeno i ${detailParts.join(", ")})` : "";
+    const cascadeNote = detailParts.length ? `, i ${joinSerbianList(detailParts)}` : "";
 
-    queuePendingUndo(`Namirnica obrisana${cascadeNote}.`, () => {
+    queuePendingUndo(`Obrisano: ${food.name}${cascadeNote}.`, () => {
       store.foods = undoSnapshot.foods;
       store.weeklyPlanEntries = undoSnapshot.weeklyPlanEntries;
       store.favoriteMeals = undoSnapshot.favoriteMeals;
@@ -19278,6 +19326,12 @@ async function handleDocumentClick(event) {
 
   if (action === "commit-quick-entry") {
     const rows = getQuickEntryRows().filter((row) => !row.removed && row.food && row.amount > 0);
+    const coffeeCups = parseQuickEntryText(state.quickEntryText).coffeeCups;
+    const coffeeDate = getTodayDateValue();
+    if (coffeeCups) {
+      store.coffeeByDate = store.coffeeByDate && typeof store.coffeeByDate === "object" ? store.coffeeByDate : {};
+      store.coffeeByDate[coffeeDate] = Math.max(0, Math.round(toNumber(store.coffeeByDate[coffeeDate]) || 0)) + coffeeCups;
+    }
     const addedIds = [];
     let blockedMeals = 0;
     const done = state.quickEntryEaten && isSelectedDayLoggable();
@@ -19293,16 +19347,27 @@ async function handleDocumentClick(event) {
     state.quickEntryOpen = false;
     state.quickEntryText = "";
     state.quickEntryOverrides = {};
-    if (addedIds.length) {
+    if (addedIds.length || coffeeCups) {
+      const parts = [];
+      if (addedIds.length) parts.push(`${addedIds.length} ${srPlural(addedIds.length, "stavka", "stavke", "stavki")}`);
+      if (coffeeCups) parts.push(`${coffeeCups} ${srPlural(coffeeCups, "kafa", "kafe", "kafa")}`);
       queuePendingUndo(
-        `${done ? "Zabeleženo kao pojedeno" : "Dodato u plan"}: ${addedIds.length} ${srPlural(addedIds.length, "stavka", "stavke", "stavki")}.${blockedMeals ? " Zatvoreni obroci su preskočeni." : ""}`,
+        `${done || !addedIds.length ? "Zabeleženo" : "Dodato u plan"}: ${joinSerbianList(parts)}.${blockedMeals ? " Zatvoreni obroci su preskočeni." : ""}`,
         () => {
           store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !addedIds.includes(entry.id));
+          if (coffeeCups && store.coffeeByDate) {
+            const left = Math.max(0, (toNumber(store.coffeeByDate[coffeeDate]) || 0) - coffeeCups);
+            if (left > 0) store.coffeeByDate[coffeeDate] = left;
+            else delete store.coffeeByDate[coffeeDate];
+          }
           persist();
         }
       );
     } else if (blockedMeals) {
       announce("Ti obroci su već označeni kao pojedeni, pa nije dodato ništa.");
+    }
+    if (coffeeCups) {
+      persist();
     }
     render();
     return;
