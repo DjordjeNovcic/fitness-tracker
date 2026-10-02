@@ -14521,3 +14521,39 @@ button.meal-entry-body:focus-visible {
   width: 18px;
   height: 18px;
 }
+
+/* Trend chart: the latest value is plain tabular text (a strong pill read as
+   a button), the dates are a muted axis under the line, not two pills. In
+   Ciljevi the chart sits in the side column bare, not as a card in a card. */
+.chart-card-value {
+  flex-shrink: 0;
+  font-size: var(--fs-17);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.chart-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.trend-chart,
+:root[data-theme="dark"] .trend-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+  background: none;
+}
+.goals-cilj-side .chart-card,
+:root[data-theme="dark"] .goals-cilj-side .chart-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}

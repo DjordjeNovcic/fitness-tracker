@@ -14176,12 +14176,12 @@ function renderTrendCard(field) {
     <article class="chart-card">
       <div class="chart-card-top">
         <h3>${field.label}</h3>
-        <span class="pill strong">${formatFieldValue(field, latest.value)}</span>
+        <strong class="chart-card-value">${formatFieldValue(field, latest.value)}</strong>
       </div>
-      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trend za ${field.label}">
+      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Trend za ${field.label}">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.2"></stop>
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.08"></stop>
             <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"></stop>
           </linearGradient>
         </defs>
@@ -14192,9 +14192,8 @@ function renderTrendCard(field) {
         <path d="${linePath}" class="chart-line" fill="none"></path>
         <circle cx="${last.x}" cy="${last.y}" r="3.6" class="chart-dot is-current"></circle>
       </svg>
+      <div class="chart-dates" aria-hidden="true"><span>${first.label}</span><span>${latest.label}</span></div>
       <div class="meta-row">
-        <span class="pill">${first.label}</span>
-        <span class="pill">${latest.label}</span>
         ${renderMeasurementDelta(delta, field.unit)}
         ${trackPill}
       </div>
@@ -14577,7 +14576,7 @@ function renderMeasurementDelta(delta, unit) {
   const down = delta < 0;
   return `<span class="measure-delta ${down ? "measure-delta--down" : "measure-delta--up"}">
     ${renderTrendArrowIcon(down)}
-    ${Math.abs(delta)}${suffix}
+    ${formatDecimal(Math.abs(delta), 1)}${suffix}
   </span>`;
 }
 
