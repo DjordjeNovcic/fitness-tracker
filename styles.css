@@ -1909,7 +1909,7 @@ textarea::placeholder {
   margin-bottom: 16px;
   padding: 5px;
   border-radius: var(--r-16);
-  background: var(--secondary-soft);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
   border: 1px solid var(--line);
   overflow-x: auto;
   scrollbar-width: none;
@@ -6482,8 +6482,8 @@ body.menu-open .tab-bar {
 
 .section-header h2,
 .section-disclosure-copy h2 {
-  font-size: var(--fs-24);
-  letter-spacing: -0.025em;
+  font-size: var(--fs-20);
+  letter-spacing: -0.02em;
 }
 
 .macro-card,
@@ -10780,9 +10780,16 @@ body {
     border-radius: var(--r-16);
   }
 }
+/* Two heading levels, not five: a section title is 20px on desktop and
+   18px on a phone whether it opens a card or a fold; everything inside a
+   section (meal, template, nested fold) is 16-17px. */
 @media (min-width: 721px) {
-  .section-header h2,.section-disclosure-copy h2 {
-    font-size: var(--fs-24);
+  .section-header h2,.section-disclosure-copy h2,
+  .section.form-collapse > summary > .form-collapse-title,
+  .section.form-collapse--view > summary .form-collapse-title,
+  .section.form-collapse--view:not([open]) > summary .form-collapse-title {
+    font-size: var(--fs-20);
+    letter-spacing: -0.02em;
   }
 }
 .section-copy p:empty {
@@ -13727,10 +13734,10 @@ button.meal-entry-body:focus-visible {
   height: 12px;
   border-radius: 4px;
 }
-/* Naziv i broj ne smeju da se razdvoje preko cele širine desktopa. */
-.stat-rows {
-  max-width: 640px;
-}
+/* Redovi (naziv levo, broj desno, linija između) idu preko cele kartice,
+   kao obroci na Danas i nedeljni plan treninga. Ranije su imali tri
+   različite gornje granice (640, 720, 760), pa su se u istoj kartici
+   završavali na tri mesta. Samo forme zadržavaju svoju kolonu od 640 px. */
 
 /* ============================================================
    Ciljevi (2026-10-01): izabrani čip nije više puna akcent-ploča
@@ -14019,7 +14026,6 @@ button.meal-entry-body:focus-visible {
   .running-history-stack {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    max-width: 720px;
   }
 }
 
@@ -14244,7 +14250,6 @@ button.meal-entry-body:focus-visible {
 @media (min-width: 720px) {
   .training-exercise-list {
     grid-template-columns: minmax(0, 1fr);
-    max-width: 760px;
   }
 }
 
@@ -14401,7 +14406,8 @@ button.meal-entry-body:focus-visible {
   align-items: baseline;
   column-gap: 8px;
 }
-.hero--sub .hero-title {
+.hero--sub .hero-title,
+.hero.hero--sub h2.hero-title {
   flex: 0 0 auto;
   width: auto;
   font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
@@ -14466,4 +14472,13 @@ button.meal-entry-body:focus-visible {
     margin-top: 0;
     padding-top: 0;
   }
+}
+
+/* A folded row's status ("nema unosa", "6 šablona", "ova nedelja") sits
+   with its toggle on the right edge, not halfway across a desktop card. */
+.form-collapse > summary > .form-collapse-title {
+  margin-right: auto;
+}
+.form-collapse > summary {
+  column-gap: 12px;
 }
