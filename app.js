@@ -7776,6 +7776,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
   return `
     <section class="hero hero--plan${headingLevel === 1 ? "" : " hero--sub"}">
       <div class="hero-top" data-role="hero-top">
+        ${headingLevel === 1 ? `<span class="workspace-header-icon" aria-hidden="true">${renderTabIcon(getNavGroupForTab(state.activeTab).icon)}</span>` : ""}
         <div class="hero-title-wrap">
           <${tag} class="hero-title">${isToday && headingLevel === 1 ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
           ${
@@ -10016,7 +10017,6 @@ function renderPlanShoppingSection() {
           <p>${activeItems.length ? `${activeItems.length} ${srPlural(activeItems.length, "namirnica", "namirnice", "namirnica")} iz plana za ${getWeekTrackAccusative(state.selectedWeekTrack)}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
         </div>
         <div class="section-disclosure-meta">
-          <span class="pill note">${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}</span>
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.shoppingExpanded)}</span>
         </div>
       </button>
@@ -12269,7 +12269,7 @@ function renderRunCard(run) {
           <strong>${escapeHtml(dateLabel.replace(/ \d{4}\.$/, ""))}</strong>
           <span class="run-row-type">${escapeHtml(getRunTypeLabel(run.type))}</span>
         </div>
-        <div class="run-row-meta">${escapeHtml(meta.join(" · "))}</div>
+        <div class="run-row-meta">${meta.map((part) => `<span class="nowrap">${escapeHtml(part)}</span>`).join(" · ")}</div>
         ${run.note ? `<div class="run-row-note">${escapeHtml(run.note)}</div>` : ""}
       </div>
       <strong class="run-row-distance">${formatDecimal(derived.distanceKm, 1)} <span>km</span></strong>
@@ -16177,7 +16177,6 @@ function render() {
       <aside id="app-menu" class="mobile-menu app-sidebar ${state.navMenuOpen ? "is-open" : ""} ${state.sidebarCollapsed ? "is-collapsed" : ""}" aria-label="Glavna navigacija">
         <div class="mobile-menu-top">
           <div class="app-sidebar-brand">
-            <div class="hero-picker-label">Navigacija</div>
             <strong>Fit Tracker</strong>
           </div>
           <div class="app-sidebar-top-actions">

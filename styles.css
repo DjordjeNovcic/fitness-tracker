@@ -14566,3 +14566,51 @@ button.meal-entry-body:focus-visible {
   text-align: center;
   color: var(--muted);
 }
+
+/* Sidebar header: the brand alone (no "Navigacija" eyebrow above it), and
+   a collapse chevron at the same 18px as every other chevron, not 8px in a
+   bordered box. */
+.app-sidebar-brand strong {
+  font-size: var(--fs-17);
+  letter-spacing: -0.01em;
+}
+.sidebar-toggle,
+:root[data-theme="dark"] .sidebar-toggle {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+.sidebar-toggle:hover {
+  background: var(--pill-bg);
+  color: var(--ink);
+}
+.sidebar-toggle svg,
+.sidebar-toggle .chevron-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* Danas carries the same page title as every other tab: group icon, then
+   the Fraunces title at the workspace-header size. */
+.hero--plan:not(.hero--sub) .hero-top {
+  align-items: center;
+  column-gap: 12px;
+}
+.hero--plan:not(.hero--sub) .hero-title-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.hero--plan:not(.hero--sub) h1.hero-title,
+.app-main.shell.is-plan-shell .hero--plan:not(.hero--sub) h1.hero-title {
+  font-size: var(--fs-28);
+  line-height: 1.1;
+}
+@media (min-width: 900px) {
+  .hero--plan:not(.hero--sub) h1.hero-title,
+  .app-main.shell.is-plan-shell .hero--plan:not(.hero--sub) h1.hero-title {
+    font-size: var(--fs-30);
+  }
+}
