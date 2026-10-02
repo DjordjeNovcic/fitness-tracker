@@ -7774,7 +7774,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
   const isToday = state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack();
   const tag = headingLevel === 1 ? "h1" : "h2";
   return `
-    <section class="hero hero--plan">
+    <section class="hero hero--plan${headingLevel === 1 ? "" : " hero--sub"}">
       <div class="hero-top" data-role="hero-top">
         <div class="hero-title-wrap">
           <${tag} class="hero-title">${isToday && headingLevel === 1 ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>

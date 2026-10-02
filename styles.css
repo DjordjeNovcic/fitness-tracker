@@ -14370,3 +14370,99 @@ button.meal-entry-body:focus-visible {
 .hero-day-chips .chip.is-today:not(.is-active) {
   font-weight: 800;
 }
+
+/* ============================================================
+   Traka dana kao jedna ravna linija (2026-10-02). Bez ploče oko
+   trake i bez kutije oko dana: dani su tekst, izabrani dan je
+   jedini pun akcent. Na Treningu i Rutini dan je natpis, ne drugi
+   naslov ispod naslova strane. Danas na telefonu zadržava traku
+   preko cele širine.
+   ============================================================ */
+.hero--plan .hero-day-picker,
+:root[data-theme="dark"] .hero--plan .hero-day-picker {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.hero--sub,
+:root[data-theme="dark"] .hero--sub {
+  padding: 0 0 10px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.hero--sub .hero-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+}
+.hero--sub .hero-title {
+  flex: 0 0 auto;
+  width: auto;
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: var(--fs-16);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.hero--sub .hero-date {
+  font-size: var(--fs-14);
+  color: var(--muted);
+}
+@media (min-width: 900px) {
+  .hero--plan,
+  :root[data-theme="dark"] .hero--plan,
+  .app-main.shell.is-plan-shell > .hero--plan,
+  :root[data-theme="dark"] .app-main.shell.is-plan-shell > .hero--plan {
+    padding: 18px 0 12px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .hero--plan .hero-day-chips {
+    gap: 4px;
+    padding: 0;
+  }
+  .hero--plan .hero-day-chips .chip:not(.is-active),
+  :root[data-theme="dark"] .hero--plan .hero-day-chips .chip:not(.is-active) {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: var(--fs-14);
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .hero--plan .hero-day-chips .chip:not(.is-active):hover {
+    background: var(--pill-bg);
+    color: var(--ink);
+  }
+}
+/* The selected day is the one solid accent on the strip, in both themes.
+   Stated here once so the soft filter-chip rule can never reach it. */
+.hero-day-chips .chip.is-active,
+:root[data-theme="dark"] .hero-day-chips .chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: none;
+}
+@media (min-width: 900px) {
+  /* Seven 150px slabs read as buttons; day-sized chips read as a strip. */
+  .hero--plan .chips.hero-day-chips {
+    grid-template-columns: repeat(7, minmax(64px, 88px));
+    justify-content: start;
+  }
+}
+@media (min-width: 900px) {
+  /* Under a page title and sub-tabs the strip needs no top air of its own. */
+  .hero--sub,
+  :root[data-theme="dark"] .hero--sub {
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
