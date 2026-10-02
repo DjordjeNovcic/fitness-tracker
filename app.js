@@ -456,15 +456,15 @@ const ACTIVITY_LEVELS = [
 ];
 
 const GOAL_MODES = [
-  { id: "lose", label: "Smršaj", calorieFactor: 0.85, proteinFactor: 2.2, fatFactor: 0.8 },
+  { id: "lose", label: "Mršavljenje", calorieFactor: 0.85, proteinFactor: 2.2, fatFactor: 0.8 },
   { id: "maintain", label: "Održavanje", calorieFactor: 1, proteinFactor: 2, fatFactor: 0.9 },
-  { id: "gain", label: "Ugoji se", calorieFactor: 1.12, proteinFactor: 1.8, fatFactor: 1 },
+  { id: "gain", label: "Dobijanje mase", calorieFactor: 1.12, proteinFactor: 1.8, fatFactor: 1 },
 ];
 // Weekly rate (kg/week) per pace level → exact daily kcal deficit/surplus.
 const PACE_LEVELS = [
   { id: "blago", label: "Blago", loseKgPerWeek: 0.25, gainKgPerWeek: 0.125 },
   { id: "umereno", label: "Umereno", loseKgPerWeek: 0.5, gainKgPerWeek: 0.25 },
-  { id: "agresivno", label: "Agresivno", loseKgPerWeek: 0.75, gainKgPerWeek: 0.5 },
+  { id: "agresivno", label: "Brže", loseKgPerWeek: 0.75, gainKgPerWeek: 0.5 },
 ];
 const KCAL_PER_KG = 7700;
 
@@ -2888,7 +2888,7 @@ function getNutritionPlans() {
     if (dayDiff !== 0) {
       return dayDiff;
     }
-    return String(left.title || "").localeCompare(String(right.title || ""), "sr");
+    return String(left.title || "").localeCompare(String(right.title || ""), "sr-Latn");
   });
 }
 
@@ -3019,7 +3019,7 @@ function findBestFoodMatchByName(name, category = "") {
         score: exactCanonicalMatch * 100 + partialCanonicalMatch * 40 + hasNutrition * 20 + sameCategory * 5 + isBaseFood * 3,
       };
     })
-    .sort((left, right) => right.score - left.score || String(left.food.name || "").localeCompare(String(right.food.name || ""), "sr"));
+    .sort((left, right) => right.score - left.score || String(left.food.name || "").localeCompare(String(right.food.name || ""), "sr-Latn"));
 
   const bestMatch = scoredFoods[0];
   if (!bestMatch || bestMatch.score < 60) {
@@ -4489,7 +4489,7 @@ function formatFieldValue(field, value) {
 }
 
 function getFoods() {
-  return [...store.foods].sort((a, b) => a.name.localeCompare(b.name, "sr"));
+  return [...store.foods].sort((a, b) => a.name.localeCompare(b.name, "sr-Latn"));
 }
 
 function getSelectableFoods() {
@@ -4631,7 +4631,7 @@ function getImportedFoodLinkCandidates(importedFood) {
         return exactCanonicalMatch * 100 + partialCanonicalMatch * 40 + hasNutrition * 20 + sameCategory * 5 + isBaseFood * 3;
       };
 
-      return scoreCandidate(right) - scoreCandidate(left) || String(left.name || "").localeCompare(String(right.name || ""), "sr");
+      return scoreCandidate(right) - scoreCandidate(left) || String(left.name || "").localeCompare(String(right.name || ""), "sr-Latn");
     });
 }
 
@@ -5158,7 +5158,7 @@ function rankFoodsForQuery(query, foods = getSelectableFoods(), limit = 8) {
       return { food, score, lastAt, recent: lastAt > 0 && now - lastAt < 14 * DAY_IN_MS };
     })
     .filter(Boolean)
-    .sort((a, b) => a.score - b.score || b.lastAt - a.lastAt || String(a.food.name).localeCompare(String(b.food.name), "sr"))
+    .sort((a, b) => a.score - b.score || b.lastAt - a.lastAt || String(a.food.name).localeCompare(String(b.food.name), "sr-Latn"))
     .slice(0, limit);
 }
 
@@ -5349,7 +5349,7 @@ function groupEntriesByMeal(entries) {
     meals.get(entry.mealLabel).push(entry);
   });
 
-  return [...meals.entries()].sort((a, b) => a[0].localeCompare(b[0], "sr"));
+  return [...meals.entries()].sort((a, b) => a[0].localeCompare(b[0], "sr-Latn"));
 }
 
 function getDayTotals(entries) {
@@ -5474,7 +5474,7 @@ function getTrainingBurnForDay(weekday) {
 }
 
 function getHabits() {
-  return [...store.habits].sort((a, b) => a.name.localeCompare(b.name, "sr"));
+  return [...store.habits].sort((a, b) => a.name.localeCompare(b.name, "sr-Latn"));
 }
 
 function getWeeklyHabits() {
@@ -5507,7 +5507,7 @@ function getSupplements() {
     if (timingDiff !== 0) {
       return timingDiff;
     }
-    return a.name.localeCompare(b.name, "sr");
+    return a.name.localeCompare(b.name, "sr-Latn");
   });
 }
 
@@ -6121,7 +6121,7 @@ function getFavoriteTrainingsDetailed() {
       ...training,
       exerciseCount: Array.isArray(training.exercises) ? training.exercises.length : 0,
     }))
-    .sort((a, b) => a.name.localeCompare(b.name, "sr"));
+    .sort((a, b) => a.name.localeCompare(b.name, "sr-Latn"));
 }
 
 function getTrainingExerciseOptions() {
@@ -6149,7 +6149,7 @@ function getTrainingExerciseOptions() {
     });
   });
 
-  return [...names].sort((a, b) => a.localeCompare(b, "sr"));
+  return [...names].sort((a, b) => a.localeCompare(b, "sr-Latn"));
 }
 
 function getTrainingProgressGroups() {
@@ -6234,7 +6234,7 @@ function getFavoriteMealsDetailed() {
       if (dateDiff !== 0) {
         return dateDiff;
       }
-      return a.name.localeCompare(b.name, "sr");
+      return a.name.localeCompare(b.name, "sr-Latn");
     });
 }
 
@@ -6249,7 +6249,7 @@ function getFavoriteMealByName(name) {
 function buildRecipeSignature(items = []) {
   return [...items]
     .map((item) => `${item.foodId || item.foodName}:${roundValue(item.grams, 0)}`)
-    .sort((a, b) => a.localeCompare(b, "sr"))
+    .sort((a, b) => a.localeCompare(b, "sr-Latn"))
     .join("|");
 }
 
@@ -7691,14 +7691,21 @@ function renderProgress(value, goal, kind = "neutral") {
   return `<div class="progress" data-state="${progressState}"><span style="width:${width}%"></span></div>`;
 }
 
+// Plan (šablon nedelje) u odnosu na cilj. Velike vrednosti dobijaju tačku
+// za hiljade kao „10.000“ koraka na Danas.
+function formatInt(value) {
+  return Math.round(toNumber(value)).toLocaleString("sr-RS");
+}
+
 function formatPlanDelta(delta, unit) {
   if (Math.abs(delta) < 0.05) {
-    return `Tačno po planu`;
+    return `Tačno na cilju`;
   }
+  const amount = Math.abs(delta) >= 1000 ? formatInt(Math.abs(delta)) : formatDecimal(Math.abs(delta), Math.abs(delta) >= 100 ? 0 : 1);
   if (delta > 0) {
-    return `+${formatDecimal(delta, 1)} ${unit} preko plana`;
+    return `+${amount} ${unit} preko cilja`;
   }
-  return `${formatDecimal(Math.abs(delta), 1)} ${unit} ispod plana`;
+  return `${amount} ${unit} ispod cilja`;
 }
 
 function renderMetricsGrid(metrics) {
@@ -7711,7 +7718,7 @@ function renderMetricsGrid(metrics) {
               <header>
                 <h3>${metric.label}</h3>
               </header>
-              <div class="macro-value">${roundValue(metric.value, 0)}<span class="macro-goal">/ ${roundValue(metric.goal, 0)}</span><span class="macro-unit">${metric.unit}</span></div>
+              <div class="macro-value">${roundValue(metric.value, 0)}<span class="macro-goal"> / ${roundValue(metric.goal, 0)}</span><span class="macro-unit">${metric.unit}</span></div>
               ${renderProgress(metric.value, metric.goal, metric.kind)}
               ${metric.note ? `<div class="footer-note">${escapeHtml(metric.note)}</div>` : ""}
             </article>
@@ -9958,7 +9965,7 @@ function getShoppingList(weekTrack = state.selectedWeekTrack) {
     }
   });
   return [...totals.values()].sort((a, b) =>
-    a.category === b.category ? a.name.localeCompare(b.name, "sr") : a.category.localeCompare(b.category, "sr")
+    a.category === b.category ? a.name.localeCompare(b.name, "sr-Latn") : a.category.localeCompare(b.category, "sr-Latn")
   );
 }
 
@@ -10806,7 +10813,7 @@ function renderFoodsTab() {
           diff = leftKcal - rightKcal || rightProtein - leftProtein;
           break;
         default:
-          diff = String(left.name || "").localeCompare(String(right.name || ""), "sr");
+          diff = String(left.name || "").localeCompare(String(right.name || ""), "sr-Latn");
           break;
       }
 
@@ -10814,7 +10821,7 @@ function renderFoodsTab() {
         return diff;
       }
 
-      return String(left.name || "").localeCompare(String(right.name || ""), "sr");
+      return String(left.name || "").localeCompare(String(right.name || ""), "sr-Latn");
     });
   const filterCounts = FOOD_MACRO_FILTERS.reduce((acc, filter) => {
     acc[filter] =
@@ -13296,7 +13303,7 @@ function renderGoalsTab() {
           }))
         )}
         <div class="form-group-label">Cilj</div>
-        ${renderChoiceField("Cilj", "targetMode", store.goals.targetMode, GOAL_MODES.map((mode) => ({ id: mode.id, label: mode.label })))}
+        ${renderChoiceField("Želim", "targetMode", store.goals.targetMode, GOAL_MODES.map((mode) => ({ id: mode.id, label: mode.label })))}
         ${renderChoiceField(
           "Brzina",
           "paceLevel",
@@ -13364,24 +13371,24 @@ function renderGoalsTab() {
       ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.")}
       <div class="stats-grid stats-grid--glance">
         <article class="stat-card">
-          <strong>Uneto kcal</strong>
-          <div class="macro-value">${roundValue(weeklyOverview.totals.kcal, 0)} kcal</div>
+          <strong>U planu, 7 dana</strong>
+          <div class="macro-value">${formatInt(weeklyOverview.totals.kcal)} kcal</div>
           <div class="footer-note">${formatPlanDelta(weeklyOverview.totals.kcal - weeklyOverview.goals.kcal, "kcal")}</div>
         </article>
         <article class="stat-card">
           <strong>Nedeljni cilj</strong>
-          <div class="macro-value">${roundValue(weeklyOverview.goals.kcal, 0)} kcal</div>
-          <div class="footer-note">${WEEKDAYS.length} x dnevni cilj</div>
+          <div class="macro-value">${formatInt(weeklyOverview.goals.kcal)} kcal</div>
+          <div class="footer-note">${WEEKDAYS.length} × dnevni cilj</div>
         </article>
         <article class="stat-card">
-          <strong>Potrošeno trening</strong>
-          <div class="macro-value">${roundValue(weeklyOverview.totals.trainingBurn, 0)} kcal</div>
+          <strong>Potrošeno na treningu</strong>
+          <div class="macro-value">${formatInt(weeklyOverview.totals.trainingBurn)} kcal</div>
           <div class="footer-note">Zbir kalorija treninga po danima</div>
         </article>
         <article class="stat-card">
           <strong>Neto kcal</strong>
-          <div class="macro-value">${weeklyOverview.netKcal} kcal</div>
-          <div class="footer-note">Uneto minus trening</div>
+          <div class="macro-value">${formatInt(weeklyOverview.netKcal)} kcal</div>
+          <div class="footer-note">Plan minus trening</div>
         </article>
       </div>
       <div style="margin-top:14px;">
@@ -13553,7 +13560,7 @@ function renderNutritionTab() {
     .sort(
       (left, right) =>
         Number(right.nutritionStatus.needsAttention) - Number(left.nutritionStatus.needsAttention) ||
-        left.name.localeCompare(right.name, "sr")
+        left.name.localeCompare(right.name, "sr-Latn")
     );
   const reviewImportedFoods = importedFoods.filter((food) => food.nutritionStatus.needsAttention);
   const importedRecipes = getNutritionImportedRecipesDetailed();
