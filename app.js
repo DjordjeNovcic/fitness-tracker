@@ -8611,6 +8611,8 @@ function filterFoodsListInline(query) {
   }
   const normalizedQuery = normalizeLookupValue(query || "");
   const tokens = normalizedQuery.split(" ").filter(Boolean);
+  // Brojevi na čipovima važe za celu bazu; dok se pretražuje, ne lažu „23“.
+  document.querySelector(".foods-chips")?.classList.toggle("is-searching", tokens.length > 0);
   const rows = [...list.querySelectorAll(".food-row")];
   // Remember the rendered (alphabetical) order once so clearing the query
   // restores it after rows have been re-ranked.
@@ -9318,7 +9320,7 @@ function renderAmountFieldInner(food) {
       ? "Broj kašičica"
       : unit === "tbsp"
         ? "Broj kašika"
-        : "Količina u gramima";
+        : "Količina";
 
   const unitSelectMarkup = isPiece
     ? `<span class="amount-unit-static">kom</span>`
@@ -9359,7 +9361,7 @@ function renderFavoriteAmountFieldInner(food) {
       ? "Broj kašičica"
       : unit === "tbsp"
         ? "Broj kašika"
-        : "Količina u gramima";
+        : "Količina";
 
   const unitToggleMarkup = isPiece
     ? ""
@@ -10234,8 +10236,23 @@ function renderPlanWelcomeGuide(calorieGoal) {
         <li class="plan-welcome-step">
           <span class="plan-welcome-step-num" aria-hidden="true">2</span>
           <div class="plan-welcome-step-body">
-            <strong>Sastavi prvi dan</strong>
-            <span>Dodaj obroke za ${weekdayAccusative(state.selectedWeekday)} ispod, makroi se računaju sami.</span>
+            <strong>Dodaj prvi obrok</strong>
+            <span>Upiši šta jedeš za ${weekdayAccusative(state.selectedWeekday)}, makroi se računaju sami.</span>
+            ${(() => {
+              // Prvi korak ima svoje dugme: obrok po dobu dana, i brzi unos za
+              // one koji radije pišu nego što biraju.
+              const meal = getQuickEntryDefaultMeal();
+              // Akuzativ: „Dodaj večeru“, „Dodaj prvu užinu“ (doručak, ručak ostaju).
+              const title = (getMealDisplayParts(meal).title || meal)
+                .toLowerCase()
+                .split(" ")
+                .map((word) => (word.endsWith("a") ? `${word.slice(0, -1)}u` : word))
+                .join(" ");
+              return `<div class="plan-welcome-actions">
+                <button class="solid-button button-with-icon" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(meal)}">${renderButtonContent(`Dodaj ${title}`, "add")}</button>
+                <button class="ghost-button button-with-icon" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
+              </div>`;
+            })()}
           </div>
         </li>
         <li class="plan-welcome-step">
@@ -10670,7 +10687,8 @@ function renderPlanTab(entries) {
       // Voda, kafa, koraci, trening i težina idu odmah ispod obroka: Danas je
       // pre svega unos hrane, a ovo su brzi tapovi koji ne moraju prvi na ekran.
       // Nikad iza sklopljenog pregleda.
-      `<section class="section plan-glance-section" aria-label="Voda, koraci, trening i težina">${renderPlanGlanceRows()}</section>`
+      `<div class="plan-side">
+      <section class="section plan-glance-section" aria-label="Voda, koraci, trening i težina">${renderPlanGlanceRows()}</section>`
     }
 
     <div class="plan-utilities">
@@ -10760,6 +10778,7 @@ function renderPlanTab(entries) {
     ${renderPlanActivitySection()}
 
     ${renderPlanShoppingSection()}
+    </div>
     </div>
   `;
 }
@@ -10883,38 +10902,27 @@ function renderFoodsTab() {
         <button class="foods-filter-toggle foods-scan-inline" type="button" data-action="open-scanner" aria-label="Skeniraj barkod" title="Skeniraj barkod">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
         </button>
-        <button class="foods-filter-toggle ${state.foodFiltersOpen || state.foodNutritionFilter !== "Sve" ? "is-active" : ""}" type="button" data-action="toggle-food-filters" aria-label="Dodatni filteri${state.foodNutritionFilter !== "Sve" ? ` (aktivan: ${state.foodNutritionFilter})` : ""}" aria-pressed="${state.foodFiltersOpen ? "true" : "false"}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></svg>
-        </button>
       </div>
 
-      <div class="foods-chips">
-        ${
-          !state.foodFiltersOpen && state.foodNutritionFilter !== "Sve"
-            ? `<button class="foods-chip foods-chip--applied is-active" type="button" data-action="set-food-nutrition-filter" data-filter="Sve" aria-label="Ukloni filter ${state.foodNutritionFilter}">${state.foodNutritionFilter}<span class="foods-chip-x" aria-hidden="true">×</span></button>`
-            : ""
-        }
+      <!-- Jedan red filtera, jedan izbor: prvo dominantni makro, pa osobine.
+           Dva reda sa dva „Sve“ i „Proteini“ pored „Visok protein“ značila su
+           skoro isto, a drugi red je bio skriven iza dugmeta. -->
+      <div class="foods-chips ${state.foodSearch ? "is-searching" : ""}">
         ${macroChips
           .map(
             (filter) => `
-            <button class="foods-chip ${filter === state.foodMacroFilter ? "is-active" : ""}" type="button" data-action="set-food-filter" data-filter="${filter}">
+            <button class="foods-chip ${filter === state.foodMacroFilter && (filter !== "Sve" || state.foodNutritionFilter === "Sve") ? "is-active" : ""}" type="button" data-action="set-food-filter" data-filter="${filter}">
               ${filter}<span class="foods-chip-count">${filterCounts[filter] || 0}</span>
             </button>`
           )
           .join("")}
+        ${nutritionChips
+          .filter((filter) => filter !== "Sve")
+          .map(
+            (filter) => `<button class="foods-chip foods-chip--sub ${filter === state.foodNutritionFilter ? "is-active" : ""}" type="button" data-action="set-food-nutrition-filter" data-filter="${filter}">${filter}</button>`
+          )
+          .join("")}
       </div>
-
-      ${
-        state.foodFiltersOpen
-          ? `<div class="foods-chips foods-chips--sub">
-              ${nutritionChips
-                .map(
-                  (filter) => `<button class="foods-chip foods-chip--sub ${filter === state.foodNutritionFilter ? "is-active" : ""}" type="button" data-action="set-food-nutrition-filter" data-filter="${filter}">${filter}</button>`
-                )
-                .join("")}
-            </div>`
-          : ""
-      }
 
       <div class="foods-secondary">
         <button class="foods-scan-btn" type="button" data-action="open-scanner">
@@ -16893,7 +16901,9 @@ async function handleDocumentClick(event) {
     state.tabEnter = true;
     persist();
     render();
-    showFeedbackToast({
+    // Prazan plan znači da je vodič na ekranu i već kaže cilj; tost bi samo
+    // prekrio njegova dugmad.
+    if ((store.weeklyPlanEntries || []).length) showFeedbackToast({
       title: "Spremno! 🎉",
       detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal.` : "Cilj možeš da postaviš u tabu Ciljevi.",
       tone: "success",
@@ -16925,6 +16935,7 @@ async function handleDocumentClick(event) {
 
   if (action === "set-food-filter") {
     state.foodMacroFilter = actionTarget.dataset.filter || "Sve";
+    state.foodNutritionFilter = "Sve";
     render();
     return;
   }
@@ -16966,6 +16977,7 @@ async function handleDocumentClick(event) {
 
   if (action === "set-food-nutrition-filter") {
     state.foodNutritionFilter = actionTarget.dataset.filter || "Sve";
+    state.foodMacroFilter = "Sve";
     render();
     return;
   }

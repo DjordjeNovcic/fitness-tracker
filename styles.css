@@ -15331,3 +15331,82 @@ button.meal-entry-body:focus-visible {
   font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   letter-spacing: 0.06em;
 }
+
+/* Hrana: jedan red filtera koji se skroluje vodoravno; brojevi se kriju
+   dok traje pretraga. */
+.foods-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: -2px;
+  padding: 2px;
+}
+.foods-chips::-webkit-scrollbar { display: none; }
+.foods-chips > .foods-chip { flex: 0 0 auto; }
+.foods-chips.is-searching .foods-chip-count { display: none; }
+.foods-chip--sub { font-size: var(--fs-14); font-weight: 700; padding: 6px 12px; }
+
+/* Dodavanje u obrok: forma je deo obroka (linija iznad), ne siva kutija u
+   kartici. Kad je namirnica izabrana, njeno ime stoji samo u čipu (sa ×
+   za novu pretragu), ne i u polju iznad njega. */
+:root[data-theme] .meal-composer {
+  padding: 14px 0 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.meal-composer-field:has(.food-match-chip) .food-search-control { display: none; }
+
+/* „Ide uz ovo“: naziv levo, „+“ desno u istom redu, kao lista „Nedavno“. */
+.suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.suggestion-row-copy { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+:root[data-theme] .suggestion-row-add {
+  flex: 0 0 auto;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .suggestion-row-add { color: var(--accent); }
+.suggestion-row-add .button-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Danas na širokom ekranu: obroci levo, brzi redovi i alati u desnoj koloni.
+   Redovi obroka preko 1060 px stavljali su kantu 1000 px od naziva. Ispod
+   1200 px .plan-side ne postoji kao kutija (display: contents). */
+.plan-side { display: contents; }
+@media (min-width: 1200px) {
+  .app-main.is-plan-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    column-gap: 20px;
+    align-items: start;
+  }
+  .app-main.is-plan-shell > * { grid-column: 1 / -1; }
+  .app-main.is-plan-shell > .plan-meals-section { grid-column: 1; }
+  .app-main.is-plan-shell > .plan-side {
+    display: grid;
+    gap: var(--main-gap);
+    grid-column: 2;
+    align-self: start;
+    margin-top: 10px;
+  }
+  .day-block > * { grid-column: 1 / -1; }
+}
