@@ -295,7 +295,7 @@ const TAB_META = {
   training: { eyebrow: "Performans", description: "Plan treninga, potrošnja i progres po vežbama na jednom mestu." },
   running: { eyebrow: "Kardio", description: "Beleži trčanja: distancu, vreme, tempo i puls, sa pregledom forme kroz vreme." },
   routine: { eyebrow: "Svakodnevica", description: "Navike, zadaci i nedeljni pregled koji pomažu da plan ostane realan." },
-  progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i progress slike za jasan pregled napretka kroz vreme." },
+  progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i slike napretka kroz vreme." },
   goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
   settings: { eyebrow: "Sigurnost", description: "Nalog, cloud sync i backup opcije za mirniji rad sa podacima." },
 };
@@ -7002,33 +7002,29 @@ function renderRecipeApplyDialog() {
         <form id="recipe-apply-form" class="stack" style="gap:16px;">
           <input type="hidden" name="favoriteId" value="${favorite.id}" />
           <div class="form-grid recipe-apply-grid">
-            <label>
-              <span>Dan</span>
-              <select name="weekday">
-                ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>`).join("")}
-              </select>
-            </label>
-            <label>
-              <span>Nedelja</span>
-              <select name="weekTrack">
-                ${getWeekTrackDisplayOrder().map((track) => `<option value="${track}" ${track === selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`).join("")}
-              </select>
-            </label>
-            <label>
-              <span>Obrok</span>
-              <select name="mealLabel">
-                ${mealOptions.map((mealLabel) => `<option value="${escapeHtml(mealLabel)}" ${mealLabel === selectedMealLabel ? "selected" : ""}>${escapeHtml(mealLabel)}</option>`).join("")}
-              </select>
-            </label>
+            ${renderChoiceField(
+              "Dan",
+              "weekday",
+              selectedWeekday,
+              WEEKDAYS.map((weekday) => ({ id: weekday, label: weekdayLabel(weekday).slice(0, 3) }))
+            )}
+            ${renderChoiceField(
+              "Nedelja",
+              "weekTrack",
+              String(selectedWeekTrack),
+              getWeekTrackDisplayOrder().map((track) => ({ id: String(track), label: getWeekTrackLabel(track) }))
+            )}
+            ${renderChoiceField(
+              "Obrok",
+              "mealLabel",
+              selectedMealLabel,
+              mealOptions.map((mealLabel) => ({ id: mealLabel, label: getMealDisplayParts(mealLabel).title }))
+            )}
           </div>
-          <div class="pill-row">
-            <span class="pill">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")}</span>
-            <span class="pill">${favorite.servings || 1} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}</span>
-            <span class="pill note">Po porciji ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal</span>
-          </div>
+          <p class="footer-note recipe-apply-summary">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")} · ${favorite.servings || 1} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"} · ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal po porciji</p>
           <div class="entry-actions recipe-apply-actions">
             <button class="ghost-button" type="button" data-action="close-recipe-apply-dialog">Odustani</button>
-            <button class="solid-button secondary-button button-with-icon" type="submit">
+            <button class="solid-button button-with-icon" type="submit">
               ${renderButtonContent("Dodaj u plan", "apply")}
             </button>
           </div>
@@ -15798,7 +15794,7 @@ function renderProgressTab() {
     <section class="section">
       <div class="section-header">
         <div>
-          <h2>Progress slike</h2>
+          <h2>Slike napretka</h2>
           <p>Ubaci sliku sa telefona i ostavi kratku napomenu tipa front, side ili back.</p>
         </div>
       </div>
@@ -15891,7 +15887,7 @@ function renderProgressTab() {
                           const weight = getMeasurementWeightForDate(photo.date);
                           return `
                             <article class="photo-card compare-card">
-                              ${renderProgressPhotoImg(photo, `${index === 0 ? "Leva" : "Desna"} progress slika ${photo.date}`)}
+                              ${renderProgressPhotoImg(photo, `${index === 0 ? "Leva" : "Desna"} slika napretka ${photo.date}`)}
                               <div class="photo-card-body">
                                 <strong>${new Date(photo.date).toLocaleDateString("sr-RS")}</strong>
                                 <div class="pill-row">
@@ -15910,7 +15906,7 @@ function renderProgressTab() {
                   : `<div class="empty">Za tag "${escapeHtml(activeCompareTag)}" dodaj bar dve slike ili izaberi druge dve razlicite slike.</div>`
               }
             `
-            : `<div class="empty">Dodaj bar dve slike da bi radio side by side prikaz.</div>`
+            : `<div class="empty">Dodaj bar dve slike da ih uporediš jednu pored druge.</div>`
         }
       </div>
       <div class="photo-session-list">
@@ -15945,7 +15941,7 @@ function renderProgressTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Još nema progress slika. Ubaci prvu da imaš vizuelni trag napretka.</div>`
+            : `<div class="empty">Još nema slika. Prva će kasnije pokazati odakle je sve počelo.</div>`
         }
       </div>
     </section>

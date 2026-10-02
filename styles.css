@@ -5492,7 +5492,9 @@ body.menu-open .menu-fab {
     border-bottom: 1px solid rgba(25, 34, 31, 0.08);
   }
 
-  .menu-close {
+  /* Only the sidebar's own close goes away on desktop; dialogs (brzi unos,
+     namirnica, recept, skener) reuse the class and need their ×. */
+  .app-sidebar .menu-close {
     display: none;
   }
 
@@ -14800,4 +14802,16 @@ button.meal-entry-body:focus-visible {
   font-size: var(--fs-20);
   font-weight: 700;
   color: var(--muted);
+}
+
+/* Dodaj recept u plan: sedam dana u jednom redu, kao traka dana. */
+.recipe-apply-dialog .choice-chips[aria-labelledby="choice-weekday-label"] {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.recipe-apply-dialog .choice-chips[aria-labelledby="choice-weekday-label"] .choice-chip {
+  min-width: 0;
+  min-height: 44px;
+  padding-inline: 0;
 }
