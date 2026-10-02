@@ -15410,3 +15410,33 @@ button.meal-entry-body:focus-visible {
   }
   .day-block > * { grid-column: 1 / -1; }
 }
+
+/* Delimično pojeden obrok: krug je do pola ispunjen akcentom (ne prazan,
+   ne štikliran), a uz kcal stoji koliko je od toga već uračunato. */
+.meal-card.is-partial .meal-toggle-checkbox:not(:checked) + .meal-toggle-ui {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent) 50%, transparent 50%);
+}
+.meal-kcal-eaten { color: var(--accent-strong); }
+:root[data-theme="dark"] .meal-kcal-eaten { color: var(--accent); }
+
+/* Dok traka „Vrati“ stoji na dnu, dugme „Nova namirnica“ se podiže iznad
+   nje umesto da je preklopi. */
+.foods-add-fab { transition: bottom 0.2s ease-out; }
+body:has(.undo-banner) .foods-add-fab,
+body:has(.feedback-toast.is-visible) .foods-add-fab {
+  bottom: calc(166px + env(safe-area-inset-bottom));
+}
+@media (prefers-reduced-motion: reduce) {
+  .foods-add-fab { transition: none; }
+}
+.scanner-error {
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  border-radius: var(--r-16);
+  border: 1px solid var(--status-warning-border);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  font-weight: 600;
+  line-height: 1.45;
+}

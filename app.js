@@ -685,6 +685,7 @@ const state = {
   quickEntryOverrides: {},
   scannerOpen: false,
   scannerStatus: "",
+  scannerError: false,
   scannerTorchOn: false,
   scannerTorchSupported: false,
   scannedFood: null,
@@ -7134,6 +7135,7 @@ async function startBarcodeScan() {
       msg = "Ne mogu da učitam skener (proveri internet). Unesi vrednosti ručno.";
     }
     state.scannerStatus = msg;
+    state.scannerError = true;
     render();
   }
 }
@@ -7376,22 +7378,30 @@ function renderBarcodeScanner() {
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
             <h3>Skeniraj barkod</h3>
-            <p>Drži telefon mirno, ~10-15 cm od barkoda. Ne fokusira se? Dodirni barkod na slici.</p>
+            ${state.scannerError ? "" : `<p>Drži telefon mirno, ~10-15 cm od barkoda. Ne fokusira se? Dodirni barkod na slici.</p>`}
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-scanner" aria-label="Zatvori skener">
             ${renderMenuToggleIcon(true)}
           </button>
         </div>
-        <div class="scanner-viewport" data-action="focus-scanner">
+        ${
+          // Bez kamere nema šta da se gleda: umesto crnog prozora i uputstva
+          // za držanje telefona, jasna poruka i šta dalje.
+          state.scannerError
+            ? `<div class="scanner-error" role="alert">${escapeHtml(state.scannerStatus)}</div>`
+            : ""
+        }
+        <div class="scanner-viewport" data-action="focus-scanner" ${state.scannerError ? "hidden" : ""}>
           <video id="barcode-video" playsinline muted autoplay></video>
           <div class="scanner-reticle" aria-hidden="true"></div>
           <button id="scanner-torch-btn" class="scanner-torch-btn" type="button" data-action="toggle-scanner-torch" aria-label="Uključi/isključi blic" hidden>
             ${renderActionIcon("flash")}
           </button>
         </div>
-        <div class="footer-note scanner-status">${state.scannerStatus || "Tražim kameru…"}</div>
+        ${state.scannerError ? "" : `<div class="footer-note scanner-status">${state.scannerStatus || "Tražim kameru…"}</div>`}
         <div class="entry-actions" style="justify-content:flex-start;">
-          <button class="solid-button secondary-button button-with-icon" type="button" data-action="scan-manual">${renderButtonContent("Unesi ručno", "add")}</button>
+          ${state.scannerError ? `<button class="solid-button button-with-icon" type="button" data-action="open-scanner" data-scan-return="${escapeHtml(state.scannerReturnTo || "")}">${renderButtonContent("Probaj ponovo", "refresh")}</button>` : ""}
+          <button class="${state.scannerError ? "ghost-button" : "solid-button secondary-button"} button-with-icon" type="button" data-action="scan-manual">${renderButtonContent("Upiši namirnicu ručno", "add")}</button>
           <button class="ghost-button button-with-icon" type="button" data-action="close-scanner">${renderButtonContent("Odustani", "close")}</button>
         </div>
       </section>
@@ -7884,15 +7894,15 @@ function renderOnboarding() {
         <form id="onboarding-form" class="onboarding-form" autocomplete="off">
           <div class="field">
             <label>Pol</label>
-            <div class="chips onboarding-chips">
-              <button type="button" class="chip ${ob.sex === "male" ? "is-active" : ""}" data-action="set-onboarding-sex" data-sex="male">Muško</button>
-              <button type="button" class="chip ${ob.sex === "female" ? "is-active" : ""}" data-action="set-onboarding-sex" data-sex="female">Žensko</button>
+            <div class="choice-chips">
+              <button type="button" class="choice-chip ${ob.sex === "male" ? "is-active" : ""}" aria-pressed="${ob.sex === "male"}" data-action="set-onboarding-sex" data-sex="male"><span class="choice-chip-label">Muško</span></button>
+              <button type="button" class="choice-chip ${ob.sex === "female" ? "is-active" : ""}" aria-pressed="${ob.sex === "female"}" data-action="set-onboarding-sex" data-sex="female"><span class="choice-chip-label">Žensko</span></button>
             </div>
           </div>
           <div class="onboarding-grid">
-            ${renderUnitField("ob-age", "Godine", "god.", `<input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" placeholder="30" />`)}
-            ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" placeholder="180" />`)}
-            ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" placeholder="84" />`)}
+            ${renderUnitField("ob-age", "Godine", "god.", `<input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" />`)}
+            ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" />`)}
+            ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" />`)}
           </div>
           <div class="field">
             <label>Nivo aktivnosti</label>
@@ -7907,16 +7917,20 @@ function renderOnboarding() {
           </div>
           <div class="field">
             <label>Cilj</label>
-            <div class="chips onboarding-chips">
-              ${GOAL_MODES.map((mode) => `<button type="button" class="chip ${mode.id === ob.targetMode ? "is-active" : ""}" data-action="set-onboarding-mode" data-mode="${mode.id}">${mode.label}</button>`).join("")}
+            <div class="choice-chips">
+              ${GOAL_MODES.map((mode) => `<button type="button" class="choice-chip ${mode.id === ob.targetMode ? "is-active" : ""}" aria-pressed="${mode.id === ob.targetMode}" data-action="set-onboarding-mode" data-mode="${mode.id}"><span class="choice-chip-label">${mode.label}</span></button>`).join("")}
             </div>
           </div>
           ${
             ob.targetMode !== "maintain"
               ? `<div class="field">
             <label>Brzina</label>
-            <div class="chips onboarding-chips">
-              ${PACE_LEVELS.map((level) => `<button type="button" class="chip ${level.id === (ob.paceLevel || "umereno") ? "is-active" : ""}" data-action="set-onboarding-pace" data-pace="${level.id}">${level.label}</button>`).join("")}
+            <div class="choice-chips">
+              ${PACE_LEVELS.map((level) => {
+                const on = level.id === (ob.paceLevel || "umereno");
+                const hint = paceHintFor(level.id, ob.targetMode);
+                return `<button type="button" class="choice-chip ${on ? "is-active" : ""}" aria-pressed="${on}" data-action="set-onboarding-pace" data-pace="${level.id}"><span class="choice-chip-label">${level.label}</span>${hint ? `<span class="choice-chip-hint">${hint}</span>` : ""}</button>`;
+              }).join("")}
             </div>
           </div>`
               : ""
@@ -9728,13 +9742,13 @@ function renderPlanTrainingBurnRow() {
     ? filled.map((section) => `${section.label.toLowerCase()} ${section.kcal}`).join(" + ")
     : watchBurn > 0
       ? "sa sata"
-      : "trening, stomak, kardio";
+      : "upiši potrošene kalorije";
   const open = state.planBurnEditOpen;
   return `
       <div class="plan-glance-row plan-glance-row--burn">
-        <span class="plan-glance-icon" aria-hidden="true">🔥</span>
+        <span class="plan-glance-icon" aria-hidden="true">🏋️</span>
         <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Trening</span><span class="plan-glance-value">${
+          <div class="plan-glance-line"><span class="plan-glance-label">Kalorije treninga</span><span class="plan-glance-value">${
             resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nema unosa"
           }</span></div>
           ${
@@ -10521,9 +10535,15 @@ function renderPlanTab(entries) {
                   const isMealCollapsed =
                     mealEntries.length > 0 && isMealCollapsedForWeekday(state.selectedWeekday, mealLabel) && mealLabel !== autoOpenMeal;
                   const mealTotals = getDayTotals(mealEntries);
+                  // Delimično pojeden obrok (Brzi unos sa „već pojedeno“ u obrok
+                  // koji ima i neštiklirane stavke): kaže koliko je uračunato,
+                  // a krug je poluispunjen umesto praznog.
+                  const doneEntries = mealEntries.filter((entry) => entry.done);
+                  const isMealPartial = doneEntries.length > 0 && doneEntries.length < mealEntries.length;
+                  const eatenMealKcal = isMealPartial ? roundValue(getDayTotals(doneEntries).kcal, 0) : 0;
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
-                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
+                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
                       <div class="meal-card-header">
                         <div class="meal-card-topline">
@@ -10565,7 +10585,11 @@ function renderPlanTab(entries) {
                             ? `
                               <div class="meal-card-summary">
                                 <div class="meal-card-summary-kcal">
-                                  <strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>
+                                  ${
+                                    isMealPartial
+                                      ? `<strong><span class="meal-kcal-eaten">${eatenMealKcal}</span> / ${roundValue(mealTotals.kcal, 0)} kcal</strong>`
+                                      : `<strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>`
+                                  }
                                 </div>
                                 <div class="meal-card-summary-items">${escapeHtml(
                                   mealEntries
@@ -10900,7 +10924,7 @@ function renderFoodsTab() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
         <button class="foods-filter-toggle foods-scan-inline" type="button" data-action="open-scanner" aria-label="Skeniraj barkod" title="Skeniraj barkod">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/><path d="M18 8v8"/></svg>
         </button>
       </div>
 
@@ -10926,7 +10950,7 @@ function renderFoodsTab() {
 
       <div class="foods-secondary">
         <button class="foods-scan-btn" type="button" data-action="open-scanner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8"/><path d="M11 8v8"/><path d="M15 8v8"/><path d="M18 8v8"/></svg>
           Skeniraj
         </button>
         <button class="foods-add-inline solid-button button-with-icon" type="button" data-action="open-food-editor-dialog">
@@ -11400,7 +11424,7 @@ function renderTrainingTab() {
           <h2>Nedeljni plan treninga</h2>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži kilažu i broj ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
@@ -17012,6 +17036,7 @@ async function handleDocumentClick(event) {
     state.scannerReturnTo = String(actionTarget.dataset.scanReturn || "");
     state.scannerOpen = true;
     state.scannerStatus = "Tražim kameru…";
+    state.scannerError = false;
     render();
     window.requestAnimationFrame(() => {
       startBarcodeScan();
@@ -19817,7 +19842,7 @@ async function handleSubmit(event) {
     if (!hasExplicitNutritionInput) {
       showFeedbackToast({
         title: "Dodaj makar jednu vrednost",
-        detail: "Unesi kcal ili barem neki od makroa da bih sačuvao namirnicu.",
+        detail: "Unesi kcal ili bar jedan makro da bi namirnica mogla da se sačuva.",
         tone: "warning",
       });
       return;
@@ -20900,7 +20925,7 @@ async function handleImport(event) {
         target.value = "";
         return;
       }
-      const confirmed = await confirmAction({ title: `Uvesti kopiju „${file.name}“?`, message: `Sadržaj fajla ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} i upisuje se u cloud. Ne može da se poništi; ako nisi siguran, otkaži i prvo izvezi trenutni backup.`, confirmLabel: "Uvezi i zameni" });
+      const confirmed = await confirmAction({ title: `Uvesti kopiju „${file.name}“?`, message: `Sadržaj fajla ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} i upisuje se u cloud. Ne može da se poništi; ako ima sumnje, otkaži i prvo izvezi trenutnu kopiju.`, confirmLabel: "Uvezi i zameni" });
       if (!confirmed) {
         target.value = "";
         return;
