@@ -10363,9 +10363,8 @@ function renderPlanTab(entries) {
             <circle class="cal-ring-fill" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringOffset};"></circle>
           </svg>
           <div class="cal-ring-center">
-            <span class="cal-ring-label">${ringFacts.label}</span>
             <strong class="cal-ring-value">${Math.abs(ringFacts.remaining)}</strong>
-            <span class="cal-ring-unit">kcal</span>
+            <span class="cal-ring-unit">kcal ${ringFacts.label}</span>
           </div>
         </div>
         <div class="cal-ring-meta">${ringFacts.metaLabel}</div>

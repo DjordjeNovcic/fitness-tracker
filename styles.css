@@ -6957,14 +6957,6 @@ body.app-header-hidden .workspace-header {
   gap: 1px;
 }
 
-.cal-ring-label {
-  font-size: var(--fs-12);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
 .cal-ring-value {
   font-family: "Fraunces", Georgia, serif;
   font-size: var(--fs-48);
@@ -6979,11 +6971,15 @@ body.app-header-hidden .workspace-header {
   color: var(--status-error-text);
 }
 
+/* Same grammar as the phone ring: the number, then "kcal preostalo". */
 .cal-ring-unit {
-  font-size: var(--fs-12);
-  font-weight: 700;
+  margin-top: 4px;
+  max-width: 12ch;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
   color: var(--muted);
-  letter-spacing: 0.02em;
 }
 
 .cal-ring-meta {
@@ -9768,7 +9764,9 @@ body.app-header-hidden .workspace-header {
   flex: 1 1 auto;
   gap: 10px;
 }
-/* The section title steps back to an eyebrow so the number is the headline. */
+/* The section title steps back to an eyebrow so the number is the headline,
+   folded or open, phone or desktop. */
+.plan-summary-section .section-disclosure-copy h2,
 .plan-summary-section.is-collapsed .section-disclosure-copy h2 {
   font-family: inherit;
   font-size: var(--fs-12);
@@ -10767,6 +10765,7 @@ body {
     font-size: var(--fs-18);
     letter-spacing: -0.02em;
   }
+  .plan-summary-section .section-disclosure-copy h2,
   .plan-summary-section.is-collapsed .section-disclosure-copy h2 {
     font-size: var(--fs-12);
   }
