@@ -7801,10 +7801,6 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
   `;
 }
 
-function renderHero() {
-  return renderDayBar();
-}
-
 function renderWorkspaceHeader() {
   const activeTab = ALL_TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
   const tabMeta = TAB_META[state.activeTab] || TAB_META.plan;
@@ -8525,6 +8521,11 @@ function updateHeroScrollState() {
       state.isPlanHeroCompact = isPlanCompact;
       body.classList.toggle("plan-compact", isPlanCompact);
     }
+
+    // Trening/Rutina: the petrol day bar squares its top corners once it is
+    // stuck to the top edge (CSS can't tell stuck from not).
+    const subBar = document.querySelector(".hero--sub");
+    body.classList.toggle("daybar-stuck", Boolean(subBar) && y > 0 && subBar.getBoundingClientRect().top <= 0.5);
 
     // The (non-interactive) workspace header shows ONLY at the very top of
     // the page. Once scrolled away it stays hidden — it does not reappear on
@@ -10325,9 +10326,12 @@ function renderPlanTab(entries) {
   const companionSuggestions = generateCompanionSuggestions();
   const draftFood = getDraftFood();
 
+  // Dan i njegov pregled su jedan petrolej blok: jedini obojeni trenutak na
+  // Danas, sve ispod je miran papir. Jedan element, ne dve sekcije spojene
+  // negativnom marginom (razmak između sekcija zavisi od širine).
   return `
-    ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal) : ""}
-
+    <div class="day-block">
+    ${renderDayBar()}
     <section class="section plan-summary-section ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
@@ -10340,7 +10344,9 @@ function renderPlanTab(entries) {
           ${
             !isPlanSummaryExpanded() && calorieGoal
               ? renderPlanSummaryCompact(ringFacts)
-              : `<p>${roundValue(intake.kcal, 0)} kcal · P ${roundValue(intake.protein, 0)} · UH ${roundValue(intake.carbs, 0)} · M ${roundValue(intake.fat, 0)} g</p>`
+              : !calorieGoal
+                ? `<div class="day-block-empty"><strong class="day-block-empty-value">${roundValue(intake.kcal, 0)}</strong><span class="day-block-empty-label">kcal danas</span><span class="day-block-empty-hint">Postavi dnevni cilj da vidiš koliko ti ostaje.</span></div>`
+                : `<p>${roundValue(intake.kcal, 0)} kcal · P ${roundValue(intake.protein, 0)} · UH ${roundValue(intake.carbs, 0)} · M ${roundValue(intake.fat, 0)} g</p>`
           }
         </div>
         <div class="section-disclosure-meta">
@@ -10405,6 +10411,9 @@ function renderPlanTab(entries) {
       </div>
       </div>
     </section>
+    </div>
+
+    ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal) : ""}
 
     ${renderTodayRemindersBanner()}
 
@@ -10479,6 +10488,12 @@ function renderPlanTab(entries) {
                                 <div class="meal-card-summary-kcal">
                                   <strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>
                                 </div>
+                                <div class="meal-card-summary-items">${escapeHtml(
+                                  mealEntries
+                                    .map((entry) => String(entry.displayName || entry.foodName || "").replace(/\s*\([^)]*\)/g, "").trim())
+                                    .filter(Boolean)
+                                    .join(", ")
+                                )}</div>
                                 <div class="meal-card-summary-macros" aria-label="Makroi obroka">
                                   <div class="meal-summary-macro">
                                     <span class="meal-summary-label">Protein</span>
@@ -16125,7 +16140,8 @@ function render() {
 
   const entries = getPlanEntriesForDay(state.selectedWeekday, state.selectedWeekTrack);
   const totals = getDayTotals(entries);
-  const heroMarkup = state.activeTab === "plan" ? renderHero(entries, totals) : "";
+  // Danas renders its day bar inside .day-block (renderPlanTab).
+  const heroMarkup = "";
   // Plan and Foods bring their own compact in-tab header, so skip the global
   // workspace hero for them (the floating menu-fab provides the nav menu).
   const workspaceHeaderMarkup = state.activeTab === "plan" ? "" : renderWorkspaceHeader();

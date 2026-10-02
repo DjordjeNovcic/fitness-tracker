@@ -14815,3 +14815,322 @@ button.meal-entry-body:focus-visible {
   min-height: 44px;
   padding-inline: 0;
 }
+
+/* ============================================================
+   Petrol blok (2026-10-02, pravac 1). Danas otvara jedan obojeni
+   blok: traka dana (lepljiva) + dnevni pregled, krem slova na
+   dubokom petroleju; sve ispod je miran papir. To je jedini
+   „committed“ trenutak boje na ekranu.
+
+   .day-block je display: contents jer je traka dana sticky, a
+   sticky element ne sme da bude zatvoren u roditelja koji se
+   odskroluje. Zato su traka i pregled dve površine koje se
+   dodiruju: razmak između sekcija je zakucan na --main-gap, a
+   pregled se podiže tačno za toliko.
+   ============================================================ */
+:root {
+  --block-bg: oklch(0.34 0.058 222);
+  --block-bg-deep: oklch(0.29 0.05 222);
+  --block-ink: oklch(0.97 0.014 85);
+  --block-muted: oklch(0.97 0.014 85 / 0.7);
+  --block-faint: oklch(0.97 0.014 85 / 0.16);
+  --block-line: oklch(0.97 0.014 85 / 0.12);
+  --block-sand: oklch(0.87 0.075 78);
+  --block-over: oklch(0.8 0.1 45);
+}
+:root[data-theme="dark"] {
+  --block-bg: oklch(0.3 0.05 222);
+  --block-bg-deep: oklch(0.26 0.044 222);
+}
+
+.app-main { --main-gap: 16px; --main-pad-x: 0px; }
+@media (max-width: 899px) { .app-main { --main-gap: 22px; --main-pad-x: 18px; } }
+@media (max-width: 720px) { .app-main { --main-gap: 12px; --main-pad-x: 16px; } }
+@media (max-width: 599px) { .app-main { --main-pad-x: 14px; } }
+.app-main.is-plan-shell { row-gap: var(--main-gap); }
+
+.day-block { display: contents; }
+
+/* ---- surfaces ---- */
+:root[data-theme] .day-block > .hero--plan {
+  margin: 0;
+  padding: 18px 22px 10px;
+  background: var(--block-bg-deep);
+  color: var(--block-ink);
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  box-shadow: none;
+}
+:root[data-theme] .day-block > .plan-summary-section {
+  margin: calc(-1 * var(--main-gap)) 0 0;
+  padding: 8px 22px 24px;
+  background: linear-gradient(180deg, var(--block-bg-deep), var(--block-bg) 60%);
+  color: var(--block-ink);
+  border: 0;
+  border-radius: 0 0 28px 28px;
+  box-shadow: 0 22px 36px -28px oklch(0.25 0.05 222 / 0.7);
+}
+/* Phone: the block runs edge to edge from the very top. */
+@media (max-width: 720px) {
+  :root[data-theme] .day-block > .hero--plan,
+  :root[data-theme] .day-block > .plan-summary-section {
+    margin-inline: calc(-1 * var(--main-pad-x));
+    padding-inline: calc(var(--main-pad-x) + 4px);
+  }
+  :root[data-theme] .day-block > .hero--plan {
+    margin-top: -6px;
+    border-radius: 0;
+  }
+  :root[data-theme] .day-block > .plan-summary-section {
+    border-radius: 0 0 30px 30px;
+  }
+}
+
+/* ---- the day bar on petrol ---- */
+:root[data-theme] .day-block .hero-title { color: var(--block-ink); }
+:root[data-theme] .day-block .hero-date { color: var(--block-muted); }
+:root[data-theme] .day-block .workspace-header-icon,
+:root[data-theme] .day-block .workspace-header-icon .tab-icon {
+  background: none;
+  box-shadow: none;
+  color: var(--block-sand);
+}
+:root[data-theme] .day-block .hero-week-toggle {
+  background: var(--block-faint);
+  border-color: transparent;
+}
+:root[data-theme] .day-block .hero-week-toggle .hero-week-chip { color: var(--block-muted); }
+:root[data-theme] .day-block .hero-week-toggle .hero-week-chip.is-active {
+  background: var(--block-ink);
+  color: var(--block-bg-deep);
+  box-shadow: none;
+}
+:root[data-theme] .day-block .hero-day-chips .chip:not(.is-active) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--block-muted);
+}
+:root[data-theme] .day-block .hero-day-chips .chip.is-today:not(.is-active) { color: var(--block-ink); }
+:root[data-theme] .day-block .hero-day-chips .chip:not(.is-active):hover { background: var(--block-faint); color: var(--block-ink); }
+:root[data-theme] .day-block .hero-day-chips .chip.is-active {
+  background: var(--block-ink);
+  border-color: var(--block-ink);
+  color: var(--block-bg-deep);
+}
+:root[data-theme] .day-block .day-bar-dot { background: currentColor; }
+
+/* ---- the overview on petrol ---- */
+:root[data-theme] .day-block .section-disclosure { color: inherit; }
+:root[data-theme] .day-block .section-disclosure-copy > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+:root[data-theme] .day-block .section-disclosure-icon { color: var(--block-muted); }
+:root[data-theme] .day-block .section-disclosure-copy > p { color: var(--block-muted); }
+
+/* compact ring (phone default) */
+:root[data-theme] .day-block .day-ring {
+  grid-template-columns: 156px minmax(0, 1fr);
+  column-gap: 22px;
+  align-items: center;
+  margin: 0;
+}
+:root[data-theme] .day-block .day-ring-dial,
+:root[data-theme] .day-block .day-ring-svg { width: 156px; height: 156px; }
+:root[data-theme] .day-block .day-ring-track { stroke: var(--block-faint); }
+:root[data-theme] .day-block .day-ring-ghost { stroke: oklch(0.97 0.014 85 / 0.34); }
+:root[data-theme] .day-block .day-ring-fill { stroke: var(--block-sand); }
+:root[data-theme] .day-block .day-ring[data-state="over"] .day-ring-fill { stroke: var(--block-over); }
+:root[data-theme] .day-block .day-ring-value { font-size: var(--fs-48); color: var(--block-ink); letter-spacing: -0.035em; }
+:root[data-theme] .day-block .day-ring-label { color: var(--block-muted); font-size: var(--fs-13); }
+:root[data-theme] .day-block .day-ring-meta { color: var(--block-muted); }
+:root[data-theme] .day-block .day-ring-meta span:first-child { color: var(--block-ink); font-weight: 700; }
+:root[data-theme] .day-block .day-ring-macro-label { color: var(--block-muted); }
+:root[data-theme] .day-block .day-ring-macro-value { color: var(--block-ink); }
+:root[data-theme] .day-block .day-ring-macro-value span { color: var(--block-muted); }
+
+/* full ring (desktop default, phone when opened) */
+:root[data-theme] .day-block .cal-ring-track { stroke: var(--block-faint); }
+:root[data-theme] .day-block .cal-ring[data-state] .cal-ring-planned { stroke: oklch(0.97 0.014 85 / 0.34); }
+:root[data-theme] .day-block .cal-ring-fill { stroke: var(--block-sand); }
+:root[data-theme] .day-block .cal-ring[data-state="over"] .cal-ring-fill { stroke: var(--block-over); }
+:root[data-theme] .day-block .cal-ring-value,
+:root[data-theme] .day-block .cal-ring[data-state="over"] .cal-ring-value { color: var(--block-ink); }
+:root[data-theme] .day-block .cal-ring-unit,
+:root[data-theme] .day-block .cal-ring-meta { color: var(--block-muted); }
+:root[data-theme] .day-block .macro-card,
+:root[data-theme] .day-block .macro-card::before { background: none; border: 0; box-shadow: none; }
+:root[data-theme] .day-block .macro-card h3 { color: var(--block-muted); }
+:root[data-theme] .day-block .macro-value { color: var(--block-ink); }
+:root[data-theme] .day-block .macro-goal,
+:root[data-theme] .day-block .macro-unit,
+:root[data-theme] .day-block .footer-note { color: var(--block-muted); }
+:root[data-theme] .day-block .plan-net-row { border-color: var(--block-line); background: none; }
+:root[data-theme] .day-block .plan-net-label,
+:root[data-theme] .day-block .plan-net-op { color: var(--block-muted); }
+:root[data-theme] .day-block .plan-net-item strong { color: var(--block-ink); }
+:root[data-theme] .day-block .plan-summary-headline-label { color: var(--block-muted); }
+:root[data-theme] .day-block .plan-summary-headline-value { color: var(--block-ink); }
+
+/* bars on petrol: cream fill, sand when near, warm coral when over */
+:root[data-theme] .day-block .progress { background: var(--block-faint); }
+:root[data-theme] .day-block .progress > span { background: var(--block-ink); }
+:root[data-theme] .day-block .progress[data-state="near"] > span { background: var(--block-sand); }
+:root[data-theme] .day-block .progress[data-state="over"] > span { background: var(--block-over); }
+
+/* the one button that can live in the block (no goal yet) */
+:root[data-theme] .day-block .secondary-button {
+  background: var(--block-ink);
+  border-color: transparent;
+  color: var(--block-bg-deep);
+}
+
+/* space under the block before the meals */
+.day-block + * { margin-top: 10px; }
+:root[data-theme] .day-block > .plan-summary-section { position: relative; }
+:root[data-theme] .day-block .plan-summary-section .section-disclosure-meta {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+}
+@media (min-width: 900px) {
+  .app-main.shell.is-plan-shell { padding-top: 24px; }
+  :root[data-theme] .day-block .plan-summary-section .section-disclosure { min-height: 0; }
+}
+
+/* Sklopljen obrok kaže šta je u njemu („Jaje, hleb, šunka“), ne tri makroa:
+   to je ono po čemu ga prepoznaješ. Raširen obrok i dalje ima makroe. */
+.meal-card-summary-items {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--muted);
+}
+.meal-card.is-collapsed .meal-card-summary-macros,
+.meal-card:not(.is-collapsed) .meal-card-summary-items {
+  display: none;
+}
+.meal-card-summary { align-items: baseline; }
+.plan-meals-section .meal-title { font-size: var(--fs-18); }
+
+/* Danas, brzi redovi: ikona u mekom bunaru, radnja kao tekst. Pet
+   uokvirenih dugmadi jedno ispod drugog bilo je zid dugmadi. */
+.plan-glance-row { align-items: center; }
+.plan-glance-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  border-radius: var(--r-12);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  font-size: var(--fs-17);
+}
+:root[data-theme] .plan-glance-btn {
+  min-width: 56px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+:root[data-theme="dark"] .plan-glance-btn { color: var(--accent); }
+:root[data-theme] .plan-glance-btn:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+/* Scrolled: the bar sticks to the top edge, so its top corners go square
+   and the bottom ones round, like a tab hanging from the top. */
+@media (min-width: 721px) {
+  body.plan-compact :root[data-theme] .day-block > .hero--plan,
+  :root[data-theme] body.plan-compact .day-block > .hero--plan {
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 14px 26px -20px oklch(0.25 0.05 222 / 0.7);
+  }
+}
+
+/* Petrol blok na Treningu i Rutini: traka dana je isti petrolej. */
+:root[data-theme] .hero--sub {
+  padding: 12px 18px 8px;
+  background: var(--block-bg-deep);
+  color: var(--block-ink);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 18px 30px -26px oklch(0.25 0.05 222 / 0.7);
+}
+@media (max-width: 720px) {
+  :root[data-theme] .hero--sub {
+    margin-inline: calc(-1 * var(--main-pad-x));
+    padding-inline: calc(var(--main-pad-x) + 4px);
+    border-radius: 0 0 26px 26px;
+  }
+}
+@media (min-width: 721px) {
+  :root[data-theme] body.daybar-stuck .hero--sub { border-radius: 0 0 22px 22px; }
+}
+:root[data-theme] .hero--sub .hero-title { color: var(--block-ink); }
+:root[data-theme] .hero--sub .hero-date { color: var(--block-muted); }
+:root[data-theme] .hero--sub .hero-week-toggle { background: var(--block-faint); border-color: transparent; }
+:root[data-theme] .hero--sub .hero-week-toggle .hero-week-chip { color: var(--block-muted); }
+:root[data-theme] .hero--sub .hero-week-toggle .hero-week-chip.is-active { background: var(--block-ink); color: var(--block-bg-deep); box-shadow: none; }
+:root[data-theme] .hero--sub .hero-day-chips .chip:not(.is-active) { background: transparent; border-color: transparent; color: var(--block-muted); }
+:root[data-theme] .hero--sub .hero-day-chips .chip.is-today:not(.is-active) { color: var(--block-ink); }
+:root[data-theme] .hero--sub .hero-day-chips .chip:not(.is-active):hover { background: var(--block-faint); color: var(--block-ink); }
+:root[data-theme] .hero--sub .hero-day-chips .chip.is-active { background: var(--block-ink); border-color: var(--block-ink); color: var(--block-bg-deep); }
+
+/* Petrol blok na Napretku: Uvidi (period + glavni broj + redovi). */
+:root[data-theme] .insights-section {
+  background: linear-gradient(180deg, var(--block-bg-deep), var(--block-bg));
+  color: var(--block-ink);
+  border: 0;
+  box-shadow: 0 22px 36px -28px oklch(0.25 0.05 222 / 0.7);
+}
+:root[data-theme] .insights-section h2,
+:root[data-theme] .insights-section .insights-hero-value,
+:root[data-theme] .insights-section .stat-row dt,
+:root[data-theme] .insights-section .stat-row dd { color: var(--block-ink); }
+:root[data-theme] .insights-section .insights-hero-value span,
+:root[data-theme] .insights-section .insights-hero-copy,
+:root[data-theme] .insights-section .stat-row-note,
+:root[data-theme] .insights-section .insights-energy,
+:root[data-theme] .insights-section .section-copy p { color: var(--block-muted); }
+:root[data-theme] .insights-section .stat-rows,
+:root[data-theme] .insights-section .stat-row { border-color: var(--block-line); }
+:root[data-theme] .insights-section .insights-period .chip {
+  background: transparent;
+  border-color: var(--block-faint);
+  color: var(--block-muted);
+}
+:root[data-theme] .insights-section .insights-period .chip.is-active {
+  background: var(--block-ink);
+  border-color: var(--block-ink);
+  color: var(--block-bg-deep);
+}
+:root[data-theme] .insights-section .help-note > summary { color: var(--block-muted); border-color: var(--block-faint); background: transparent; }
+:root[data-theme] .insights-section .help-note-body { color: var(--ink); }
+.day-block-empty {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 4px 0 2px;
+  text-align: left;
+}
+.day-block-empty-value {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: var(--fs-48);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  color: var(--block-ink);
+}
+.day-block-empty-label { padding-bottom: 6px; font-size: var(--fs-14); font-weight: 600; color: var(--block-muted); }
+.day-block-empty-hint { grid-column: 1 / -1; font-size: var(--fs-14); color: var(--block-muted); }
