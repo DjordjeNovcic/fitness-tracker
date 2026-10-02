@@ -11246,7 +11246,7 @@ function renderRecipesTab() {
                               : ""
                           }
                           <div class="entry-actions recipe-library-actions">
-                            <button class="solid-button secondary-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
+                            <button class="ghost-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
                               ${renderButtonContent("Dodaj u plan", "add")}
                             </button>
                             ${

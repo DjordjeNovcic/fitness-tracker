@@ -51,9 +51,9 @@
   --button-primary-bg: linear-gradient(180deg, #27738c, #1f5f75);
   --button-primary-text: #fbf8ef;
   --button-primary-border: rgba(22, 71, 87, 0.18);
-  --button-secondary-bg: linear-gradient(180deg, #33839d, #2b6d7d);
-  --button-secondary-text: #fbf8ef;
-  --button-secondary-border: rgba(43, 109, 125, 0.16);
+  --button-secondary-bg: #dbe9ef;
+  --button-secondary-text: #1f5f75;
+  --button-secondary-border: rgba(31, 95, 117, 0.14);
   --button-ghost-bg: rgba(255, 251, 245, 0.98);
   --button-ghost-text: var(--ink);
   --button-ghost-border: rgba(25, 34, 31, 0.09);
@@ -5878,9 +5878,10 @@ body.menu-open .menu-fab {
   --button-primary-bg: linear-gradient(180deg, oklch(0.75 0.085 225), oklch(0.66 0.085 225));
   --button-primary-text: oklch(0.19 0.03 225);
   --button-primary-border: oklch(0.84 0.04 225 / 0.2);
-  --button-secondary-bg: linear-gradient(180deg, #272722, #20201b);
-  --button-secondary-text: var(--ink);
-  --button-secondary-border: rgba(255, 255, 255, 0.12);
+  /* Same meaning as light: a soft accent tint, not a second ghost button. */
+  --button-secondary-bg: var(--accent-soft);
+  --button-secondary-text: var(--accent-strong);
+  --button-secondary-border: color-mix(in srgb, var(--accent) 30%, transparent);
   --button-ghost-bg: rgba(255, 255, 255, 0.05);
   --button-ghost-text: var(--ink);
   --button-ghost-border: rgba(255, 255, 255, 0.12);
@@ -10097,8 +10098,8 @@ body.app-header-hidden .workspace-header {
     flex: 0 0 auto;
     padding: 8px 14px;
     border-radius: 999px;
-    border: 1px solid var(--pill-border);
-    background: var(--pill-bg);
+    border: 1px solid var(--line);
+    background: transparent;
     color: var(--muted);
   }
   .seg-nav-btn.is-active {
