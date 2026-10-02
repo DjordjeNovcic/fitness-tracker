@@ -6054,7 +6054,7 @@ function renderTrainingBurnSection() {
       <details class="form-collapse training-burn-collapse">
         <summary>
           <span class="form-collapse-title">Kalorije treninga</span>
-          <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"}</span>
+          <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nema unosa"}</span>
           <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <p class="footer-note training-burn-intro">Zbir se oduzima od unosa na Danas.</p>
@@ -9673,7 +9673,7 @@ function renderPlanTrainingBurnRow() {
         <span class="plan-glance-icon" aria-hidden="true">🔥</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Trening</span><span class="plan-glance-value">${
-            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"
+            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nema unosa"
           }</span></div>
           ${
             open
@@ -9713,7 +9713,7 @@ function renderPlanWeightRow() {
         <span class="plan-glance-icon" aria-hidden="true">⚖️</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
-            days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "nije uneto"
+            days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "nema unosa"
           }</span></div>
           ${
             open
@@ -11500,7 +11500,7 @@ function renderTrainingTab() {
     <div class="section-toolbox">
     <details id="training-template-details" class="section routine-weekly-section form-collapse">
       <summary>
-        <span class="form-collapse-title">Dodaj trening šablon</span>
+        <span class="form-collapse-title">Dodaj šablon treninga</span>
         ${renderCollapseHint(
           (store.trainingTemplates || []).length
             ? `${(store.trainingTemplates || []).length} ${srPlural((store.trainingTemplates || []).length, "šablon", "šablona", "šablona")} u planu`
@@ -12323,8 +12323,7 @@ function renderRunningTab() {
     <section class="section running-summary-section">
       <div class="section-header">
         <div>
-          <h2>Trčanje ove nedelje</h2>
-          <p>Poslednjih 7 dana.</p>
+          <h2>Trčanje, poslednjih 7 dana</h2>
         </div>
       </div>
       ${renderHelpNote(
@@ -13200,8 +13199,9 @@ function renderGoalsTab() {
         goalRecommendation
           ? (() => {
               const estimate = getMaintenanceEstimate();
+              // Izmerenu potrošnju već navodi Kalibracija; ovde bi bila treći put.
               return estimate && estimate.measured
-                ? `<p class="goals-calc-line">Po tvojim podacima trošiš oko <strong>${estimate.kcal} kcal</strong> dnevno. Formula iz profila kaže ${goalRecommendation.maintenance} kcal (${goalRecommendation.bmr} u mirovanju).</p>`
+                ? ""
                 : `<p class="goals-calc-line">Po proceni iz profila trošiš oko <strong>${goalRecommendation.maintenance} kcal</strong> dnevno (${goalRecommendation.bmr} u mirovanju).</p>`;
             })()
           : ""
@@ -13265,8 +13265,8 @@ function renderGoalsTab() {
         ${renderUnitField("goal-target-weight", "Ciljna težina", "kg", `<input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />`, true)}
             </div>
           </details>
-        <div class="form-group-label">Dnevni unos</div>
-        ${renderUnitField("goal-calories", "Dnevni cilj", "kcal", `<input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />`, true)}
+        <div class="form-group-label">Dnevni ciljevi</div>
+        ${renderUnitField("goal-calories", "Kalorije", "kcal", `<input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />`, true)}
         <div class="form-grid-3">
         ${renderUnitField("goal-protein", "Proteini", "g", `<input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />`)}
         ${renderUnitField("goal-carbs", "Ugljeni hidrati", "g", `<input id="goal-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.carbs || ""}" />`)}
@@ -13276,18 +13276,9 @@ function renderGoalsTab() {
              Ovaj red živo sabira 4/4/9 i kaže koliko fali ili je previše. -->
         <p class="macro-check field--full" id="goal-macro-check" data-role="macro-check">${renderGoalMacroCheck(store.goals)}</p>
         <div class="form-grid-3 goals-daily-extras">
-        <div class="field">
-          <label for="goal-water">Voda</label>
-          <input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />
-        </div>
-        <div class="field">
-          <label for="goal-steps">Koraci dnevno</label>
-          <input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />
-        </div>
-        <div class="field">
-          <label for="goal-coffee">Kcal po kafi</label>
-          <input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />
-        </div>
+        ${renderUnitField("goal-water", "Voda", "L", `<input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />`)}
+        ${renderUnitField("goal-steps", "Koraci", "", `<input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />`)}
+        ${renderUnitField("goal-coffee", "Šoljica kafe", "kcal", `<input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />`)}
         </div>
         <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
@@ -15353,7 +15344,7 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: "Prosečan unos", note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: "Prosečan unos", note: `${ins.loggedCount} od ${period} dana sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
       note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct} % dana` : "",
@@ -15368,13 +15359,17 @@ function renderInsightsSection() {
   let energyHtml = "";
   if (ins.energy) {
     const e = ins.energy;
-    const deficitWord =
-      e.dailyDelta < 0 ? `deficit oko ${Math.abs(e.dailyDelta)} kcal dnevno` : e.dailyDelta > 0 ? `višak oko ${e.dailyDelta} kcal dnevno` : "održavanje";
+    const balance =
+      e.dailyDelta < 0
+        ? `to je deficit od oko ${Math.abs(e.dailyDelta)} kcal dnevno`
+        : e.dailyDelta > 0
+          ? `to je višak od oko ${e.dailyDelta} kcal dnevno`
+          : "to je održavanje";
     energyHtml = e.measured
       ? `
-      <p class="insights-energy">Po tvojim podacima (unos i vaga) trošiš oko ${e.maintenance} kcal dnevno, pa je prosečan unos od ${e.avgKcal} kcal ${deficitWord}.</p>`
+      <p class="insights-energy">Po unosu i vagi trošiš oko ${e.maintenance} kcal dnevno. Uz prosek od ${e.avgKcal} kcal, ${balance}.</p>`
       : `
-      <p class="insights-energy">Po proceni iz profila trošiš oko ${e.maintenance} kcal dnevno, pa je prosečan unos od ${e.avgKcal} kcal ${deficitWord}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
+      <p class="insights-energy">Po proceni iz profila trošiš oko ${e.maintenance} kcal dnevno. Uz prosek od ${e.avgKcal} kcal, ${balance}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
         e.actualRate != null ? ` Vaga kaže ${formatDecimal(e.actualRate, 2)} kg nedeljno.` : ""
       } Kad se skupi dovoljno dana, procena se zamenjuje potrošnjom iz tvojih podataka.</p>`;
   }

@@ -885,7 +885,7 @@ window.SEED_DATA = {
     },
     {
       "id": "food-86",
-      "name": "Icebarg salata",
+      "name": "Iceberg salata",
       "servingBaseGrams": 100.0,
       "kcal": 13.0,
       "protein": 1.0,
@@ -956,7 +956,7 @@ window.SEED_DATA = {
       "weekday": "Ponedeljak",
       "mealLabel": "3. Obrok 2h pre treninga",
       "foodId": "food-86",
-      "foodName": "Icebarg salata",
+      "foodName": "Iceberg salata",
       "grams": 200.0
     },
     {
@@ -996,7 +996,7 @@ window.SEED_DATA = {
       "weekday": "Ponedeljak",
       "mealLabel": "5. Vecera",
       "foodId": "food-86",
-      "foodName": "Icebarg salata",
+      "foodName": "Iceberg salata",
       "grams": 200.0
     },
     {
@@ -1686,7 +1686,7 @@ window.SEED_DATA = {
         {
           "id": "favorite-item-seed-13",
           "foodId": "food-86",
-          "foodName": "Icebarg salata",
+          "foodName": "Iceberg salata",
           "grams": 200.0
         },
         {

@@ -2687,9 +2687,11 @@ label.is-invalid textarea:focus {
   padding: 4px 0 2px;
 }
 
+/* Hero figures are ink on every screen, like the ring number on Danas;
+   the accent is for the ring stroke and the primary action. */
 .stat-hero-value {
   margin-top: 4px;
-  color: var(--accent-strong);
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
