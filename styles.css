@@ -4972,9 +4972,6 @@ body.menu-open .menu-fab {
 
   
 
-  .plan-quick-section.is-collapsed {
-    padding-bottom: 12px;
-  }
 
   
 
@@ -9341,7 +9338,7 @@ body.app-header-hidden .workspace-header {
 }
 .food-suggest-item.is-active,
 .food-suggest-item:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
 }
 .food-suggest-name {
   font-weight: 600;
@@ -10194,7 +10191,10 @@ body.app-header-hidden .workspace-header {
 }
 .routine-habit-stack > .food-card.routine-card:last-child,
 .routine-task-stack > .food-card.routine-card:last-child,
-.routine-streak-stack > .food-card.routine-card:last-child {
+.routine-streak-stack > .food-card.routine-card:last-child,
+:root[data-theme="dark"] .routine-habit-stack > .food-card.routine-card:last-child,
+:root[data-theme="dark"] .routine-task-stack > .food-card.routine-card:last-child,
+:root[data-theme="dark"] .routine-streak-stack > .food-card.routine-card:last-child {
   border-bottom: 0;
   padding-bottom: 4px;
 }
@@ -11063,7 +11063,9 @@ body {
   padding-block: 14px;
 }
 .recipes-library-stack > .recipe-library-card:first-child,
-.training-template-stack > .training-card:first-child {
+.training-template-stack > .training-card:first-child,
+:root[data-theme="dark"] .recipes-library-stack > .recipe-library-card:first-child,
+:root[data-theme="dark"] .training-template-stack > .training-card:first-child {
   border-top: 0;
   padding-top: 4px;
 }
@@ -12731,7 +12733,7 @@ button.meal-entry-body:focus-visible {
 .meal-entry-action:hover {
   color: var(--accent);
   border-color: var(--line-strong);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
 }
 .meal-entry-action--danger:hover {
   color: var(--status-error-text);
@@ -13078,7 +13080,8 @@ button.meal-entry-body:focus-visible {
   background: transparent;
   box-shadow: none;
 }
-.plan-meals-section .meal-card:first-child {
+.plan-meals-section .meal-card:first-child,
+:root[data-theme="dark"] .plan-meals-section .meal-card:first-child {
   border-top: 0;
 }
 .plan-meals-section .meal-card::before {
@@ -13196,10 +13199,11 @@ button.meal-entry-body:focus-visible {
 .plan-meals-section > .section-header p:empty {
   display: none;
 }
-.plan-meals-section .plan-quick-entry-button {
+.plan-meals-section .plan-quick-entry-button,
+:root[data-theme="dark"] .plan-meals-section .plan-quick-entry-button {
   flex: 0 0 auto;
-  min-height: 38px;
-  padding: 6px 12px;
+  min-height: 44px;
+  padding: 9px 14px;
   font-size: var(--fs-14);
 }
 
@@ -13277,24 +13281,30 @@ button.meal-entry-body:focus-visible {
 
 /* Danas: the three collapsed utilities at the bottom (Alati, Vitamini,
    Lista za kupovinu) read as one grouped list instead of three stacked
-   boxes — joined edges, a hairline between them, one outer radius. The
-   12px grid gap is pulled back with a negative margin. */
-.app-main > .plan-quick-section + .plan-supplements-section,
-.app-main > .plan-supplements-section + .plan-shopping-section,
-.app-main > .plan-quick-section + .plan-shopping-section {
-  margin-top: -12px;
+   boxes — joined edges, a hairline between them, one outer radius. */
+/* They live in one .plan-utilities wrapper with no gap. A negative margin
+   against the page gap left a 4-10px seam, because that gap is 12, 16 or
+   22px depending on the width. */
+.plan-utilities {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.plan-utilities > .plan-quick-section + .plan-supplements-section,
+.plan-utilities > .plan-supplements-section + .plan-shopping-section,
+.plan-utilities > .plan-quick-section + .plan-shopping-section {
   border-top-color: transparent;
   box-shadow: inset 0 1px 0 var(--line);
 }
-.app-main > .plan-quick-section:has(+ .plan-supplements-section, + .plan-shopping-section),
-.app-main > .plan-supplements-section:has(+ .plan-shopping-section) {
+.plan-utilities > .plan-quick-section:has(+ .plan-supplements-section, + .plan-shopping-section),
+.plan-utilities > .plan-supplements-section:has(+ .plan-shopping-section) {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border-bottom-color: transparent;
 }
-.app-main > .plan-quick-section + .plan-supplements-section,
-.app-main > .plan-supplements-section + .plan-shopping-section,
-.app-main > .plan-quick-section + .plan-shopping-section {
+.plan-utilities > .plan-quick-section + .plan-supplements-section,
+.plan-utilities > .plan-supplements-section + .plan-shopping-section,
+.plan-utilities > .plan-quick-section + .plan-shopping-section {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
@@ -14262,7 +14272,8 @@ button.meal-entry-body:focus-visible {
 /* Recepti u mreži: svaka kartica ima istu gornju liniju i isti razmak, ne
    samo prva u listi (u mreži je „prva“ bila pomerena i bez linije). */
 @media (min-width: 900px) {
-  .recipes-library-stack > .recipe-library-card:first-child {
+  .recipes-library-stack > .recipe-library-card:first-child,
+  :root[data-theme="dark"] .recipes-library-stack > .recipe-library-card:first-child {
     border-top: 1px solid var(--line);
     padding-top: 14px;
   }
@@ -14495,7 +14506,10 @@ button.meal-entry-body:focus-visible {
 @media (min-width: 900px) {
   .routine-habit-stack > .food-card.routine-card:last-child,
   .routine-task-stack > .food-card.routine-card:last-child,
-  .routine-streak-stack > .food-card.routine-card:last-child {
+  .routine-streak-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-habit-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-task-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-streak-stack > .food-card.routine-card:last-child {
     border-bottom: 1px solid var(--line);
     padding-bottom: 12px;
   }
@@ -14613,4 +14627,58 @@ button.meal-entry-body:focus-visible {
   .app-main.shell.is-plan-shell .hero--plan:not(.hero--sub) h1.hero-title {
     font-size: var(--fs-30);
   }
+}
+
+/* Vitamini na Danas: isti red sa linijom kao navike na Rutini, ne kutija
+   u kartici. */
+.plan-supplement-stack {
+  gap: 0;
+}
+.plan-supplement-stack > .supplement-plan-card,
+:root[data-theme="dark"] .plan-supplement-stack > .supplement-plan-card {
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.plan-supplement-stack > .supplement-plan-card:last-child {
+  border-bottom: 0;
+}
+@media (min-width: 900px) {
+  .plan-supplement-stack > .supplement-plan-card:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* Dark recipe rows: no white sheen and no drop shadow on a row inside a
+   card; the two themes share one box model. */
+:root[data-theme="dark"] .recipe-library-card {
+  box-shadow: none;
+}
+
+/* Glance lists are a 2-column grid with a hairline between rows: the last
+   row has nothing under it, so it has no line under it either. */
+.glance-list > .glance-item:last-child,
+.glance-list > .glance-item:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0;
+}
+
+/* Trening, Nedeljni plan: the last day has no line under it, and the day
+   selected in the strip above is visible here too (a soft band, the same
+   tint meals use while being edited), not bold ink identical to the rest. */
+.training-week-item:last-child .training-week-item-button {
+  border-bottom: 0;
+}
+.training-week-item.is-active .training-week-item-button {
+  width: calc(100% + 20px);
+  margin-inline: -10px;
+  padding-inline: 10px;
+  border-radius: var(--r-12);
+  border-bottom-color: transparent;
+  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
+}
+.training-week-item:has(+ .training-week-item.is-active) .training-week-item-button {
+  border-bottom-color: transparent;
 }

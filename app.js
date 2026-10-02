@@ -10600,6 +10600,7 @@ function renderPlanTab(entries) {
       `<section class="section plan-glance-section" aria-label="Voda, koraci, trening i težina">${renderPlanGlanceRows()}</section>`
     }
 
+    <div class="plan-utilities">
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
@@ -10686,6 +10687,7 @@ function renderPlanTab(entries) {
     ${renderPlanActivitySection()}
 
     ${renderPlanShoppingSection()}
+    </div>
   `;
 }
 
