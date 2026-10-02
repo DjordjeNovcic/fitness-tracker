@@ -9338,7 +9338,7 @@ body.app-header-hidden .workspace-header {
 }
 .food-suggest-item.is-active,
 .food-suggest-item:hover {
-  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .food-suggest-name {
   font-weight: 600;
@@ -12733,7 +12733,7 @@ button.meal-entry-body:focus-visible {
 .meal-entry-action:hover {
   color: var(--accent);
   border-color: var(--line-strong);
-  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .meal-entry-action--danger:hover {
   color: var(--status-error-text);
