@@ -297,7 +297,7 @@ const TAB_META = {
   routine: { eyebrow: "Svakodnevica", description: "Navike, zadaci i nedeljni pregled koji pomažu da plan ostane realan." },
   progress: { eyebrow: "Praćenje", description: "Merenja, trendovi i slike napretka kroz vreme." },
   goals: { eyebrow: "Metabolizam", description: "Profil, kalorijski cilj, makroi i nedeljni pregled u odnosu na plan." },
-  settings: { eyebrow: "Sigurnost", description: "Nalog, cloud sync i backup opcije za mirniji rad sa podacima." },
+  settings: { eyebrow: "Sigurnost", description: "Nalog, sinhronizacija i rezervna kopija podataka." },
 };
 
 // Lucide-style line icons (ISC) so navigation renders identically across devices
@@ -1756,7 +1756,7 @@ async function saveCloudStateNow(options = {}) {
     // Only mark clean if nothing changed while the write was in flight — the
     // pending debounce will save (and clear) the newer edit.
     writeSyncMeta(uid, { rev: nextRev, dirty: localMutationCounter !== mutationAtStart });
-    state.syncStatus = "Sync je uključen";
+    state.syncStatus = "Sinhronizacija je uključena";
     state.syncConflict = null;
     if (options.renderAfterSave) {
       render();
@@ -1775,8 +1775,8 @@ async function saveCloudStateNow(options = {}) {
     // Edits are safe locally and flagged dirty; they're retried when we're back
     // online/visible and reconciled on the next hydrate.
     state.syncStatus = isCloudPayloadTooLarge(error)
-      ? "Podaci su preveliki za cloud, ukloni slike recepata"
-      : "Sačuvano lokalno · čeka sync";
+      ? "Podaci su preveliki za nalog, ukloni slike recepata"
+      : "Sačuvano na uređaju · čeka sinhronizaciju";
     if (options.renderAfterSave) {
       render();
     }
@@ -1838,7 +1838,7 @@ function scheduleCloudPersist() {
     return;
   }
   if (!cloudBaselineReady) {
-    state.syncStatus = "Sačuvano lokalno · čeka sync";
+    state.syncStatus = "Sačuvano na uređaju · čeka sinhronizaciju";
     return;
   }
 
@@ -1846,7 +1846,7 @@ function scheduleCloudPersist() {
     window.clearTimeout(cloudSaveTimer);
   }
 
-  state.syncStatus = "Čuvam izmene u cloud...";
+  state.syncStatus = "Čuvam izmene na nalog...";
   cloudSaveTimer = window.setTimeout(() => {
     saveCloudStateNow({ renderAfterSave: true });
   }, 650);
@@ -1893,7 +1893,7 @@ async function hydrateStoreFromCloud(user) {
           persistAccountCopy();
           cloudBaselineReady = true;
           const saved = await saveCloudStateNow({ force: true, overwrite: true });
-          state.syncStatus = saved ? "Sync je uključen" : "Sačuvano lokalno · čeka sync";
+          state.syncStatus = saved ? "Sinhronizacija je uključena" : "Sačuvano na uređaju · čeka sinhronizaciju";
           return;
         }
 
@@ -1917,7 +1917,7 @@ async function hydrateStoreFromCloud(user) {
         // The cloud doc predates photo sync: write the photo list right away so
         // other devices see these photos without waiting for some other edit.
         pushPhotoMetaAfterHydrate = !isDemoAccount() && !Array.isArray(cloudData.progressPhotos) && store.progressPhotos.length > 0;
-        state.syncStatus = "Sync je uključen";
+        state.syncStatus = "Sinhronizacija je uključena";
         return;
       }
 
@@ -1951,7 +1951,7 @@ async function hydrateStoreFromCloud(user) {
     persistAccountCopy();
     cloudBaselineReady = true;
     const saved = await saveCloudStateNow({ force: true });
-    state.syncStatus = saved ? "Prvi sync je završen" : "Sačuvano lokalno · čeka sync";
+    state.syncStatus = saved ? "Prva sinhronizacija je završena" : "Sačuvano na uređaju · čeka sinhronizaciju";
   } catch (error) {
     console.error("Cloud hydration failed", error);
     cloudBaselineReady = false;
@@ -2036,7 +2036,7 @@ function persistLocal(rollback) {
       rollback();
     }
     console.error("Persist failed", error);
-    window.alert("Ponestaje prostora za čuvanje podataka na ovom uređaju. Napravi backup (Ciljevi → Izvezi backup) za svaki slučaj.");
+    window.alert("Ponestaje prostora za čuvanje podataka na ovom uređaju. Napravi rezervnu kopiju (Ciljevi → Nalog → Izvezi kopiju) za svaki slučaj.");
     return false;
   }
 }
@@ -8263,7 +8263,8 @@ function getSyncStatusTone(status = state.syncStatus) {
     value.includes("drugog uredjaja") ||
     value.includes("neispravni") ||
     value.includes("čeka sync") ||
-    value.includes("ceka sync")
+    value.includes("ceka sync") ||
+    value.includes("čeka sinhron")
   ) {
     return "warning";
   }
@@ -14028,7 +14029,7 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Nalog</strong>
-              <div class="footer-note">Cloud sync čuva plan, obroke, trening, rutinu, merenja, ciljeve i slike, pa su isti na telefonu i računaru.</div>
+              <div class="footer-note">Sinhronizacija čuva plan, obroke, trening, rutinu, merenja, ciljeve i slike, pa su isti na telefonu i računaru.</div>
             </div>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
@@ -14056,13 +14057,13 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Backup i oporavak</strong>
-              <div class="footer-note">JSON backup je dodatna sigurnost. Ako ga uvezeš dok si prijavljen, izmene će se upisati i u cloud.</div>
+              <div class="footer-note">Rezervna kopija (JSON fajl) je dodatna sigurnost. Uvezena sa prijavljenim nalogom, upisuje se i na nalog.</div>
             </div>
             <span class="pill strong pill--info">Lokalni fajl</span>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi backup", "save")}</button>
-            <label class="ghost-button button-with-icon" for="import-json">${renderButtonContent("Uvezi backup", "open")}</label>
+            <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi kopiju", "save")}</button>
+            <label class="ghost-button button-with-icon" for="import-json">${renderButtonContent("Uvezi kopiju", "open")}</label>
             <input id="import-json" type="file" accept="application/json" hidden />
           </div>
         </article>
@@ -14089,7 +14090,7 @@ ${
             <span class="pill strong pill--warning">Demo</span>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati na fabrička", "refresh")}</button>
+            <button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati demo na početak", "refresh")}</button>
           </div>
         </article>`
             : `
@@ -16747,7 +16748,7 @@ async function handleDocumentClick(event) {
       const saved = await saveCloudStateNow({ force: true, overwrite: true });
       showFeedbackToast(
         saved
-          ? { title: "Sačuvano", detail: "Tvoja verzija je upisana u cloud.", tone: "success" }
+          ? { title: "Sačuvano", detail: "Tvoja verzija je upisana na nalog.", tone: "success" }
           : { title: "Nije sačuvano", detail: "Pokušaj ponovo za koji trenutak.", tone: "error" }
       );
       render();
@@ -19217,8 +19218,8 @@ async function handleDocumentClick(event) {
       },
       {
         busyLabel: "Spremam...",
-        successTitle: "Backup je spreman",
-        successDetail: "JSON backup je preuzet na uređaj.",
+        successTitle: "Rezervna kopija je spremna",
+        successDetail: "Rezervna kopija je preuzeta na uređaj.",
       }
     );
     return;
@@ -19238,7 +19239,7 @@ async function handleDocumentClick(event) {
         successTitle: "Demo je resetovan",
         successDetail: "Nalog je vraćen na početni plan, namirnice i trening.",
         errorTitle: "Reset nije uspeo",
-        errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
+        errorDetail: "Promene su sačuvane na uređaju; sinhronizacija će pokušati ponovo za koji trenutak.",
       });
     } finally {
       render();
@@ -19260,7 +19261,7 @@ async function handleDocumentClick(event) {
         successTitle: "Podaci su obrisani",
         successDetail: "Plan, trening, rutina i istorija su obrisani. Namirnice, recepti, profil i ciljevi su ostali.",
         errorTitle: "Brisanje nije uspelo",
-        errorDetail: "Promene su sačuvane lokalno; cloud sync probaj ponovo za koji trenutak.",
+        errorDetail: "Promene su sačuvane na uređaju; sinhronizacija će pokušati ponovo za koji trenutak.",
       });
     } finally {
       render();
@@ -20905,7 +20906,7 @@ async function handleImport(event) {
       const parsed = JSON.parse(await file.text());
       if (!looksLikeBackupSnapshot(parsed)) {
         showFeedbackToast({
-          title: "Ovo nije Fit Tracker backup",
+          title: "Ovo nije Fit Tracker rezervna kopija",
           detail: "Fajl je JSON, ali nema podatke koje app izvozi (namirnice, plan, ciljeve...). Ništa nije promenjeno.",
           tone: "error",
           duration: 4200,
@@ -20913,7 +20914,7 @@ async function handleImport(event) {
         target.value = "";
         return;
       }
-      const confirmed = await confirmAction({ title: `Uvesti backup „${file.name}“?`, message: `Sadržaj fajla ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} i upisuje se u cloud. Ne može da se poništi; ako nisi siguran, otkaži i prvo izvezi trenutni backup.`, confirmLabel: "Uvezi i zameni" });
+      const confirmed = await confirmAction({ title: `Uvesti kopiju „${file.name}“?`, message: `Sadržaj fajla ZAMENJUJE sve trenutne podatke na nalogu ${state.authUser?.email || ""} i upisuje se u cloud. Ne može da se poništi; ako nisi siguran, otkaži i prvo izvezi trenutni backup.`, confirmLabel: "Uvezi i zameni" });
       if (!confirmed) {
         target.value = "";
         return;
@@ -20924,9 +20925,9 @@ async function handleImport(event) {
       await reconcilePhotos();
       persist();
       render();
-      showFeedbackToast({ title: "Backup je uspešno uvezen", detail: "Podaci iz fajla su sada učitani u app." });
+      showFeedbackToast({ title: "Rezervna kopija je uvezena", detail: "Podaci iz fajla su sada u aplikaciji." });
     } catch (error) {
-      showFeedbackToast({ title: "Backup nije validan", detail: "Izabrani fajl nije ispravan JSON backup.", tone: "error" });
+      showFeedbackToast({ title: "Fajl nije ispravan", detail: "Izabrani fajl nije Fit Tracker rezervna kopija (JSON).", tone: "error" });
     }
     target.value = "";
     return;

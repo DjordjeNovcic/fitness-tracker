@@ -15313,3 +15313,21 @@ button.meal-entry-body:focus-visible {
   color: var(--ink);
 }
 .goals-live-preview strong { font-variant-numeric: tabular-nums; }
+
+/* Mete za dodir od 44 px i za brze radnje na Danas i za tekst-linkove
+   („više mera“), bez promene izgleda: visina dolazi iz pada, ne iz okvira. */
+:root[data-theme] .plan-glance-btn { min-height: 44px; }
+.text-link-button {
+  position: relative;
+}
+.text-link-button::after {
+  content: "";
+  position: absolute;
+  inset: -14px -6px;
+}
+/* Oznaka DEMO je natpis, ne naslov: Manrope i u Fraunces naslovu naloga. */
+:root[data-theme] .more-sheet-user-badge,
+:root[data-theme] .profile-hero-name .more-sheet-user-badge {
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: 0.06em;
+}
