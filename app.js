@@ -5675,7 +5675,7 @@ function formatDateValueLabel(dateValue) {
 
   // Manual Latin months: toLocaleDateString("sr-RS", { month: "long" }) returns
   // Cyrillic ("септембар") in V8/ICU, clashing with the app's Latin script.
-  return `${parsedDate.getDate()}. ${SR_MONTHS_LATIN[parsedDate.getMonth()]} ${parsedDate.getFullYear()}.`;
+  return `${parsedDate.getDate()}. ${SR_MONTHS_LATIN_GEN[parsedDate.getMonth()]} ${parsedDate.getFullYear()}.`;
 }
 
 function getHabitStreakSentence(habit) {
@@ -10447,7 +10447,7 @@ function renderPlanTab(entries) {
                             <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
                             ${
                               prepBadgeCount >= 2
-                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 ${prepBadgeCount} dana</span>`
+                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 priprema za ${prepBadgeCount} dana</span>`
                                 : ""
                             }
                             ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
@@ -11319,7 +11319,7 @@ function renderTrainingTab() {
           <h2>Nedeljni plan treninga</h2>
         </div>
       </div>
-      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Progres po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži koliko si digao i koliko ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
@@ -11535,7 +11535,7 @@ function renderTrainingTab() {
 
     <details id="training-progress-details" class="section form-collapse form-collapse--view" ${state.trainingProgressOpen ? "open" : ""}>
       <summary>
-        <span class="form-collapse-title">Progres po vežbi</span>
+        <span class="form-collapse-title">Napredak po vežbi</span>
         ${renderCollapseHint(
           progressGroups.length
             ? `${progressGroups.length} ${srPlural(progressGroups.length, "vežba", "vežbe", "vežbi")} sa istorijom`
@@ -12979,7 +12979,7 @@ function renderGoalCalibrationCard() {
   // dnevnog cilja; sad je red kao i ostala poređenja.
   const comparison = renderStatRows([
     { label: "Promena težine", note: `plan je ${formatSignedRate(cal.expectedRate)}`, value: formatSignedRate(cal.actualRate) },
-    { label: "Prosečan unos", note: `poslednjih ${CALIBRATION_INTAKE_WINDOW_DAYS} dana, ${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletan dan", "kompletna dana", "kompletnih dana")}`, value: `${cal.avgKcal} kcal` },
+    { label: `Prosečan unos, ${CALIBRATION_INTAKE_WINDOW_DAYS} dana`, note: `${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletan dan", "kompletna dana", "kompletnih dana")}`, value: `${cal.avgKcal} kcal/dan` },
     { label: "Potrošnja iz tvojih podataka", note: tdeeNote, value: `${cal.measuredTdee} kcal/dan` },
   ]);
 
@@ -13068,11 +13068,12 @@ function getGoalEta() {
 
 // Manual Latin month names — toLocaleDateString("sr-RS", {month:"long"}) returns
 // Cyrillic in some engines, which clashes with the app's Latin script.
-const SR_MONTHS_LATIN = ["januar", "februar", "mart", "april", "maj", "jun", "jul", "avgust", "septembar", "oktobar", "novembar", "decembar"];
+// Uz broj dana mesec ide u genitivu: „2. oktobra“, „od 22. avgusta“.
+const SR_MONTHS_LATIN_GEN = ["januara", "februara", "marta", "aprila", "maja", "juna", "jula", "avgusta", "septembra", "oktobra", "novembra", "decembra"];
 function formatEtaDate(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return `${d.getDate()}. ${SR_MONTHS_LATIN[d.getMonth()]} ${d.getFullYear()}.`;
+  return `${d.getDate()}. ${SR_MONTHS_LATIN_GEN[d.getMonth()]} ${d.getFullYear()}.`;
 }
 
 function renderGoalEtaCard() {
@@ -13220,7 +13221,7 @@ function renderGoalsTab() {
           ].filter(Boolean);
           return `<details class="goals-profile-fold field--full" ${complete ? "" : "open"}>
             <summary>
-              <span class="goals-profile-fold-title">Profil i cilj</span>
+              <span class="goals-profile-fold-title">Tvoji podaci</span>
               <span class="goals-profile-fold-sub">${complete ? escapeHtml(summary.join(" · ")) : "Popuni da bi cilj mogao da se izračuna"}</span>
               <span class="goals-profile-fold-icon" aria-hidden="true">${renderChevronIcon(false)}</span>
             </summary>
@@ -13259,7 +13260,7 @@ function renderGoalsTab() {
         ${renderUnitField("goal-target-weight", "Ciljna težina", "kg", `<input id="goal-target-weight" name="targetWeightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.targetWeightKg || ""}" placeholder="npr. 78" />`, true)}
             </div>
           </details>
-        <div class="form-group-label">Dnevni ciljevi</div>
+        <div class="form-group-label">Po danu</div>
         ${renderUnitField("goal-calories", "Kalorije", "kcal", `<input id="goal-calories" name="calories" type="number" inputmode="decimal" step="1" min="0" value="${store.goals.calories || ""}" />`, true)}
         <div class="form-grid-3">
         ${renderUnitField("goal-protein", "Proteini", "g", `<input id="goal-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${store.goals.protein || ""}" />`)}
@@ -13272,7 +13273,7 @@ function renderGoalsTab() {
         <div class="form-grid-3 goals-daily-extras">
         ${renderUnitField("goal-water", "Voda", "L", `<input id="goal-water" name="waterL" type="number" inputmode="decimal" step="0.25" min="0.5" max="6" value="${(Math.max(0, toNumber(store.goals.waterMl) || 2500) / 1000).toFixed(2).replace(/\.?0+$/, "")}" />`)}
         ${renderUnitField("goal-steps", "Koraci", "", `<input id="goal-steps" name="stepsGoal" type="number" inputmode="numeric" step="500" min="0" value="${Math.max(0, toNumber(store.goals.stepsGoal) || 10000)}" />`)}
-        ${renderUnitField("goal-coffee", "Šoljica kafe", "kcal", `<input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />`)}
+        ${renderUnitField("goal-coffee", "Kafa, po šoljici", "kcal", `<input id="goal-coffee" name="coffeeKcal" type="number" inputmode="numeric" step="1" min="0" max="500" value="${getCoffeeCupKcal()}" />`)}
         </div>
         <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
@@ -14703,12 +14704,13 @@ function renderProgressHistorySection() {
   // paint a solid block of the brand accent (gold in dark). Status colours say
   // what the day was; the accent stays reserved for active/CTA/progress.
   const toneColor = {
-    none: "var(--bar-track)",
-    low: "color-mix(in srgb, var(--status-success-text) 40%, transparent)",
-    // 78 %: pun ton je bio najteža masa na stranici, teža od glavnog broja.
-    ok: "color-mix(in srgb, var(--status-success-text) 78%, transparent)",
-    // Pun crveni ton je u tamnoj temi bio najsvetlija tačka na Napretku.
-    over: "color-mix(in srgb, var(--status-error-text) 70%, transparent)",
+    // Tonovi su tokeni (--heat-*) da bi tamna tema imala svoje: pun zeleni
+    // je tamo bio najsvetliji blok na ekranu. „Ispod 80 %“ nije uspeh, pa nije
+    // ni zelen; „preko“ ostaje topao.
+    none: "var(--heat-none)",
+    low: "var(--heat-low)",
+    ok: "var(--heat-ok)",
+    over: "var(--heat-over)",
   };
   const cellTone = (snap) => {
     if (!snap || !(snap.kcal > 0)) return "none";
@@ -14749,15 +14751,17 @@ function renderProgressHistorySection() {
         })()
       }
       <div class="history-heatmap">
-        ${days
-          .slice(0, 7)
-          .map((d) => {
-            // Kolone počinju od dana pre pet nedelja, ne od ponedeljka, pa
-            // natpisi idu po stvarnom datumu (ručno, ne Intl: sr-RS je ćirilica).
-            const date = getDateValueAsLocalDate(d.date);
-            return `<span class="history-weekday" aria-hidden="true">${date ? "NPUSČPS"[date.getDay()] : ""}</span>`;
-          })
-          .join("")}
+        ${
+          // Redovi počinju ponedeljkom kao svaka traka dana u aplikaciji; prazna
+          // polja ispred prvog dana poravnaju kolone. Dva slova, jer se P i S
+          // u jednom slovu ponavljaju (ručno, ne Intl: sr-RS je ćirilica).
+          ["Po", "Ut", "Sr", "Če", "Pe", "Su", "Ne"].map((label) => `<span class="history-weekday" aria-hidden="true">${label}</span>`).join("")
+        }
+        ${(() => {
+          const first = getDateValueAsLocalDate(days[0]?.date);
+          const lead = first ? (first.getDay() + 6) % 7 : 0;
+          return '<span class="history-cell history-cell--pad" aria-hidden="true"></span>'.repeat(lead);
+        })()}
         ${cells}
       </div>
       <ul class="history-legend" aria-label="Legenda">
@@ -14832,7 +14836,7 @@ function renderWeeklyReportSection() {
       </div>
       ${renderStatRows([
         { label: "Dana na cilju", note: vsLast(onTargetDelta, "više", "manje"), value: `${r.onTarget} od 7` },
-        r.avgKcal && { label: "Prosečan unos", note: `ovih 7 dana · ${vsLast(kcalDelta, "kcal više", "kcal manje")}`, value: `${r.avgKcal} kcal` },
+        r.avgKcal && { label: "Prosečan unos, 7 dana", note: vsLast(kcalDelta, "kcal više", "kcal manje"), value: `${r.avgKcal} kcal/dan` },
         r.weightDelta !== null
           ? { label: "Težina", note: "za poslednjih 7 dana", value: `${r.weightDelta > 0 ? "+" : r.weightDelta < 0 ? "−" : ""}${formatDecimal(Math.abs(r.weightDelta), 1)} kg` }
           : r.avgWater && { label: "Voda", note: "prosek za 7 dana", value: `${formatDecimal(r.avgWater / 1000, 1)} L` },
@@ -15347,7 +15351,7 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: "Prosečan unos", note: `${ins.loggedCount} od ${period} dana sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
       note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct} % dana` : "",

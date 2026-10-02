@@ -644,7 +644,7 @@ textarea::placeholder {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-strong);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 
 .macro-grid,.stats-grid {
@@ -1108,7 +1108,7 @@ textarea::placeholder {
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   padding: 1px 7px; border-radius: 999px;
 }
-.foods-chip.is-active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.foods-chip.is-active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
 .foods-chip.is-active .foods-chip-count { background: color-mix(in srgb, var(--accent) 14%, transparent); color: inherit; }
 :root[data-theme="dark"] .foods-chip.is-active { color: var(--accent); }
 .foods-chip--sub { font-weight: 600; font-size: var(--fs-13); padding: 6px 12px; }
@@ -8974,7 +8974,7 @@ body.app-header-hidden .workspace-header {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .hero-day-chips .chip.is-active {
   color: var(--button-primary-text);
@@ -10990,7 +10990,7 @@ body {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-strong);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .chip.is-active {
   color: var(--accent);
@@ -14681,4 +14681,47 @@ button.meal-entry-body:focus-visible {
 }
 .training-week-item:has(+ .training-week-item.is-active) .training-week-item-button {
   border-bottom-color: transparent;
+}
+
+/* Trening na telefonu: dugme za odmor je samo ikona dok ne krene (tada
+   pokazuje odbrojavanje), da naziv vežbe ne bi pukao u dva-tri reda. */
+@media (max-width: 599px) {
+  .training-rest:not(.is-running) .training-rest-label {
+    display: none;
+  }
+  .training-rest:not(.is-running) {
+    min-width: 44px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+}
+
+/* Kalendar ishrane (Napredak). */
+:root {
+  --heat-none: var(--bar-track);
+  --heat-low: color-mix(in srgb, var(--muted) 32%, transparent);
+  --heat-ok: color-mix(in srgb, var(--status-success-text) 78%, transparent);
+  --heat-over: color-mix(in srgb, var(--status-error-text) 70%, transparent);
+}
+:root[data-theme="dark"] {
+  --heat-low: color-mix(in srgb, var(--muted) 30%, transparent);
+  --heat-ok: color-mix(in srgb, var(--status-success-text) 55%, transparent);
+  --heat-over: color-mix(in srgb, var(--status-error-text) 60%, transparent);
+}
+.history-cell--pad {
+  background: none;
+}
+
+/* Recept: broj je jedini veći deo; „kcal po porciji“ je jedan tihi natpis
+   iste veličine, ne tri veličine slova u jednom redu. */
+.recipe-library-stat-kcal {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+}
+.recipe-library-stat-kcal strong {
+  color: var(--ink);
+}
+.recipe-library-stat-kcal .recipe-library-stat-sub {
+  font-size: inherit;
 }
