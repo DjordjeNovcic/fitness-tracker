@@ -638,11 +638,13 @@ textarea::placeholder {
   color: var(--ink);
 }
 
+/* A selected filter chip is soft accent, not a filled block: the solid
+   accent belongs to the selected day and the primary action only. */
 .chip.is-active {
-  background: var(--secondary);
-  border-color: var(--secondary);
-  color: #fff9f3;
-  box-shadow: 0 10px 18px rgba(25, 34, 31, 0.12);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .macro-grid,.stats-grid {
@@ -1106,8 +1108,9 @@ textarea::placeholder {
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   padding: 1px 7px; border-radius: 999px;
 }
-.foods-chip.is-active { background: var(--accent); color: var(--button-primary-text); border-color: var(--accent); }
-.foods-chip.is-active .foods-chip-count { background: rgba(0, 0, 0, 0.18); color: inherit; }
+.foods-chip.is-active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.foods-chip.is-active .foods-chip-count { background: color-mix(in srgb, var(--accent) 14%, transparent); color: inherit; }
+:root[data-theme="dark"] .foods-chip.is-active { color: var(--accent); }
 .foods-chip--sub { font-weight: 600; font-size: var(--fs-13); padding: 6px 12px; }
 
 /* Quiet re-entry point into the hidden Nutricionista tab: foods imported from
@@ -1221,10 +1224,7 @@ textarea::placeholder {
 :root[data-theme="dark"] .foods-search { background: var(--surface-strong); }
 :root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
 :root[data-theme="dark"] .foods-chip.is-active .foods-chip-count {
-  /* Dark ink sits on the accent here, so the badge has to lighten it, not
-     darken it — a black veil dropped the count to 4.45:1 once the accent
-     itself was retuned darker. */
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .foods-list {
@@ -1928,10 +1928,12 @@ textarea::placeholder {
   cursor: pointer;
   white-space: nowrap;
 }
+/* The selected segment is a raised neutral thumb, not an accent block:
+   sub-tabs say where you are, they are not the loudest thing on screen. */
 .seg-nav-btn.is-active {
-  background: var(--accent);
-  color: var(--button-primary-text);
-  box-shadow: var(--shadow-tight);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(25, 34, 31, 0.1), 0 0 0 1px var(--line);
 }
 :root[data-theme="dark"] .seg-nav { background: rgba(255, 255, 255, 0.04); }
 
@@ -8921,17 +8923,18 @@ body.app-header-hidden .workspace-header {
   font-weight: 700;
 }
 .hero-week-toggle .hero-week-chip.is-active {
-  background: var(--accent);
-  color: var(--button-primary-text);
-  box-shadow: none;
+  background: var(--surface-elevated);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(25, 34, 31, 0.12), 0 0 0 1px var(--line);
 }
 :root[data-theme="dark"] .hero-week-toggle {
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--line);
 }
 :root[data-theme="dark"] .hero-week-toggle .hero-week-chip.is-active {
-  background: var(--button-primary-bg);
-  color: var(--button-primary-text);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--line-strong);
 }
 @media (max-width: 720px) {
   .hero-tag {
@@ -8967,10 +8970,10 @@ body.app-header-hidden .workspace-header {
   box-shadow: none;
 }
 :root[data-theme="dark"] .chip.is-active {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--button-primary-text);
-  box-shadow: none;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 :root[data-theme="dark"] .hero-day-chips .chip.is-active {
   color: var(--button-primary-text);
@@ -10094,10 +10097,10 @@ body.app-header-hidden .workspace-header {
     color: var(--muted);
   }
   .seg-nav-btn.is-active {
-    border-color: transparent;
-    background: var(--accent);
-    color: var(--button-primary-text);
-    box-shadow: none;
+    border-color: var(--line-strong);
+    background: var(--surface-elevated);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(25, 34, 31, 0.08);
   }
 }
 
@@ -10970,13 +10973,13 @@ body {
   box-shadow: none;
 }
 .chip.is-active {
-  background: var(--accent);
+  background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--button-primary-text);
-  box-shadow: none;
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
-.chip.is-active:hover {
-  box-shadow: none;
+:root[data-theme="dark"] .chip.is-active {
+  color: var(--accent);
 }
 /* The flat-surface rule above re-boxed the phone tab title; keep it bare. */
 @media (max-width: 720px) {
