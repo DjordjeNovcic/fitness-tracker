@@ -15243,3 +15243,66 @@ button.meal-entry-body:focus-visible {
   font-weight: 600;
   color: var(--ink);
 }
+
+/* Brzi unos kao kratka lista, ne kartice u kartici: svaka stavka je red sa
+   linijom, namirnica i količina u jednom redu, obrok jednom iznad liste, a
+   dugme za potvrdu se lepi za dno dijaloga (bilo je ispod ivice ekrana). */
+.quick-entry-row {
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.quick-entry-row.is-unmatched {
+  border-color: var(--line);
+  background: none;
+}
+.quick-entry-row-controls,
+.quick-entry-row-controls:has(.quick-entry-field--meal) {
+  grid-template-columns: minmax(0, 1fr) 104px;
+}
+.quick-entry-row-controls .quick-entry-field--meal { grid-column: 1 / -1; }
+.quick-entry-row-controls .quick-entry-field > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.quick-entry-row-controls .quick-entry-field--meal > span,
+.quick-entry-row-controls .quick-entry-field--amount > span {
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+}
+.quick-entry-row-controls { align-items: end; }
+.quick-entry-row-controls .quick-entry-field:first-child { align-self: end; }
+.quick-entry-shared-meal { margin: 0; }
+:root[data-theme] .quick-entry-dialog .app-dialog-actions {
+  position: sticky;
+  bottom: -18px;
+  z-index: 2;
+  margin: 0 -18px -18px;
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-strong);
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 721px) {
+  :root[data-theme] .quick-entry-dialog .app-dialog-actions {
+    bottom: -22px;
+    margin: 0 -22px -22px;
+    padding: 12px 22px 16px;
+  }
+}
+.quick-entry-row-controls .quick-entry-field--amount,
+.quick-entry-row-controls .quick-entry-field--amount:last-child { grid-column: auto; }
+.quick-entry-row-controls .quick-entry-field--amount > span {
+  font-size: var(--fs-12);
+}
+.quick-entry-shared-meal > span {
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--ink);
+}

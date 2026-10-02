@@ -9031,6 +9031,10 @@ function renderQuickEntryDialog() {
     { kcal: 0, protein: 0, carbs: 0, fat: 0 }
   );
   const mealOptions = [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((e) => normalizeMealLabel(e.mealLabel))])];
+  // Jedan obrok za sve redove je uobičajen slučaj („... u doručak“): tada je
+  // izbor obroka jedno polje iznad liste, a ne isto polje u svakom redu.
+  const visibleRows = rows.filter((row) => !row.removed && row.food);
+  const sharedMeal = new Set(visibleRows.map((row) => row.mealLabel)).size <= 1 ? (visibleRows[0]?.mealLabel || "") : "";
 
   return `
     <div class="app-dialog-shell">
@@ -9055,6 +9059,18 @@ function renderQuickEntryDialog() {
         ${
           rows.length
             ? `
+          ${
+            sharedMeal
+              ? `<label class="field quick-entry-shared-meal">
+                  <span>Obrok</span>
+                  <select data-action="set-quick-entry-meal-all">
+                    ${mealOptions
+                      .map((label) => `<option value="${escapeHtml(label)}" ${label === sharedMeal ? "selected" : ""}>${escapeHtml(getMealDisplayParts(label).title || label)}</option>`)
+                      .join("")}
+                  </select>
+                </label>`
+              : ""
+          }
           <div class="quick-entry-rows">
             ${rows
               .map((row) =>
@@ -9087,14 +9103,14 @@ function renderQuickEntryDialog() {
                           <span>${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}</span>
                           <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.needsGrams && !row.amount ? "" : row.amount}" placeholder="${row.needsGrams ? "grama" : ""}" data-action="set-quick-entry-amount" data-index="${row.index}" />
                         </label>
-                        <label class="field quick-entry-field">
+                        ${sharedMeal ? "" : `<label class="field quick-entry-field quick-entry-field--meal">
                           <span>Obrok</span>
                           <select data-action="set-quick-entry-meal" data-index="${row.index}">
                             ${mealOptions
                               .map((label) => `<option value="${escapeHtml(label)}" ${label === row.mealLabel ? "selected" : ""}>${escapeHtml(getMealDisplayParts(label).title || label)}</option>`)
                               .join("")}
                           </select>
-                        </label>
+                        </label>`}
                       </div>
                       <div class="quick-entry-row-totals">${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g</div>
                       ${
@@ -20546,6 +20562,14 @@ function handleInput(event) {
   if (target instanceof HTMLSelectElement && target.dataset.action === "set-quick-entry-food") {
     const index = Number(target.dataset.index);
     state.quickEntryOverrides[index] = { ...(state.quickEntryOverrides[index] || {}), foodId: target.value, amount: undefined };
+    render();
+    return;
+  }
+
+  if (target instanceof HTMLSelectElement && target.dataset.action === "set-quick-entry-meal-all") {
+    getQuickEntryRows().forEach((row) => {
+      state.quickEntryOverrides[row.index] = { ...(state.quickEntryOverrides[row.index] || {}), mealLabel: target.value };
+    });
     render();
     return;
   }
