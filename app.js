@@ -7436,50 +7436,24 @@ function renderFoodEditorDialog() {
               : ""
           }
           <section class="food-form-section">
-            <div class="food-form-step">
-              <span class="food-form-step-num">1</span>
-              <span class="food-form-step-title">Osnovne informacije</span>
-              <span class="food-form-step-count">1/2</span>
-            </div>
             <div class="field">
               <label for="food-name">Naziv</label>
               <input id="food-name" name="name" placeholder="npr. Grčki jogurt" value="${prefill?.name ? escapeHtml(prefill.name) : ""}" required />
             </div>
-            <div class="food-form-grid">
-              <div class="field">
-                <label for="food-category">Kategorija</label>
-                <input id="food-category" name="category" value="${escapeHtml(editingFood?.category || "")}" placeholder="Automatski po makroima" readonly aria-describedby="food-category-hint" />
-                <div id="food-category-hint" class="footer-note">Određuje se automatski po dominantnom makrou (Proteini / UH / Masti / Ostalo).</div>
-              </div>
-              ${renderChoiceField("Baza nutritivnih vrednosti", "servingUnit", foodEditorServingUnit, [
-                { id: "grams", label: "Na 100 g" },
-                { id: "piece", label: "Na 1 komad" },
-              ])}
-            </div>
+            <!-- Kategorija se računa sama po dominantnom makrou; polje koje se ne
+                 može menjati bilo je samo šum, pa ostaje skriveno. -->
+            <input type="hidden" id="food-category" name="category" value="${escapeHtml(editingFood?.category || "")}" />
+            ${renderChoiceField("Vrednosti su", "servingUnit", foodEditorServingUnit, [
+              { id: "grams", label: "Na 100 g" },
+              { id: "piece", label: "Na 1 komad" },
+            ])}
           </section>
           <section class="food-form-section">
-            <div class="food-form-step">
-              <span class="food-form-step-num">2</span>
-              <span class="food-form-step-title">Nutritivne vrednosti</span>
-              <span class="food-form-step-count">2/2</span>
-            </div>
             <div class="food-form-grid">
-              <div class="field">
-                <label for="food-kcal">Kalorije</label>
-                <input id="food-kcal" name="kcal" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.kcal != null ? roundValue(prefill.kcal, 1) : ""}" required />
-              </div>
-              <div class="field">
-                <label for="food-protein">Proteini</label>
-                <input id="food-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.protein != null ? roundValue(prefill.protein, 1) : ""}" required />
-              </div>
-              <div class="field">
-                <label for="food-carbs">Ugljeni hidrati</label>
-                <input id="food-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />
-              </div>
-              <div class="field">
-                <label for="food-fat">Masti</label>
-                <input id="food-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />
-              </div>
+              ${renderUnitField("food-kcal", "Kalorije", "kcal", `<input id="food-kcal" name="kcal" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.kcal != null ? roundValue(prefill.kcal, 1) : ""}" required />`)}
+              ${renderUnitField("food-protein", "Proteini", "g", `<input id="food-protein" name="protein" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.protein != null ? roundValue(prefill.protein, 1) : ""}" required />`)}
+              ${renderUnitField("food-carbs", "Ugljeni hidrati", "g", `<input id="food-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />`)}
+              ${renderUnitField("food-fat", "Masti", "g", `<input id="food-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />`)}
             </div>
           </section>
           <div class="food-form-actions">
