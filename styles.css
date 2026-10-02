@@ -14725,3 +14725,9 @@ button.meal-entry-body:focus-visible {
 .recipe-library-stat-kcal .recipe-library-stat-sub {
   font-size: inherit;
 }
+@media (min-width: 900px) {
+  /* Three to five supplements read as one list, like the meals above. */
+  .plan-supplement-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
