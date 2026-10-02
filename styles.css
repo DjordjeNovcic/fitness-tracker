@@ -14731,3 +14731,73 @@ button.meal-entry-body:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Prvi ekran novog naloga: isti jezik kao ostatak aplikacije. Naslov je
+   Fraunces kao svaki naslov strane, znak je ravna akcent pločica bez
+   gradijenta i senke, a pregled cilja je hairline okvir sa brojem u boji
+   mastila (kao svaki glavni broj); dok nema podataka, to je samo tih red. */
+.onboarding-head h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.onboarding-logo {
+  background: var(--accent);
+  color: var(--button-primary-text);
+  box-shadow: none;
+}
+.onboarding-preview,
+:root[data-theme="dark"] .onboarding-preview {
+  background: var(--surface-elevated);
+  border: 1px solid var(--line);
+}
+.onboarding-preview:has(> .onboarding-preview-empty),
+:root[data-theme="dark"] .onboarding-preview:has(> .onboarding-preview-empty) {
+  padding: 0 8px;
+  background: none;
+  border: 0;
+}
+.onboarding-preview-kcal {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .onboarding-card {
+  background: var(--surface-strong);
+}
+
+/* Prazna stanja svuda kao na Rutini: jedan tih red ispod naslova, ne
+   obojena kutija u kartici. Vodič na Napretku (sa dugmadima) ostaje
+   centriran, ali bez kutije. */
+.section .empty:not(.progress-empty-guide):not(.nutrition-plan-notes),
+:root[data-theme="dark"] .section .empty:not(.progress-empty-guide):not(.nutrition-plan-notes) {
+  display: block;
+  min-height: 0;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  text-wrap: pretty;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  line-height: 1.45;
+}
+.section .empty:not(.progress-empty-guide):not(.nutrition-plan-notes)::before {
+  content: none;
+  display: none;
+}
+.section .empty.progress-empty-guide,
+:root[data-theme="dark"] .section .empty.progress-empty-guide {
+  padding: 8px 0 4px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+/* Ciljevi bez cilja: rečima, ne usamljena crta na mestu glavnog broja. */
+.stat-hero-empty {
+  display: block;
+  font-size: var(--fs-20);
+  font-weight: 700;
+  color: var(--muted);
+}

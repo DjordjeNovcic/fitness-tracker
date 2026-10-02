@@ -1939,8 +1939,10 @@ async function hydrateStoreFromCloud(user) {
     // (another account's local copy is never adopted — see readLocalSnapshot).
     replaceStore({ ...localSnapshot, progressPhotos: localPhotos });
     if (!isDemoAccount()) {
-      store.profile = { ...store.profile, name: "", age: null, weightKg: null };
-      store.goals = { ...store.goals, calories: 0, protein: 0, carbs: 0, fat: 0 };
+      // Pol, visina i osnova težine su takođe podaci autora (seed), ne
+      // podrazumevane vrednosti: nov nalog ih ne sme naslediti.
+      store.profile = { ...store.profile, name: "", sex: "", age: null, heightCm: null, weightKg: null };
+      store.goals = { ...store.goals, calories: 0, protein: 0, carbs: 0, fat: 0, basisWeightKg: null, targetWeightKg: null, waterMl: 2500 };
       store.weeklyPlanEntries = [];
       store.favoriteMeals = [];
       store.trainingTemplates = [];
@@ -7916,10 +7918,7 @@ function renderOnboarding() {
             </div>
           </div>
           <div class="onboarding-grid">
-            <div class="field">
-              <label for="ob-age">Godine</label>
-              <input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" placeholder="30" />
-            </div>
+            ${renderUnitField("ob-age", "Godine", "god.", `<input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" placeholder="30" />`)}
             ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" placeholder="180" />`)}
             ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" placeholder="84" />`)}
           </div>
@@ -8240,6 +8239,7 @@ function renderActionIcon(kind) {
     save: '<path fill="currentColor" d="M5 4h11l3 3v13H5V4Zm2 2v4h8V6H7Zm0 12h10v-6H7v6Z"/>',
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
+    go: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/>',
     undo: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
@@ -10025,7 +10025,7 @@ function renderPlanShoppingSection() {
           allItems.length
             ? `
               <div class="meta-row meta-row--compact shopping-actions">
-                ${canShare ? `<button class="ghost-button button-with-icon" type="button" data-action="share-shopping-list">${renderButtonContent("Pošalji", "open")}</button>` : ""}
+                ${canShare ? `<button class="ghost-button button-with-icon" type="button" data-action="share-shopping-list">${renderButtonContent("Pošalji", "share")}</button>` : ""}
                 <button class="ghost-button button-with-icon" type="button" data-action="copy-shopping-list">${renderButtonContent("Kopiraj listu", "save")}</button>
                 ${checkedCount ? `<button class="ghost-button button-with-icon" type="button" data-action="clear-shopping-checks">${renderButtonContent("Poništi čekirano", "refresh")}</button>` : ""}
               </div>
@@ -10168,7 +10168,7 @@ function renderPlanWelcomeGuide(calorieGoal) {
             ${
               hasGoal
                 ? ""
-                : `<div class="plan-welcome-actions"><button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "open")}</button></div>`
+                : `<div class="plan-welcome-actions"><button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "go")}</button></div>`
             }
           </div>
         </li>
@@ -10185,8 +10185,8 @@ function renderPlanWelcomeGuide(calorieGoal) {
             <strong>Istraži bazu i recepte</strong>
             <span>Gotova baza namirnica i tvoji recepti, sve ubacuješ u plan jednim tapom.</span>
             <div class="plan-welcome-actions">
-              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">${renderButtonContent("Namirnice", "open")}</button>
-              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Recepti", "open")}</button>
+              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">${renderButtonContent("Namirnice", "go")}</button>
+              <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">${renderButtonContent("Recepti", "go")}</button>
             </div>
           </div>
         </li>
@@ -10377,7 +10377,7 @@ function renderPlanTab(entries) {
           <strong class="plan-summary-headline-value plan-summary-headline-value--prompt">${roundValue(intake.kcal, 0)}<span class="plan-summary-headline-unit">kcal</span></strong>
           <span class="footer-note">Postavi kalorijski cilj da pratiš koliko ti je ostalo.</span>
         </div>
-        <button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "open")}</button>
+        <button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "go")}</button>
       </div>
       `
       }
@@ -11323,7 +11323,8 @@ function renderTrainingTab() {
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
-          return "";
+          // Bez ovoga je kartica bila samo naslov.
+          return `<div class="empty">Nijedan dan još nema trening. Izaberi dan gore i dodaj mu šablon.</div>`;
         }
         return `
           <ul class="training-week-list">
@@ -13184,7 +13185,7 @@ function renderGoalsTab() {
       <div class="stat-hero">
         <span class="hero-day-label">Dnevni cilj</span>
         <div class="stat-hero-value">
-          ${headline ? `<strong>${headline}</strong> kcal` : `<strong>—</strong>`}
+          ${headline ? `<strong>${headline}</strong> kcal` : `<span class="stat-hero-empty">još nije postavljen</span>`}
         </div>
         <div class="footer-note">${note}</div>
       </div>
@@ -13236,9 +13237,11 @@ function renderGoalsTab() {
           { id: "male", label: "Muško" },
           { id: "female", label: "Žensko" },
         ])}
+        <div class="form-grid-3 field--full">
         ${renderUnitField("profile-age", "Godine", "god.", `<input id="profile-age" name="age" type="number" inputmode="decimal" min="0" value="${store.profile.age || ""}" />`)}
-        ${renderUnitField("profile-weight", "Težina", "kg", `<input id="profile-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.profile.weightKg || ""}" />`)}
         ${renderUnitField("profile-height", "Visina", "cm", `<input id="profile-height" name="heightCm" type="number" inputmode="decimal" step="1" min="0" value="${store.profile.heightCm || ""}" />`)}
+        ${renderUnitField("profile-weight", "Težina", "kg", `<input id="profile-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="0" value="${store.profile.weightKg || ""}" />`)}
+        </div>
         ${renderChoiceField(
           "Aktivnost",
           "activityLevel",
@@ -13573,10 +13576,10 @@ function renderNutritionTab() {
           ],
           actions: `
             <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="recipes">
-              ${renderButtonContent("Otvori recepte", "open")}
+              ${renderButtonContent("Otvori recepte", "go")}
             </button>
             <button class="ghost-button button-with-icon" type="button" data-action="switch-tab" data-tab="foods">
-              ${renderButtonContent("Otvori namirnice", "open")}
+              ${renderButtonContent("Otvori namirnice", "go")}
             </button>
           `,
         })}
