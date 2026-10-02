@@ -8418,6 +8418,54 @@ function paceHintFor(paceId, targetMode) {
   return `${String(rate).replace(".", ",")} kg/ned`;
 }
 
+// Nesačuvano stanje forme Ciljeva. Pol, aktivnost, cilj i tempo su čipovi sa
+// skrivenim poljem (data-choice-input), ne #id selecti: stari #profile-sex i
+// #goal-target-mode više ne postoje, pa je „Izračunaj iz profila“ tiho
+// računao sa sačuvanim vrednostima umesto sa upravo izabranim čipom.
+function readGoalsFormDraft() {
+  const choice = (name, fallback) => String(document.querySelector(`[data-choice-input="${name}"]`)?.value || fallback || "").trim();
+  const num = (id, fallback) => toNumber(document.querySelector(id)?.value || fallback);
+  return {
+    profileDraft: {
+      age: num("#profile-age", store.profile.age),
+      weightKg: num("#profile-weight", store.profile.weightKg),
+      heightCm: num("#profile-height", store.profile.heightCm),
+      sex: choice("sex", store.profile.sex),
+      activityLevel: choice("activityLevel", store.profile.activityLevel || "moderate"),
+    },
+    goalsDraft: {
+      targetMode: choice("targetMode", store.goals.targetMode || "lose"),
+      paceLevel: choice("paceLevel", store.goals.paceLevel || "umereno"),
+    },
+  };
+}
+
+// Odmah posle izbora čipa ili kucanja u profilu: koliki bi bio cilj, pre nego
+// što se išta sačuva.
+function renderGoalsLivePreview() {
+  if (!document.querySelector("#goals-form")) {
+    return "";
+  }
+  const { profileDraft, goalsDraft } = readGoalsFormDraft();
+  const rec = getGoalRecommendation(profileDraft, goalsDraft);
+  const active = roundValue(toNumber(store.goals.calories), 0);
+  if (!rec || (active && Math.abs(rec.targetCalories - active) < 50)) {
+    return "";
+  }
+  const diff = active ? rec.targetCalories - active : 0;
+  return `Sa ovim izborom cilj bi bio <strong>${rec.targetCalories} kcal</strong>${diff ? ` (${diff > 0 ? "+" : "−"}${Math.abs(diff)})` : ""}. „Izračunaj iz profila“ ga upisuje, „Sačuvaj“ ga čuva.`;
+}
+
+function syncGoalsLivePreview() {
+  const el = document.querySelector("[data-role='goals-live-preview']");
+  if (!el) {
+    return;
+  }
+  const html = renderGoalsLivePreview();
+  el.innerHTML = html;
+  el.hidden = !html;
+}
+
 // A number field that carries its unit inside it instead of in the label.
 function renderUnitField(id, label, unit, inputHtml, full = false) {
   return `
@@ -13208,7 +13256,7 @@ function renderGoalsTab() {
         // hint when it differs, instead of dashes hiding a perfectly valid goal.
         const activeCalories = roundValue(store.goals.calories, 0);
         const headline = activeCalories > 0 ? activeCalories : goalRecommendation ? goalRecommendation.targetCalories : 0;
-        const recDiffers = goalRecommendation && activeCalories > 0 && Math.abs(goalRecommendation.targetCalories - activeCalories) > 25;
+        const recDiffers = goalRecommendation && activeCalories > 0 && Math.abs(goalRecommendation.targetCalories - activeCalories) >= 50;
         const paceLabel = goalRecommendation
           ? goalRecommendation.rateKgPerWeek
             ? `${goalRecommendation.goalMode.label} · ${goalRecommendation.rateKgPerWeek > 0 ? "+" : ""}${formatDecimal(goalRecommendation.rateKgPerWeek, 2)} kg/ned${
@@ -13238,6 +13286,7 @@ function renderGoalsTab() {
           ${headline ? `<strong>${headline}</strong> kcal` : `<span class="stat-hero-empty">još nije postavljen</span>`}
         </div>
         <div class="footer-note">${note}</div>
+        <p class="goals-live-preview" data-role="goals-live-preview" aria-live="polite" hidden></p>
       </div>
       ${
         // BMR → održavanje je bio red sa strelicom i stručnim skraćenicama, a
@@ -19130,17 +19179,7 @@ async function handleDocumentClick(event) {
     await runButtonAction(
       actionTarget,
       async () => {
-        const profileDraft = {
-          age: toNumber(document.querySelector("#profile-age")?.value || store.profile.age),
-          weightKg: toNumber(document.querySelector("#profile-weight")?.value || store.profile.weightKg),
-          heightCm: toNumber(document.querySelector("#profile-height")?.value || store.profile.heightCm),
-          sex: String(document.querySelector("#profile-sex")?.value || store.profile.sex || "").trim(),
-          activityLevel: String(document.querySelector("#profile-activity")?.value || store.profile.activityLevel || "moderate").trim(),
-        };
-        const goalsDraft = {
-          targetMode: String(document.querySelector("#goal-target-mode")?.value || store.goals.targetMode || "lose").trim(),
-          paceLevel: String(document.querySelector("#goal-pace")?.value || store.goals.paceLevel || "umereno").trim(),
-        };
+        const { profileDraft, goalsDraft } = readGoalsFormDraft();
         const recommendation = getGoalRecommendation(profileDraft, goalsDraft);
 
         if (!recommendation) {
@@ -19411,6 +19450,9 @@ async function handleDocumentClick(event) {
       chip.classList.toggle("is-active", on);
       chip.setAttribute("aria-checked", String(on));
     });
+    if (["sex", "activityLevel", "targetMode", "paceLevel"].includes(name)) {
+      syncGoalsLivePreview();
+    }
     // The pace chips state kg/week, which depends on whether you are cutting
     // or bulking — so they have to follow a change of goal.
     if (name === "targetMode") {
@@ -20547,6 +20589,10 @@ function handleInput(event) {
       }
     });
     return;
+  }
+
+  if (target instanceof HTMLInputElement && ["profile-age", "profile-height", "profile-weight"].includes(target.id)) {
+    syncGoalsLivePreview();
   }
 
   if (

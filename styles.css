@@ -15306,3 +15306,10 @@ button.meal-entry-body:focus-visible {
   font-weight: 700;
   color: var(--ink);
 }
+.goals-live-preview {
+  margin: 8px 0 0;
+  font-size: var(--fs-14);
+  line-height: 1.45;
+  color: var(--ink);
+}
+.goals-live-preview strong { font-variant-numeric: tabular-nums; }
