@@ -15134,3 +15134,14 @@ button.meal-entry-body:focus-visible {
 }
 .day-block-empty-label { padding-bottom: 6px; font-size: var(--fs-14); font-weight: 600; color: var(--block-muted); }
 .day-block-empty-hint { grid-column: 1 / -1; font-size: var(--fs-14); color: var(--block-muted); }
+
+/* „Obroci za petak · sledeća nedelja“ je dug naslov: mora da se prelomi
+   pored dugmeta „Brzi unos“, inače gura celu kolonu preko ekrana. */
+.plan-meals-section > .section-header > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.plan-meals-section > .section-header h2 {
+  white-space: normal;
+  text-wrap: balance;
+}
