@@ -7094,10 +7094,6 @@ body.app-header-hidden .workspace-header {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Signature ring gets a soft gold glow in dark */
-:root[data-theme="dark"] .cal-ring-fill {
-  filter: drop-shadow(0 0 6px oklch(0.74 0.085 225 / 0.4));
-}
 
 /* Gentle hover on cards (pointer devices only) — borders breathe, no jump */
 @media (hover: hover) and (pointer: fine) {
@@ -7809,10 +7805,7 @@ body.app-header-hidden .workspace-header {
   }
 }
 
-/* Trend chart: a soft glow on the current point so the latest reading pops. */
-.chart-dot.is-current {
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent));
-}
+
 
 /* ============================================================
    First-run onboarding — a centered card that collects a quick
@@ -15145,3 +15138,52 @@ button.meal-entry-body:focus-visible {
   white-space: normal;
   text-wrap: balance;
 }
+
+/* Petrol blok na Trčanju: sedmodnevni zbir je blok (Trčanje nema traku dana). */
+:root[data-theme] .running-summary-section {
+  background: linear-gradient(180deg, var(--block-bg-deep), var(--block-bg));
+  color: var(--block-ink);
+  border: 0;
+  box-shadow: 0 22px 36px -28px oklch(0.25 0.05 222 / 0.7);
+}
+:root[data-theme] .running-summary-section h2,
+:root[data-theme] .running-summary-section .glance-list dd { color: var(--block-ink); }
+:root[data-theme] .running-summary-section .glance-list dt,
+:root[data-theme] .running-summary-section .glance-sub,
+:root[data-theme] .running-summary-section .empty { color: var(--block-muted); }
+:root[data-theme] .running-summary-section .glance-list,
+:root[data-theme] .running-summary-section .glance-item,
+:root[data-theme] .running-summary-section .section-header { border-color: var(--block-line); }
+:root[data-theme] .running-summary-section .help-note > summary { color: var(--block-muted); border-color: var(--block-faint); background: transparent; }
+:root[data-theme] .running-summary-section .help-note-body { color: var(--ink); }
+
+/* Meni „Više“: red za temu je isti red kao Rutina i Ciljevi iznad njega
+   (16px, 46px visine, ikona u istoj koloni), ne manje dugme. */
+:root[data-theme] .more-sheet-footer .theme-toggle {
+  min-height: 46px;
+  padding: 11px 12px;
+  font-size: var(--fs-16);
+}
+.more-sheet-footer .theme-toggle-face { gap: 12px; }
+.more-sheet-footer .theme-icon { width: 24px; height: 20px; }
+
+/* Fokus na petroleju: petrolej prsten bi bio nevidljiv, pa je u bloku krem. */
+.day-block :focus-visible,
+.hero--sub :focus-visible,
+.insights-section :focus-visible,
+.running-summary-section :focus-visible {
+  outline: 2px solid var(--block-ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* U bloku: bez sjaja oko prstena (zabranjen „glow“, a na petroleju i
+   prljav), i bez praznog reda iznad prstena kad je pregled otvoren. */
+:root[data-theme] .day-block .cal-ring-fill,
+:root[data-theme] .day-block .day-ring-fill { filter: none; }
+:root[data-theme] .day-block .plan-summary-section.is-expanded .section-disclosure {
+  min-height: 0;
+  height: 0;
+  padding: 0;
+}
+:root[data-theme] .day-block .plan-summary-section.is-expanded .plan-section-body { margin-top: 4px; }
