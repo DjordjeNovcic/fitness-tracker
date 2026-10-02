@@ -6055,7 +6055,7 @@ function renderTrainingBurnSection() {
         <summary>
           <span class="form-collapse-title">Kalorije treninga</span>
           <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nije uneto"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <p class="footer-note training-burn-intro">Zbir se oduzima od unosa na Danas.</p>
         <form id="training-burn-form" class="form-grid split training-burn-form">
@@ -9441,7 +9441,7 @@ function renderPlanSupplementsSection() {
       <details class="form-collapse plan-supplement-manage" ${editingSupplement ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingSupplement ? "Izmena suplementa" : "Dodaj ili uredi suplemente"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <form id="supplement-form" class="form-grid split goals-form-layout">
           <div class="field">
@@ -11507,7 +11507,7 @@ function renderTrainingTab() {
             ? `${(store.trainingTemplates || []).length} ${srPlural((store.trainingTemplates || []).length, "šablon", "šablona", "šablona")} u planu`
             : "Još nijedan šablon"
         )}
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
       </summary>
       <form id="training-form" class="form-grid">
         <div class="field">
@@ -12360,7 +12360,7 @@ function renderRunningTab() {
     <details class="section form-collapse running-add-section" ${state.runImportDraft || editingRun ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">${editingRun ? "Izmeni trčanje" : "Dodaj trčanje"}</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
       </summary>
       <form id="run-form" class="form-grid split run-form">
         <div class="field date-field">
@@ -12472,7 +12472,7 @@ function renderRoutineTab() {
       <details class="form-collapse" ${editingHabit ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingHabit ? "Izmena navike" : "Dodaj naviku"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
       <form id="habit-form" class="form-grid split routine-habit-form">
         <div class="field">
@@ -12590,7 +12590,7 @@ function renderRoutineTab() {
                             .filter(Boolean)
                             .join(" · ")}</div>
                         </div>
-                        <div class="entry-actions routine-streak-actions" style="justify-content:flex-start; margin-top:0;">
+                        <div class="entry-actions routine-streak-actions">
                           <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="reset-habit-streak" data-habit-id="${habit.id}" aria-label="Počni „${escapeHtml(habit.name)}“ ispočetka" title="Počni ispočetka">${renderButtonContent("Počni ispočetka", "refresh")}</button>
                           <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
                           <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
@@ -12627,7 +12627,7 @@ function renderRoutineTab() {
       <details class="form-collapse" ${editingTask ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingTask ? "Izmena zadatka" : "Dodaj zadatak"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
       <form id="task-form" class="form-grid split">
         <div class="field">
@@ -14931,7 +14931,7 @@ function renderLabSection() {
       <details class="form-collapse" ${editingLab ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingLab ? "Izmeni nalaz" : "Dodaj nalaz"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <form id="lab-form" class="form-grid split">
           <div class="field">
@@ -15156,7 +15156,7 @@ function renderBodyCompositionSection() {
       <details class="form-collapse" ${editingBodyComp ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingBodyComp ? "Izmeni analizu" : "Dodaj analizu"}</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <form id="body-comp-form" class="bc-form">
           <div class="field bc-date-field">
@@ -15666,7 +15666,7 @@ function renderProgressTab() {
     <details class="section form-collapse" ${editing ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">${editing ? "Izmeni merenje" : "Dodaj merenje"}</span>
-        <span class="form-collapse-icon" aria-hidden="true">+</span>
+        <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
       </summary>
       <form id="measurement-form" class="form-grid split">
         <div class="field">
@@ -15801,7 +15801,7 @@ function renderProgressTab() {
       <details class="form-collapse">
         <summary>
           <span class="form-collapse-title">Dodaj sliku</span>
-          <span class="form-collapse-icon" aria-hidden="true">+</span>
+          <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
       <form id="photo-form" class="form-grid split">
         <div class="field">

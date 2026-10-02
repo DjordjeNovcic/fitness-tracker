@@ -516,10 +516,11 @@ textarea::placeholder {
   min-width: 34px;
   height: 34px;
   border-radius: var(--r-12);
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(24, 33, 30, 0.08);
+  /* One disclosure look app-wide: a bare muted chevron. The whole header is
+     the tap target, so the icon needs no box of its own. */
+  background: transparent;
+  border: 0;
   color: var(--muted);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .plan-section-body.is-collapsed {
@@ -641,7 +642,7 @@ textarea::placeholder {
   background: var(--secondary);
   border-color: var(--secondary);
   color: #fff9f3;
-  box-shadow: 0 10px 18px rgba(31, 95, 117, 0.22);
+  box-shadow: 0 10px 18px rgba(25, 34, 31, 0.12);
 }
 
 .macro-grid,.stats-grid {
@@ -1188,7 +1189,7 @@ textarea::placeholder {
   min-height: 52px; border-radius: var(--r-16);
   background: var(--button-primary-bg); color: var(--button-primary-text);
   font-weight: 800; font-size: var(--fs-16); border: 0; cursor: pointer;
-  box-shadow: 0 16px 32px rgba(31, 95, 117, 0.28);
+  box-shadow: 0 16px 32px rgba(25, 34, 31, 0.18);
 }
 .foods-add-fab svg { width: 20px; height: 20px; }
 
@@ -4128,10 +4129,6 @@ label.is-invalid textarea:focus {
   border-radius: var(--radius-xl);
 }
 
-.shell-with-menu.is-plan-shell .hero-top {
-  padding-right: 76px;
-}
-
 .app-main.shell.is-plan-shell > .hero {
   width: auto;
   max-width: none;
@@ -5231,9 +5228,11 @@ body.menu-open .menu-fab {
     grid-template-columns: 92px minmax(0, 1fr);
   }
 
+  /* The day bar sits in the content column like every card below it; a
+     right-only bleed made it stick out 28px past them. */
   .app-main.shell.is-plan-shell {
     --plan-hero-bleed-left: 0px;
-    --plan-hero-bleed-right: 28px;
+    --plan-hero-bleed-right: 0px;
   }
 
   .app-main.shell {
@@ -6406,7 +6405,7 @@ body.menu-open .tab-bar {
   color: var(--accent-strong);
 }
 
-:root[data-theme="dark"] .meal-collapse-toggle,:root[data-theme="dark"] .routine-check-ui,:root[data-theme="dark"] .photo-picker,:root[data-theme="dark"] .section-disclosure-icon {
+:root[data-theme="dark"] .meal-collapse-toggle,:root[data-theme="dark"] .routine-check-ui,:root[data-theme="dark"] .photo-picker {
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--line-strong);
 }
@@ -6455,16 +6454,6 @@ body.menu-open .tab-bar {
   height: 12px;
   border-radius: 50%;
   background: var(--status-warning-text);
-  box-shadow: 0 0 0 0 rgba(194, 90, 28, 0.5);
-  animation: offline-pulse 1.8s ease-out infinite;
-}
-@keyframes offline-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(194, 90, 28, 0.45); }
-  70% { box-shadow: 0 0 0 9px rgba(194, 90, 28, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(194, 90, 28, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .offline-banner-dot { animation: none; }
 }
 :root[data-theme="dark"] .offline-banner {
   background:
@@ -7206,7 +7195,7 @@ body.app-header-hidden .workspace-header {
   border-radius: var(--r-20);
   background: var(--accent);
   color: var(--button-primary-text);
-  box-shadow: 0 12px 26px -10px var(--accent);
+  box-shadow: 0 12px 26px -12px rgba(25, 34, 31, 0.35);
 }
 
 .auth-logo .tab-icon {
@@ -7513,17 +7502,6 @@ body.app-header-hidden .workspace-header {
     var(--surface-strong);
   border-color: var(--line);
   color: var(--ink);
-}
-
-/* "Osveži" — pull the latest app version. Quiet round button in the Plan
-   hero (top-right) plus a labelled one in the slide-out menu footer.
-   The hero is always a dark gradient with light text in both themes, so a
-   translucent-white treatment reads correctly everywhere. */
-
-/* Reserve space on the right so the title never slides under the button
-   (wins over the earlier mobile padding-right:0 by source order). */
-.shell-with-menu.is-plan-shell .hero-top {
-  padding-right: 48px;
 }
 
 /* The meals section is transparent (padding:0), so its overflow:hidden plus
@@ -10069,6 +10047,7 @@ body.app-header-hidden .workspace-header {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+  color: var(--muted);
 }
 
 /* ---- Tab tops: title, not a card of a title ----------------------------- */
@@ -11454,6 +11433,15 @@ body {
   font-weight: 700;
   letter-spacing: -0.012em;
 }
+.form-collapse-icon svg {
+  width: 14px;
+  height: 14px;
+}
+/* Disclosure chevrons are bare (like every other one in the app); only the
+   "+" of a create form keeps its ring, because it reads as an add button. */
+.form-collapse-icon--chevron {
+  border: 0;
+}
 .form-collapse-icon--chevron svg {
   width: 16px;
   height: 16px;
@@ -11518,7 +11506,7 @@ body {
   padding: 0 18px 0 14px;
   border-radius: 999px;
   font-size: var(--fs-15);
-  box-shadow: 0 12px 26px rgba(31, 95, 117, 0.24);
+  box-shadow: 0 12px 26px rgba(25, 34, 31, 0.16);
 }
 .foods-add-fab svg {
   width: 18px;
@@ -12115,8 +12103,8 @@ button.meal-entry-body:focus-visible {
    food list is noise, not hierarchy.
    ============================================================ */
 
-/* Active nav is a quiet row with an accent marker, not a filled block that
-   outshouts every screen. */
+/* Active nav is a quiet tinted row with an accent icon: no side stripe, and
+   not a filled block that outshouts every screen. */
 .menu-tab-button.is-active,
 .menu-tab-button.is-active:hover,
 :root[data-theme="dark"] .menu-tab-button.is-active,
@@ -12126,17 +12114,6 @@ button.meal-entry-body:focus-visible {
   color: var(--ink);
   box-shadow: none;
 }
-.menu-tab-button.is-active::after,
-:root[data-theme="dark"] .menu-tab-button.is-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  bottom: 9px;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--accent);
-}
 .menu-tab-button.is-active .menu-tab-label,
 :root[data-theme="dark"] .menu-tab-button.is-active .menu-tab-label {
   color: var(--ink);
@@ -12145,10 +12122,6 @@ button.meal-entry-body:focus-visible {
 .menu-tab-button.is-active .icon,
 :root[data-theme="dark"] .menu-tab-button.is-active .icon {
   color: var(--accent);
-}
-.app-frame.is-sidebar-collapsed .menu-tab-button.is-active::after,
-:root[data-theme="dark"] .app-frame.is-sidebar-collapsed .menu-tab-button.is-active::after {
-  display: none;
 }
 
 /* Repeated figures in lists read as data, not as links. */
@@ -14064,8 +14037,12 @@ button.meal-entry-body:focus-visible {
   display: grid;
   justify-items: start;
 }
+/* Actions sit on the right edge, in the same column as the edit/trash of
+   habits and tasks above, instead of floating mid-row under the text. */
 .routine-streak-card .routine-streak-actions {
   grid-column: 2;
+  justify-content: flex-end;
+  margin: -4px 0 0;
 }
 
 /* Brzi unos: preračunati komadi su informacija, ne upozorenje. */
