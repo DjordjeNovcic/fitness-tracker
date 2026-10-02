@@ -10867,17 +10867,9 @@ function renderFoodsTab() {
                   const menuOpen = state.foodMenuOpenId === food.id;
                   return `
               <article class="food-row ${menuOpen ? "is-menu-open" : ""}" data-search="${escapeHtml(searchText)}" data-name="${escapeHtml(normalizeLookupValue(food.name))}">
-                <button
-                  class="food-row-star ${isFavoriteFood ? "is-active" : ""}"
-                  type="button"
-                  data-action="toggle-favorite-food"
-                  data-food-id="${food.id}"
-                  aria-label="${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}"
-                  aria-pressed="${isFavoriteFood ? "true" : "false"}"
-                >${renderStarIcon(isFavoriteFood)}</button>
-                <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)}, detalji i izmena">
+                <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)}${isFavoriteFood ? ", omiljena" : ""}, detalji i izmena">
                   <span class="food-row-line">
-                    <span class="food-row-name">${escapeHtml(food.name)}</span>
+                    <span class="food-row-name">${isFavoriteFood ? `<span class="food-row-fav" aria-hidden="true">${renderStarIcon(true)}</span>` : ""}${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
                   </span>
                   <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
@@ -10895,7 +10887,7 @@ function renderFoodsTab() {
                 ${
                   menuOpen
                     ? `<div class="food-row-actions">
-                        <button class="ghost-button button-with-icon" type="button" data-action="edit-food" data-food-id="${food.id}">${renderButtonContent("Izmeni", "edit")}</button>
+                        <button class="ghost-button button-with-icon" type="button" data-action="toggle-favorite-food" data-food-id="${food.id}" aria-pressed="${isFavoriteFood ? "true" : "false"}"><span class="button-icon" aria-hidden="true">${renderStarIcon(isFavoriteFood)}</span><span class="button-label">${isFavoriteFood ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}</span></button>
                         <button class="danger-button button-with-icon" type="button" data-action="delete-food" data-food-id="${food.id}">${renderButtonContent("Obriši iz baze", "delete")}</button>
                       </div>`
                     : ""
@@ -16964,6 +16956,7 @@ async function handleDocumentClick(event) {
     } else {
       store.favoriteFoods.unshift(foodId);
     }
+    state.foodMenuOpenId = "";
 
     persist();
     render();

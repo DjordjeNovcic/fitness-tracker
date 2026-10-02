@@ -7440,10 +7440,15 @@ body.app-header-hidden .workspace-header {
    responsive columns instead so multiple items sit side by side.
    ============================================================ */
 @media (min-width: 900px) {
+  /* Alphabetical, so it reads down a column and then the next, like a
+     dictionary; a row-wise grid zig-zagged 4 godišnja doba → Ajvar → Avokado. */
   .food-list.foods-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    display: block;
+    columns: 2 340px;
     column-gap: 28px;
+  }
+  .food-list.foods-list > * {
+    break-inside: avoid;
   }
 }
 
@@ -14481,4 +14486,38 @@ button.meal-entry-body:focus-visible {
 }
 .form-collapse > summary {
   column-gap: 12px;
+}
+
+/* Rutina on desktop: habits, streaks and tasks sit in columns, so "the last
+   row" is per column. Every record keeps its hairline there; dropping it on
+   :last-child only left one half-width line under the left column. */
+@media (min-width: 900px) {
+  .routine-habit-stack > .food-card.routine-card:last-child,
+  .routine-task-stack > .food-card.routine-card:last-child,
+  .routine-streak-stack > .food-card.routine-card:last-child {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+}
+
+/* Namirnice: no star column on every row. A favourite shows a small star
+   before its name; adding or removing one lives in the row's ⋮ menu. The
+   name gets the ~50px the column took, so fewer rows wrap on a phone. */
+.food-row,
+.foods-list .food-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.food-row-fav {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: #e0a92e;
+}
+.food-row-fav .star-icon {
+  width: 14px;
+  height: 14px;
+}
+.food-row-actions .button-icon .star-icon {
+  width: 18px;
+  height: 18px;
 }
