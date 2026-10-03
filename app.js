@@ -677,6 +677,8 @@ const state = {
   lastAddedEntryId: "",
   trainingProgressOpen: false,
   trainingProgressPrefill: "",
+  // „Sastavi trening“: null kad je zatvoren, inače nacrt (vidi openTrainingBuilder).
+  trainingBuilder: null,
   selectedWeekday: getTodayWeekday(),
   selectedWeekTrack: getCurrentWeekTrack(),
   planSummaryExpanded: getInitialPlanSummaryExpanded(),
@@ -935,6 +937,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       weekTrack: task.weekTrack == null ? getCurrentWeekTrack() : normalizeWeekTrack(task.weekTrack),
     })),
     favoriteTrainings: Array.isArray(rawStore.favoriteTrainings) ? rawStore.favoriteTrainings : [],
+    customExercises: Array.isArray(rawStore.customExercises) ? rawStore.customExercises : [],
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
     runs: Array.isArray(rawStore.runs) ? rawStore.runs : [],
@@ -1065,6 +1068,7 @@ function hydrateStore() {
 function ensureStoreCollections(targetStore) {
   targetStore.trainingLogs = targetStore.trainingLogs || [];
   targetStore.favoriteTrainings = targetStore.favoriteTrainings || [];
+  targetStore.customExercises = Array.isArray(targetStore.customExercises) ? targetStore.customExercises : [];
   targetStore.habits = (targetStore.habits || []).map((habit) => normalizeHabitRecord(habit));
   targetStore.dayTasks = targetStore.dayTasks || [];
   targetStore.trainingProgressLogs = targetStore.trainingProgressLogs || [];
@@ -1680,20 +1684,22 @@ async function resetDemoToFactory() {
 
 // Reset PRAVOG (ne-demo) naloga: briše plan, trening, rutinu, dnevnik,
 // istoriju, merenja i slike. NE dira namirnice (tvoja baza, uključujući sve
-// što si sam dodao — ne vraća se na generički seed), profil ni ciljeve
-// (kalorije/makroi/deficit ostaju kako su izračunati), pa se onboarding ne
-// ponavlja. Ne sme se pozvati za demo nalog.
+// što si sam dodao — ne vraća se na generički seed), sopstvene vežbe iz
+// biblioteke, profil ni ciljeve (kalorije/makroi/deficit ostaju kako su
+// izračunati), pa se onboarding ne ponavlja. Ne sme se pozvati za demo nalog.
 async function resetRealAccountToBlank() {
   const photoIdsToDelete = (store.progressPhotos || []).map((photo) => photo?.id).filter(Boolean);
   const keepFoods = store.foods;
   const keepProfile = store.profile;
   const keepGoals = store.goals;
   const keepFavoriteMeals = store.favoriteMeals;
+  const keepCustomExercises = store.customExercises;
   replaceStore({});
   store.foods = keepFoods;
   store.profile = keepProfile;
   store.goals = keepGoals;
   store.favoriteMeals = keepFavoriteMeals;
+  store.customExercises = keepCustomExercises;
   store.weeklyPlanEntries = [];
   store.trainingTemplates = [];
   store.onboarded = true;
@@ -5465,6 +5471,230 @@ function getTrainingForDay(weekday, weekTrack = state.selectedWeekTrack) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Biblioteka vežbi za „Sastavi trening“. Grupe su redom kojim ih korisnik
+// navodi; svaka vežba nosi uobičajenu dozu (serije × ponavljanja) koja se
+// menja u treningu. Ponavljanja su tekst jer plank ide na sekunde („45 s“).
+// Sopstvene vežbe su u store.customExercises ({id, name, group, createdAt}).
+// ---------------------------------------------------------------------------
+const EXERCISE_GROUPS = [
+  { id: "biceps", label: "Biceps" },
+  { id: "triceps", label: "Triceps" },
+  { id: "ledja", label: "Leđa" },
+  { id: "grudi", label: "Grudi" },
+  { id: "ramena", label: "Ramena" },
+  { id: "noge", label: "Noge" },
+  { id: "stomak", label: "Stomak" },
+];
+
+const EXERCISE_LIBRARY = {
+  biceps: [
+    ["Biceps pregib sa šipkom", 3, "8-12"],
+    ["Biceps pregib sa bučicama", 3, "10-12"],
+    ["Čekić pregib", 3, "10-12"],
+    ["Pregib na Skot klupi", 3, "10-12"],
+    ["Koncentrisani pregib", 3, "12-15"],
+    ["Pregib na sajli", 3, "12-15"],
+  ],
+  triceps: [
+    ["Triceps na sajli", 3, "12-15"],
+    ["Francuski potisak", 3, "10-12"],
+    ["Ekstenzija iznad glave", 3, "10-12"],
+    ["Potisak uskim hvatom", 3, "8-10"],
+    ["Propadanja na razboju", 3, "8-12"],
+    ["Kikbek sa bučicom", 3, "12-15"],
+  ],
+  ledja: [
+    ["Zgibovi", 3, "6-10"],
+    ["Lat mašina", 3, "10-12"],
+    ["Veslanje sa šipkom", 4, "8-10"],
+    ["Veslanje bučicom", 3, "10-12"],
+    ["Veslanje na sajli", 3, "10-12"],
+    ["Mrtvo dizanje", 4, "5-6"],
+    ["Hiperekstenzije", 3, "12-15"],
+  ],
+  grudi: [
+    ["Potisak sa klupe", 4, "8-10"],
+    ["Kosi potisak sa bučicama", 3, "8-10"],
+    ["Potisak sa bučicama", 3, "8-10"],
+    ["Razvlačenje sa bučicama", 3, "10-12"],
+    ["Razvlačenje na sajli", 3, "12-15"],
+    ["Leptir mašina", 3, "12-15"],
+    ["Sklekovi", 3, "10-15"],
+  ],
+  ramena: [
+    ["Potisak iznad glave", 3, "8-10"],
+    ["Rameni potisak sa bučicama", 3, "8-10"],
+    ["Odručenje sa bučicama", 3, "12-15"],
+    ["Predručenje", 3, "10-12"],
+    ["Odručenje u pretklonu", 3, "12-15"],
+    ["Face pull", 3, "12-15"],
+    ["Veslanje do brade", 3, "10-12"],
+  ],
+  noge: [
+    ["Čučanj", 4, "6-8"],
+    ["Potisak nogama", 4, "10-12"],
+    ["Rumunsko mrtvo dizanje", 3, "8-10"],
+    ["Iskorak", 3, "10-12"],
+    ["Bugarski čučanj", 3, "8-10"],
+    ["Opružanje nogu", 3, "12-15"],
+    ["Pregib nogu", 3, "10-12"],
+    ["Hip thrust", 3, "8-12"],
+    ["Podizanje na prste", 4, "12-15"],
+  ],
+  stomak: [
+    ["Plank", 3, "45 s"],
+    ["Bočni plank", 3, "30 s"],
+    ["Trbušnjaci", 3, "15-20"],
+    ["Podizanje nogu u visu", 3, "10-15"],
+    ["Ruski uvrtaji", 3, "20"],
+    ["Točak za stomak", 3, "8-12"],
+    ["Bicikl trbušnjaci", 3, "20"],
+  ],
+};
+
+const DEFAULT_CUSTOM_EXERCISE_DOSE = { sets: 3, reps: "10-12" };
+
+function getExerciseGroupLabel(groupId) {
+  return EXERCISE_GROUPS.find((group) => group.id === groupId)?.label || "";
+}
+
+// Ugrađene vežbe + sopstvene, po grupama. Sopstvene idu na vrh svoje grupe:
+// dodate su namerno, pa se traže češće od kataloga.
+function getExerciseLibrary() {
+  const custom = (store.customExercises || [])
+    .filter((exercise) => exercise && exercise.name && EXERCISE_GROUPS.some((group) => group.id === exercise.group))
+    .map((exercise) => ({
+      key: `custom:${exercise.id}`,
+      id: exercise.id,
+      name: exercise.name,
+      group: exercise.group,
+      sets: DEFAULT_CUSTOM_EXERCISE_DOSE.sets,
+      reps: DEFAULT_CUSTOM_EXERCISE_DOSE.reps,
+      custom: true,
+    }));
+  return EXERCISE_GROUPS.flatMap((group) => [
+    ...custom.filter((exercise) => exercise.group === group.id),
+    ...EXERCISE_LIBRARY[group.id].map(([name, sets, reps]) => ({
+      key: `lib:${normalizeLookupValue(name)}`,
+      name,
+      group: group.id,
+      sets,
+      reps,
+      custom: false,
+    })),
+  ]);
+}
+
+// Vežbe iz starih šablona (kucanih u tekst polje) nemaju grupu. Prvo tačno
+// ime iz biblioteke, pa ključne reči. Redosled pravila je bitan: „pregib nogu“
+// su noge pre nego biceps, „ekstenzija iznad glave“ triceps pre nego ramena.
+const EXERCISE_GROUP_HINTS = [
+  ["ledja", /hiperekstenz/],
+  ["stomak", /(plank|trbus|stomak|crunch|uvrtaj|twist|tocak|podizanje nogu)/],
+  ["noge", /(cucanj|iskorak|nogu|nogama|prste|hip thrust|glute|mrtvo|\bleg\b|kvadriceps|zadnja loza)/],
+  ["triceps", /(triceps|francusk|propadanj|razboj|uskim hvatom|kikbek|kickback|ekstenzij|opruzanj)/],
+  ["biceps", /(biceps|pregib|cekic|skot|curl)/],
+  ["ramena", /(ramen|iznad glave|odrucenj|predrucenj|military|face pull|do brade|deltoid|arnold)/],
+  ["grudi", /(klup|grudi|sklek|razvlacenj|leptir|fly|crossover|bench|kosi potisak|potisak sa bucicama)/],
+  ["ledja", /(zgib|veslanj|\blat\b|ledja|povlacenj|pull|\brow\b)/],
+];
+
+function guessExerciseGroup(name) {
+  const key = normalizeLookupValue(name);
+  if (!key) {
+    return "";
+  }
+  for (const group of EXERCISE_GROUPS) {
+    if (EXERCISE_LIBRARY[group.id].some(([libraryName]) => normalizeLookupValue(libraryName) === key)) {
+      return group.id;
+    }
+  }
+  const own = (store.customExercises || []).find((exercise) => normalizeLookupValue(exercise.name) === key);
+  if (own) {
+    return own.group;
+  }
+  const hint = EXERCISE_GROUP_HINTS.find(([, pattern]) => pattern.test(key));
+  return hint ? hint[0] : "";
+}
+
+function getExerciseGroupId(exercise) {
+  const stored = String(exercise?.group || "");
+  return EXERCISE_GROUPS.some((group) => group.id === stored) ? stored : guessExerciseGroup(exercise?.name);
+}
+
+// Grupe mišića u treningu, redom kojim se prvi put javljaju.
+function getTemplateGroupIds(exercises) {
+  const ids = [];
+  (exercises || []).forEach((exercise) => {
+    const id = getExerciseGroupId(exercise);
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  });
+  return ids;
+}
+
+function isRepCount(reps) {
+  return /^\d{1,3}(\s*[-–]\s*\d{1,3})?$/.test(String(reps || "").trim());
+}
+
+// „Čučanj 4x6-8 ponavljanja“ / „Plank 3x45 s“ — isti oblik kao seed, jer ga
+// parseRepRange čita za predlog sledeće kilaže.
+function buildExerciseDetails(name, sets, reps) {
+  const cleanName = String(name || "").trim();
+  const cleanReps = String(reps || "").trim();
+  const setCount = Math.round(toNumber(sets));
+  if (setCount > 0 && cleanReps) {
+    return `${cleanName} ${setCount}x${cleanReps}${isRepCount(cleanReps) ? " ponavljanja" : ""}`;
+  }
+  if (setCount > 0) {
+    return `${cleanName} ${setCount} ${srPlural(setCount, "serija", "serije", "serija")}`;
+  }
+  return `${cleanName} ${cleanReps}`.trim();
+}
+
+// Serije i ponavljanja iz sačuvane vežbe. Novije imaju polja; starije samo
+// opis („Čučanj 4x8-10“), pa se on rastavlja. Šta god ne liči na NxM ostaje
+// tekst u ponavljanjima, da se izmenom ništa ne izgubi.
+function getExerciseDose(exercise) {
+  if (toNumber(exercise?.sets) > 0 || exercise?.reps) {
+    return { sets: Math.round(toNumber(exercise.sets)) || null, reps: String(exercise.reps || "") };
+  }
+  const name = String(exercise?.name || "").trim();
+  const details = String(exercise?.details || "").trim();
+  const rest = name && details.toLowerCase().startsWith(name.toLowerCase()) ? details.slice(name.length).trim() : details;
+  const cleanReps = (text) => text.replace(/^po\s+/i, "").replace(/\s*ponavljanj[ae]?\s*$/i, "").trim();
+  const cross = rest.match(/^(\d{1,2})\s*[x×]\s*(.+)$/i);
+  if (cross) {
+    return { sets: Number(cross[1]), reps: cleanReps(cross[2]) };
+  }
+  // „3-4 serije, 8-12 ponavljanja“: broj serija je donja granica.
+  const series = rest.match(/^(\d{1,2})(?:\s*[-–]\s*\d{1,2})?\s*serij[aeu]?\s*[,;]?\s*(.*)$/i);
+  if (series) {
+    return { sets: Number(series[1]), reps: cleanReps(series[2]) };
+  }
+  return { sets: null, reps: rest === name ? "" : rest };
+}
+
+// Naziv dok ga korisnik sam ne upiše: „Grudi i triceps“, a za mnogo grupa
+// „Gornji deo“ / „Celo telo“.
+function suggestTrainingName(groupIds) {
+  if (!groupIds.length) {
+    return "";
+  }
+  const upper = ["biceps", "triceps", "ledja", "grudi", "ramena"];
+  const coreless = groupIds.filter((id) => id !== "stomak");
+  if (coreless.length >= 4) {
+    return coreless.every((id) => upper.includes(id)) ? "Gornji deo" : "Celo telo";
+  }
+  const labels = groupIds.map((id, index) => {
+    const label = getExerciseGroupLabel(id);
+    return index === 0 ? label : label.toLowerCase();
+  });
+  return joinSerbianList(labels);
+}
+
 // Fiksne sekcije za kalorije treninga, u redu u kom se i prikazuju. „Trening“
 // su vežbe iz šablona tog dana; stomak i kardio se rade uz njih pa imaju svoje
 // kalorije, a ukupno je njihov zbir — „cela potrošnja treninga“.
@@ -7986,6 +8216,7 @@ function isOverlayOpen() {
     state.navMenuOpen ||
       state.foodEditorOpen ||
       state.scannerOpen ||
+      state.trainingBuilder ||
       (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
   );
 }
@@ -8263,6 +8494,8 @@ function renderActionIcon(kind) {
     share: '<path fill="currentColor" d="M18 16.08a2.9 2.9 0 0 0-2.27 1.1l-6.1-3.55a2.9 2.9 0 0 0 0-1.26l6.04-3.52A2.92 2.92 0 1 0 14.8 6.9l-6.04 3.52a2.92 2.92 0 1 0 0 5.16l6.1 3.56a2.92 2.92 0 1 0 3.14-3.06Z"/>',
     close: '<path fill="currentColor" d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"/>',
     minus: '<path fill="currentColor" d="M5 11h14v2H5z"/>',
+    up: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 15l6-6 6 6"/>',
+    down: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>',
     flash: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2Z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
@@ -11560,6 +11793,353 @@ function renderRecipesTab() {
   `;
 }
 
+// ---------------------------------------------------------------------------
+// „Sastavi trening“: dijalog u dva koraka. „pick“ je biblioteka po grupama
+// (tap dodaje ili sklanja vežbu), „plan“ je sam trening — naziv, dan,
+// redosled i serije × ponavljanja. Nov trening kreće od biblioteke; izmena
+// postojećeg kreće od treninga.
+// ---------------------------------------------------------------------------
+// `details` je opis postojeće vežbe: dok joj se serije i ponavljanja ne
+// promene, čuva se od reči do reči (izmena treninga ne sme da prepiše tekst
+// vežbi koje nisu dirane).
+function makeTrainingBuilderItem({ id = "", name, group, sets, reps, details = "" }) {
+  const item = {
+    key: uid("builder-exercise"),
+    id,
+    name: String(name || "").trim(),
+    group: group || guessExerciseGroup(name),
+    sets: Math.round(toNumber(sets)) || null,
+    reps: String(reps ?? ""),
+  };
+  item.original = details ? { details, sets: item.sets, reps: item.reps } : null;
+  return item;
+}
+
+function openTrainingBuilder(templateId = "") {
+  const template = templateId ? store.trainingTemplates.find((entry) => entry.id === templateId) : null;
+  state.trainingBuilder = {
+    templateId: template ? template.id : "",
+    view: template ? "plan" : "pick",
+    // Strelica „nazad“ u biblioteci ima smisla tek kad je trening već viđen.
+    planSeen: Boolean(template),
+    name: template ? template.name : "",
+    nameTouched: Boolean(template),
+    weekday: template ? template.weekday : state.selectedWeekday,
+    weekTrack: template ? normalizeWeekTrack(template.weekTrack) : state.selectedWeekTrack,
+    items: template
+      ? (template.exercises || []).map((exercise) =>
+          makeTrainingBuilderItem({
+            id: exercise.id,
+            name: exercise.name,
+            group: getExerciseGroupId(exercise),
+            details: exercise.details,
+            ...getExerciseDose(exercise),
+          })
+        )
+      : [],
+    filter: "all",
+    query: "",
+    newOpen: false,
+    newName: "",
+    newGroup: "",
+    newError: "",
+  };
+}
+
+// Kopija vežbe sa novim id-jem (omiljeni ↔ dan); grupa i doza idu sa njom.
+function copyTrainingExercise(exercise) {
+  const copy = { id: uid("exercise"), name: exercise.name, details: exercise.details };
+  if (exercise.group) {
+    copy.group = exercise.group;
+  }
+  if (exercise.sets != null || exercise.reps) {
+    copy.sets = exercise.sets ?? null;
+    copy.reps = exercise.reps || "";
+  }
+  return copy;
+}
+
+function getTrainingBuilderGroupIds(builder) {
+  return getTemplateGroupIds(builder.items);
+}
+
+function getTrainingBuilderName(builder) {
+  return builder.nameTouched ? builder.name : suggestTrainingName(getTrainingBuilderGroupIds(builder));
+}
+
+function isExerciseInBuilder(builder, name) {
+  const key = normalizeLookupValue(name);
+  return builder.items.some((item) => normalizeLookupValue(item.name) === key);
+}
+
+function formatExerciseDose(sets, reps) {
+  const cleanReps = String(reps || "").trim();
+  if (sets && cleanReps) {
+    return `${sets} × ${cleanReps}`;
+  }
+  return sets ? `${sets} ${srPlural(sets, "serija", "serije", "serija")}` : cleanReps;
+}
+
+function renderTrainingBuilderDialog() {
+  const builder = state.trainingBuilder;
+  if (!builder) {
+    return "";
+  }
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-training-builder" aria-label="Zatvori"></button>
+      <section class="app-dialog training-builder-dialog is-${builder.view}" role="dialog" aria-modal="true" aria-labelledby="training-builder-title">
+        ${builder.view === "pick" ? renderTrainingBuilderPick(builder) : renderTrainingBuilderPlan(builder)}
+      </section>
+    </div>`;
+}
+
+function renderTrainingBuilderPick(builder) {
+  const library = getExerciseLibrary();
+  const selectedCount = builder.items.length;
+  const countByGroup = {};
+  builder.items.forEach((item) => {
+    if (item.group) {
+      countByGroup[item.group] = (countByGroup[item.group] || 0) + 1;
+    }
+  });
+  const visibleGroups = builder.filter === "all" ? EXERCISE_GROUPS : EXERCISE_GROUPS.filter((group) => group.id === builder.filter);
+  const tokens = normalizeLookupValue(builder.query).split(" ").filter(Boolean);
+  const matchesQuery = (name) => {
+    const haystack = normalizeLookupValue(name);
+    return tokens.every((token) => haystack.includes(token));
+  };
+  const chips = [{ id: "all", label: "Sve" }, ...EXERCISE_GROUPS];
+  const newGroup = builder.newGroup || (builder.filter !== "all" ? builder.filter : "");
+
+  return `
+    <div class="app-dialog-head training-builder-head">
+      ${
+        builder.planSeen
+          ? `<button class="ghost-button icon-only-action training-builder-back" type="button" data-action="training-builder-view" data-view="plan" aria-label="Nazad na trening">${renderSideChevronIcon(true)}</button>`
+          : ""
+      }
+      <div class="training-builder-title">
+        <h3 id="training-builder-title">Izaberi vežbe</h3>
+      </div>
+      <button class="ghost-button menu-close" type="button" data-action="close-training-builder" aria-label="Zatvori">
+        ${renderMenuToggleIcon(true)}
+      </button>
+    </div>
+
+    <div class="training-builder-pick-tools">
+      <div class="foods-search">
+        <span class="foods-search-icon" aria-hidden="true">${renderSearchIcon()}</span>
+        <input id="exercise-search" type="search" value="${escapeHtml(builder.query)}" placeholder="Pretraži vežbe" aria-label="Pretraži vežbe" autocomplete="off" data-no-autofocus />
+        <button class="foods-search-clear ${builder.query ? "" : "is-hidden"}" type="button" data-action="clear-exercise-search" aria-label="Obriši pretragu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="foods-chips training-builder-chips" role="group" aria-label="Grupa mišića">
+        ${chips
+          .map((chip) => {
+            const count = chip.id === "all" ? selectedCount : countByGroup[chip.id] || 0;
+            return `<button class="foods-chip ${builder.filter === chip.id ? "is-active" : ""}" type="button" data-action="training-builder-filter" data-group="${chip.id}" aria-pressed="${builder.filter === chip.id}">
+              ${chip.label}${count ? `<span class="foods-chip-count" aria-label="${count} ${srPlural(count, "izabrana", "izabrane", "izabranih")}">${count}</span>` : ""}
+            </button>`;
+          })
+          .join("")}
+      </div>
+    </div>
+
+    <div class="training-builder-body training-builder-library" data-keep-scroll="training-builder-pick">
+      ${visibleGroups
+        .map((group) => {
+          const exercises = library.filter((exercise) => exercise.group === group.id);
+          return `
+            <div class="exercise-pick-group" data-exercise-group="${group.id}" ${exercises.some((exercise) => matchesQuery(exercise.name)) ? "" : "hidden"}>
+              ${builder.filter === "all" ? `<h4 class="exercise-pick-group-title">${group.label}</h4>` : ""}
+              <ul class="exercise-pick-list">
+                ${exercises
+                  .map((exercise) => {
+                    const selected = isExerciseInBuilder(builder, exercise.name);
+                    return `
+                      <li class="exercise-pick-item" data-exercise-search="${escapeHtml(normalizeLookupValue(exercise.name))}" ${matchesQuery(exercise.name) ? "" : "hidden"}>
+                        <button class="exercise-pick-row ${selected ? "is-selected" : ""}" id="exercise-pick-${escapeHtml(exercise.key.replace(/[^a-z0-9-]+/gi, "-"))}" type="button" data-action="training-builder-toggle" data-key="${escapeHtml(exercise.key)}" aria-pressed="${selected}">
+                          <span class="exercise-pick-check" aria-hidden="true">${renderActionIcon("apply")}</span>
+                          <span class="exercise-pick-copy">
+                            <strong>${escapeHtml(exercise.name)}</strong>
+                            <span>${exercise.custom ? "Tvoja vežba · " : ""}${escapeHtml(formatExerciseDose(exercise.sets, exercise.reps))}</span>
+                          </span>
+                        </button>
+                        ${
+                          exercise.custom
+                            ? `<button class="ghost-button icon-only-action exercise-pick-delete" type="button" data-action="delete-custom-exercise" data-exercise-id="${escapeHtml(exercise.id)}" aria-label="Obriši vežbu „${escapeHtml(exercise.name)}“ iz biblioteke">${renderActionIcon("delete")}</button>`
+                            : ""
+                        }
+                      </li>`;
+                  })
+                  .join("")}
+              </ul>
+            </div>`;
+        })
+        .join("")}
+      <p class="exercise-pick-empty" data-role="exercise-pick-empty" ${
+        visibleGroups.some((group) => library.some((exercise) => exercise.group === group.id && matchesQuery(exercise.name))) ? "hidden" : ""
+      }>Nema takve vežbe${builder.filter === "all" ? "" : ` u grupi ${getExerciseGroupLabel(builder.filter)}`}. Dodaj je kao svoju.</p>
+
+      ${
+        builder.newOpen
+          ? `
+        <div class="training-builder-new">
+          <div class="field">
+            <label for="training-builder-new-name">Nova vežba</label>
+            <input id="training-builder-new-name" value="${escapeHtml(builder.newName)}" placeholder="npr. Potisak na Smit mašini" autocomplete="off" />
+          </div>
+          <div class="choice-field">
+            <span class="choice-field-label" id="training-builder-new-group-label">Grupa</span>
+            <div class="choice-chips" role="radiogroup" aria-labelledby="training-builder-new-group-label">
+              ${EXERCISE_GROUPS.map(
+                (group) => `<button type="button" class="choice-chip ${newGroup === group.id ? "is-active" : ""}" role="radio" aria-checked="${newGroup === group.id}" data-action="training-builder-new-group" data-group="${group.id}"><span class="choice-chip-label">${group.label}</span></button>`
+              ).join("")}
+            </div>
+          </div>
+          ${builder.newError ? `<p class="training-builder-error" role="alert">${escapeHtml(builder.newError)}</p>` : ""}
+          <div class="training-builder-new-actions">
+            <button class="ghost-button" type="button" data-action="training-builder-new-toggle">Otkaži</button>
+            <button class="solid-button secondary-button button-with-icon" type="button" data-action="training-builder-add-custom">${renderButtonContent("Dodaj u biblioteku", "add")}</button>
+          </div>
+        </div>`
+          : `<button class="training-builder-add" type="button" data-action="training-builder-new-toggle">${renderActionIcon("add")}<span>Nova vežba</span></button>`
+      }
+    </div>
+
+    <div class="app-dialog-actions training-builder-actions">
+      <span class="training-builder-count">${
+        selectedCount ? `${selectedCount} ${srPlural(selectedCount, "vežba", "vežbe", "vežbi")}` : "Tapni vežbe koje ulaze u trening"
+      }</span>
+      <button class="solid-button button-with-icon" type="button" data-action="training-builder-view" data-view="plan" ${selectedCount ? "" : "disabled"}>${renderButtonContent(
+        builder.templateId ? "Gotovo" : "Dalje",
+        builder.templateId ? "apply" : "go"
+      )}</button>
+    </div>`;
+}
+
+// Pretraga u biblioteci krije redove na licu mesta (kao Namirnice), da
+// tastatura na telefonu ne pada pri svakom slovu.
+function filterExercisePickInline(builder) {
+  const dialog = document.querySelector(".training-builder-dialog");
+  if (!dialog) {
+    return;
+  }
+  const tokens = normalizeLookupValue(builder.query).split(" ").filter(Boolean);
+  let anyVisible = false;
+  dialog.querySelectorAll(".exercise-pick-group").forEach((group) => {
+    let groupVisible = false;
+    group.querySelectorAll(".exercise-pick-item").forEach((item) => {
+      const haystack = item.dataset.exerciseSearch || "";
+      const visible = tokens.every((token) => haystack.includes(token));
+      item.hidden = !visible;
+      groupVisible = groupVisible || visible;
+    });
+    group.hidden = !groupVisible;
+    anyVisible = anyVisible || groupVisible;
+  });
+  const empty = dialog.querySelector('[data-role="exercise-pick-empty"]');
+  if (empty) {
+    empty.hidden = anyVisible;
+  }
+  dialog.querySelector(".foods-search-clear")?.classList.toggle("is-hidden", !builder.query);
+}
+
+function renderTrainingBuilderPlan(builder) {
+  const isEdit = Boolean(builder.templateId);
+  const groupIds = getTrainingBuilderGroupIds(builder);
+  const name = getTrainingBuilderName(builder);
+  const lastIndex = builder.items.length - 1;
+
+  return `
+    <div class="app-dialog-head training-builder-head">
+      <div class="training-builder-title">
+        <h3 id="training-builder-title">${isEdit ? "Izmeni trening" : "Sastavi trening"}</h3>
+      </div>
+      <button class="ghost-button menu-close" type="button" data-action="close-training-builder" aria-label="Zatvori">
+        ${renderMenuToggleIcon(true)}
+      </button>
+    </div>
+
+    <div class="training-builder-body" data-keep-scroll="training-builder-plan">
+    <div class="training-builder-meta">
+      <div class="field field--full">
+        <label for="training-builder-name">Naziv</label>
+        <input id="training-builder-name" value="${escapeHtml(name)}" placeholder="npr. Grudi i triceps" autocomplete="off" data-no-autofocus />
+      </div>
+      <div class="field">
+        <label for="training-builder-weekday">Dan</label>
+        <select id="training-builder-weekday">
+          ${WEEKDAYS.map((weekday) => `<option value="${weekday}" ${weekday === builder.weekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label for="training-builder-week">Nedelja</label>
+        <select id="training-builder-week">
+          ${getWeekTrackDisplayOrder()
+            .map((track) => `<option value="${track}" ${track === builder.weekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`)
+            .join("")}
+        </select>
+      </div>
+    </div>
+
+    <div class="training-builder-list-head">
+      <h4>${builder.items.length} ${srPlural(builder.items.length, "vežba", "vežbe", "vežbi")}</h4>
+      ${groupIds.length ? `<span>${groupIds.map((id) => getExerciseGroupLabel(id)).join(" · ")}</span>` : ""}
+    </div>
+    <ol class="training-builder-list">
+      ${builder.items
+        .map(
+          (item, index) => `
+        <li class="training-builder-item">
+          <div class="training-builder-item-head">
+            <div class="training-builder-item-name">
+              <strong>${escapeHtml(item.name)}</strong>
+              ${item.group ? `<span>${getExerciseGroupLabel(item.group)}</span>` : ""}
+            </div>
+            <div class="training-builder-item-tools">
+              <button class="ghost-button icon-only-action" type="button" data-action="training-builder-move" data-key="${item.key}" data-dir="-1" aria-label="Pomeri „${escapeHtml(item.name)}“ gore" ${index === 0 ? "disabled" : ""}>${renderActionIcon("up")}</button>
+              <button class="ghost-button icon-only-action" type="button" data-action="training-builder-move" data-key="${item.key}" data-dir="1" aria-label="Pomeri „${escapeHtml(item.name)}“ dole" ${index === lastIndex ? "disabled" : ""}>${renderActionIcon("down")}</button>
+              <button class="ghost-button icon-only-action" type="button" data-action="training-builder-remove" data-key="${item.key}" aria-label="Izbaci „${escapeHtml(item.name)}“">${renderActionIcon("close")}</button>
+            </div>
+          </div>
+          <div class="training-builder-dose">
+            <div class="training-builder-dose-field">
+              <span class="training-builder-dose-label" id="sets-label-${item.key}">Serije</span>
+              <div class="training-builder-stepper" role="group" aria-labelledby="sets-label-${item.key}">
+                <button type="button" data-action="training-builder-sets" data-key="${item.key}" data-delta="-1" aria-label="Manje serija" ${(item.sets || 0) <= 1 ? "disabled" : ""}>${renderActionIcon("minus")}</button>
+                <output aria-live="polite">${item.sets || "–"}</output>
+                <button type="button" data-action="training-builder-sets" data-key="${item.key}" data-delta="1" aria-label="Više serija">${renderActionIcon("add")}</button>
+              </div>
+            </div>
+            <span class="training-builder-dose-times" aria-hidden="true">×</span>
+            <div class="field training-builder-dose-field">
+              <label class="training-builder-dose-label" for="reps-${item.key}">Ponavljanja</label>
+              <input id="reps-${item.key}" class="training-builder-reps" value="${escapeHtml(item.reps)}" placeholder="8-10" autocomplete="off" data-builder-reps="${item.key}" data-no-autofocus />
+            </div>
+          </div>
+        </li>`
+        )
+        .join("")}
+    </ol>
+    <button class="training-builder-add" type="button" data-action="training-builder-view" data-view="pick">${renderActionIcon("add")}<span>${builder.items.length ? "Dodaj još vežbi" : "Dodaj vežbe"}</span></button>
+    </div>
+
+    <div class="app-dialog-actions training-builder-actions">
+      ${
+        isEdit
+          ? `<button class="danger-button button-with-icon training-builder-delete" type="button" data-action="delete-training-template" data-template-id="${escapeHtml(builder.templateId)}">${renderButtonContent("Obriši", "delete")}</button>`
+          : ""
+      }
+      <button class="solid-button button-with-icon" type="button" data-action="save-training-builder" ${builder.items.length ? "" : "disabled"}>${renderButtonContent(
+        isEdit ? "Sačuvaj izmene" : "Sačuvaj trening",
+        "save"
+      )}</button>
+    </div>`;
+}
+
 function renderTrainingTab() {
   const templates = getTrainingForDay(state.selectedWeekday);
   const favoriteTrainings = getFavoriteTrainingsDetailed();
@@ -11640,6 +12220,11 @@ function renderTrainingTab() {
         <div>
           <h2>Trening za ${weekdayAccusative(state.selectedWeekday)}</h2>
         </div>
+        ${
+          templates.length
+            ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-builder" aria-label="Sastavi još jedan trening za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Sastavi", "add")}</button>`
+            : ""
+        }
       </div>
       <div class="training-day-spotlight">
         ${
@@ -11676,6 +12261,12 @@ function renderTrainingTab() {
                         </div>
                         <span class="pill strong" aria-label="${completion.completedCount} od ${completion.totalCount} ${srPlural(completion.totalCount, "vežbe", "vežbe", "vežbi")} odrađeno">${completion.completedCount}/${completion.totalCount}</span>
                       </div>
+                      ${(() => {
+                        const groupIds = getTemplateGroupIds(template.exercises);
+                        return groupIds.length
+                          ? `<p class="training-template-groups">${groupIds.map((id) => getExerciseGroupLabel(id)).join(" · ")}</p>`
+                          : "";
+                      })()}
                       <div class="training-exercise-list">
                         ${template.exercises
                           .map(
@@ -11708,6 +12299,9 @@ function renderTrainingTab() {
                           .join("")}
                       </div>
                       <div class="entry-actions training-template-actions" style="justify-content:flex-start; margin-top:12px;">
+                        <button class="ghost-button button-with-icon" type="button" data-action="open-training-builder" data-template-id="${template.id}">
+                          ${renderButtonContent("Izmeni", "edit")}
+                        </button>
                         <button class="ghost-button button-with-icon" data-action="save-training-favorite" data-template-id="${template.id}">
                           ${renderButtonContent("Sačuvaj kao omiljeni", "save")}
                         </button>
@@ -11720,7 +12314,7 @@ function renderTrainingTab() {
               // šalje „ispod“ — dugme samo otvori formu za šablon.
               `<div class="training-empty-row">
                 <span>Nema treninga za ${weekdayAccusative(state.selectedWeekday)}${state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()})`}${favoriteTrainings.length ? " · ubaci omiljeni ispod" : ""}.</span>
-                <button class="ghost-button button-with-icon" type="button" data-action="open-training-template">${renderButtonContent("Dodaj šablon", "add")}</button>
+                <button class="ghost-button button-with-icon" type="button" data-action="open-training-builder">${renderButtonContent("Sastavi trening", "add")}</button>
               </div>`
         }
       </div>
@@ -11773,47 +12367,6 @@ function renderTrainingTab() {
     }
 
     <div class="section-toolbox">
-    <details id="training-template-details" class="section routine-weekly-section form-collapse">
-      <summary>
-        <span class="form-collapse-title">Dodaj šablon treninga</span>
-        ${renderCollapseHint(
-          (store.trainingTemplates || []).length
-            ? `${(store.trainingTemplates || []).length} ${srPlural((store.trainingTemplates || []).length, "šablon", "šablona", "šablona")} u planu`
-            : "Još nijedan šablon"
-        )}
-        <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
-      </summary>
-      <form id="training-form" class="form-grid">
-        <div class="field">
-          <label for="training-weekday">Dan</label>
-          <select id="training-weekday" name="weekday" required>
-            ${WEEKDAYS.map(
-              (weekday) => `
-                <option value="${weekday}" ${weekday === state.selectedWeekday ? "selected" : ""}>${weekdayLabel(weekday)}</option>
-              `
-            ).join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="training-week-track">Nedelja</label>
-          <select id="training-week-track" name="weekTrack" required>
-            ${getWeekTrackDisplayOrder()
-              .map((track) => `<option value="${track}" ${track === state.selectedWeekTrack ? "selected" : ""}>${getWeekTrackLabel(track)}</option>`)
-              .join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="training-name">Naziv treninga</label>
-          <input id="training-name" name="name" placeholder="npr. Noge" required />
-        </div>
-        <div class="field">
-          <label for="training-exercises">Vežbe</label>
-          <textarea id="training-exercises" name="exercises" placeholder="Čučanj 4x8-10&#10;Rumunsko mrtvo dizanje 4x10&#10;Iskorak 3x12"></textarea>
-        </div>
-        <button class="solid-button" type="submit">Sačuvaj šablon</button>
-      </form>
-    </details>
-
     <details id="training-progress-details" class="section form-collapse form-collapse--view" ${state.trainingProgressOpen ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Napredak po vežbi</span>
@@ -16461,6 +17014,12 @@ function render() {
     }
     preservedFocus = { id: activeEl.id, start: selStart, end: selEnd };
   }
+  // Dijalog sa dugom listom (biblioteka vežbi) skroluje sam, a render ga
+  // gradi iznova — bez ovoga je svaki tap vraćao listu na vrh.
+  const preservedInnerScroll = [...document.querySelectorAll("[data-keep-scroll]")].map((el) => [
+    el.dataset.keepScroll,
+    el.scrollTop,
+  ]);
 
   document.querySelector("#app").innerHTML = `
     <div class="app-frame app-frame--${state.activeTab} ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
@@ -16607,6 +17166,7 @@ function render() {
       ${renderRecipeApplyDialog()}
       ${renderFoodEditorDialog()}
       ${renderQuickEntryDialog()}
+      ${renderTrainingBuilderDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
     </div>
@@ -16671,6 +17231,16 @@ function render() {
   paintRestTimers();
   syncFloatingColumn();
   syncDialogFocus();
+  // Posle fokusa: focus() bi inače odskrolovao dijalog do prvog dugmeta.
+  preservedInnerScroll.forEach(([key, top]) => {
+    const el = document.querySelector(`[data-keep-scroll="${key}"]`);
+    if (el) {
+      el.scrollTop = top;
+    }
+  });
+  // Red grupa u biblioteci vežbi skroluje vodoravno; izabrana grupa mora
+  // da se vidi, inače se ne zna šta je filtrirano.
+  document.querySelector(".training-builder-chips .foods-chip.is-active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
   state.lastAddedEntryId = "";
@@ -19081,11 +19651,7 @@ async function handleDocumentClick(event) {
     );
     const nextTraining = {
       name: normalizedName,
-      exercises: template.exercises.map((exercise) => ({
-        id: uid("exercise"),
-        name: exercise.name,
-        details: exercise.details,
-      })),
+      exercises: template.exercises.map((exercise) => copyTrainingExercise(exercise)),
       updatedAt: new Date().toISOString(),
     };
 
@@ -19119,11 +19685,7 @@ async function handleDocumentClick(event) {
       weekday: state.selectedWeekday,
       weekTrack: state.selectedWeekTrack,
       name: favoriteTraining.name,
-      exercises: favoriteTraining.exercises.map((exercise) => ({
-        id: uid("exercise"),
-        name: exercise.name,
-        details: exercise.details,
-      })),
+      exercises: favoriteTraining.exercises.map((exercise) => copyTrainingExercise(exercise)),
     });
     persist();
     render();
@@ -19515,13 +20077,252 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "open-training-template") {
-    const details = document.querySelector("#training-template-details");
-    if (details) {
-      details.open = true;
-      details.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.requestAnimationFrame(() => details.querySelector("select, input")?.focus({ preventScroll: true }));
+  if (action === "open-training-builder") {
+    rememberDialogTrigger(actionTarget);
+    openTrainingBuilder(String(actionTarget.dataset.templateId || ""));
+    render();
+    return;
+  }
+
+  if (action === "close-training-builder") {
+    state.trainingBuilder = null;
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "training-builder-view") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
     }
+    builder.view = actionTarget.dataset.view === "pick" ? "pick" : "plan";
+    builder.planSeen = builder.planSeen || builder.view === "plan";
+    builder.newOpen = false;
+    builder.newError = "";
+    render();
+    return;
+  }
+
+  if (action === "training-builder-filter") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    const group = String(actionTarget.dataset.group || "all");
+    builder.filter = group === "all" || EXERCISE_GROUPS.some((entry) => entry.id === group) ? group : "all";
+    render();
+    return;
+  }
+
+  if (action === "clear-exercise-search") {
+    if (!state.trainingBuilder) {
+      return;
+    }
+    state.trainingBuilder.query = "";
+    render();
+    document.querySelector("#exercise-search")?.focus();
+    return;
+  }
+
+  if (action === "training-builder-toggle") {
+    const builder = state.trainingBuilder;
+    const exercise = builder && getExerciseLibrary().find((entry) => entry.key === actionTarget.dataset.key);
+    if (!exercise) {
+      return;
+    }
+    const key = normalizeLookupValue(exercise.name);
+    if (isExerciseInBuilder(builder, exercise.name)) {
+      builder.items = builder.items.filter((item) => normalizeLookupValue(item.name) !== key);
+    } else {
+      builder.items.push(makeTrainingBuilderItem({ name: exercise.name, group: exercise.group, sets: exercise.sets, reps: exercise.reps }));
+    }
+    render();
+    return;
+  }
+
+  if (action === "training-builder-sets") {
+    // Bez render(): stepper menja samo svoj broj, pa fokus i skrol ostaju.
+    const item = state.trainingBuilder?.items.find((entry) => entry.key === actionTarget.dataset.key);
+    if (!item) {
+      return;
+    }
+    item.sets = Math.min(12, Math.max(1, (item.sets || 0) + Number(actionTarget.dataset.delta || 0)));
+    const stepper = actionTarget.closest(".training-builder-stepper");
+    if (stepper) {
+      stepper.querySelector("output").textContent = String(item.sets);
+      const minus = stepper.querySelector('[data-delta="-1"]');
+      minus.disabled = item.sets <= 1;
+      if (minus.disabled && document.activeElement === minus) {
+        stepper.querySelector('[data-delta="1"]')?.focus();
+      }
+    }
+    return;
+  }
+
+  if (action === "training-builder-move") {
+    const builder = state.trainingBuilder;
+    const index = builder ? builder.items.findIndex((entry) => entry.key === actionTarget.dataset.key) : -1;
+    const nextIndex = index + Number(actionTarget.dataset.dir || 0);
+    if (index < 0 || nextIndex < 0 || nextIndex >= builder.items.length) {
+      return;
+    }
+    const [item] = builder.items.splice(index, 1);
+    builder.items.splice(nextIndex, 0, item);
+    render();
+    return;
+  }
+
+  if (action === "training-builder-remove") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    builder.items = builder.items.filter((entry) => entry.key !== actionTarget.dataset.key);
+    render();
+    return;
+  }
+
+  if (action === "training-builder-new-toggle") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    builder.newOpen = !builder.newOpen;
+    builder.newError = "";
+    if (builder.newOpen) {
+      // Ono što je ukucano u pretragu je najverovatnije ime nove vežbe.
+      builder.newName = builder.newName || builder.query.trim();
+      builder.newGroup = builder.filter !== "all" ? builder.filter : "";
+    }
+    render();
+    if (builder.newOpen) {
+      document.querySelector("#training-builder-new-name")?.focus();
+    }
+    return;
+  }
+
+  if (action === "training-builder-new-group") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    builder.newGroup = String(actionTarget.dataset.group || "");
+    builder.newError = "";
+    render();
+    return;
+  }
+
+  if (action === "training-builder-add-custom") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    const name = builder.newName.trim().replace(/\s+/g, " ");
+    const group = builder.newGroup || (builder.filter !== "all" ? builder.filter : "");
+    if (!name) {
+      builder.newError = "Upiši naziv vežbe.";
+      render();
+      document.querySelector("#training-builder-new-name")?.focus();
+      return;
+    }
+    if (!group) {
+      builder.newError = "Izaberi grupu mišića.";
+      render();
+      return;
+    }
+    // Ako vežba već postoji (ugrađena ili tvoja), samo je izaberi — bez duplikata.
+    const existing = getExerciseLibrary().find((entry) => normalizeLookupValue(entry.name) === normalizeLookupValue(name));
+    if (!existing) {
+      store.customExercises = [
+        ...(store.customExercises || []),
+        { id: uid("custom-exercise"), name, group, createdAt: new Date().toISOString() },
+      ];
+      persist();
+    }
+    const exercise = existing || { name, group, ...DEFAULT_CUSTOM_EXERCISE_DOSE };
+    if (!isExerciseInBuilder(builder, exercise.name)) {
+      builder.items.push(makeTrainingBuilderItem({ name: exercise.name, group: exercise.group, sets: exercise.sets, reps: exercise.reps }));
+    }
+    builder.filter = exercise.group;
+    builder.query = "";
+    builder.newOpen = false;
+    builder.newName = "";
+    builder.newGroup = "";
+    builder.newError = "";
+    render();
+    return;
+  }
+
+  if (action === "delete-custom-exercise") {
+    const exercise = (store.customExercises || []).find((entry) => entry.id === actionTarget.dataset.exerciseId);
+    if (!exercise) {
+      return;
+    }
+    const confirmed = await confirmAction({
+      title: `Obrisati „${exercise.name}“ iz biblioteke?`,
+      message: "Treninzi u kojima već jeste ostaju kakvi su.",
+      confirmLabel: "Obriši",
+    });
+    if (!confirmed) {
+      return;
+    }
+    store.customExercises = store.customExercises.filter((entry) => entry.id !== exercise.id);
+    persist();
+    render();
+    return;
+  }
+
+  if (action === "save-training-builder") {
+    const builder = state.trainingBuilder;
+    if (!builder || !builder.items.length) {
+      return;
+    }
+    const weekday = WEEKDAYS.includes(builder.weekday) ? builder.weekday : state.selectedWeekday;
+    const weekTrack = normalizeWeekTrack(builder.weekTrack);
+    const name = getTrainingBuilderName(builder).trim() || "Trening";
+    const exercises = builder.items.map((item) => {
+      const untouched = item.original && item.original.sets === item.sets && item.original.reps === item.reps;
+      return {
+        id: item.id || uid("exercise"),
+        name: item.name,
+        group: item.group || "",
+        sets: item.sets,
+        reps: item.reps.trim(),
+        details: untouched ? item.original.details : buildExerciseDetails(item.name, item.sets, item.reps),
+      };
+    });
+    const existing = builder.templateId ? store.trainingTemplates.find((entry) => entry.id === builder.templateId) : null;
+    if (existing) {
+      Object.assign(existing, { name, weekday, weekTrack, exercises });
+    } else {
+      store.trainingTemplates.push({ id: uid("training"), weekday, weekTrack, name, exercises });
+    }
+    persist();
+    state.trainingBuilder = null;
+    // Prikaži dan u koji je trening upravo sačuvan.
+    state.selectedWeekday = weekday;
+    state.selectedWeekTrack = weekTrack;
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "delete-training-template") {
+    const template = store.trainingTemplates.find((entry) => entry.id === actionTarget.dataset.templateId);
+    if (!template) {
+      return;
+    }
+    const prevTemplates = store.trainingTemplates;
+    store.trainingTemplates = store.trainingTemplates.filter((entry) => entry.id !== template.id);
+    persist();
+    state.trainingBuilder = null;
+    queuePendingUndo(`Trening „${template.name}“ obrisan.`, () => {
+      store.trainingTemplates = prevTemplates;
+      persist();
+    });
+    render();
+    restoreFocusAfterDialog();
     return;
   }
 
@@ -20351,36 +21152,6 @@ async function handleSubmit(event) {
     return;
   }
 
-  if (event.target.id === "training-form") {
-    const weekday = String(formData.get("weekday") || state.selectedWeekday).trim();
-    const weekTrack = normalizeWeekTrack(formData.get("weekTrack") ?? state.selectedWeekTrack);
-    const name = String(formData.get("name") || "").trim();
-    const lines = String(formData.get("exercises") || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (!WEEKDAYS.includes(weekday) || !name || !lines.length) {
-      return;
-    }
-
-    store.trainingTemplates.push({
-      id: uid("training"),
-      weekday,
-      weekTrack,
-      name,
-      exercises: lines.map((line) => ({
-        id: uid("exercise"),
-        name: line.split(/\s+\d/)[0] || line,
-        details: line,
-      })),
-    });
-    persist();
-    event.target.reset();
-    render();
-    return;
-  }
-
   if (event.target.id === "training-progress-form") {
     const date = String(formData.get("date") || "").trim();
     const weekday = String(formData.get("weekday") || state.selectedWeekday).trim();
@@ -20834,6 +21605,42 @@ function handleInput(event) {
       note.innerHTML = renderMeasurementGoalNote(target.value);
     }
     return;
+  }
+
+  // „Sastavi trening“: kucanje samo upisuje u nacrt, bez render() — polja
+  // ostaju pod prstima, a sledeći render ih gradi iz nacrta.
+  if (state.trainingBuilder && target.closest?.(".training-builder-dialog")) {
+    const builder = state.trainingBuilder;
+    if (target.id === "training-builder-name") {
+      builder.name = target.value;
+      // Obrisan naziv vraća predlog po grupama.
+      builder.nameTouched = target.value.trim() !== "";
+      return;
+    }
+    if (target.id === "training-builder-weekday") {
+      builder.weekday = target.value;
+      return;
+    }
+    if (target.id === "training-builder-week") {
+      builder.weekTrack = normalizeWeekTrack(target.value);
+      return;
+    }
+    if (target.dataset.builderReps) {
+      const item = builder.items.find((entry) => entry.key === target.dataset.builderReps);
+      if (item) {
+        item.reps = target.value;
+      }
+      return;
+    }
+    if (target.id === "training-builder-new-name") {
+      builder.newName = target.value;
+      return;
+    }
+    if (target.id === "exercise-search") {
+      builder.query = target.value;
+      filterExercisePickInline(builder);
+      return;
+    }
   }
 
   if (target instanceof HTMLTextAreaElement && target.id === "quick-entry-input") {
@@ -21490,7 +22297,9 @@ function getOpenDialogElement() {
         ? ".food-editor-dialog"
         : state.recipeApplyDialog && state.recipeApplyDialog.favoriteId
           ? ".recipe-apply-dialog"
-          : "";
+          : state.trainingBuilder
+            ? ".training-builder-dialog"
+            : "";
   return selector ? document.querySelector(selector) : null;
 }
 
@@ -21538,8 +22347,12 @@ function syncDialogFocus() {
     return;
   }
   const focusables = getDialogFocusables(dialog);
+  // data-no-autofocus: polje koje ne treba da otvori tastaturu čim se dijalog
+  // pojavi (pretraga iznad liste, već popunjen naziv).
   const preferred =
-    focusables.find((el) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) || focusables[0];
+    focusables.find(
+      (el) => (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && !el.hasAttribute("data-no-autofocus")
+    ) || focusables[0];
   if (preferred) {
     // Polje za kucanje dobija pravi fokus (kursor). Kad je prvo dugme, fokus
     // ide bez prstena: na dodir je prsten oko × izgledao kao već izabran;
@@ -21599,6 +22412,8 @@ document.addEventListener("keydown", (event) => {
       ? '[data-action="close-food-editor-dialog"]'
       : state.recipeApplyDialog && state.recipeApplyDialog.favoriteId
         ? '[data-action="close-recipe-apply-dialog"]'
+        : state.trainingBuilder
+          ? '[data-action="close-training-builder"]'
         : state.navMenuOpen
           ? '[data-action="close-nav-menu"]'
           : null;
@@ -21626,6 +22441,7 @@ window.addEventListener("hashchange", () => {
     }
     state.activeTab = nextTab;
     state.navMenuOpen = false;
+    state.trainingBuilder = null;
     resetFoodEditing();
     resetRoutineEditing();
     render();

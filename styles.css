@@ -1797,7 +1797,6 @@ textarea::placeholder {
   .bc-trends,
   .bc-sessions,
   #training-burn-form,
-  #training-form,
   #training-progress-form,
   #training-log-form,
   #habit-form,
@@ -14348,4 +14347,438 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
     translate: calc((var(--float-width, 100vw) - min(var(--max-float, 720px), calc(var(--float-width, 100vw) - 32px))) / 2) 0;
   }
   .feedback-toast { --max-float: 420px; }
+}
+
+/* ============================================================
+   Sastavi trening — biblioteka vežbi po grupama i sam trening.
+   Zaglavlje i dugmad stoje, skroluje samo telo, pa na telefonu
+   „Dalje“/„Sačuvaj“ i pretraga uvek ostaju pod prstom.
+   ============================================================ */
+.training-builder-dialog {
+  --builder-pad: 18px;
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100vw - 28px));
+  max-height: min(88dvh, calc(100dvh - 24px));
+  padding: 0;
+  overflow: hidden;
+}
+.training-builder-dialog.is-pick {
+  height: min(88dvh, calc(100dvh - 24px));
+}
+@media (min-width: 721px) {
+  .training-builder-dialog { --builder-pad: 22px; }
+}
+.training-builder-head {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 14px calc(var(--builder-pad) - 8px) 8px var(--builder-pad);
+}
+.training-builder-head .training-builder-back {
+  margin-left: -10px;
+}
+.training-builder-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.training-builder-head h3 {
+  font-size: var(--fs-20);
+  font-weight: 700;
+}
+.training-builder-pick-tools {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 10px;
+  padding: 0 var(--builder-pad) 10px;
+  border-bottom: 1px solid var(--line);
+}
+:root[data-theme] .training-builder-pick-tools .foods-search {
+  position: static;
+  margin: 0;
+  box-shadow: none;
+}
+.foods-search input#exercise-search {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  color: var(--ink);
+  padding: 10px 0;
+  min-height: 0;
+}
+.foods-search input#exercise-search::-webkit-search-cancel-button {
+  display: none;
+}
+.training-builder-pick-tools .training-builder-chips {
+  margin-bottom: 0;
+}
+.training-builder-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px var(--builder-pad) 16px;
+}
+.training-builder-body > * {
+  min-width: 0;
+}
+
+/* Biblioteka */
+.exercise-pick-group {
+  display: grid;
+  gap: 2px;
+}
+.exercise-pick-group-title {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: 700;
+  color: var(--ink);
+}
+.exercise-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.exercise-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.exercise-pick-item:last-child {
+  border-bottom: 0;
+}
+.exercise-pick-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.exercise-pick-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  color: transparent;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.exercise-pick-check .button-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.exercise-pick-row.is-selected .exercise-pick-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--button-primary-text, #fff);
+}
+.exercise-pick-row:hover .exercise-pick-check {
+  border-color: var(--accent);
+}
+.exercise-pick-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.exercise-pick-copy strong {
+  font-size: var(--fs-16);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.exercise-pick-copy span {
+  font-size: var(--fs-13);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.exercise-pick-row.is-selected .exercise-pick-copy strong {
+  font-weight: 700;
+}
+.exercise-pick-delete:hover {
+  color: var(--status-error-text);
+}
+.exercise-pick-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-15);
+}
+
+/* „Nova vežba“ i „Dodaj vežbe“ — isti blagi red kao „Dodaj namirnicu“. */
+.training-builder-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--r-12);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-15);
+  font-weight: 700;
+  cursor: pointer;
+}
+.training-builder-add:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+:root[data-theme="dark"] .training-builder-add {
+  background: var(--surface-strong);
+}
+:root[data-theme="dark"] .training-builder-add:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-strong));
+}
+.training-builder-new {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--r-12);
+  background: var(--pill-bg);
+}
+.training-builder-new .field {
+  margin: 0;
+}
+.training-builder-new .choice-chip {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 6px 12px;
+}
+.training-builder-new .choice-chip-label {
+  font-size: var(--fs-14);
+}
+.training-builder-new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.training-builder-error {
+  margin: 0;
+  color: var(--status-error-text);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+/* Sam trening */
+.training-builder-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.training-builder-meta .field {
+  margin: 0;
+  min-width: 0;
+}
+.training-builder-meta .field--full {
+  grid-column: 1 / -1;
+}
+.training-builder-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: -6px;
+}
+.training-builder-list-head h4 {
+  margin: 0;
+  font-size: var(--fs-16);
+  font-weight: 700;
+}
+.training-builder-list-head span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  text-align: right;
+}
+.training-builder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.training-builder-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.training-builder-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.training-builder-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.training-builder-item-name {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding-top: 4px;
+}
+.training-builder-item-name strong {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.training-builder-item-name span {
+  font-size: var(--fs-13);
+  color: var(--muted);
+}
+.training-builder-item-tools {
+  flex: 0 0 auto;
+  display: flex;
+  margin: -4px -8px 0 0;
+}
+:root[data-theme] .training-builder-item-tools .icon-only-action {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+.training-builder-item-tools .icon-only-action:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.training-builder-dose {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.training-builder-dose-field {
+  display: grid;
+  gap: 4px;
+}
+.training-builder-dose-label {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--muted);
+}
+.training-builder-dose-times {
+  padding-bottom: 9px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.training-builder-stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-12);
+  background: var(--surface-strong);
+}
+/* Isti „bunar“ kao polja za unos u tamnoj temi. */
+:root[data-theme="dark"] .training-builder-stepper {
+  background: rgba(12, 13, 11, 0.72);
+}
+.training-builder-stepper button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.training-builder-stepper button:disabled {
+  color: var(--muted);
+  opacity: 0.45;
+  cursor: default;
+}
+.training-builder-stepper .button-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.training-builder-stepper output {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme] .training-builder-dose-field.field {
+  margin: 0;
+  gap: 4px;
+}
+:root[data-theme] .training-builder-reps {
+  width: 96px;
+  min-height: 40px;
+  height: 40px;
+  padding: 8px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dugmad su dno lista: uvek vidljiva, telo skroluje iznad. */
+:root[data-theme] .training-builder-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px var(--builder-pad) calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+.training-builder-actions > .solid-button {
+  margin-left: auto;
+}
+.training-builder-count {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+/* Na kartici treninga: koje grupe pokriva, ispod naziva (u ravni naslova,
+   posle kućice za ceo trening). */
+.training-template-groups {
+  margin: 2px 0 0 40px;
+  color: var(--muted);
+  font-size: var(--fs-13);
+}
+.training-compose-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: var(--fs-14);
+}
+/* „Izmeni“ i „Sačuvaj kao omiljeni“ u jednom redu i na telefonu. */
+@media (max-width: 520px) {
+  .training-template-actions {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+/* Na širem ekranu svih osam grupa staje bez vodoravnog skrola. */
+@media (min-width: 721px) {
+  .foods-chips.training-builder-chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-right: 2px;
+  }
 }
