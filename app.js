@@ -530,7 +530,7 @@ const optionalMeasurementFieldIds = measurementFields
   .map((field) => field.id);
 
 const PHOTO_TAGS = ["front", "side", "back"];
-const PHOTO_TAG_LABELS = { front: "Front", side: "Bok", back: "Leđa" };
+const PHOTO_TAG_LABELS = { front: "Spreda", side: "Bok", back: "Leđa" };
 
 // Common blood-work markers with orientational reference ranges + units. Ranges
 // vary by lab, sex and age, so these are guidance only (not medical advice) and
@@ -8566,6 +8566,30 @@ async function deleteAccountPermanently(password) {
   }
 }
 
+// Izbor fajla u stilu aplikacije: sistemsko polje pokazuje „Choose File /
+// No file chosen“ na jeziku pregledača. Pravo polje ostaje (forma ga čita i
+// proverava „required“), samo nevidljivo; ime izabranog fajla upisuje
+// syncFilePickerName.
+function renderFilePicker(id, name, label, { required = false, accept = "image/*" } = {}) {
+  return `
+    <span class="file-pick-title" id="${id}-title">${escapeHtml(label)}</span>
+    <label class="file-pick" for="${id}">
+      <input class="file-pick-input" id="${id}" name="${name}" type="file" accept="${accept}" aria-labelledby="${id}-title" data-file-pick ${required ? "required" : ""} />
+      <span class="file-pick-button">${renderActionIcon("add")}<span>Izaberi sliku</span></span>
+      <span class="file-pick-name" data-role="file-pick-name">nije izabrana</span>
+    </label>`;
+}
+
+function syncFilePickerName(input) {
+  const nameEl = input.closest(".file-pick")?.querySelector("[data-role='file-pick-name']");
+  if (!nameEl) {
+    return;
+  }
+  const file = input.files && input.files[0];
+  nameEl.textContent = file ? file.name : "nije izabrana";
+  input.closest(".file-pick").classList.toggle("has-file", Boolean(file));
+}
+
 // A number field that carries its unit inside it instead of in the label.
 function renderUnitField(id, label, unit, inputHtml, full = false) {
   return `
@@ -11222,13 +11246,19 @@ function renderRecipesTab() {
               ${favorites.map((favorite) => `<option value="${escapeHtml(favorite.name)}"></option>`).join("")}
             </datalist>
           </div>
-          <div class="field">
-            <label for="favorite-meal-label">Tip obroka</label>
-            <input id="favorite-meal-label" name="mealLabel" list="recipe-meal-options" placeholder="npr. 1. Doručak" value="${escapeHtml(state.favoriteDraft.mealLabel)}" required />
-            <datalist id="recipe-meal-options">
-              ${meals.map((meal) => `<option value="${escapeHtml(meal)}"></option>`).join("")}
-            </datalist>
-          </div>
+          ${
+            // Isti obroci kao u planu, kao čipovi, umesto slobodnog teksta
+            // „npr. 1. Doručak“ (redni broj je unutrašnja oznaka).
+            renderChoiceField(
+              "Tip obroka",
+              "mealLabel",
+              state.favoriteDraft.mealLabel,
+              [...new Set([...defaultMeals, ...store.weeklyPlanEntries.map((entry) => normalizeMealLabel(entry.mealLabel))])].map((meal) => ({
+                id: meal,
+                label: getMealDisplayParts(meal).title || meal,
+              }))
+            )
+          }
           <div class="field recipe-builder-field-wide">
             <label for="favorite-description">Kratak opis</label>
             <input
@@ -11241,7 +11271,7 @@ function renderRecipesTab() {
           <div class="field recipe-builder-field-wide">
             <label for="favorite-image">Slika obroka</label>
             <div class="recipe-image-pick">
-              <label class="ghost-button button-with-icon" for="favorite-image">${renderButtonContent(state.favoriteDraft.imageUrl ? "Promeni sliku" : "Izaberi sliku", "open")}</label>
+              <label class="ghost-button button-with-icon" for="favorite-image">${renderButtonContent(state.favoriteDraft.imageUrl ? "Promeni sliku" : "Izaberi sliku", "add")}</label>
               <input id="favorite-image" name="image" type="file" accept="image/*" hidden />
             </div>
             <div class="footer-note">Opcionalno. Dodaj jednu fotku obroka i recept kartica će odmah izgledati bogatije.</div>
@@ -11262,10 +11292,7 @@ function renderRecipesTab() {
             <label for="favorite-servings">Broj porcija</label>
             <input id="favorite-servings" name="servings" type="number" inputmode="decimal" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
           </div>
-          <div class="field">
-            <label for="favorite-prep-time">Vreme pripreme</label>
-            <input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" placeholder="15" value="${state.favoriteDraft.prepTimeMinutes}" />
-          </div>
+          ${renderUnitField("favorite-prep-time", "Vreme pripreme", "min", `<input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" value="${state.favoriteDraft.prepTimeMinutes}" />`)}
           <div class="field recipe-builder-field-wide">
             <label for="favorite-instructions">Priprema</label>
             <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${escapeHtml(state.favoriteDraft.instructions)}</textarea>
@@ -11748,7 +11775,7 @@ function renderTrainingTab() {
         </div>
         <div class="field">
           <label for="training-exercises">Vežbe</label>
-          <textarea id="training-exercises" name="exercises" placeholder="Cucanj 4x8-10&#10;Rumunsko mrtvo 4x10&#10;Iskorak 3x12"></textarea>
+          <textarea id="training-exercises" name="exercises" placeholder="Čučanj 4x8-10&#10;Rumunsko mrtvo dizanje 4x10&#10;Iskorak 3x12"></textarea>
         </div>
         <button class="solid-button" type="submit">Sačuvaj šablon</button>
       </form>
@@ -12700,7 +12727,7 @@ function renderRoutineTab() {
         </div>
         ${renderChoiceField("Tip praćenja", "trackingMode", habitTrackingMode, [
           { id: "weekly", label: "Nedeljna", hint: "čekiraš po danima" },
-          { id: "streak", label: "Streak", hint: "broji dane u nizu" },
+          { id: "streak", label: "Niz", hint: "broji dane u nizu" },
         ])}
         <div class="field">
           <label for="habit-note">Opis / cilj</label>
@@ -15926,13 +15953,12 @@ function renderProgressTab() {
             ${PHOTO_TAGS.map(
               (tag) => `
                 <div class="measurement-photo-slot">
-                  <label for="measurement-photo-${tag}">${PHOTO_TAG_LABELS[tag]}</label>
-                  <input id="measurement-photo-${tag}" name="photo-${tag}" type="file" accept="image/*" />
+                  ${renderFilePicker(`measurement-photo-${tag}`, `photo-${tag}`, PHOTO_TAG_LABELS[tag])}
                 </div>
               `
             ).join("")}
           </div>
-          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. ${isDemoAccount() ? "Na demo nalogu ostaju samo na ovom uređaju." : "Čuvaju se u cloudu, pa ih vidiš i na drugim uređajima."}${
+          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. ${isDemoAccount() ? "Na demo nalogu ostaju samo na ovom uređaju." : "Čuvaju se na nalogu, pa ih vidiš i na drugim uređajima."}${
             editing
               ? " Postojeće slike se izmenom ne diraju: vezane su za datum, pa ako promeniš datum ostaju na starom."
               : ""
@@ -16056,10 +16082,9 @@ function renderProgressTab() {
           <label for="photo-note">Napomena</label>
           <input id="photo-note" name="note" placeholder="npr. jutro, posle treninga" />
         </div>
-        <div class="field photo-picker">
-          <label for="photo-file">Slika</label>
-          <input id="photo-file" name="photo" type="file" accept="image/*" required />
-          <div class="footer-note">${isDemoAccount() ? "Slika se smanjuje i na demo nalogu ostaje samo na ovom uređaju." : "Slika se smanjuje i čuva u cloudu, pa je vidiš i na telefonu i na računaru."}</div>
+        <div class="field">
+          ${renderFilePicker("photo-file", "photo", "Slika", { required: true })}
+          <div class="footer-note">${isDemoAccount() ? "Slika se smanjuje i na demo nalogu ostaje samo na ovom uređaju." : "Slika se smanjuje i čuva na nalogu, pa je vidiš i na telefonu i na računaru."}</div>
         </div>
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
@@ -19580,12 +19605,21 @@ async function handleDocumentClick(event) {
     const name = actionTarget.dataset.choiceName || "";
     const value = actionTarget.dataset.choiceValue || "";
     const group = actionTarget.closest(".choice-chips");
-    const hidden = document.querySelector(`[data-choice-input="${name}"]`);
+    // Isto ime polja može postojati u dve forme odjednom (recept i dijalog
+    // „Dodaj u plan“), pa skriveno polje traži prvo u sopstvenom polju.
+    const hidden =
+      actionTarget.closest(".choice-field")?.querySelector(`[data-choice-input="${name}"]`) ||
+      document.querySelector(`[data-choice-input="${name}"]`);
     if (!group || !hidden) {
       return;
     }
     // Deliberately no render(): the goals form holds other unsaved edits.
     hidden.value = value;
+    // Recept u izradi pamti polja u stanju (ponovo se crta posle svakog
+    // sastojka), pa i izbor obroka mora tamo.
+    if (name === "mealLabel" && actionTarget.closest("#favorite-meal-form")) {
+      state.favoriteDraft.mealLabel = value;
+    }
     group.querySelectorAll(".choice-chip").forEach((chip) => {
       const on = chip === actionTarget;
       chip.classList.toggle("is-active", on);
@@ -21207,6 +21241,11 @@ document.addEventListener("input", handleValidationInteraction, true);
 document.addEventListener("change", handleValidationInteraction, true);
 document.addEventListener("invalid", handleInvalidField, true);
 document.addEventListener("change", handleImport);
+document.addEventListener("change", (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.hasAttribute("data-file-pick")) {
+    syncFilePickerName(event.target);
+  }
+});
 
 // If the app was left open across a day/week boundary (installed PWAs stay
 // resident for days), re-point the selected day + week track at today and roll

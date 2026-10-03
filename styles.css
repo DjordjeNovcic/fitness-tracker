@@ -15477,3 +15477,134 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   color: var(--accent-strong);
 }
 :root[data-theme="dark"] .auth-privacy > summary { color: var(--accent); }
+
+/* Mete za dodir: ovi su izgledom manji od 44 px i tako treba da ostanu, pa
+   se dodirna površina širi nevidljivim slojem (::after), bez pomeranja
+   rasporeda. Kvadratić na Rutini dobija isto preko negativne margine. */
+.hero-week-toggle .hero-week-chip,
+.help-note > summary,
+.meal-secondary-action,
+.foods-scan-inline,
+.today-reminders-close,
+.seg-nav-btn,
+.foods-chip,
+.recipe-library-head {
+  position: relative;
+}
+.hero-week-toggle .hero-week-chip::after,
+.help-note > summary::after,
+.meal-secondary-action::after,
+.foods-scan-inline::after,
+.today-reminders-close::after,
+.seg-nav-btn::after,
+.foods-chip::after {
+  content: "";
+  position: absolute;
+  inset: -5px -2px;
+}
+.help-note > summary::after { inset: -7px; }
+.foods-scan-inline::after,
+.today-reminders-close::after { inset: -4px; }
+.recipe-library-head {
+  padding-block: 8px;
+  margin-block: -8px;
+}
+.routine-row .routine-check,
+.training-exercise-check {
+  margin: -7px;
+  padding: 7px;
+}
+/* Redovi koji se skroluju vodoravno seku sve što viri van njih, pa im treba
+   malo unutrašnjeg prostora gore i dole (poništeno negativnom marginom). */
+@media (max-width: 720px) {
+  .seg-nav,
+  :root[data-theme="dark"] .seg-nav {
+    padding-block: 5px;
+    margin-block: -5px;
+  }
+}
+.foods-chips {
+  padding-block: 6px;
+  margin-block: -4px;
+}
+
+/* Izbor slike: dugme i ime fajla, ne sistemsko „Choose File“. Pravo polje
+   je nevidljivo ali na mestu, da forma i „required“ rade. */
+.file-pick-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--ink);
+}
+.file-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 12px 6px 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-16);
+  background: var(--surface-strong);
+  cursor: pointer;
+}
+.file-pick:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.file-pick.has-file { border-style: solid; border-color: var(--accent); }
+.file-pick-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.file-pick-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-12);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+:root[data-theme="dark"] .file-pick-button { color: var(--accent); }
+.file-pick-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-14);
+  color: var(--muted);
+}
+.file-pick.has-file .file-pick-name { color: var(--ink); font-weight: 600; }
+.measurement-photo-slot { display: grid; }
+.field .file-pick,
+.file-pick {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.file-pick .file-pick-button { text-transform: none; letter-spacing: 0; }
+
+/* Napravi recept: forma je sadržaj sekcije, ne kartica u kartici. */
+:root[data-theme] .recipes-builder-section .recipe-studio-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* Izabrana jedinica (g / kašičica / kašika) kao svaki drugi izbor: blago. */
+:root[data-theme] .amount-unit-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .amount-unit-chip.is-active { color: var(--accent); }
+.plan-glance-label { white-space: nowrap; }
+.plan-glance-value { white-space: nowrap; }
