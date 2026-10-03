@@ -8590,6 +8590,26 @@ function syncFilePickerName(input) {
   input.closest(".file-pick").classList.toggle("has-file", Boolean(file));
 }
 
+// Traka „Vrati“, poruke i traka za novu verziju su position: fixed, pa se
+// centriraju na prozor; na računaru ih to stavlja delom ispod bočne trake.
+// Ovde se meri kolona sa sadržajem (širina bočne trake se menja kad se
+// skupi, a ceo okvir je ograničen na 1600 px), a CSS ih postavlja na nju.
+function syncFloatingColumn() {
+  const main = document.querySelector(".app-main");
+  const root = document.documentElement;
+  if (!main || window.innerWidth < 900) {
+    root.style.removeProperty("--float-left");
+    root.style.removeProperty("--float-width");
+    return;
+  }
+  const rect = main.getBoundingClientRect();
+  const style = getComputedStyle(main);
+  const padLeft = parseFloat(style.paddingLeft) || 0;
+  const padRight = parseFloat(style.paddingRight) || 0;
+  root.style.setProperty("--float-left", `${Math.round(rect.left + padLeft)}px`);
+  root.style.setProperty("--float-width", `${Math.round(rect.width - padLeft - padRight)}px`);
+}
+
 // A number field that carries its unit inside it instead of in the label.
 function renderUnitField(id, label, unit, inputHtml, full = false) {
   return `
@@ -16636,6 +16656,7 @@ function render() {
     filterRecipeCardsInline(state.recipeSearch);
   }
   paintRestTimers();
+  syncFloatingColumn();
   syncDialogFocus();
   // The "just added" highlight is one-shot — consume it so it doesn't replay
   // on the next routine re-render.
@@ -21279,6 +21300,7 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("pagehide", flushPendingCloudSave);
+window.addEventListener("resize", () => window.requestAnimationFrame(syncFloatingColumn));
 
 // Swipe right on a meal card's header (touch devices) to toggle "pojedeno" —
 // the same checkbox the tap uses, so all bookkeeping stays in one place.

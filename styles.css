@@ -15608,3 +15608,23 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 :root[data-theme="dark"] .amount-unit-chip.is-active { color: var(--accent); }
 .plan-glance-label { white-space: nowrap; }
 .plan-glance-value { white-space: nowrap; }
+
+/* Na računaru: traka „Vrati“, poruke i nova verzija stoje na sredini kolone
+   sa sadržajem (vrednosti meri syncFloatingColumn), ne na sredini prozora. */
+@media (min-width: 900px) {
+  .undo-banner,
+  .feedback-toast,
+  .update-banner {
+    left: var(--float-left, 16px);
+    right: auto;
+    width: min(var(--max-float, 720px), calc(var(--float-width, 100vw) - 32px));
+    margin: 0;
+    transform-origin: center bottom;
+  }
+  .undo-banner,
+  .feedback-toast,
+  .update-banner {
+    translate: calc((var(--float-width, 100vw) - min(var(--max-float, 720px), calc(var(--float-width, 100vw) - 32px))) / 2) 0;
+  }
+  .feedback-toast { --max-float: 420px; }
+}
