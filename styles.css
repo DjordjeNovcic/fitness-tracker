@@ -10658,7 +10658,7 @@ button.meal-entry-body:focus-visible {
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
-  color: var(--accent);
+  color: var(--ink);
 }
 .calibration-unit {
   color: var(--muted);

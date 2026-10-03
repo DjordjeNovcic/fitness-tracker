@@ -274,6 +274,19 @@ const WEEKDAY_ACCUSATIVE = {
 function weekdayAccusative(weekday) {
   return WEEKDAY_ACCUSATIVE[weekday] || weekdayLabel(weekday).toLowerCase();
 }
+// „Kopiraj iz petka“: posle „iz“/„od“ dan ide u genitivu.
+const WEEKDAY_GENITIVE = {
+  Ponedeljak: "ponedeljka",
+  Utorak: "utorka",
+  Sreda: "srede",
+  Četvrtak: "četvrtka",
+  Petak: "petka",
+  Subota: "subote",
+  Nedelja: "nedelje",
+};
+function weekdayGenitive(weekday) {
+  return WEEKDAY_GENITIVE[weekday] || weekdayLabel(weekday).toLowerCase();
+}
 const TABS = [
   { id: "plan", label: "Danas", icon: "🍽" },
   { id: "recipes", label: "Recepti", icon: "🥣" },
@@ -12875,7 +12888,7 @@ function renderRoutineTab() {
       <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         ${
           previousWeekday && previousDayTaskCount
-            ? `<button class="ghost-button" data-action="copy-previous-day-tasks">Kopiraj iz ${previousWeekday}</button>`
+            ? `<button class="ghost-button" data-action="copy-previous-day-tasks">Kopiraj iz ${weekdayGenitive(previousWeekday)}</button>`
             : ""
         }
         ${
@@ -21528,7 +21541,11 @@ function syncDialogFocus() {
   const preferred =
     focusables.find((el) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) || focusables[0];
   if (preferred) {
-    preferred.focus();
+    // Polje za kucanje dobija pravi fokus (kursor). Kad je prvo dugme, fokus
+    // ide bez prstena: na dodir je prsten oko × izgledao kao već izabran;
+    // tastatura ga i dalje dobija čim krene Tab.
+    const isTextField = preferred instanceof HTMLInputElement || preferred instanceof HTMLTextAreaElement;
+    preferred.focus(isTextField ? undefined : { focusVisible: false });
   } else {
     dialog.setAttribute("tabindex", "-1");
     dialog.focus();
