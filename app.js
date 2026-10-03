@@ -1,8 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   getAuth,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -686,6 +689,9 @@ const state = {
   scannerOpen: false,
   scannerStatus: "",
   scannerError: false,
+  deleteAccountOpen: false,
+  deleteAccountPending: false,
+  deleteAccountError: "",
   scannerTorchOn: false,
   scannerTorchSupported: false,
   scannedFood: null,
@@ -1708,8 +1714,12 @@ function getAuthErrorMessage(error) {
   }
 }
 
+// Dok se nalog briše, nijedno čuvanje ne sme da stigne do clouda: tajmer ili
+// pagehide bi inače upisao podatke nazad posle brisanja.
+let accountDeletionInProgress = false;
+
 async function saveCloudStateNow(options = {}) {
-  if (!state.authUser || (isHydratingCloudState && !options.force)) {
+  if (accountDeletionInProgress || !state.authUser || (isHydratingCloudState && !options.force)) {
     return false;
   }
 
@@ -1794,7 +1804,7 @@ function isCloudPayloadTooLarge(error) {
 // Fire a debounced save immediately (page going to background / being closed).
 // Mobile OSes suspend timers, so a save scheduled 650 ms ago may never run.
 function flushPendingCloudSave() {
-  if (!cloudSaveTimer || !state.authUser || !cloudBaselineReady || state.syncConflict) {
+  if (accountDeletionInProgress || !cloudSaveTimer || !state.authUser || !cloudBaselineReady || state.syncConflict) {
     return;
   }
   saveCloudStateNow();
@@ -1803,7 +1813,7 @@ function flushPendingCloudSave() {
 // After a failed hydrate (offline start) or a failed save, pick sync back up as
 // soon as we're online/visible again instead of waiting for the next edit.
 async function retryCloudSync() {
-  if (!state.authUser || !state.authReady || isHydratingCloudState || cloudSyncRetryInFlight || state.syncConflict) {
+  if (accountDeletionInProgress || !state.authUser || !state.authReady || isHydratingCloudState || cloudSyncRetryInFlight || state.syncConflict) {
     return;
   }
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -2029,6 +2039,9 @@ function getLocalStoreSnapshot() {
 }
 
 function persistLocal(rollback) {
+  if (accountDeletionInProgress) {
+    return true;
+  }
   try {
     localStorage.setItem(getStoreStorageKey(), JSON.stringify(getLocalStoreSnapshot()));
     return true;
@@ -2043,6 +2056,9 @@ function persistLocal(rollback) {
 }
 
 function persist(rollback) {
+  if (accountDeletionInProgress) {
+    return;
+  }
   localMutationCounter += 1;
   try {
     recordTodaySnapshot();
@@ -2158,7 +2174,7 @@ const cloudPhotoMisses = new Set();
 // and deletes cloud copies of photos removed from the store. Runs after every
 // successful state save (so metadata always lands first) and after reconcile.
 async function syncPhotosWithCloud() {
-  if (!state.authUser || isDemoAccount() || !cloudBaselineReady || isHydratingCloudState || state.syncConflict) {
+  if (accountDeletionInProgress || !state.authUser || isDemoAccount() || !cloudBaselineReady || isHydratingCloudState || state.syncConflict) {
     return;
   }
   if (photoSyncInFlight) {
@@ -7279,7 +7295,8 @@ async function lookupSharedFood(barcode) {
 }
 
 async function saveSharedFood(barcode, food) {
-  if (!state.authUser || !barcode) {
+  // Prekidač „Deljeni proizvodi“ važi i za deljenje, ne samo za prikaz.
+  if (!state.authUser || !barcode || !isSharedFoodsEnabled()) {
     return;
   }
   try {
@@ -8455,6 +8472,100 @@ function syncGoalsLivePreview() {
   el.hidden = !html;
 }
 
+// Šta aplikacija čuva i gde. Mora da ostane tačno: kad se doda nova vrsta
+// podataka ili spoljna usluga, dopuni i ovaj tekst.
+function renderPrivacyList() {
+  return `
+            <ul class="privacy-list">
+              <li><b>Šta se čuva:</b> profil (pol, godine, visina, težina), ciljevi, plan obroka, namirnice i recepti, trening i trčanje, rutina, merenja i slike napretka. Adresa e-pošte služi samo za prijavu.</li>
+              <li><b>Gde:</b> u Google Firebase bazi, pod tvojim nalogom. Pravila baze dozvoljavaju čitanje i izmenu samo tvom nalogu. Kopija stoji i u pregledaču na ovom uređaju, da aplikacija radi bez interneta.</li>
+              <li><b>Bez reklama i praćenja:</b> nema analitike ni kolačića za praćenje, a podaci se ne prodaju i ne dele.</li>
+              <li><b>Skenirani proizvodi:</b> barkod, naziv i vrednosti na 100 g idu u zajednički spisak samo ako je „Deljeni proizvodi“ uključeno (uz anonimni broj naloga, bez imena i e-pošte). Barkod se proverava i u otvorenoj bazi Open Food Facts.</li>
+              <li><b>Brisanje:</b> „Obriši nalog“ trajno briše nalog i sve podatke i slike. Skenirani proizvodi u zajedničkom spisku ostaju, bez veze sa nalogom koji više ne postoji.</li>
+            </ul>`;
+}
+
+function renderPrivacyCard() {
+  return `
+        <article class="status-summary-card privacy-card">
+          <div class="status-summary-copy">
+            <strong>Privatnost</strong>
+            ${renderPrivacyList()}
+          </div>
+        </article>`;
+}
+
+function renderDeleteAccountDialog() {
+  if (!state.deleteAccountOpen || !state.authUser) {
+    return "";
+  }
+  const email = state.authUser.email || "";
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-delete-account" aria-label="Zatvori"></button>
+      <section class="app-dialog delete-account-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-account-title" aria-describedby="delete-account-desc">
+        <div class="app-dialog-head">
+          <div class="stack" style="gap:4px;">
+            <h3 id="delete-account-title">Obrisati nalog?</h3>
+            <p id="delete-account-desc">Nalog ${escapeHtml(email)} i svi podaci na njemu brišu se trajno, sa servera i sa ovog uređaja. Ovo ne može da se poništi.</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-delete-account" aria-label="Zatvori">${renderMenuToggleIcon(true)}</button>
+        </div>
+        <form id="delete-account-form" class="stack" style="gap:14px;" autocomplete="off">
+          <p class="footer-note">Ako želiš da nešto sačuvaš, prvo zatvori ovo i izvezi rezervnu kopiju.</p>
+          <div class="field">
+            <label for="delete-account-password">Lozinka, radi potvrde</label>
+            <input id="delete-account-password" name="password" type="password" autocomplete="current-password" required ${state.deleteAccountPending ? "disabled" : ""} />
+          </div>
+          ${state.deleteAccountError ? `<div class="scanner-error" role="alert">${escapeHtml(state.deleteAccountError)}</div>` : ""}
+          <div class="app-dialog-actions delete-account-actions">
+            <button class="ghost-button" type="button" data-action="close-delete-account" ${state.deleteAccountPending ? "disabled" : ""}>Otkaži</button>
+            <button class="danger-button button-with-icon" type="submit" ${state.deleteAccountPending ? "disabled" : ""}>${renderButtonContent(state.deleteAccountPending ? "Brišem…" : "Obriši nalog", state.deleteAccountPending ? "spinner" : "delete")}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  `;
+}
+
+// Briše nalog redom koji ne ostavlja ništa iza sebe: ponovna prijava (Firebase
+// briše nalog samo posle sveže prijave), slike, glavni dokument, sam nalog, pa
+// lokalne kopije na uređaju. Ako nešto pukne pre brisanja naloga, nalog ostaje
+// i poruka kaže šta da se uradi.
+async function deleteAccountPermanently(password) {
+  const user = firebaseAuth.currentUser;
+  if (!user || !user.email) {
+    throw Object.assign(new Error("no-user"), { code: "app/no-user" });
+  }
+  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+  const uid = user.uid;
+  accountDeletionInProgress = true;
+  if (cloudSaveTimer) {
+    window.clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+  }
+  try {
+    const photos = await getDocs(collection(firebaseDb, "users", uid, "photos"));
+    const photoRefs = [];
+    photos.forEach((snapshot) => photoRefs.push(snapshot.ref));
+    await Promise.all(photoRefs.map((ref) => deleteDoc(ref)));
+    await deleteDoc(getUserStateRef(uid));
+    await deleteUser(user);
+  } catch (error) {
+    accountDeletionInProgress = false;
+    throw error;
+  }
+  const localPhotoIds = [
+    ...(store.progressPhotos || []).map((photo) => photo.id),
+    ...(store.favoriteMeals || []).map((meal) => `recipe-image:${meal.id}`),
+  ].filter(Boolean);
+  await Promise.all(localPhotoIds.map((id) => idbDeletePhoto(id).catch(() => {})));
+  [getStoreStorageKey(uid), `${SYNC_META_KEY_PREFIX}:${uid}`, `${PHOTO_SYNC_KEY_PREFIX}:${uid}`].forEach((key) => safeLocalRemove(key));
+  if (safeLocalGet(LAST_UID_KEY) === uid) {
+    safeLocalRemove(LAST_UID_KEY);
+  }
+}
+
 // A number field that carries its unit inside it instead of in the label.
 function renderUnitField(id, label, unit, inputHtml, full = false) {
   return `
@@ -8519,7 +8630,7 @@ function renderAuthShell() {
         </div>
         <form id="auth-form" class="auth-form">
           <div class="field">
-            <label for="auth-email">Email</label>
+            <label for="auth-email">E-pošta</label>
             <input id="auth-email" name="email" type="email" placeholder="ime@email.com" autocomplete="email" required />
           </div>
           <div class="field password-field">
@@ -8541,6 +8652,10 @@ function renderAuthShell() {
             ${state.authMode === "register" ? "Prijavi se" : "Napravi nalog"}
           </button>
         </div>
+        <details class="auth-privacy">
+          <summary>Privatnost: šta se čuva i gde</summary>
+          ${renderPrivacyList()}
+        </details>
       </section>
     </main>
   `;
@@ -14048,21 +14163,21 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Deljeni proizvodi</strong>
-              <div class="footer-note">Proizvodi koje su drugi korisnici skenirali (barkod, vrednosti na 100 g) pojavljuju se u pretrazi namirnica pod „Deljeni proizvodi“. Tvoje namirnice ostaju samo tvoje.</div>
+              <div class="footer-note">Kad skeniraš proizvod, njegov barkod, naziv i vrednosti na 100 g idu u zajednički spisak, a proizvodi drugih se pojavljuju u tvojoj pretrazi. Ostale namirnice ostaju samo tvoje.</div>
             </div>
             <span class="pill strong ${isSharedFoodsEnabled() ? "pill--success" : "pill--info"}">${isSharedFoodsEnabled() ? "Uključeno" : "Isključeno"}</span>
           </div>
           <label class="settings-toggle">
             <input type="checkbox" class="routine-checkbox" data-action="toggle-shared-foods" ${isSharedFoodsEnabled() ? "checked" : ""} />
             <span class="routine-check-ui" aria-hidden="true"></span>
-            <span class="settings-toggle-label">Prikaži deljene proizvode u pretrazi</span>
+            <span class="settings-toggle-label">Deli skenirane proizvode i prikaži tuđe</span>
           </label>
         </article>
 
         <article class="status-summary-card">
           <div class="status-summary-top">
             <div class="status-summary-copy">
-              <strong>Backup i oporavak</strong>
+              <strong>Rezervna kopija</strong>
               <div class="footer-note">Rezervna kopija (JSON fajl) je dodatna sigurnost. Uvezena sa prijavljenim nalogom, upisuje se i na nalog.</div>
             </div>
             <span class="pill strong pill--info">Lokalni fajl</span>
@@ -14084,6 +14199,7 @@ function renderAccountSection() {
             <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${store.weeklyPlanEntries.length ? "" : "disabled"}>${renderButtonContent("Obriši sve obroke", "delete")}</button>
           </div>
         </article>
+        ${renderPrivacyCard()}
 ${
           isDemoAccount()
             ? `
@@ -14104,12 +14220,24 @@ ${
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Obriši sve podatke</strong>
-              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; napravi backup gore ako želiš da nešto sačuvaš.</div>
+              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; izvezi rezervnu kopiju gore ako želiš da nešto sačuvaš.</div>
             </div>
             <span class="pill strong pill--warning">Trajno</span>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
             <button class="danger-button button-with-icon" type="button" data-action="delete-all-data">${renderButtonContent("Obriši sve podatke", "delete")}</button>
+          </div>
+        </article>
+        <article class="status-summary-card settings-danger-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Obriši nalog</strong>
+              <div class="footer-note">Trajno briše nalog i sve što je na njemu: profil, ciljeve, plan, namirnice, recepte, trening, rutinu, merenja i slike, sa servera i sa ovog uređaja. Ne može da se poništi.</div>
+            </div>
+            <span class="pill strong pill--warning">Trajno</span>
+          </div>
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="danger-button button-with-icon" type="button" data-action="open-delete-account">${renderButtonContent("Obriši nalog", "delete")}</button>
           </div>
         </article>`
         }
@@ -16421,6 +16549,7 @@ function render() {
       ${renderRecipeApplyDialog()}
       ${renderFoodEditorDialog()}
       ${renderQuickEntryDialog()}
+      ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
     </div>
   `;
@@ -19599,6 +19728,27 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-delete-account") {
+    if (isDemoAccount()) {
+      return;
+    }
+    state.deleteAccountOpen = true;
+    state.deleteAccountError = "";
+    render();
+    window.requestAnimationFrame(() => document.querySelector("#delete-account-password")?.focus());
+    return;
+  }
+
+  if (action === "close-delete-account") {
+    if (state.deleteAccountPending) {
+      return;
+    }
+    state.deleteAccountOpen = false;
+    state.deleteAccountError = "";
+    render();
+    return;
+  }
+
   if (action === "sign-out") {
     state.navMenuOpen = false;
     signOut(firebaseAuth).catch((error) => {
@@ -19615,6 +19765,41 @@ async function handleSubmit(event) {
 
   event.preventDefault();
   const formData = new FormData(event.target);
+
+  if (event.target.id === "delete-account-form") {
+    const password = String(formData.get("password") || "");
+    if (!password || state.deleteAccountPending || isDemoAccount()) {
+      return;
+    }
+    state.deleteAccountPending = true;
+    state.deleteAccountError = "";
+    render();
+    try {
+      await deleteAccountPermanently(password);
+      // Čisto stanje: ponovo učitaj aplikaciju, pa na ekranu prijave reci da
+      // je gotovo. Ništa iz memorije ne sme da se upiše posle brisanja.
+      try {
+        sessionStorage.setItem("fit-tracker-account-deleted", "1");
+      } catch (error) {
+        /* bez sessionStorage nema poruke posle učitavanja, brisanje je ipak gotovo */
+      }
+      window.location.reload();
+    } catch (error) {
+      const code = (error && error.code) || "";
+      state.deleteAccountPending = false;
+      state.deleteAccountError =
+        code === "auth/wrong-password" || code === "auth/invalid-credential" || code === "auth/invalid-login-credentials"
+          ? "Lozinka nije tačna."
+          : code === "auth/too-many-requests"
+            ? "Previše pokušaja. Sačekaj malo pa probaj ponovo."
+            : code === "auth/network-request-failed" || (typeof navigator !== "undefined" && navigator.onLine === false)
+              ? "Nema interneta. Nalog nije obrisan, probaj kad se povežeš."
+              : "Brisanje nije uspelo. Nalog nije obrisan, probaj ponovo.";
+      console.error("Account deletion failed", error);
+      render();
+    }
+    return;
+  }
 
   if (event.target.id === "auth-form") {
     const email = String(formData.get("email") || "").trim();
@@ -21398,8 +21583,18 @@ onAuthStateChanged(firebaseAuth, async (user) => {
 
   if (!user) {
     state.authReady = true;
-    state.syncStatus = "Prijavi se za cloud sync";
+    state.syncStatus = "Prijavi se da bi se podaci sinhronizovali";
     render();
+    let accountJustDeleted = false;
+    try {
+      accountJustDeleted = sessionStorage.getItem("fit-tracker-account-deleted") === "1";
+      sessionStorage.removeItem("fit-tracker-account-deleted");
+    } catch (error) {
+      /* nema poruke, ništa drugo ne zavisi od ovoga */
+    }
+    if (accountJustDeleted) {
+      showFeedbackToast({ title: "Nalog je obrisan", detail: "Svi podaci su uklonjeni sa servera i sa ovog uređaja.", tone: "success", duration: 5000 });
+    }
     return;
   }
 

@@ -15440,3 +15440,40 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   font-weight: 600;
   line-height: 1.45;
 }
+
+/* Nalog: privatnost kao kratak spisak, brisanje naloga kao potvrda. */
+.privacy-list {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.privacy-list b { color: var(--ink); font-weight: 700; }
+.delete-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .delete-account-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .delete-account-actions > button { min-height: 48px; justify-content: center; }
+}
+.auth-privacy {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+.auth-privacy > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .auth-privacy > summary { color: var(--accent); }
