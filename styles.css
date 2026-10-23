@@ -14792,6 +14792,7 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   --body-map-base: color-mix(in oklab, var(--ink) 9%, var(--surface-strong));
   --body-map-muscle: color-mix(in oklab, var(--ink) 17%, var(--surface-strong));
   --body-map-soft: color-mix(in oklab, var(--accent) 38%, var(--surface-strong));
+  --body-map-mid: color-mix(in oklab, var(--accent) 68%, var(--surface-strong));
 }
 .body-map {
   display: grid;
@@ -14842,6 +14843,9 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 .body-map-group[data-state="soft"] path {
   fill: var(--body-map-soft);
 }
+.body-map-group[data-state="mid"] path {
+  fill: var(--body-map-mid);
+}
 .body-map-group[data-state="active"] path {
   fill: var(--accent);
 }
@@ -14874,6 +14878,9 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 }
 .body-map-swatch[data-state="soft"] {
   background: var(--body-map-soft);
+}
+.body-map-swatch[data-state="mid"] {
+  background: var(--body-map-mid);
 }
 .body-map-swatch[data-state="active"] {
   background: var(--accent);
@@ -14914,28 +14921,134 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 }
 .training-week-map-key {
   display: grid;
-  gap: 10px;
-  margin: 0;
+  gap: 8px;
+  min-width: 0;
 }
-.training-week-map-key dt {
+.training-week-volume {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.training-week-volume li {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-size: var(--fs-14);
+}
+.training-week-volume-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink);
+}
+.training-week-volume-sets {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.training-week-volume-scale,
+.training-week-volume-missing {
+  margin: 0;
   color: var(--muted);
   font-size: var(--fs-12);
-  font-weight: 700;
 }
-.training-week-map-key dd {
-  margin: 2px 0 0 16px;
+.training-week-volume-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.training-week-volume-levels > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.training-week-volume-missing {
+  font-size: var(--fs-13);
+}
+.training-week-volume-missing strong {
   color: var(--ink);
-  font-size: var(--fs-14);
+  font-weight: 700;
 }
 /* Na grafitu blaga boja naglaska tone u pozadinu; malo jača. */
 :root[data-theme="dark"] .body-map,
 :root[data-theme="dark"] .body-map-key,
 :root[data-theme="dark"] .training-week-map-key {
   --body-map-soft: color-mix(in oklab, var(--accent) 50%, var(--surface-strong));
+  --body-map-mid: color-mix(in oklab, var(--accent) 74%, var(--surface-strong));
 }
 :root[data-theme="dark"] .body-map.is-interactive .body-map-group:not([data-state]) path {
   fill: color-mix(in oklab, var(--accent) 34%, var(--surface-strong));
+}
+
+/* Gotovi planovi: lista kao biblioteka vežbi, izabrani plan se otvara. */
+.training-plan-list {
+  display: grid;
+}
+.training-plan {
+  border-bottom: 1px solid var(--line);
+}
+.training-plan:last-child {
+  border-bottom: 0;
+}
+.training-plan-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.training-plan-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.training-plan-copy strong {
+  font-size: var(--fs-15);
+  color: var(--ink);
+}
+.training-plan-copy span {
+  color: var(--muted);
+  font-size: var(--fs-13);
+}
+.training-plan.is-selected .exercise-pick-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--button-primary-text, #fff);
+}
+.training-plan-row:hover .exercise-pick-check {
+  border-color: var(--accent);
+}
+.training-plan-detail {
+  display: grid;
+  gap: 10px;
+  padding: 0 0 14px 40px;
+}
+.training-plan-detail p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  line-height: 1.45;
+}
+.training-plan-session h4 {
+  margin: 0 0 2px;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: var(--ink);
+}
+.training-plan-session p {
+  color: var(--ink);
+}
+.training-plan-dose {
+  white-space: nowrap;
+}
+.training-plans-dialog .training-builder-actions > .solid-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }

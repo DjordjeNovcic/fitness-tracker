@@ -8312,6 +8312,7 @@ function isOverlayOpen() {
       state.foodEditorOpen ||
       state.scannerOpen ||
       state.trainingBuilder ||
+      state.trainingPlanPicker ||
       (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
   );
 }
@@ -12267,14 +12268,311 @@ function renderTrainingBuilderPlan(builder) {
     </div>`;
 }
 
-// Nedelja na mapi tela: odrađene grupe (pune), one koje su u planu a još
-// nisu (blede) i one kojih u planu nema. Poslednji red je onaj koji se
-// zapravo čita: „Bez vežbi: Ramena, Stomak“. Oznake „odrađeno“ važe samo za
-// tekuću nedelju, pa druga nedelja pokazuje samo plan.
+// ---------------------------------------------------------------------------
+// Gotovi planovi: ubacuju se kao obični treninzi (isti oblik kao iz „Sastavi
+// trening“), pa se posle menjaju kao bilo koji drugi. Vežbe su imena iz
+// biblioteke, da grupe, mapa i predlog kilaže rade bez pogađanja.
+// `rotation` se vrti preko dana obe nedelje: Ceo telo i 5×5 su ove nedelje
+// A B A, sledeće B A B; ostali planovi su svake nedelje isti.
+// ---------------------------------------------------------------------------
+const TRAINING_PLANS = [
+  {
+    id: "ceo-telo",
+    name: "Ceo telo",
+    note: "Celo telo na svakom treningu, dva treninga se smenjuju. Najlakši početak.",
+    days: ["Ponedeljak", "Sreda", "Petak"],
+    rotation: ["a", "b"],
+    sessions: {
+      a: {
+        name: "Ceo telo A",
+        exercises: [
+          ["Čučanj", 3, "8-10"],
+          ["Potisak sa klupe", 3, "8-10"],
+          ["Veslanje sa šipkom", 3, "8-10"],
+          ["Odručenje sa bučicama", 2, "12-15"],
+          ["Plank", 3, "45 s"],
+        ],
+      },
+      b: {
+        name: "Ceo telo B",
+        exercises: [
+          ["Rumunsko mrtvo dizanje", 3, "8-10"],
+          ["Potisak iznad glave", 3, "8-10"],
+          ["Lat mašina", 3, "10-12"],
+          ["Iskorak", 2, "10-12"],
+          ["Trbušnjaci", 3, "15-20"],
+        ],
+      },
+    },
+  },
+  {
+    id: "ppl",
+    name: "Push / Pull / Noge",
+    note: "Guranje, vučenje pa noge: svaka grupa jednom nedeljno, duži treninzi.",
+    days: ["Ponedeljak", "Sreda", "Petak"],
+    rotation: ["push", "pull", "noge"],
+    sessions: {
+      push: {
+        name: "Push",
+        exercises: [
+          ["Potisak sa klupe", 4, "6-8"],
+          ["Kosi potisak sa bučicama", 3, "8-10"],
+          ["Rameni potisak sa bučicama", 3, "8-10"],
+          ["Odručenje sa bučicama", 3, "12-15"],
+          ["Triceps na sajli", 3, "10-12"],
+          ["Ekstenzija iznad glave", 3, "10-12"],
+        ],
+      },
+      pull: {
+        name: "Pull",
+        exercises: [
+          ["Zgibovi", 3, "6-10"],
+          ["Veslanje sa šipkom", 4, "6-8"],
+          ["Veslanje na sajli", 3, "10-12"],
+          ["Face pull", 3, "12-15"],
+          ["Biceps pregib sa šipkom", 3, "8-10"],
+          ["Čekić pregib", 3, "10-12"],
+        ],
+      },
+      noge: {
+        name: "Noge",
+        exercises: [
+          ["Čučanj", 4, "6-8"],
+          ["Rumunsko mrtvo dizanje", 3, "8-10"],
+          ["Potisak nogama", 3, "10-12"],
+          ["Pregib nogu", 3, "10-12"],
+          ["Podizanje na prste", 4, "12-15"],
+          ["Plank", 3, "45 s"],
+        ],
+      },
+    },
+  },
+  {
+    id: "gornji-donji",
+    name: "Gornji / Donji",
+    note: "Četiri treninga, svaka grupa dva puta nedeljno.",
+    days: ["Ponedeljak", "Utorak", "Cetvrtak", "Petak"],
+    rotation: ["gornjiA", "donjiA", "gornjiB", "donjiB"],
+    sessions: {
+      gornjiA: {
+        name: "Gornji deo A",
+        exercises: [
+          ["Potisak sa klupe", 4, "6-8"],
+          ["Veslanje sa šipkom", 4, "6-8"],
+          ["Rameni potisak sa bučicama", 3, "8-10"],
+          ["Lat mašina", 3, "10-12"],
+          ["Biceps pregib sa bučicama", 2, "10-12"],
+          ["Triceps na sajli", 2, "10-12"],
+        ],
+      },
+      donjiA: {
+        name: "Donji deo A",
+        exercises: [
+          ["Čučanj", 4, "6-8"],
+          ["Rumunsko mrtvo dizanje", 3, "8-10"],
+          ["Iskorak", 3, "10-12"],
+          ["Podizanje na prste", 4, "12-15"],
+          ["Podizanje nogu u visu", 3, "10-15"],
+        ],
+      },
+      gornjiB: {
+        name: "Gornji deo B",
+        exercises: [
+          ["Potisak iznad glave", 4, "6-8"],
+          ["Zgibovi", 4, "6-10"],
+          ["Kosi potisak sa bučicama", 3, "8-10"],
+          ["Veslanje bučicom", 3, "10-12"],
+          ["Odručenje sa bučicama", 3, "12-15"],
+          ["Čekić pregib", 2, "10-12"],
+          ["Francuski potisak", 2, "10-12"],
+        ],
+      },
+      donjiB: {
+        name: "Donji deo B",
+        exercises: [
+          ["Mrtvo dizanje", 3, "5"],
+          ["Potisak nogama", 3, "10-12"],
+          ["Bugarski čučanj", 3, "8-10"],
+          ["Pregib nogu", 3, "10-12"],
+          ["Plank", 3, "45 s"],
+        ],
+      },
+    },
+  },
+  {
+    id: "5x5",
+    name: "5×5 snaga",
+    note: "Tri osnovna dizanja, teško i sa malo ponavljanja. Kilaža raste malo po malo.",
+    days: ["Ponedeljak", "Sreda", "Petak"],
+    rotation: ["a", "b"],
+    sessions: {
+      a: {
+        name: "5×5 A",
+        exercises: [
+          ["Čučanj", 5, "5"],
+          ["Potisak sa klupe", 5, "5"],
+          ["Veslanje sa šipkom", 5, "5"],
+        ],
+      },
+      b: {
+        name: "5×5 B",
+        exercises: [
+          ["Čučanj", 5, "5"],
+          ["Potisak iznad glave", 5, "5"],
+          ["Mrtvo dizanje", 1, "5"],
+        ],
+      },
+    },
+  },
+];
+
+function getTrainingPlan(planId) {
+  return TRAINING_PLANS.find((plan) => plan.id === planId) || TRAINING_PLANS[0];
+}
+
+// Nedelje na koje plan ide: obe, ili samo ona koja je izabrana gore.
+function getTrainingPlanTracks(scope) {
+  return scope === "both" ? getWeekTrackDisplayOrder() : [state.selectedWeekTrack];
+}
+
+// Treninzi plana za jednu nedelju. `weekIndex` je 0 za tekuću, 1 za sledeću,
+// da smena A/B ide redom kroz obe.
+function buildTrainingPlanTemplates(plan, weekTrack) {
+  const weekIndex = weekTrack === getCurrentWeekTrack() ? 0 : 1;
+  return plan.days.map((weekday, dayIndex) => {
+    const session = plan.sessions[plan.rotation[(weekIndex * plan.days.length + dayIndex) % plan.rotation.length]];
+    return {
+      id: uid("training"),
+      weekday,
+      weekTrack,
+      name: session.name,
+      exercises: session.exercises.map(([name, sets, reps]) => ({
+        id: uid("exercise"),
+        name,
+        group: guessExerciseGroup(name),
+        sets,
+        reps,
+        details: buildExerciseDetails(name, sets, reps),
+      })),
+    };
+  });
+}
+
+function renderTrainingPlanDialog() {
+  const picker = state.trainingPlanPicker;
+  if (!picker) {
+    return "";
+  }
+  const selected = getTrainingPlan(picker.planId);
+  const tracks = getTrainingPlanTracks(picker.scope);
+  const replaced = store.trainingTemplates.filter((template) => tracks.includes(normalizeWeekTrack(template.weekTrack))).length;
+  const scopes = [
+    ["both", "Obe nedelje"],
+    ["selected", `Samo ${getWeekTrackAccusative(state.selectedWeekTrack)}`],
+  ];
+
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-training-plans" aria-label="Zatvori"></button>
+      <section class="app-dialog training-builder-dialog training-plans-dialog" role="dialog" aria-modal="true" aria-labelledby="training-plans-title">
+        <div class="app-dialog-head training-builder-head">
+          <div class="training-builder-title">
+            <h3 id="training-plans-title">Gotovi planovi</h3>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-training-plans" aria-label="Zatvori">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+
+        <div class="training-builder-body" data-keep-scroll="training-plans">
+          <div class="choice-field">
+            <span class="choice-field-label" id="training-plans-scope-label">Važi za</span>
+            <div class="choice-chips" role="radiogroup" aria-labelledby="training-plans-scope-label">
+              ${scopes
+                .map(
+                  ([id, label]) =>
+                    `<button type="button" class="choice-chip ${picker.scope === id ? "is-active" : ""}" role="radio" aria-checked="${picker.scope === id}" data-action="training-plans-scope" data-scope="${id}"><span class="choice-chip-label">${label}</span></button>`
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="training-plan-list" role="radiogroup" aria-label="Plan">
+            ${TRAINING_PLANS.map((plan) => {
+              const isSelected = plan.id === selected.id;
+              const sessionIds = [...new Set(plan.rotation)];
+              return `
+                <div class="training-plan ${isSelected ? "is-selected" : ""}">
+                  <button class="training-plan-row" type="button" role="radio" aria-checked="${isSelected}" data-action="select-training-plan" data-plan-id="${plan.id}">
+                    <span class="exercise-pick-check" aria-hidden="true">${renderActionIcon("apply")}</span>
+                    <span class="training-plan-copy">
+                      <strong>${plan.name}</strong>
+                      <span>${plan.days.length} ${srPlural(plan.days.length, "dan", "dana", "dana")} · ${plan.days.map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
+                    </span>
+                  </button>
+                  ${
+                    isSelected
+                      ? `
+                  <div class="training-plan-detail">
+                    <p>${plan.note}</p>
+                    ${sessionIds
+                      .map((sessionId) => {
+                        const session = plan.sessions[sessionId];
+                        return `
+                      <div class="training-plan-session">
+                        <h4>${session.name}</h4>
+                        <p>${session.exercises.map(([name, sets, reps]) => `${name} <span class="training-plan-dose">${formatExerciseDose(sets, reps)}</span>`).join(" · ")}</p>
+                      </div>`;
+                      })
+                      .join("")}
+                    ${
+                      plan.rotation.length === plan.days.length
+                        ? ""
+                        : `<p class="training-plan-rotation">${[0, 1]
+                            .map((weekIndex) => {
+                              const order = plan.days.map(
+                                (weekday, dayIndex) =>
+                                  `${weekdayLabel(weekday).slice(0, 3)} ${plan.rotation[(weekIndex * plan.days.length + dayIndex) % plan.rotation.length].toUpperCase()}`
+                              );
+                              return `${weekIndex === 0 ? "Ove nedelje" : "Sledeće"} ${order.join(", ")}`;
+                            })
+                            .join(" · ")}</p>`
+                    }
+                  </div>`
+                      : ""
+                  }
+                </div>`;
+            }).join("")}
+          </div>
+
+        </div>
+
+        <div class="app-dialog-actions training-builder-actions">
+          <span class="training-builder-count">${
+            replaced
+              ? `Menja ${replaced} ${srPlural(replaced, "postojeći trening", "postojeća treninga", "postojećih treninga")}, može da se vrati`
+              : "Posle se menja kao svaki trening"
+          }</span>
+          <button class="solid-button button-with-icon" type="button" data-action="apply-training-plan">${renderButtonContent("Ubaci plan", "apply")}</button>
+        </div>
+      </section>
+    </div>`;
+}
+
+// Nedelja na mapi tela: boja grupe prati broj serija u nedeljnom planu
+// (1–5, 6–9, 10+), a lista pored kaže koliko i, za tekuću nedelju, koliko je
+// od toga odrađeno. Vežba bez broja serija (stari tekstualni šabloni) se
+// računa kao uobičajene 3. Poslednji red je onaj koji se zapravo čita:
+// „Bez vežbi: Ramena, Stomak“.
+const WEEK_VOLUME_LEVELS = [
+  { min: 10, state: "active", label: "10+" },
+  { min: 6, state: "mid", label: "6–9" },
+  { min: 1, state: "soft", label: "1–5" },
+];
+
 function renderTrainingWeekMap(weeklyTrainingPlan) {
   const isCurrentWeek = state.selectedWeekTrack === getCurrentWeekTrack();
-  const planned = new Set();
-  const done = new Set();
+  const planned = {};
+  const done = {};
   weeklyTrainingPlan.forEach((day) => {
     day.templates.forEach((template) => {
       (template.exercises || []).forEach((exercise) => {
@@ -12282,44 +12580,52 @@ function renderTrainingWeekMap(weeklyTrainingPlan) {
         if (!group) {
           return;
         }
-        planned.add(group);
+        const sets = getExerciseDose(exercise).sets || DEFAULT_CUSTOM_EXERCISE_DOSE.sets;
+        planned[group] = (planned[group] || 0) + sets;
         if (isCurrentWeek && isTrainingExerciseCompleted(day.weekday, template.id, exercise.id)) {
-          done.add(group);
+          done[group] = (done[group] || 0) + sets;
         }
       });
     });
   });
-  if (!planned.size) {
+  const plannedGroups = EXERCISE_GROUPS.filter((group) => planned[group.id]);
+  if (!plannedGroups.length) {
     return "";
   }
+  const levelFor = (sets) => WEEK_VOLUME_LEVELS.find((level) => sets >= level.min);
   const groupStates = {};
-  planned.forEach((group) => {
-    groupStates[group] = done.has(group) ? "active" : "soft";
+  plannedGroups.forEach((group) => {
+    groupStates[group.id] = levelFor(planned[group.id]).state;
   });
-  const labels = (test) =>
-    EXERCISE_GROUPS.filter((group) => test(group.id))
-      .map((group) => group.label)
-      .join(", ");
-  const rows = [
-    ["active", "Odrađeno", labels((id) => done.has(id))],
-    ["soft", done.size ? "Još u planu" : "U planu", labels((id) => planned.has(id) && !done.has(id))],
-    ["", "Bez vežbi", labels((id) => !planned.has(id))],
-  ].filter(([, , text]) => text);
+  const missing = EXERCISE_GROUPS.filter((group) => !planned[group.id]).map((group) => group.label);
 
   return `
     <div class="training-week-map">
       ${renderBodyMap({ groupStates })}
-      <dl class="training-week-map-key">
-        ${rows
-          .map(
-            ([mapState, title, text]) => `
-          <div>
-            <dt><span class="body-map-swatch" ${mapState ? `data-state="${mapState}"` : ""} aria-hidden="true"></span>${title}</dt>
-            <dd>${text}</dd>
-          </div>`
-          )
-          .join("")}
-      </dl>
+      <div class="training-week-map-key">
+        <ul class="training-week-volume">
+          ${plannedGroups
+            .map((group) => {
+              const sets = planned[group.id];
+              const count = isCurrentWeek ? `${done[group.id] || 0}/${sets}` : String(sets);
+              return `
+            <li>
+              <span class="body-map-swatch" data-state="${groupStates[group.id]}" aria-hidden="true"></span>
+              <span class="training-week-volume-name">${group.label}</span>
+              <span class="training-week-volume-sets" aria-label="${
+                isCurrentWeek ? `${done[group.id] || 0} od ${sets} ${srPlural(sets, "serije", "serije", "serija")} odrađeno` : `${sets} ${srPlural(sets, "serija", "serije", "serija")}`
+              }">${count}</span>
+            </li>`;
+            })
+            .join("")}
+        </ul>
+        <p class="training-week-volume-scale">${isCurrentWeek ? "Serija nedeljno, odrađeno / u planu" : "Serija nedeljno"}</p>
+        <p class="training-week-volume-scale training-week-volume-levels">${[...WEEK_VOLUME_LEVELS]
+          .reverse()
+          .map((level) => `<span><span class="body-map-swatch" data-state="${level.state}" aria-hidden="true"></span>${level.label}</span>`)
+          .join("")}</p>
+        ${missing.length ? `<p class="training-week-volume-missing"><strong>Bez vežbi:</strong> ${missing.join(", ")}</p>` : ""}
+      </div>
     </div>`;
 }
 
@@ -12361,13 +12667,22 @@ function renderTrainingTab() {
         <div>
           <h2>Nedeljni plan treninga</h2>
         </div>
+        ${
+          // Prazna nedelja ima isto dugme u svom redu ispod.
+          weeklyTrainingPlan.some((day) => day.templates.length || day.trainingBurn > 0)
+            ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>`
+            : ""
+        }
       </div>
       ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži kilažu i broj ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${(() => {
         const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
           // Bez ovoga je kartica bila samo naslov.
-          return `<div class="empty">Nijedan dan još nema trening. Izaberi dan gore i dodaj mu šablon.</div>`;
+          return `<div class="training-empty-row">
+            <span>Nijedan dan još nema trening. Uzmi gotov plan ili izaberi dan gore i sastavi svoj.</span>
+            <button class="ghost-button button-with-icon" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>
+          </div>`;
         }
         return `
           <ul class="training-week-list">
@@ -17351,6 +17666,7 @@ function render() {
       ${renderFoodEditorDialog()}
       ${renderQuickEntryDialog()}
       ${renderTrainingBuilderDialog()}
+      ${renderTrainingPlanDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
     </div>
@@ -20268,6 +20584,60 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-training-plans") {
+    rememberDialogTrigger(actionTarget);
+    state.trainingPlanPicker = { planId: TRAINING_PLANS[0].id, scope: "both" };
+    render();
+    return;
+  }
+
+  if (action === "close-training-plans") {
+    state.trainingPlanPicker = null;
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "select-training-plan") {
+    if (state.trainingPlanPicker) {
+      state.trainingPlanPicker.planId = getTrainingPlan(actionTarget.dataset.planId).id;
+      render();
+    }
+    return;
+  }
+
+  if (action === "training-plans-scope") {
+    if (state.trainingPlanPicker) {
+      state.trainingPlanPicker.scope = actionTarget.dataset.scope === "selected" ? "selected" : "both";
+      render();
+    }
+    return;
+  }
+
+  // Plan menja sve treninge izabranih nedelja; „Vrati“ vraća prethodne.
+  if (action === "apply-training-plan") {
+    const picker = state.trainingPlanPicker;
+    if (!picker) {
+      return;
+    }
+    const plan = getTrainingPlan(picker.planId);
+    const tracks = getTrainingPlanTracks(picker.scope);
+    const prevTemplates = store.trainingTemplates;
+    store.trainingTemplates = [
+      ...prevTemplates.filter((template) => !tracks.includes(normalizeWeekTrack(template.weekTrack))),
+      ...tracks.flatMap((track) => buildTrainingPlanTemplates(plan, track)),
+    ];
+    persist();
+    state.trainingPlanPicker = null;
+    queuePendingUndo(`Plan „${plan.name}“ je ubačen.`, () => {
+      store.trainingTemplates = prevTemplates;
+      persist();
+    });
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
   if (action === "close-training-builder") {
     state.trainingBuilder = null;
     render();
@@ -22515,7 +22885,9 @@ function getOpenDialogElement() {
           ? ".recipe-apply-dialog"
           : state.trainingBuilder
             ? ".training-builder-dialog"
-            : "";
+            : state.trainingPlanPicker
+              ? ".training-plans-dialog"
+              : "";
   return selector ? document.querySelector(selector) : null;
 }
 
@@ -22630,6 +23002,8 @@ document.addEventListener("keydown", (event) => {
         ? '[data-action="close-recipe-apply-dialog"]'
         : state.trainingBuilder
           ? '[data-action="close-training-builder"]'
+        : state.trainingPlanPicker
+          ? '[data-action="close-training-plans"]'
         : state.navMenuOpen
           ? '[data-action="close-nav-menu"]'
           : null;
