@@ -14782,3 +14782,160 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
     padding-right: 2px;
   }
 }
+
+/* Mapa tela (data/body-map.js): silueta je mastilo na 9%, mišići na 17%,
+   „soft“ je blaga boja naglaska, „active“ pun naglasak. Razmaci između
+   mišića su potez u boji papira, iste debljine na svakoj veličini. */
+.body-map,
+.body-map-key,
+.training-week-map-key {
+  --body-map-base: color-mix(in oklab, var(--ink) 9%, var(--surface-strong));
+  --body-map-muscle: color-mix(in oklab, var(--ink) 17%, var(--surface-strong));
+  --body-map-soft: color-mix(in oklab, var(--accent) 38%, var(--surface-strong));
+}
+.body-map {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.body-map.is-pending {
+  aspect-ratio: 1.14;
+  place-items: center;
+}
+.body-map.is-pending .body-map-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  text-align: center;
+}
+.body-map-view {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+.body-map-view svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 727 / 1280;
+}
+.body-map-view figcaption {
+  color: var(--muted);
+  font-size: var(--fs-12);
+}
+.body-map path {
+  stroke: var(--surface-strong);
+  stroke-width: 1.25px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.body-map-base {
+  fill: var(--body-map-base);
+}
+.body-map-group path {
+  fill: var(--body-map-muscle);
+  transition: fill 0.15s ease;
+}
+.body-map-group[data-state="soft"] path {
+  fill: var(--body-map-soft);
+}
+.body-map-group[data-state="active"] path {
+  fill: var(--accent);
+}
+.body-map.is-interactive .body-map-group {
+  cursor: pointer;
+}
+.body-map.is-interactive .body-map-group:not([data-state]) path {
+  fill: color-mix(in oklab, var(--accent) 24%, var(--surface-strong));
+}
+@media (hover: hover) {
+  .body-map.is-interactive .body-map-group:hover path {
+    fill: color-mix(in oklab, var(--accent) 62%, var(--surface-strong));
+  }
+}
+.body-map.is-interactive .body-map-group:active path {
+  fill: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .body-map-group path {
+    transition: none;
+  }
+}
+.body-map-swatch {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--body-map-muscle);
+}
+.body-map-swatch[data-state="soft"] {
+  background: var(--body-map-soft);
+}
+.body-map-swatch[data-state="active"] {
+  background: var(--accent);
+}
+
+/* „Sastavi trening“: mapa umesto liste. */
+.training-builder-map .body-map {
+  width: 100%;
+  max-width: 400px;
+  justify-self: center;
+}
+.training-builder-map-hint,
+.body-map-key {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  text-align: center;
+}
+.body-map-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: var(--fs-13);
+}
+
+/* Trening: nedelja na mapi, mala mapa levo, legenda desno. */
+.training-week-map {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  max-width: 520px;
+}
+.training-week-map .body-map {
+  gap: 6px;
+}
+.training-week-map-key {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.training-week-map-key dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+.training-week-map-key dd {
+  margin: 2px 0 0 16px;
+  color: var(--ink);
+  font-size: var(--fs-14);
+}
+/* Na grafitu blaga boja naglaska tone u pozadinu; malo jača. */
+:root[data-theme="dark"] .body-map,
+:root[data-theme="dark"] .body-map-key,
+:root[data-theme="dark"] .training-week-map-key {
+  --body-map-soft: color-mix(in oklab, var(--accent) 50%, var(--surface-strong));
+}
+:root[data-theme="dark"] .body-map.is-interactive .body-map-group:not([data-state]) path {
+  fill: color-mix(in oklab, var(--accent) 34%, var(--surface-strong));
+}

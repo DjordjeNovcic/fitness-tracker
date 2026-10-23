@@ -5618,6 +5618,101 @@ function guessExerciseGroup(name) {
   return hint ? hint[0] : "";
 }
 
+// ---------------------------------------------------------------------------
+// Mapa tela: MuscleMap obrisi (data/body-map.js, MIT) obojeni po grupama
+// vežbi. Fajl ima ~90 KB pa se učitava tek kad mapa prvi put zatreba; do tada
+// stoji prazno mesto iste veličine. Delovi koji nisu ni u jednoj grupi
+// (glava, vrat, šake, podlaktice, kolena, stopala) su samo silueta.
+// ---------------------------------------------------------------------------
+const BODY_MAP_SRC = "./data/body-map.js";
+const BODY_MAP_GROUP_BY_PART = {
+  chest: "grudi",
+  abs: "stomak",
+  obliques: "stomak",
+  deltoids: "ramena",
+  biceps: "biceps",
+  triceps: "triceps",
+  trapezius: "ledja",
+  upperBack: "ledja",
+  rotatorCuff: "ledja",
+  lowerBack: "ledja",
+  quadriceps: "noge",
+  adductors: "noge",
+  hamstring: "noge",
+  gluteal: "noge",
+  calves: "noge",
+  tibialis: "noge",
+};
+// idle → loading → ready | failed. Neuspeh se ne ponavlja u krug na svaki
+// render; novi pokušaj kreće tek sa sledećim otvaranjem „Sastavi trening“.
+let bodyMapStatus = "idle";
+
+function ensureBodyMapData() {
+  if (window.BODY_MAP) {
+    return true;
+  }
+  if (bodyMapStatus === "idle") {
+    bodyMapStatus = "loading";
+    loadExternalScript(BODY_MAP_SRC, "BODY_MAP")
+      .then(() => {
+        bodyMapStatus = "ready";
+      })
+      .catch(() => {
+        bodyMapStatus = "failed";
+      })
+      .finally(() => render());
+  }
+  return false;
+}
+
+// `groupStates` boji grupe: { grudi: "active" | "soft" }. Sa `action` je ceo
+// deo grupe jedna tap meta (data-action na <g>). Slika je sakrivena za čitače
+// ekrana: isti izbor uvek postoji i kao tekst (čipovi, legenda).
+function renderBodyMap({ groupStates = {}, action = "", className = "" } = {}) {
+  if (!ensureBodyMapData()) {
+    return `<div class="body-map is-pending ${className}">${
+      bodyMapStatus === "failed" ? `<p class="body-map-note">Mapa tela nije mogla da se učita. Proveri internet.</p>` : ""
+    }</div>`;
+  }
+  const body = window.BODY_MAP[store.profile?.sex === "female" ? "female" : "male"];
+  return `
+    <div class="body-map ${action ? "is-interactive" : ""} ${className}" aria-hidden="true">
+      ${[
+        ["front", "Spreda"],
+        ["back", "Otpozadi"],
+      ]
+        .map(([side, label]) => {
+          const view = body[side];
+          const base = [];
+          const groups = {};
+          view.parts.forEach(([part, d]) => {
+            const group = BODY_MAP_GROUP_BY_PART[part];
+            if (group) {
+              groups[group] = (groups[group] || "") + d;
+            } else {
+              base.push(d);
+            }
+          });
+          return `
+            <figure class="body-map-view">
+              <svg viewBox="${view.viewBox}" focusable="false">
+                <path class="body-map-base" d="${base.join("")}"/>
+                ${Object.entries(groups)
+                  .map(
+                    ([group, d]) =>
+                      `<g class="body-map-group" data-group="${group}"${groupStates[group] ? ` data-state="${groupStates[group]}"` : ""}${
+                        action ? ` data-action="${action}"` : ""
+                      }><path d="${d}"/></g>`
+                  )
+                  .join("")}
+              </svg>
+              <figcaption>${label}</figcaption>
+            </figure>`;
+        })
+        .join("")}
+    </div>`;
+}
+
 function getExerciseGroupId(exercise) {
   const stored = String(exercise?.group || "");
   return EXERCISE_GROUPS.some((group) => group.id === stored) ? stored : guessExerciseGroup(exercise?.name);
@@ -11817,6 +11912,9 @@ function makeTrainingBuilderItem({ id = "", name, group, sets, reps, details = "
 
 function openTrainingBuilder(templateId = "") {
   const template = templateId ? store.trainingTemplates.find((entry) => entry.id === templateId) : null;
+  if (bodyMapStatus === "failed") {
+    bodyMapStatus = "idle";
+  }
   state.trainingBuilder = {
     templateId: template ? template.id : "",
     view: template ? "plan" : "pick",
@@ -11838,6 +11936,8 @@ function openTrainingBuilder(templateId = "") {
         )
       : [],
     filter: "all",
+    // Nov trening kreće od mape tela: tap na mišić otvara listu te grupe.
+    mapOpen: !template,
     query: "",
     newOpen: false,
     newName: "",
@@ -11936,10 +12036,12 @@ function renderTrainingBuilderPick(builder) {
         </button>
       </div>
       <div class="foods-chips training-builder-chips" role="group" aria-label="Grupa mišića">
+        <button class="foods-chip ${builder.mapOpen ? "is-active" : ""}" type="button" data-action="training-builder-map" aria-pressed="${builder.mapOpen}">Mapa tela</button>
         ${chips
           .map((chip) => {
             const count = chip.id === "all" ? selectedCount : countByGroup[chip.id] || 0;
-            return `<button class="foods-chip ${builder.filter === chip.id ? "is-active" : ""}" type="button" data-action="training-builder-filter" data-group="${chip.id}" aria-pressed="${builder.filter === chip.id}">
+            const active = !builder.mapOpen && builder.filter === chip.id;
+            return `<button class="foods-chip ${active ? "is-active" : ""}" type="button" data-action="training-builder-filter" data-group="${chip.id}" aria-pressed="${active}">
               ${chip.label}${count ? `<span class="foods-chip-count" aria-label="${count} ${srPlural(count, "izabrana", "izabrane", "izabranih")}">${count}</span>` : ""}
             </button>`;
           })
@@ -11947,6 +12049,10 @@ function renderTrainingBuilderPick(builder) {
       </div>
     </div>
 
+    ${
+      builder.mapOpen
+        ? renderTrainingBuilderMap(countByGroup)
+        : `
     <div class="training-builder-body training-builder-library" data-keep-scroll="training-builder-pick">
       ${visibleGroups
         .map((group) => {
@@ -12007,7 +12113,8 @@ function renderTrainingBuilderPick(builder) {
         </div>`
           : `<button class="training-builder-add" type="button" data-action="training-builder-new-toggle">${renderActionIcon("add")}<span>Nova vežba</span></button>`
       }
-    </div>
+    </div>`
+    }
 
     <div class="app-dialog-actions training-builder-actions">
       <span class="training-builder-count">${
@@ -12017,6 +12124,26 @@ function renderTrainingBuilderPick(builder) {
         builder.templateId ? "Gotovo" : "Dalje",
         builder.templateId ? "apply" : "go"
       )}</button>
+    </div>`;
+}
+
+// Mapa umesto liste: tap na mišić bira grupu i vraća listu sa njenim
+// vežbama. Svi mišići su blago obojeni (tap mete), a grupe iz kojih je već
+// nešto izabrano punom bojom.
+function renderTrainingBuilderMap(countByGroup) {
+  const groupStates = {};
+  Object.keys(countByGroup).forEach((group) => {
+    groupStates[group] = "active";
+  });
+  return `
+    <div class="training-builder-body training-builder-map" data-keep-scroll="training-builder-map">
+      <p class="training-builder-map-hint">Tapni mišić i dobićeš vežbe za njega.</p>
+      ${renderBodyMap({ groupStates, action: "training-builder-map-group" })}
+      ${
+        Object.keys(countByGroup).length
+          ? `<p class="body-map-key"><span class="body-map-swatch" data-state="active" aria-hidden="true"></span>Već ima vežbi u treningu</p>`
+          : ""
+      }
     </div>`;
 }
 
@@ -12140,6 +12267,62 @@ function renderTrainingBuilderPlan(builder) {
     </div>`;
 }
 
+// Nedelja na mapi tela: odrađene grupe (pune), one koje su u planu a još
+// nisu (blede) i one kojih u planu nema. Poslednji red je onaj koji se
+// zapravo čita: „Bez vežbi: Ramena, Stomak“. Oznake „odrađeno“ važe samo za
+// tekuću nedelju, pa druga nedelja pokazuje samo plan.
+function renderTrainingWeekMap(weeklyTrainingPlan) {
+  const isCurrentWeek = state.selectedWeekTrack === getCurrentWeekTrack();
+  const planned = new Set();
+  const done = new Set();
+  weeklyTrainingPlan.forEach((day) => {
+    day.templates.forEach((template) => {
+      (template.exercises || []).forEach((exercise) => {
+        const group = getExerciseGroupId(exercise);
+        if (!group) {
+          return;
+        }
+        planned.add(group);
+        if (isCurrentWeek && isTrainingExerciseCompleted(day.weekday, template.id, exercise.id)) {
+          done.add(group);
+        }
+      });
+    });
+  });
+  if (!planned.size) {
+    return "";
+  }
+  const groupStates = {};
+  planned.forEach((group) => {
+    groupStates[group] = done.has(group) ? "active" : "soft";
+  });
+  const labels = (test) =>
+    EXERCISE_GROUPS.filter((group) => test(group.id))
+      .map((group) => group.label)
+      .join(", ");
+  const rows = [
+    ["active", "Odrađeno", labels((id) => done.has(id))],
+    ["soft", done.size ? "Još u planu" : "U planu", labels((id) => planned.has(id) && !done.has(id))],
+    ["", "Bez vežbi", labels((id) => !planned.has(id))],
+  ].filter(([, , text]) => text);
+
+  return `
+    <div class="training-week-map">
+      ${renderBodyMap({ groupStates })}
+      <dl class="training-week-map-key">
+        ${rows
+          .map(
+            ([mapState, title, text]) => `
+          <div>
+            <dt><span class="body-map-swatch" ${mapState ? `data-state="${mapState}"` : ""} aria-hidden="true"></span>${title}</dt>
+            <dd>${text}</dd>
+          </div>`
+          )
+          .join("")}
+      </dl>
+    </div>`;
+}
+
 function renderTrainingTab() {
   const templates = getTrainingForDay(state.selectedWeekday);
   const favoriteTrainings = getFavoriteTrainingsDetailed();
@@ -12211,7 +12394,8 @@ function renderTrainingTab() {
                   </li>`;
               })
               .join("")}
-          </ul>`;
+          </ul>
+          ${renderTrainingWeekMap(weeklyTrainingPlan)}`;
       })()}
     </section>
 
@@ -20111,6 +20295,31 @@ async function handleDocumentClick(event) {
     }
     const group = String(actionTarget.dataset.group || "all");
     builder.filter = group === "all" || EXERCISE_GROUPS.some((entry) => entry.id === group) ? group : "all";
+    builder.mapOpen = false;
+    render();
+    return;
+  }
+
+  if (action === "training-builder-map") {
+    const builder = state.trainingBuilder;
+    if (!builder) {
+      return;
+    }
+    builder.mapOpen = !builder.mapOpen;
+    render();
+    return;
+  }
+
+  // Tap na mišić: lista te grupe, bez stare pretrage koja bi je sakrila.
+  if (action === "training-builder-map-group") {
+    const builder = state.trainingBuilder;
+    const group = String(actionTarget.dataset.group || "");
+    if (!builder || !EXERCISE_GROUPS.some((entry) => entry.id === group)) {
+      return;
+    }
+    builder.filter = group;
+    builder.query = "";
+    builder.mapOpen = false;
     render();
     return;
   }
@@ -21638,6 +21847,13 @@ function handleInput(event) {
     }
     if (target.id === "exercise-search") {
       builder.query = target.value;
+      // Pretraga traži po celoj biblioteci, pa prvo slovo sklanja mapu.
+      if (builder.mapOpen) {
+        builder.mapOpen = false;
+        builder.filter = "all";
+        render();
+        return;
+      }
       filterExercisePickInline(builder);
       return;
     }
