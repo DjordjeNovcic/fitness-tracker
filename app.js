@@ -6261,9 +6261,31 @@ function renderExerciseProgression(exerciseName, details) {
   return `<div class="training-progression">Poslednje: ${formatDecimal(progression.lastWeight, 2)} kg × ${progression.lastReps}. Cilj je ${progression.range.max} ponavljanja pre nego što dodaš kilažu.</div>`;
 }
 
+// Odmor po vežbi. Sačuvan `rest` (izbor u „Sastavi trening“) ima prednost;
+// inače teška osnovna dizanja i mali broj ponavljanja dobijaju 2:30,
+// izolacija, stomak i visoka ponavljanja 1:00, sve ostalo 1:30.
+const REST_CHOICES = [45, 60, 90, 120, 150, 180];
+const HEAVY_REST_PATTERN = /(cucanj|mrtvo dizanje|potisak sa klupe|potisak iznad glave|veslanje sa sipkom|zgib|potisak nogama|hip thrust)/;
+
+function getDefaultRestSeconds(exercise) {
+  const name = normalizeLookupValue(exercise?.name);
+  const range = parseRepRange(`${getExerciseDose(exercise).reps} ponavljanja`);
+  if (HEAVY_REST_PATTERN.test(name) || (range && range.max <= 6)) {
+    return 150;
+  }
+  if (["biceps", "triceps", "stomak"].includes(getExerciseGroupId(exercise)) || (range && range.min >= 12)) {
+    return 60;
+  }
+  return 90;
+}
+
+function getExerciseRestSeconds(exercise) {
+  const stored = Math.round(toNumber(exercise?.rest));
+  return stored > 0 ? stored : getDefaultRestSeconds(exercise);
+}
+
 // Rest timer. A whole-tab re-render every second would be absurd for a clock,
 // so the tick writes straight into the button and render() just repaints once.
-const REST_TIMER_SECONDS = 90;
 let restTimer = null;
 let restTimerInterval = null;
 
@@ -6278,10 +6300,11 @@ function paintRestTimers() {
     const isActive = Boolean(restTimer) && button.dataset.restKey === restTimer.key && remaining > 0;
     button.classList.toggle("is-running", isActive);
     const label = button.querySelector(".training-rest-label");
+    const idleClock = formatRestClock(Math.round(toNumber(button.dataset.restSeconds)) || 90);
     if (label) {
-      label.textContent = isActive ? formatRestClock(remaining) : "Odmor";
+      label.textContent = isActive ? formatRestClock(remaining) : idleClock;
     }
-    button.setAttribute("aria-label", isActive ? `Odmor, još ${formatRestClock(remaining)}` : "Pokreni odmor");
+    button.setAttribute("aria-label", isActive ? `Odmor, još ${formatRestClock(remaining)}` : `Pokreni odmor od ${idleClock}`);
   });
 }
 
@@ -6294,8 +6317,8 @@ function stopRestTimer() {
   paintRestTimers();
 }
 
-function startRestTimer(key) {
-  restTimer = { key, endsAt: Date.now() + REST_TIMER_SECONDS * 1000 };
+function startRestTimer(key, seconds) {
+  restTimer = { key, endsAt: Date.now() + seconds * 1000 };
   if (!restTimerInterval) {
     restTimerInterval = window.setInterval(() => {
       if (!restTimer) {
@@ -6507,6 +6530,35 @@ function getTrainingExerciseOptions() {
   return [...names].sort((a, b) => a.localeCompare(b, "sr-Latn"));
 }
 
+// Procena maksimuma za jedno ponavljanje (Epley: kg × (1 + ponavljanja / 30)).
+// Iznad 12 ponavljanja formula preteruje, a bez broja ponavljanja nema šta da
+// se proceni, pa je tada null.
+function estimateOneRepMax(weightKg, repsText) {
+  const weight = toNumber(weightKg);
+  const reps = parseRepsAchieved(repsText);
+  if (!(weight > 0) || reps < 1 || reps > 12) {
+    return null;
+  }
+  return reps === 1 ? weight : weight * (1 + reps / 30);
+}
+
+// Rekord je najveća kilaža ili najveći procenjeni 1RM; ovo su oba, za skup
+// unosa jedne vežbe.
+function getExerciseRecords(logs) {
+  let heaviest = null;
+  let bestOneRepMax = null;
+  logs.forEach((log) => {
+    if (toNumber(log.weightKg) > 0 && (!heaviest || toNumber(log.weightKg) > toNumber(heaviest.weightKg))) {
+      heaviest = log;
+    }
+    const oneRepMax = estimateOneRepMax(log.weightKg, log.reps);
+    if (oneRepMax && (!bestOneRepMax || oneRepMax > bestOneRepMax.value)) {
+      bestOneRepMax = { log, value: oneRepMax };
+    }
+  });
+  return { heaviest, bestOneRepMax };
+}
+
 function getTrainingProgressGroups() {
   const groups = new Map();
 
@@ -6548,6 +6600,7 @@ function getTrainingProgressGroups() {
         latest,
         first,
         best,
+        bestOneRepMax: getExerciseRecords(logs).bestOneRepMax,
         delta: roundValue(latest.weightKg - first.weightKg, 1),
       };
     })
@@ -8313,6 +8366,7 @@ function isOverlayOpen() {
       state.scannerOpen ||
       state.trainingBuilder ||
       state.trainingPlanPicker ||
+      state.exerciseSwap ||
       (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
   );
 }
@@ -8583,6 +8637,7 @@ function renderActionIcon(kind) {
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
     go: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/>',
+    swap: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M7 4 3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/>',
     undo: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
     signout: '<path fill="currentColor" d="M10 4H5v16h5v-2H7V6h3V4Zm1.5 4.5 1.4-1.4L18.8 13l-5.9 5.9-1.4-1.4L14.97 14H9v-2h5.97L11.5 8.5Z"/>',
@@ -11898,7 +11953,9 @@ function renderRecipesTab() {
 // `details` je opis postojeće vežbe: dok joj se serije i ponavljanja ne
 // promene, čuva se od reči do reči (izmena treninga ne sme da prepiše tekst
 // vežbi koje nisu dirane).
-function makeTrainingBuilderItem({ id = "", name, group, sets, reps, details = "" }) {
+// `rest` je null dok korisnik ne izabere odmor sam: tada važi podrazumevani
+// (getDefaultRestSeconds), koji prati vežbu i dozu.
+function makeTrainingBuilderItem({ id = "", name, group, sets, reps, rest = null, details = "" }) {
   const item = {
     key: uid("builder-exercise"),
     id,
@@ -11906,6 +11963,7 @@ function makeTrainingBuilderItem({ id = "", name, group, sets, reps, details = "
     group: group || guessExerciseGroup(name),
     sets: Math.round(toNumber(sets)) || null,
     reps: String(reps ?? ""),
+    rest: Math.round(toNumber(rest)) || null,
   };
   item.original = details ? { details, sets: item.sets, reps: item.reps } : null;
   return item;
@@ -11932,6 +11990,7 @@ function openTrainingBuilder(templateId = "") {
             name: exercise.name,
             group: getExerciseGroupId(exercise),
             details: exercise.details,
+            rest: exercise.rest,
             ...getExerciseDose(exercise),
           })
         )
@@ -11956,6 +12015,9 @@ function copyTrainingExercise(exercise) {
   if (exercise.sets != null || exercise.reps) {
     copy.sets = exercise.sets ?? null;
     copy.reps = exercise.reps || "";
+  }
+  if (exercise.rest) {
+    copy.rest = exercise.rest;
   }
   return copy;
 }
@@ -12246,6 +12308,18 @@ function renderTrainingBuilderPlan(builder) {
             <div class="field training-builder-dose-field">
               <label class="training-builder-dose-label" for="reps-${item.key}">Ponavljanja</label>
               <input id="reps-${item.key}" class="training-builder-reps" value="${escapeHtml(item.reps)}" placeholder="8-10" autocomplete="off" data-builder-reps="${item.key}" data-no-autofocus />
+            </div>
+            <div class="field training-builder-dose-field training-builder-rest">
+              <label class="training-builder-dose-label" for="rest-${item.key}">Odmor</label>
+              <select id="rest-${item.key}" data-builder-rest="${item.key}">
+                ${(() => {
+                  const value = item.rest || getDefaultRestSeconds(item);
+                  return [...new Set([...REST_CHOICES, value])]
+                    .sort((a, b) => a - b)
+                    .map((seconds) => `<option value="${seconds}" ${seconds === value ? "selected" : ""}>${formatRestClock(seconds)}</option>`)
+                    .join("");
+                })()}
+              </select>
             </div>
           </div>
         </li>`
@@ -12558,6 +12632,82 @@ function renderTrainingPlanDialog() {
     </div>`;
 }
 
+// Zamena vežbe („mašina je zauzeta“): slične vežbe iz iste grupe, a serije,
+// ponavljanja i oznaka „odrađeno“ ostaju na mestu. Menja trening za svaku
+// nedelju, uz „Vrati“.
+function getExerciseSwapTarget() {
+  const swap = state.exerciseSwap;
+  const template = swap && store.trainingTemplates.find((entry) => entry.id === swap.templateId);
+  const exercise = template && (template.exercises || []).find((entry) => entry.id === swap.exerciseId);
+  return exercise ? { template, exercise } : null;
+}
+
+function getExerciseSwapOptions(template, exercise) {
+  const group = getExerciseGroupId(exercise);
+  const taken = new Set((template.exercises || []).map((entry) => normalizeLookupValue(entry.name)));
+  return getExerciseLibrary().filter((option) => (!group || option.group === group) && !taken.has(normalizeLookupValue(option.name)));
+}
+
+function renderExerciseSwapDialog() {
+  const target = getExerciseSwapTarget();
+  if (!target) {
+    return "";
+  }
+  const { template, exercise } = target;
+  const group = getExerciseGroupId(exercise);
+  const dose = getExerciseDose(exercise);
+  const options = getExerciseSwapOptions(template, exercise);
+
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-exercise-swap" aria-label="Zatvori"></button>
+      <section class="app-dialog training-builder-dialog exercise-swap-dialog" role="dialog" aria-modal="true" aria-labelledby="exercise-swap-title">
+        <div class="app-dialog-head training-builder-head">
+          <div class="training-builder-title">
+            <h3 id="exercise-swap-title">Zameni „${escapeHtml(exercise.name)}“</h3>
+            <p class="exercise-swap-sub">${group ? `Vežbe za ${getExerciseGroupLabel(group).toLowerCase()}` : "Sve vežbe"}${
+              dose.sets || dose.reps ? ` · ostaje ${escapeHtml(formatExerciseDose(dose.sets, dose.reps))}` : ""
+            }</p>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-exercise-swap" aria-label="Zatvori">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+        <div class="training-builder-body" data-keep-scroll="exercise-swap">
+          ${
+            options.length
+              ? `<ul class="exercise-pick-list">
+            ${options
+              .map(
+                (option) => `
+              <li class="exercise-pick-item">
+                <button class="exercise-pick-row" type="button" data-action="swap-exercise-pick" data-key="${escapeHtml(option.key)}">
+                  <span class="exercise-pick-copy">
+                    <strong>${escapeHtml(option.name)}</strong>
+                    ${(() => {
+                      // Doza vežbe koja se menja ostaje, pa se doza iz biblioteke
+                      // prikazuje samo kad je mesto nema.
+                      const hint = [
+                        option.custom ? "Tvoja vežba" : "",
+                        group ? "" : getExerciseGroupLabel(option.group),
+                        dose.sets || dose.reps ? "" : formatExerciseDose(option.sets, option.reps),
+                      ].filter(Boolean);
+                      return hint.length ? `<span>${escapeHtml(hint.join(" · "))}</span>` : "";
+                    })()}
+                  </span>
+                  <span class="exercise-swap-go" aria-hidden="true">${renderActionIcon("swap")}</span>
+                </button>
+              </li>`
+              )
+              .join("")}
+          </ul>`
+              : `<p class="exercise-pick-empty">Sve vežbe iz ove grupe su već u treningu. Novu dodaš kao svoju u „Izmeni“.</p>`
+          }
+        </div>
+      </section>
+    </div>`;
+}
+
 // Nedelja na mapi tela: boja grupe prati broj serija u nedeljnom planu
 // (1–5, 6–9, 10+), a lista pored kaže koliko i, za tekuću nedelju, koliko je
 // od toga odrađeno. Vežba bez broja serija (stari tekstualni šabloni) se
@@ -12667,12 +12817,6 @@ function renderTrainingTab() {
         <div>
           <h2>Nedeljni plan treninga</h2>
         </div>
-        ${
-          // Prazna nedelja ima isto dugme u svom redu ispod.
-          weeklyTrainingPlan.some((day) => day.templates.length || day.trainingBurn > 0)
-            ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>`
-            : ""
-        }
       </div>
       ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži kilažu i broj ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${(() => {
@@ -12710,7 +12854,8 @@ function renderTrainingTab() {
               })
               .join("")}
           </ul>
-          ${renderTrainingWeekMap(weeklyTrainingPlan)}`;
+          ${renderTrainingWeekMap(weeklyTrainingPlan)}
+          <button class="ghost-button button-with-icon training-plans-open" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>`;
       })()}
     </section>
 
@@ -12787,9 +12932,10 @@ function renderTrainingTab() {
                                   ${renderExerciseProgression(exercise.name, exercise.details)}
                                 </div>
                                 <div class="training-exercise-actions">
-                                  <button class="training-rest" type="button" data-action="toggle-rest-timer" data-rest-key="${template.id}:${exercise.id}" aria-label="Pokreni odmor" title="Odmor ${REST_TIMER_SECONDS} sekundi">
-                                    ${renderRestIcon()}<span class="training-rest-label">Odmor</span>
+                                  <button class="training-rest" type="button" data-action="toggle-rest-timer" data-rest-key="${template.id}:${exercise.id}" data-rest-seconds="${getExerciseRestSeconds(exercise)}" aria-label="Pokreni odmor od ${formatRestClock(getExerciseRestSeconds(exercise))}" title="Odmor ${formatRestClock(getExerciseRestSeconds(exercise))}">
+                                    ${renderRestIcon()}<span class="training-rest-label">${formatRestClock(getExerciseRestSeconds(exercise))}</span>
                                   </button>
+                                  <button class="training-rest training-swap" type="button" data-action="open-exercise-swap" data-template-id="${template.id}" data-exercise-id="${exercise.id}" aria-label="Zameni „${escapeHtml(exercise.name)}“" title="Zameni vežbu">${renderActionIcon("swap")}</button>
                                   <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">Kilaža</button>
                                 </div>
                               </div>
@@ -15597,6 +15743,11 @@ function renderExerciseProgressCard(group) {
       </svg>
       <div class="pill-row">
         <span class="pill">Najbolje ${formatDecimal(group.best.weightKg, 1)} kg</span>
+        ${
+          group.bestOneRepMax
+            ? `<span class="pill" title="Procena iz ${formatDecimal(group.bestOneRepMax.log.weightKg, 1)} kg × ${parseRepsAchieved(group.bestOneRepMax.log.reps)}">1RM ≈ ${formatDecimal(roundValue(group.bestOneRepMax.value, 0), 0)} kg</span>`
+            : ""
+        }
         <span class="pill">Unosa ${group.logs.length}</span>
         <span class="pill note">${group.delta > 0 ? "+" : ""}${formatDecimal(group.delta, 2)} kg od prvog</span>
       </div>
@@ -17667,6 +17818,7 @@ function render() {
       ${renderQuickEntryDialog()}
       ${renderTrainingBuilderDialog()}
       ${renderTrainingPlanDialog()}
+      ${renderExerciseSwapDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
     </div>
@@ -18497,7 +18649,7 @@ async function handleDocumentClick(event) {
     if (restTimer && restTimer.key === key) {
       stopRestTimer();
     } else {
-      startRestTimer(key);
+      startRestTimer(key, Math.round(toNumber(actionTarget.dataset.restSeconds)) || 90);
     }
     return;
   }
@@ -20584,6 +20736,50 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-exercise-swap") {
+    rememberDialogTrigger(actionTarget);
+    state.exerciseSwap = { templateId: actionTarget.dataset.templateId || "", exerciseId: actionTarget.dataset.exerciseId || "" };
+    render();
+    return;
+  }
+
+  if (action === "close-exercise-swap") {
+    state.exerciseSwap = null;
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "swap-exercise-pick") {
+    const target = getExerciseSwapTarget();
+    const option = target && getExerciseSwapOptions(target.template, target.exercise).find((entry) => entry.key === actionTarget.dataset.key);
+    if (!option) {
+      return;
+    }
+    const { template, exercise } = target;
+    const oldName = exercise.name;
+    const prevExercises = template.exercises.map((entry) => ({ ...entry }));
+    const dose = getExerciseDose(exercise);
+    const sets = dose.sets || option.sets;
+    const reps = dose.reps || option.reps;
+    // Isti id: oznaka „odrađeno“ ove nedelje ostaje na zamenjenoj vežbi.
+    // Odmor se ne nosi, nova vežba dobija svoj podrazumevani.
+    const swapped = { id: exercise.id, name: option.name, group: option.group, sets, reps, details: buildExerciseDetails(option.name, sets, reps) };
+    template.exercises = template.exercises.map((entry) => (entry.id === exercise.id ? swapped : entry));
+    persist();
+    state.exerciseSwap = null;
+    queuePendingUndo(`„${oldName}“ zamenjen sa „${option.name}“.`, () => {
+      const current = store.trainingTemplates.find((entry) => entry.id === template.id);
+      if (current) {
+        current.exercises = prevExercises;
+        persist();
+      }
+    });
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
   if (action === "open-training-plans") {
     rememberDialogTrigger(actionTarget);
     state.trainingPlanPicker = { planId: TRAINING_PLANS[0].id, scope: "both" };
@@ -20869,6 +21065,7 @@ async function handleDocumentClick(event) {
         sets: item.sets,
         reps: item.reps.trim(),
         details: untouched ? item.original.details : buildExerciseDetails(item.name, item.sets, item.reps),
+        ...(item.rest ? { rest: item.rest } : {}),
       };
     });
     const existing = builder.templateId ? store.trainingTemplates.find((entry) => entry.id === builder.templateId) : null;
@@ -21743,6 +21940,14 @@ async function handleSubmit(event) {
       return;
     }
 
+    // Rekord se meri prema ranijim unosima iste vežbe; prvi unos nema s čim
+    // da se poredi, pa nije rekord.
+    const exerciseKey = exerciseName.toLowerCase();
+    const previous = getExerciseRecords(store.trainingProgressLogs.filter((log) => String(log.exerciseName || "").trim().toLowerCase() === exerciseKey));
+    const oneRepMax = estimateOneRepMax(weightKg, reps);
+    const isHeaviest = Boolean(previous.heaviest) && weightKg > toNumber(previous.heaviest.weightKg);
+    const isBestOneRepMax = Boolean(oneRepMax && previous.bestOneRepMax) && oneRepMax > previous.bestOneRepMax.value + 0.05;
+
     store.trainingProgressLogs.unshift({
       id: uid("training-progress"),
       date,
@@ -21757,6 +21962,16 @@ async function handleSubmit(event) {
     persist();
     event.target.reset();
     render();
+    if (isHeaviest || isBestOneRepMax) {
+      showFeedbackToast({
+        title: "Novi rekord! 🏆",
+        detail: `${exerciseName}: ${formatDecimal(weightKg, 1)} kg${parseRepsAchieved(reps) ? ` × ${parseRepsAchieved(reps)}` : ""}${
+          oneRepMax ? ` · 1RM ≈ ${formatDecimal(roundValue(oneRepMax, 0), 0)} kg` : ""
+        }`,
+        tone: "success",
+        duration: 4000,
+      });
+    }
     return;
   }
 
@@ -22208,6 +22423,13 @@ function handleInput(event) {
       const item = builder.items.find((entry) => entry.key === target.dataset.builderReps);
       if (item) {
         item.reps = target.value;
+      }
+      return;
+    }
+    if (target.dataset.builderRest) {
+      const item = builder.items.find((entry) => entry.key === target.dataset.builderRest);
+      if (item) {
+        item.rest = Math.round(toNumber(target.value)) || null;
       }
       return;
     }
@@ -22887,7 +23109,9 @@ function getOpenDialogElement() {
             ? ".training-builder-dialog"
             : state.trainingPlanPicker
               ? ".training-plans-dialog"
-              : "";
+              : state.exerciseSwap
+                ? ".exercise-swap-dialog"
+                : "";
   return selector ? document.querySelector(selector) : null;
 }
 
@@ -23004,6 +23228,8 @@ document.addEventListener("keydown", (event) => {
           ? '[data-action="close-training-builder"]'
         : state.trainingPlanPicker
           ? '[data-action="close-training-plans"]'
+        : state.exerciseSwap
+          ? '[data-action="close-exercise-swap"]'
         : state.navMenuOpen
           ? '[data-action="close-nav-menu"]'
           : null;

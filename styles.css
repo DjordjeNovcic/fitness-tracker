@@ -15052,3 +15052,70 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+/* Odmor u „Sastavi trening“: treće polje u istom redu doze; ponavljanja se
+   sužavaju da sve stane na telefon. */
+:root[data-theme] .training-builder-dose .training-builder-reps {
+  width: 72px;
+}
+:root[data-theme] .training-builder-rest select {
+  width: 92px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 26px 0 12px;
+  background-position: 0 0, right 8px center;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 380px) {
+  .training-builder-dose {
+    flex-wrap: wrap;
+  }
+}
+
+/* Zamena vežbe: podnaslov sa grupom i dozom koja ostaje. */
+.exercise-swap-sub {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+}
+.exercise-swap-dialog .exercise-pick-row {
+  padding-left: 0;
+}
+.exercise-swap-go {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--muted);
+}
+.exercise-swap-go .button-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.training-swap {
+  min-width: 44px;
+  justify-content: center;
+}
+/* Trening na telefonu: odmor, zamena i kilaža idu u svoj red ispod naziva,
+   pa naziv i doza imaju celu širinu, a dugme za odmor pokazuje svoje
+   trajanje i pre nego što krene. */
+@media (max-width: 599px) {
+  .training-exercise-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+  }
+  .training-exercise-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .training-rest:not(.is-running) .training-rest-label {
+    display: inline;
+  }
+  .training-rest:not(.is-running):not(.training-swap) {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+}
+/* „Gotovi planovi“ kad nedelja već ima treninge: tiho, na dnu odeljka
+   (u zaglavlju je lomilo naslov u tri reda na telefonu). */
+.training-plans-open {
+  margin-top: 14px;
+}
