@@ -11069,7 +11069,7 @@ function renderPlanTab(entries) {
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
-          <h2>Obroci za ${weekdayAccusative(state.selectedWeekday)}${
+          <h2>Obroci${
             state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}`
           }</h2>
           <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
@@ -12862,7 +12862,7 @@ function renderTrainingTab() {
     <section class="section routine-habits-section">
       <div class="section-header">
         <div>
-          <h2>Trening za ${weekdayAccusative(state.selectedWeekday)}</h2>
+          <h2>Vežbe</h2>
         </div>
         ${
           templates.length
@@ -16851,13 +16851,13 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct} % dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct}\u00a0% dana`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
-      note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct} % dana` : "",
+      note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct}\u00a0% dana` : "",
       value: `${ins.avgProtein} g/dan`,
     },
-    ins.fatChange != null && { label: "Telesna mast", value: `${signed(ins.fatChange, 1)} %` },
+    ins.fatChange != null && { label: "Telesna mast", value: `${signed(ins.fatChange, 1)}\u00a0%` },
     ins.muscleChange != null && { label: "Mišićna masa", value: `${signed(ins.muscleChange, 1)} kg` },
     ins.trainingSessions && { label: "Treninzi", value: `${ins.trainingSessions}` },
     ins.avgWater && { label: "Voda", value: `${formatDecimal(ins.avgWater / 1000, 1)} L/dan` },
@@ -17039,7 +17039,7 @@ async function buildShareCardCanvas(data) {
   // Stat tiles
   const tiles = [];
   if (data.weight) tiles.push({ value: `${data.weight.delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(data.weight.delta), 2)} kg`, label: "težina", good: data.weight.delta < 0 });
-  if (data.fat) tiles.push({ value: `${data.fat.delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(data.fat.delta), 2)} %`, label: "telesna mast", good: data.fat.delta < 0 });
+  if (data.fat) tiles.push({ value: `${data.fat.delta > 0 ? "+" : "−"}${formatDecimal(Math.abs(data.fat.delta), 2)}\u00a0%`, label: "telesna mast", good: data.fat.delta < 0 });
   if (data.weight) tiles.push({ value: `${data.weight.to}`, label: "kg sada", good: null });
   const shown = tiles.slice(0, 3);
   if (shown.length) {
@@ -17722,7 +17722,7 @@ function render() {
               <button class="app-sidebar-account ${state.activeTab === "goals" && state.goalsView === "nalog" ? "is-active" : ""}" type="button" data-action="open-account" aria-label="Nalog i podešavanja · ${escapeHtml(state.syncStatus)}" title="Nalog · ${escapeHtml(state.syncStatus)}">
                 <span class="app-sidebar-account-avatar" aria-hidden="true">${escapeHtml(initial)}<span class="app-sidebar-account-dot is-${getSyncStatusTone()}"></span></span>
                 <span class="app-sidebar-account-copy">
-                  <span class="app-sidebar-account-name">${escapeHtml(name)}${demo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
+                  <span class="app-sidebar-account-name"><span class="app-sidebar-account-name-text">${escapeHtml(name)}</span></span>
                   <span class="app-sidebar-account-email">${escapeHtml(email)}</span>
                 </span>
                 <span class="app-sidebar-account-chevron" aria-hidden="true">${renderSideChevronIcon(false)}</span>

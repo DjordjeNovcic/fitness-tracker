@@ -11353,7 +11353,19 @@ button.meal-entry-body:focus-visible {
 /* Room for the suffix scales with its length: a flat 52px ate half of a
    narrow three-column field, so "198" in a "g" field showed as "19". */
 .input-unit input {
-  padding-right: calc(22px + var(--unit-len, 4) * 0.6em);
+  padding-right: calc(20px + var(--unit-len, 4) * 0.55em);
+}
+/* Strelice broja na računaru jele su ~15px uskog polja sa jedinicom:
+   „10“ u polju „Kafa, po šoljici · kcal“ prikazivalo se kao „1(“.
+   Na telefonu ih ionako nema, a vrednost se kuca. */
+.input-unit input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.input-unit input[type="number"]::-webkit-inner-spin-button,
+.input-unit input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .input-unit-suffix {
   position: absolute;
@@ -11846,9 +11858,11 @@ button.meal-entry-body:focus-visible {
 }
 
 /* Entries: hairline rows, one figure column. */
+/* Zaglavlje otvorenog obroka već ima liniju ispod sebe; još jedna na vrhu
+   sadržaja davala je dve linije na 12px razmaka. */
 .plan-meals-section .meal-card-content {
-  margin-top: 10px;
-  border-top: 1px solid var(--line);
+  margin-top: 0;
+  border-top: 0;
 }
 .plan-meals-section .meal-card-content.is-hidden {
   margin-top: 0;
@@ -12016,14 +12030,16 @@ button.meal-entry-body:focus-visible {
 .plan-utilities > .plan-quick-section + .plan-supplements-section,
 .plan-utilities > .plan-supplements-section + .plan-shopping-section,
 .plan-utilities > .plan-quick-section + .plan-shopping-section {
-  border-top-color: transparent;
+  border-top: 0;
   box-shadow: inset 0 1px 0 var(--line);
 }
 .plan-utilities > .plan-quick-section:has(+ .plan-supplements-section, + .plan-shopping-section),
 .plan-utilities > .plan-supplements-section:has(+ .plan-shopping-section) {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  border-bottom-color: transparent;
+  /* 0, ne providna: providna ivica je otkrivala tamniju stranu ispod i
+     uz liniju sledeće kartice davala dvostruku crtu. */
+  border-bottom: 0;
 }
 .plan-utilities > .plan-quick-section + .plan-supplements-section,
 .plan-utilities > .plan-supplements-section + .plan-shopping-section,
@@ -13790,6 +13806,18 @@ button.meal-entry-body:focus-visible {
 @media (min-width: 721px) {
   :root[data-theme] body.daybar-stuck .hero--sub { border-radius: 0 0 22px 22px; }
 }
+/* Dan, ispod njega datum, a Ova/Sledeća desno u istom redu, kao na Danas.
+   Kad su naslov i datum stajali jedan pored drugog, prekidač je padao u
+   drugi red i `.hero-top { max-height: 64px; overflow: hidden }` mu je
+   odsecao donju ivicu. */
+:root[data-theme] .hero--sub .hero-top { flex-wrap: nowrap; }
+:root[data-theme] .hero--sub .hero-title-wrap {
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 :root[data-theme] .hero--sub .hero-title { color: var(--block-ink); }
 :root[data-theme] .hero--sub .hero-date { color: var(--block-muted); }
 :root[data-theme] .hero--sub .hero-week-toggle { background: var(--block-faint); border-color: transparent; }
@@ -15118,4 +15146,52 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
    (u zaglavlju je lomilo naslov u tri reda na telefonu). */
 .training-plans-open {
   margin-top: 14px;
+}
+
+/* ============================================================
+   2026-11-02 — Utezanje: zaglavlja, recepti.
+   ============================================================ */
+/* Telefon: naslov stranice (Hrana, Trening, Napredak, Ciljevi, Rutina) imao
+   je 16px vazduha iznad i ispod kroz pravilo `.section`, a podtabovi na
+   Hrani i Treningu još 12px više nego na Napretku i Ciljevima. Isti razmak
+   na svim stranicama, bez praznog pojasa ispod naslova. */
+@media (max-width: 720px) {
+  .app-main .workspace-header.section,
+  :root[data-theme="dark"] .app-main .workspace-header.section {
+    padding: 6px 4px 2px;
+  }
+  .app-main .workspace-header + .group-seg-nav {
+    margin-top: -5px;
+  }
+}
+/* Recepti: makroi uvek u svom redu ispod kalorija. Kraći recepti su ih
+   imali u istom redu, duži prelomljene, pa je lista bila neujednačena. */
+.recipe-library-stats .recipe-library-stat-macros {
+  flex-basis: 100%;
+}
+/* Nedeljni plan treninga: linija iznad prvog dana visila je preko
+   obojenog izabranog reda; redovi su već razdvojeni linijama između. */
+.training-week-list {
+  border-top: 0;
+}
+/* Recepti: kalorije i makroi kao jedan blok, „Dodaj u plan“ kompaktno
+   (isto kao kompaktna primarna radnja u istom redu, 38px). */
+.recipe-library-stats {
+  row-gap: 2px;
+  margin-top: 10px;
+}
+.recipe-library-stats .recipe-library-stat-macros {
+  font-size: var(--fs-14);
+}
+.recipe-library-actions > .ghost-button:not(.icon-only-action) {
+  min-height: 38px;
+  padding: 7px 14px;
+  font-size: var(--fs-14);
+}
+/* Bočna traka: dugo ime naloga se skraćuje (…). Bedž DEMO je odavde
+   uklonjen: stajao je samo uz ime „Demo nalog“ i bio je odsečen. */
+.app-sidebar-account-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
