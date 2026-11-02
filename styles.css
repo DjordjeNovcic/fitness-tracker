@@ -15195,3 +15195,110 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ============================================================
+   2026-11-02 — Utezanje 2: prvi utisak novog korisnika.
+   ============================================================ */
+/* Danas, prazan obrok: jedan red (naziv levo, „+ Dodaj namirnicu“ desno)
+   umesto naslova, linije i dugmeta ispod. Novom nalogu je pet praznih
+   obroka zauzimalo ceo ekran. */
+.plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+.plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) > .meal-card-header,
+:root[data-theme="dark"] .plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) > .meal-card-header {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0;
+}
+.plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) > .meal-card-content {
+  margin: 0;
+}
+.plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) .meal-add-row {
+  width: auto;
+  justify-content: flex-end;
+  padding-inline: 4px 0;
+}
+/* Prijava: „Prvi put ovde? Napravi nalog“ u jednom centriranom redu.
+   Na telefonu je tekst stajao levo, a dugme centrirano ispod njega. */
+.auth-toggle-row,
+.auth-shell .auth-toggle-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 6px;
+}
+.auth-toggle-row .auth-switch-button {
+  width: auto;
+}
+.auth-privacy > summary {
+  justify-content: center;
+}
+/* Prazan Trening na telefonu: tekst pa dugme ispod, umesto uskog stupca
+   teksta od četiri reda pored dugmeta. Prvi korak novog korisnika
+   (Gotovi planovi) je puno dugme. */
+@media (max-width: 599px) {
+  .training-empty-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+.training-empty-row .solid-button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 7px 14px;
+  font-size: var(--fs-14);
+}
+.auth-toggle-row,
+.auth-shell .auth-toggle-row {
+  align-items: baseline;
+}
+.day-summary-line--empty {
+  color: var(--muted);
+  font-weight: 500;
+}
+/* Skrol do otvorenog obroka staje ispod lepljive trake dana, ne ispod nje. */
+.plan-meals-section .meal-card,
+#plan-entry-form {
+  scroll-margin-top: calc(var(--daybar-h, 76px) + 16px);
+}
+/* Otvoren prazan obrok: forma ide odmah ispod zaglavlja, koje već ima
+   liniju — bez druge linije na vrhu forme. */
+:root[data-theme] .plan-meals-section .meal-card:not(:has(.meal-entry)) .meal-composer {
+  margin-top: 0;
+  padding-top: 2px;
+  border-top: 0;
+}
+/* „Ide uz ovo“: naziv i količina levo, „+“ desno, u jednom redu. Pravilo
+   za telefon ih je slagalo u stubac, centrirano, sa „+“ u svom redu. */
+.meal-composer-suggestions .suggestion-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+.meal-composer-suggestions .suggestion-row-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+}
+.meal-composer-suggestions .suggestion-row-add {
+  flex: 0 0 auto;
+}
+/* Sam „Zatvori“ ispod forme: centriran, ne zaglavljen u desnoj koloni. */
+.meal-composer-actions:has(> :only-child) {
+  display: flex;
+  justify-content: center;
+}
+.meal-composer-actions > :only-child {
+  width: auto;
+  min-width: 120px;
+}

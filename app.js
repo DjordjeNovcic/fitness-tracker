@@ -8308,15 +8308,15 @@ function renderOnboarding() {
             </div>
           </div>
           <div class="onboarding-grid">
-            ${renderUnitField("ob-age", "Godine", "god.", `<input id="ob-age" type="number" inputmode="numeric" min="0" value="${ob.age || ""}" />`)}
-            ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" value="${ob.heightCm || ""}" />`)}
-            ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" value="${ob.weightKg || ""}" />`)}
+            ${renderUnitField("ob-age", "Godine", "god.", `<input id="ob-age" type="number" inputmode="numeric" min="0" placeholder="30" value="${ob.age || ""}" />`)}
+            ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" placeholder="175" value="${ob.heightCm || ""}" />`)}
+            ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="75" value="${ob.weightKg || ""}" />`)}
           </div>
           <div class="field">
             <label>Nivo aktivnosti</label>
             <div class="choice-chips">
               ${ACTIVITY_LEVELS.map(
-                (level) => `<button type="button" class="choice-chip ${level.id === ob.activityLevel ? "is-active" : ""}" data-action="set-onboarding-activity" data-activity="${level.id}">
+                (level) => `<button type="button" class="choice-chip ${level.id === ob.activityLevel ? "is-active" : ""}" aria-pressed="${level.id === ob.activityLevel}" data-action="set-onboarding-activity" data-activity="${level.id}">
                   <span class="choice-chip-label">${ACTIVITY_SHORT_LABELS[level.id] || level.label}</span>
                   <span class="choice-chip-hint">${ACTIVITY_HINTS[level.id] || ""}</span>
                 </button>`
@@ -9067,7 +9067,7 @@ function renderAuthShell() {
         <div class="auth-brand">
           <span class="auth-logo" aria-hidden="true">${renderTabIcon("plan")}</span>
           <h1>Fit Tracker</h1>
-          <p>${state.authMode === "register" ? "Napravi nalog da plan, obroci i trening budu na svim uređajima." : "Prijavi se da nastaviš."}</p>
+          <p>${state.authMode === "register" ? "Napravi nalog da plan, obroci i trening budu na svim uređajima." : "Obroci, kalorije, trening i napredak na jednom mestu."}</p>
         </div>
         <form id="auth-form" class="auth-form">
           <div class="field">
@@ -12825,7 +12825,7 @@ function renderTrainingTab() {
           // Bez ovoga je kartica bila samo naslov.
           return `<div class="training-empty-row">
             <span>Nijedan dan još nema trening. Uzmi gotov plan ili izaberi dan gore i sastavi svoj.</span>
-            <button class="ghost-button button-with-icon" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>
+            <button class="solid-button button-with-icon" type="button" data-action="open-training-plans">${renderButtonContent("Gotovi planovi", "add")}</button>
           </div>`;
         }
         return `
@@ -12870,18 +12870,16 @@ function renderTrainingTab() {
             : ""
         }
       </div>
-      <div class="training-day-spotlight">
-        ${
-          templates.length
-            ? `
+      ${
+        // Prazan blok je i dalje nosio marginu od 14px ispod naslova „Vežbe“.
+        templates.length
+          ? `<div class="training-day-spotlight">
         <p class="day-summary-line">${todayExerciseCompleted} od ${todayExerciseTotal} ${srPlural(todayExerciseTotal, "vežbe", "vežbe", "vežbi")} odrađeno · ${
           trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : "kalorije nisu unete"
         }</p>
-
-            `
-            : ""
-        }
-      </div>
+      </div>`
+          : ""
+      }
       <div class="stack training-template-stack">
         ${
           templates.length
@@ -13929,7 +13927,8 @@ function renderRoutineTab() {
             ]
               .filter(Boolean)
               .join(" · ")}</p>`
-          : ""
+          : // Novom nalogu je kartica bila samo naslov i prazan prostor.
+            `<p class="day-summary-line day-summary-line--empty">Navike, dnevni zadaci i nizovi dana na jednom mestu. Počni od jedne navike ispod.</p>`
       }
     </section>
 
@@ -19043,8 +19042,12 @@ async function handleDocumentClick(event) {
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
     render();
     window.requestAnimationFrame(() => {
-      document.querySelector("#plan-entry-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelector("#food-search-input")?.focus();
+      // Ceo obrok (sa nazivom); scroll-margin-top u CSS-u ga drži ispod
+      // lepljive trake dana — ranije je pretraga ostajala skrivena ispod nje.
+      // preventScroll: fokus bi inače odmah skočio na polje i prekinuo skrol.
+      const target = document.querySelector(".plan-meals-section .meal-card.is-editing") || document.querySelector("#plan-entry-form");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#food-search-input")?.focus({ preventScroll: true });
     });
     return;
   }
@@ -19062,7 +19065,7 @@ async function handleDocumentClick(event) {
     render();
     window.requestAnimationFrame(() => {
       document.querySelector("#plan-entry-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelector("#food-search-input")?.focus();
+      document.querySelector("#food-search-input")?.focus({ preventScroll: true });
     });
     return;
   }
