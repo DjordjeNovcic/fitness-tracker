@@ -8289,17 +8289,32 @@ function syncOnboardingPreview() {
   }
 }
 
+// Uvod u tri kratka koraka (o tebi → aktivnost → cilj) umesto jedne duge
+// forme od pet grupa pitanja. Cilj u kcal se vidi tek na poslednjem koraku,
+// kad su svi podaci tu, i ažurira se uživo dok se bira cilj i brzina.
+const ONBOARDING_STEPS = 3;
+
+function getOnboardingMissingField(ob) {
+  if (!ob.sex) return "sex";
+  if (!(toNumber(ob.age) > 0)) return "ob-age";
+  if (!(toNumber(ob.heightCm) > 0)) return "ob-height";
+  if (!(toNumber(ob.weightKg) > 0)) return "ob-weight";
+  return "";
+}
+
 function renderOnboarding() {
   const ob = state.onboarding || {};
-  return `
-    <main class="shell onboarding-shell" aria-label="Početno podešavanje">
-      <div class="onboarding-card">
-        <div class="onboarding-head">
-          <span class="onboarding-logo" aria-hidden="true">${renderTabIcon("plan")}</span>
-          <h1>Dobrodošli u Fit Tracker</h1>
-          <p>Par brzih podataka i odmah dobijaš dnevni kalorijski cilj i makroe. Sve kasnije možeš da promeniš u Ciljevima.</p>
-        </div>
-        <form id="onboarding-form" class="onboarding-form" autocomplete="off">
+  const step = Math.min(Math.max(Number(ob.step) || 1, 1), ONBOARDING_STEPS);
+  const stepTitles = ["O tebi", "Koliko se krećeš?", "Šta ti je cilj?"];
+  const progress = `
+    <div class="onboarding-progress" role="progressbar" aria-valuemin="1" aria-valuemax="${ONBOARDING_STEPS}" aria-valuenow="${step}" aria-label="Korak ${step} od ${ONBOARDING_STEPS}">
+      ${Array.from({ length: ONBOARDING_STEPS }, (_, index) => `<span class="${index < step ? "is-done" : ""}"></span>`).join("")}
+    </div>
+    <div class="onboarding-step-label">Korak ${step} od ${ONBOARDING_STEPS}</div>`;
+
+  const stepBody =
+    step === 1
+      ? `
           <div class="field">
             <label>Pol</label>
             <div class="choice-chips">
@@ -8312,9 +8327,12 @@ function renderOnboarding() {
             ${renderUnitField("ob-height", "Visina", "cm", `<input id="ob-height" type="number" inputmode="numeric" min="0" placeholder="175" value="${ob.heightCm || ""}" />`)}
             ${renderUnitField("ob-weight", "Težina", "kg", `<input id="ob-weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="75" value="${ob.weightKg || ""}" />`)}
           </div>
+          ${ob.error ? `<div class="onboarding-error" role="alert">${escapeHtml(ob.error)}</div>` : `<p class="onboarding-note">Treba nam samo za računanje dnevnog cilja.</p>`}`
+      : step === 2
+        ? `
           <div class="field">
-            <label>Nivo aktivnosti</label>
-            <div class="choice-chips">
+            <label class="sr-only">Nivo aktivnosti</label>
+            <div class="choice-chips onboarding-choice-list">
               ${ACTIVITY_LEVELS.map(
                 (level) => `<button type="button" class="choice-chip ${level.id === ob.activityLevel ? "is-active" : ""}" aria-pressed="${level.id === ob.activityLevel}" data-action="set-onboarding-activity" data-activity="${level.id}">
                   <span class="choice-chip-label">${ACTIVITY_SHORT_LABELS[level.id] || level.label}</span>
@@ -8322,9 +8340,10 @@ function renderOnboarding() {
                 </button>`
               ).join("")}
             </div>
-          </div>
+          </div>`
+        : `
           <div class="field">
-            <label>Cilj</label>
+            <label class="sr-only">Cilj</label>
             <div class="choice-chips">
               ${GOAL_MODES.map((mode) => `<button type="button" class="choice-chip ${mode.id === ob.targetMode ? "is-active" : ""}" aria-pressed="${mode.id === ob.targetMode}" data-action="set-onboarding-mode" data-mode="${mode.id}"><span class="choice-chip-label">${mode.label}</span></button>`).join("")}
             </div>
@@ -8343,9 +8362,34 @@ function renderOnboarding() {
           </div>`
               : ""
           }
-          <div class="onboarding-preview" id="onboarding-preview">${renderOnboardingPreview()}</div>
-          <button class="solid-button button-with-icon onboarding-cta" type="button" data-action="finish-onboarding">${renderButtonContent("Sačuvaj i počni", "apply")}</button>
-          <button class="ghost-button onboarding-skip" type="button" data-action="skip-onboarding">Preskoči zasad</button>
+          <div class="onboarding-preview" id="onboarding-preview">${renderOnboardingPreview()}</div>`;
+
+  const primary =
+    step < ONBOARDING_STEPS
+      ? `<button class="solid-button onboarding-cta" type="submit">Dalje</button>`
+      : `<button class="solid-button button-with-icon onboarding-cta" type="submit">${renderButtonContent("Sačuvaj i počni", "apply")}</button>`;
+
+  return `
+    <main class="shell onboarding-shell" aria-label="Početno podešavanje">
+      <div class="onboarding-card">
+        ${
+          step === 1
+            ? `<div class="onboarding-head">
+          <span class="onboarding-logo" aria-hidden="true">${renderTabIcon("plan")}</span>
+          <h1>Dobro došli u Fit Tracker</h1>
+          <p>Tri kratka koraka i dobijaš dnevni cilj u kalorijama i makroima. Sve možeš kasnije da promeniš u Ciljevima.</p>
+        </div>`
+            : ""
+        }
+        ${progress}
+        <h2 class="onboarding-step-title">${stepTitles[step - 1]}</h2>
+        <form id="onboarding-form" class="onboarding-form" autocomplete="off" data-step="${step}">
+          ${stepBody}
+          <div class="onboarding-nav">
+            ${step > 1 ? `<button class="ghost-button onboarding-back" type="button" data-action="onboarding-back">Nazad</button>` : ""}
+            ${primary}
+          </div>
+          <button class="onboarding-skip" type="button" data-action="skip-onboarding">Preskoči zasad</button>
         </form>
       </div>
     </main>
@@ -18228,6 +18272,7 @@ async function handleDocumentClick(event) {
   if (action === "set-onboarding-sex") {
     if (state.onboarding) {
       state.onboarding.sex = actionTarget.dataset.sex || "";
+      if (state.onboarding.error === "Izaberi pol.") state.onboarding.error = "";
       render();
     }
     return;
@@ -18293,55 +18338,17 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "finish-onboarding") {
-    const ob = state.onboarding || {};
-    const profile = {
-      ...store.profile,
-      sex: ob.sex || "",
-      age: toNumber(ob.age),
-      heightCm: toNumber(ob.heightCm),
-      weightKg: toNumber(ob.weightKg),
-      activityLevel: ob.activityLevel || "moderate",
-    };
-    const rec = getGoalRecommendation(profile, { targetMode: ob.targetMode || "lose", paceLevel: ob.paceLevel || "umereno" });
-    store.profile = profile;
-    store.goals.targetMode = ob.targetMode || "lose";
-    store.goals.paceLevel = ob.paceLevel || "umereno";
-    if (rec) {
-      store.goals.calories = rec.targetCalories;
-      store.goals.protein = rec.protein;
-      store.goals.carbs = rec.carbs;
-      store.goals.fat = rec.fat;
-      store.goals.basisWeightKg = toNumber(profile.weightKg) || null;
+    finishOnboarding();
+    return;
+  }
+
+  if (action === "onboarding-back") {
+    if (state.onboarding) {
+      state.onboarding.step = Math.max(1, (Number(state.onboarding.step) || 1) - 1);
+      state.onboarding.error = "";
+      render();
+      scrollPageTop("auto");
     }
-    store.goals.waterMl = suggestWaterMl(profile.weightKg);
-    // Težina iz uvoda je prvo merenje: bez ovoga Danas odmah traži da je
-    // ponovo upišeš, a trend i kalibracija nemaju početnu tačku.
-    if (toNumber(profile.weightKg) > 0) {
-      store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
-      const today = getTodayDateValue();
-      if (!store.measurements.some((entry) => normalizeDateValue(entry.date) === today && toNumber(entry.weightKg) > 0)) {
-        store.measurements.push({
-          id: uid("measurement"),
-          date: today,
-          weightKg: roundValue(toNumber(profile.weightKg), 1),
-          calorieGoal: store.goals.calories || 0,
-        });
-      }
-    }
-    store.onboarded = true;
-    state.onboarding = null;
-    state.activeTab = "plan";
-    state.tabEnter = true;
-    persist();
-    render();
-    // Prazan plan znači da je vodič na ekranu i već kaže cilj; tost bi samo
-    // prekrio njegova dugmad.
-    if ((store.weeklyPlanEntries || []).length) showFeedbackToast({
-      title: "Spremno! 🎉",
-      detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal.` : "Cilj možeš da postaviš u tabu Ciljevi.",
-      tone: "success",
-      duration: 3600,
-    });
     return;
   }
 
@@ -21406,6 +21413,60 @@ async function handleDocumentClick(event) {
   }
 }
 
+// Završetak uvoda: profil, cilj, prvo merenje. Zove se sa poslednjeg
+// koraka (submit forme) i iz starog „finish-onboarding“ dugmeta.
+function finishOnboarding() {
+  const ob = state.onboarding || {};
+  const profile = {
+    ...store.profile,
+    sex: ob.sex || "",
+    age: toNumber(ob.age),
+    heightCm: toNumber(ob.heightCm),
+    weightKg: toNumber(ob.weightKg),
+    activityLevel: ob.activityLevel || "moderate",
+  };
+  const rec = getGoalRecommendation(profile, { targetMode: ob.targetMode || "lose", paceLevel: ob.paceLevel || "umereno" });
+  store.profile = profile;
+  store.goals.targetMode = ob.targetMode || "lose";
+  store.goals.paceLevel = ob.paceLevel || "umereno";
+  if (rec) {
+    store.goals.calories = rec.targetCalories;
+    store.goals.protein = rec.protein;
+    store.goals.carbs = rec.carbs;
+    store.goals.fat = rec.fat;
+    store.goals.basisWeightKg = toNumber(profile.weightKg) || null;
+  }
+  store.goals.waterMl = suggestWaterMl(profile.weightKg);
+  // Težina iz uvoda je prvo merenje: bez ovoga Danas odmah traži da je
+  // ponovo upišeš, a trend i kalibracija nemaju početnu tačku.
+  if (toNumber(profile.weightKg) > 0) {
+    store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
+    const today = getTodayDateValue();
+    if (!store.measurements.some((entry) => normalizeDateValue(entry.date) === today && toNumber(entry.weightKg) > 0)) {
+      store.measurements.push({
+        id: uid("measurement"),
+        date: today,
+        weightKg: roundValue(toNumber(profile.weightKg), 1),
+        calorieGoal: store.goals.calories || 0,
+      });
+    }
+  }
+  store.onboarded = true;
+  state.onboarding = null;
+  state.activeTab = "plan";
+  state.tabEnter = true;
+  persist();
+  render();
+  // Prazan plan znači da je vodič na ekranu i već kaže cilj; tost bi samo
+  // prekrio njegova dugmad.
+  if ((store.weeklyPlanEntries || []).length) showFeedbackToast({
+    title: "Spremno! 🎉",
+    detail: rec ? `Dnevni cilj: ${rec.targetCalories} kcal.` : "Cilj možeš da postaviš u tabu Ciljevi.",
+    tone: "success",
+    duration: 3600,
+  });
+}
+
 async function handleSubmit(event) {
   if (!(event.target instanceof HTMLFormElement)) {
     return;
@@ -21413,6 +21474,30 @@ async function handleSubmit(event) {
 
   event.preventDefault();
   const formData = new FormData(event.target);
+
+  if (event.target.id === "onboarding-form") {
+    const ob = state.onboarding;
+    if (!ob) return;
+    const step = Number(ob.step) || 1;
+    if (step === 1) {
+      const missing = getOnboardingMissingField(ob);
+      if (missing) {
+        ob.error = missing === "sex" ? "Izaberi pol." : "Upiši godine, visinu i težinu.";
+        render();
+        if (missing !== "sex") document.getElementById(missing)?.focus();
+        return;
+      }
+    }
+    ob.error = "";
+    if (step < ONBOARDING_STEPS) {
+      ob.step = step + 1;
+      render();
+      scrollPageTop("auto");
+      return;
+    }
+    finishOnboarding();
+    return;
+  }
 
   if (event.target.id === "delete-account-form") {
     const password = String(formData.get("password") || "");

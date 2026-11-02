@@ -15302,3 +15302,86 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   width: auto;
   min-width: 120px;
 }
+/* Uvod u tri koraka: tanka traka napretka, naslov koraka, Nazad | Dalje. */
+.onboarding-progress {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.onboarding-progress span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background-color 0.2s ease;
+}
+.onboarding-progress span.is-done {
+  background: var(--accent);
+}
+.onboarding-step-label {
+  margin-top: -10px;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  font-weight: 700;
+}
+.onboarding-step-title {
+  margin: -8px 0 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.onboarding-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-14);
+}
+.onboarding-error {
+  margin-top: -4px;
+  color: var(--status-error-text);
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+.onboarding-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.onboarding-nav .onboarding-cta {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+.onboarding-nav .onboarding-back {
+  flex: 0 0 auto;
+  min-height: 50px;
+  padding-inline: 18px;
+}
+.onboarding-skip,
+:root[data-theme="dark"] .onboarding-skip {
+  justify-self: center;
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  cursor: pointer;
+}
+/* Aktivnost: jedan izbor po redu, da se natpis i opis čitaju u celosti. */
+.onboarding-choice-list {
+  flex-direction: column;
+}
+.onboarding-form .onboarding-choice-list .choice-chip {
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding-inline: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-progress span { transition: none; }
+}
