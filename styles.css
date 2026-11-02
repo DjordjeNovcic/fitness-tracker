@@ -15385,3 +15385,66 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 @media (prefers-reduced-motion: reduce) {
   .onboarding-progress span { transition: none; }
 }
+
+/* ============================================================
+   2026-11-02 — Utezanje 3.
+   ============================================================ */
+/* Dnevnik ishrane: pet nedelja kvadrata od ~45px zauzimalo je pola ekrana.
+   Niža, šira polja čitaju se isto kao kalendar, upola niže. */
+.history-cell {
+  aspect-ratio: 5 / 3;
+  border-radius: 7px;
+}
+/* Istorija trčanja: vreme · tempo, pa puls · kcal, svaki u svom redu. */
+.run-row-meta-line {
+  display: block;
+}
+/* Trening: red vežbe ~8px niži (manji razmaci, ista veličina dugmadi). */
+.training-exercise-row {
+  padding-block: 8px;
+}
+@media (max-width: 599px) {
+  .training-exercise-row {
+    row-gap: 6px;
+  }
+}
+.training-exercise-copy {
+  row-gap: 2px;
+}
+/* Rutina, dugoročni niz: radnje u prvom redu pored naziva, opis ispod
+   preko cele širine. Ranije su tri ikone imale svoj red ispod opisa, pa
+   je svaki niz bio dva reda viši nego što treba. */
+.routine-streak-card .routine-streak-card-layout {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  row-gap: 2px;
+  align-items: center;
+}
+.routine-streak-card .routine-streak-meter {
+  grid-row: 1 / span 3;
+  align-self: start;
+}
+.routine-streak-card .routine-streak-content {
+  display: contents;
+}
+.routine-streak-card .routine-streak-content > strong {
+  grid-column: 2;
+  grid-row: 1;
+}
+.routine-streak-card .routine-streak-content > .footer-note,
+.routine-streak-card .routine-streak-content > .routine-streak-meta {
+  grid-column: 2 / 4;
+  margin-top: 0;
+}
+.routine-streak-card .routine-streak-actions {
+  grid-column: 3;
+  grid-row: 1;
+  margin: 0 -8px 0 0;
+}
+/* Ciljevi: dugmad forme 42px ispod napomene o kafi (margina napomene +
+   razmak forme + margina reda). Sada isto kao razmak između polja. */
+.goals-form-layout > .meta-row {
+  margin-top: 4px;
+}
+.goals-form-layout > .footer-note.field--full {
+  margin-bottom: 0;
+}

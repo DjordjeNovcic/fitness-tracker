@@ -13778,12 +13778,14 @@ async function maybeAutoImportRunFromClipboard() {
 function renderRunCard(run) {
   const derived = getRunDerived(run);
   const dateLabel = formatDateValueLabel(run.date) || String(run.date || "");
-  const meta = [
-    formatRunDuration(derived.durationSec),
-    `${formatRunPace(derived.paceSec)} /km`,
-    run.avgHr ? `pros. ${run.avgHr} bpm` : "",
-    derived.calories ? `${derived.calories} kcal` : "",
-  ].filter(Boolean);
+  // Dva reda sa jasnim smislom (vreme · tempo, pa puls · kcal) umesto jedne
+  // linije koja se na telefonu lomila sa „·“ koji visi na kraju reda.
+  const metaLines = [
+    [formatRunDuration(derived.durationSec), `${formatRunPace(derived.paceSec)} /km`],
+    [run.avgHr ? `${run.avgHr} bpm` : "", derived.calories ? `${derived.calories} kcal` : ""],
+  ]
+    .map((line) => line.filter(Boolean))
+    .filter((line) => line.length);
 
   return `
     <article class="run-row">
@@ -13792,7 +13794,7 @@ function renderRunCard(run) {
           <strong>${escapeHtml(dateLabel.replace(/ \d{4}\.$/, ""))}</strong>
           <span class="run-row-type">${escapeHtml(getRunTypeLabel(run.type))}</span>
         </div>
-        <div class="run-row-meta">${meta.map((part) => `<span class="nowrap">${escapeHtml(part)}</span>`).join(" · ")}</div>
+        <div class="run-row-meta">${metaLines.map((line) => `<span class="run-row-meta-line">${line.map((part) => escapeHtml(part)).join(" · ")}</span>`).join("")}</div>
         ${run.note ? `<div class="run-row-note">${escapeHtml(run.note)}</div>` : ""}
       </div>
       <strong class="run-row-distance">${formatDecimal(derived.distanceKm, 1)} <span>km</span></strong>
@@ -14102,7 +14104,9 @@ function renderRoutineTab() {
                             habit.resetCount ? `resetovano ${habit.resetCount}×` : "",
                           ]
                             .filter(Boolean)
-                            .join(" · ")}</div>
+                            // Tačka ide uz sledeći deo, da ne visi na kraju reda.
+                            .map((part, index) => `<span class="nowrap">${index ? "· " : ""}${escapeHtml(part)}</span>`)
+                            .join(" ")}</div>
                         </div>
                         <div class="entry-actions routine-streak-actions">
                           <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="reset-habit-streak" data-habit-id="${habit.id}" aria-label="Počni „${escapeHtml(habit.name)}“ ispočetka" title="Počni ispočetka">${renderButtonContent("Počni ispočetka", "refresh")}</button>
@@ -14126,18 +14130,18 @@ function renderRoutineTab() {
           <p>Sitne obaveze za izabrani dan.</p>
         </div>
       </div>
-      <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-        ${
+      ${(() => {
+        // Prazan red sa marginom od 14px pravio je rupu ispod naslova.
+        const taskActions = [
           previousWeekday && previousDayTaskCount
             ? `<button class="ghost-button" data-action="copy-previous-day-tasks">Kopiraj iz ${weekdayGenitive(previousWeekday)}</button>`
-            : ""
-        }
-        ${
-          summary.tasks.some((task) => task.done)
-            ? '<button class="ghost-button" data-action="clear-completed-tasks">Obriši završene</button>'
-            : ""
-        }
-      </div>
+            : "",
+          summary.tasks.some((task) => task.done) ? '<button class="ghost-button" data-action="clear-completed-tasks">Obriši završene</button>' : "",
+        ].filter(Boolean);
+        return taskActions.length
+          ? `<div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:14px;">${taskActions.join("")}</div>`
+          : "";
+      })()}
       <details class="form-collapse" ${editingTask ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingTask ? "Izmena zadatka" : "Dodaj zadatak"}</span>
