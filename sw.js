@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-tracker-v215";
+const CACHE_NAME = "fit-tracker-v216";
 const ASSETS = [
   "./",
   "./index.html",
@@ -19,7 +19,11 @@ function cacheResponse(request, response) {
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  // cache: "reload" zaobilazi HTTP keš pregledača (GitHub Pages: max-age=600),
+  // inače nova verzija može da upiše STARI app.js u svoj keš.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS.map((asset) => new Request(asset, { cache: "reload" }))))
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -65,8 +69,9 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (APP_SHELL_PATHS.has(requestUrl.pathname)) {
+    // no-cache: uvek pitaj server (ETag → jeftin 304), ne HTTP keš od 10 min.
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "no-cache" })
         .then((response) => {
           if (response && response.status === 200) {
             cacheResponse(event.request, response.clone());

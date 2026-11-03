@@ -8770,13 +8770,54 @@ function syncBodyScrollLock() {
   }
 }
 
+// Nova verzija se primenjuje sama kad je pronađena odmah pri otvaranju ili
+// povratku u app (prvih 20 s), dok korisnik ništa ne kuca i nema otvoren
+// dijalog. Kasnije (usred rada) ostaje traka „Nova verzija je spremna“, da
+// osvežavanje ne obriše upis. Ranije je uvek čekala tap na traku, pa je ko
+// je ne primeti ostajao na staroj verziji.
+let autoUpdateUntil = 0;
+function openAutoUpdateWindow() {
+  autoUpdateUntil = Date.now() + 20000;
+}
+
+function isSafeToAutoUpdate() {
+  const active = document.activeElement;
+  const typing = active instanceof HTMLElement && active.matches("input, textarea, select, [contenteditable]");
+  return Date.now() < autoUpdateUntil && !typing && !isOverlayOpen();
+}
+
 function markUpdateReady(registration) {
   serviceWorkerRegistration = registration || serviceWorkerRegistration;
   if (!serviceWorkerRegistration?.waiting) {
     return;
   }
+  if (isSafeToAutoUpdate()) {
+    applyAppUpdate({ quiet: true });
+    return;
+  }
   state.updateReady = true;
   render();
+}
+
+function applyAppUpdate({ quiet = false } = {}) {
+  const waiting = serviceWorkerRegistration?.waiting;
+  if (!waiting) {
+    reloadForUpdate();
+    return;
+  }
+  if (!quiet) {
+    showFeedbackToast({ title: "Ažuriram…", detail: "Učitavam novu verziju.", tone: "info", duration: 4000 });
+  }
+  // Reload as soon as the new worker takes over. iOS standalone PWAs don't
+  // always fire controllerchange, so we also watch the worker's own state
+  // and keep a hard fallback so the app never just hangs.
+  waiting.addEventListener("statechange", () => {
+    if (waiting.state === "activated") {
+      reloadForUpdate();
+    }
+  });
+  waiting.postMessage({ type: "SKIP_WAITING" });
+  window.setTimeout(reloadForUpdate, 2500);
 }
 
 function wait(ms) {
@@ -18558,22 +18599,7 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "apply-app-update") {
-    const waiting = serviceWorkerRegistration?.waiting;
-    if (!waiting) {
-      reloadForUpdate();
-      return;
-    }
-    showFeedbackToast({ title: "Ažuriram…", detail: "Učitavam novu verziju.", tone: "info", duration: 4000 });
-    // Reload as soon as the new worker takes over. iOS standalone PWAs don't
-    // always fire controllerchange, so we also watch the worker's own state
-    // and keep a hard fallback so the app never just hangs.
-    waiting.addEventListener("statechange", () => {
-      if (waiting.state === "activated") {
-        reloadForUpdate();
-      }
-    });
-    waiting.postMessage({ type: "SKIP_WAITING" });
-    window.setTimeout(reloadForUpdate, 2500);
+    applyAppUpdate();
     return;
   }
 
@@ -23899,9 +23925,22 @@ render();
 reconcilePhotos();
 
 if ("serviceWorker" in navigator) {
+  openAutoUpdateWindow();
+  // iOS i Android vraćaju PWA iz pozadine bez ponovnog učitavanja, pa se
+  // nova verzija proverava i pri svakom povratku u app.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && serviceWorkerRegistration) {
+      openAutoUpdateWindow();
+      if (serviceWorkerRegistration.waiting) {
+        markUpdateReady(serviceWorkerRegistration);
+      } else {
+        serviceWorkerRegistration.update().catch(() => {});
+      }
+    }
+  });
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("./sw.js")
+      .register("./sw.js", { updateViaCache: "none" })
       .then((registration) => {
         serviceWorkerRegistration = registration;
 
