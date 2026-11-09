@@ -17241,3 +17241,20 @@ button.training-week-volume-name {
     white-space: nowrap;
   }
 }
+@media (max-width: 720px) {
+  /* Hrana i Trening: dva podtaba desno u redu sa naslovom stranice. */
+  :root[data-theme] .app-main .workspace-header + .group-seg-nav {
+    margin-top: -50px;
+    margin-left: auto;
+    width: max-content;
+    max-width: 62%;
+    transform: translateY(-5px);
+    position: relative;
+    z-index: 1;
+  }
+  :root[data-theme] .group-seg-nav .seg-nav-btn {
+    padding-inline: 12px;
+    min-height: 34px;
+    font-size: var(--fs-14);
+  }
+}
