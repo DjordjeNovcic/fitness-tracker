@@ -15899,7 +15899,6 @@ function renderAccountSection() {
               <strong>Rezervna kopija</strong>
               <div class="footer-note">Rezervna kopija (JSON fajl) je dodatna sigurnost. Uvezena sa prijavljenim nalogom, upisuje se i na nalog.</div>
             </div>
-            <span class="pill strong pill--info">Lokalni fajl</span>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
             <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi kopiju", "save")}</button>
