@@ -816,6 +816,33 @@ let appUpdateReloading = false;
 // One guarded reload for the update flow — whichever signal fires first
 // (worker "activated", controllerchange, or a fallback timeout) wins, and the
 // others are ignored so we never double-reload or loop.
+// Poslednja pozicija skrola po tabu (samo u ovoj sesiji).
+const tabScrollPositions = {};
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+// Kratka vibracija na čekiranje (Android; iOS je ignoriše).
+function hapticTap() {
+  try {
+    if (navigator.vibrate && !prefersReducedMotion()) navigator.vibrate(8);
+  } catch (error) {
+    /* nije podržano */
+  }
+}
+
+// Boja statusne trake prati vrh ekrana: petrolej blok na Danas, papir na
+// ostalim tabovima i na prijavi, tamna podloga u tamnoj temi.
+function syncThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const dark = document.documentElement.dataset.theme === "dark";
+  const onPlanBlock = Boolean(state.authUser) && state.authReady && !shouldShowOnboarding() && state.activeTab === "plan";
+  const color = onPlanBlock ? (dark ? "#042933" : "#05313d") : dark ? "#0c0d0b" : "#f4efe6";
+  if (meta.getAttribute("content") !== color) meta.setAttribute("content", color);
+}
+
 function reloadForUpdate() {
   if (appUpdateReloading) {
     return;
@@ -18025,6 +18052,11 @@ function animateMacroCountUps() {
 }
 
 function render() {
+  renderApp();
+  syncThemeColor();
+}
+
+function renderApp() {
   if (!state.authReady) {
     document.body.classList.remove("plan-compact");
     state.navMenuOpen = false;
@@ -18283,7 +18315,7 @@ function render() {
   // prior scroll position and re-focus the field they were in, so typing or
   // toggling a checkbox doesn't bounce to the top or drop focus.
   if (didEnter) {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "instant" });
     // A new tab starts at the top — drop the scroll-driven header states left
     // over from the previous tab, otherwise the hidden (translated) header keeps
     // a blank header-sized gap above the content until the next scroll event.
@@ -18304,7 +18336,7 @@ function render() {
         }
       }
     }
-    window.scrollTo(0, preservedScrollY);
+    window.scrollTo({ top: preservedScrollY, behavior: "instant" });
   }
 
   syncBodyScrollLock();
@@ -18474,9 +18506,19 @@ async function handleDocumentClick(event) {
 
   if (action === "switch-tab") {
     const nextTab = actionTarget.dataset.tab;
-    if (nextTab !== state.activeTab) {
-      state.tabEnter = true;
+    // Kao u mobilnim aplikacijama: tap na tab na kome si vraća na vrh, a
+    // povratak na drugi tab vraća tamo gde si stao.
+    if (nextTab === state.activeTab) {
+      // Render pre skrola: render vraća zatečeni skrol i prekinuo bi animaciju.
+      if (state.navMenuOpen) {
+        state.navMenuOpen = false;
+        render();
+      }
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "instant" : "smooth" });
+      return;
     }
+    tabScrollPositions[state.activeTab] = window.scrollY;
+    state.tabEnter = true;
     state.activeTab = nextTab;
     state.lastTabInGroup = state.lastTabInGroup || {};
     state.lastTabInGroup[getNavGroupForTab(nextTab).id] = nextTab;
@@ -18499,7 +18541,15 @@ async function handleDocumentClick(event) {
     }
     window.location.hash = state.activeTab;
     render();
-    window.requestAnimationFrame(() => scrollPageTop("auto"));
+    const savedScroll = tabScrollPositions[state.activeTab] || 0;
+    // „instant“, ne „auto“: html ima scroll-behavior: smooth, pa bi se skok
+    // animirao i sledeći render bi ga prekinuo na pola puta.
+    window.requestAnimationFrame(() => {
+      scrollPageTop("instant");
+      if (savedScroll > 0) {
+        window.requestAnimationFrame(() => window.scrollTo({ top: savedScroll, behavior: "instant" }));
+      }
+    });
     return;
   }
 
@@ -23936,6 +23986,70 @@ render();
 // stored blobs back onto loaded records (covers the signed-out / local-only case;
 // the signed-in case is handled after cloud hydrate above).
 reconcilePhotos();
+
+// Tema se menja u index.html (bez render-a), pa i boja statusne trake prati
+// promenu atributa.
+new MutationObserver(() => syncThemeColor()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+// Čekiranje (obrok, vežba, navika, zadatak) daje kratku vibraciju.
+document.addEventListener(
+  "change",
+  (event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === "checkbox" && target.checked) hapticTap();
+  },
+  true
+);
+
+// Donji list na telefonu: povuci ga nadole za vrh (ručica / zaglavlje) i
+// zatvara se kao u mobilnim aplikacijama; kratko povlačenje ga vraća.
+let sheetDrag = null;
+document.addEventListener(
+  "touchstart",
+  (event) => {
+    if (window.innerWidth > 720 || event.touches.length !== 1) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const sheet = target.closest(".app-dialog");
+    if (!sheet || target.closest("input, textarea, select, button, a, label")) return;
+    const touchY = event.touches[0].clientY;
+    const inHead = Boolean(target.closest(".app-dialog-head, .training-builder-head")) || touchY - sheet.getBoundingClientRect().top < 40;
+    if (!inHead) return;
+    sheetDrag = { sheet, startY: touchY, dy: 0, startTime: Date.now() };
+  },
+  { passive: true }
+);
+document.addEventListener(
+  "touchmove",
+  (event) => {
+    if (!sheetDrag) return;
+    sheetDrag.dy = Math.max(0, event.touches[0].clientY - sheetDrag.startY);
+    sheetDrag.sheet.style.transition = "none";
+    sheetDrag.sheet.style.transform = `translateY(${sheetDrag.dy}px)`;
+  },
+  { passive: true }
+);
+document.addEventListener("touchend", () => {
+  if (!sheetDrag) return;
+  const { sheet, dy, startTime } = sheetDrag;
+  sheetDrag = null;
+  const velocity = dy / Math.max(1, Date.now() - startTime);
+  const shouldClose = dy > 120 || (dy > 40 && velocity > 0.6);
+  sheet.style.transition = "transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1)";
+  if (!shouldClose) {
+    sheet.style.transform = "";
+    return;
+  }
+  sheet.style.transform = "translateY(105%)";
+  const backdrop = sheet.parentElement && sheet.parentElement.querySelector(".app-dialog-backdrop");
+  window.setTimeout(() => backdrop && backdrop.click(), 180);
+});
+document.addEventListener("touchcancel", () => {
+  if (sheetDrag) {
+    sheetDrag.sheet.style.transform = "";
+    sheetDrag = null;
+  }
+});
 
 if ("serviceWorker" in navigator) {
   openAutoUpdateWindow();

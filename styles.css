@@ -15682,3 +15682,90 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 .chart-card .chart-card-value {
   font-size: var(--fs-16);
 }
+
+/* ============================================================
+   2026-11-09 — Osećaj mobilne aplikacije.
+   ============================================================ */
+/* Dodir: bez sivo-plavog bljeska, bez kašnjenja duplog tapa za zum, bez
+   slučajnog označavanja teksta i menija „Kopiraj“ na dugmadima i navigaciji.
+   Tekst u karticama i poljima ostaje da se označi. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-x: none;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a,
+summary,
+label,
+[data-action],
+.chip,
+.choice-chip,
+.seg-nav-btn {
+  touch-action: manipulation;
+}
+button,
+summary,
+.tab-bar,
+.app-sidebar,
+.hero-day-chips,
+.seg-nav,
+.choice-chip,
+.chip {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Pritisnut red reaguje odmah (na dodirnim ekranima nema hover-a). */
+@media (hover: none) {
+  .training-week-item-button:active,
+  .more-sheet-item:active,
+  .form-collapse > summary:active,
+  .meal-add-row:active,
+  .recipe-library-head:active,
+  .training-plan-row:active,
+  .food-suggest-item:active {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+  .tab-bar-item:active .tab-bar-icon,
+  .tab-bar-item:active svg {
+    transform: scale(0.9);
+  }
+}
+.tab-bar-item svg,
+.tab-bar-item .tab-bar-icon {
+  transition: transform 0.12s ease;
+}
+
+/* Donji list: ručica na vrhu kaže da može da se povuče nadole. */
+@media (max-width: 720px) {
+  .app-dialog::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 38px;
+    height: 5px;
+    margin-left: -19px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ink) 18%, transparent);
+    pointer-events: none;
+  }
+  :root[data-theme="dark"] .app-dialog::before {
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .app-dialog-head,
+  .training-builder-head {
+    touch-action: pan-x;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar-item svg,
+  .tab-bar-item .tab-bar-icon {
+    transition: none;
+  }
+}
