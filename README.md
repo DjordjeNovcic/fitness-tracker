@@ -47,3 +47,14 @@ Posle toga app ce biti dostupna na GitHub Pages URL-u tvog repoa.
 - Glavni podaci se sada cuvaju i u `Firebase Firestore`, vezani za tvoj nalog.
 - `Progress slike` se za sada i dalje cuvaju lokalno u browseru/telefonu, dok ne dodamo `Firebase Storage`.
 - `JSON backup` i dalje ima smisla kao dodatna sigurnost.
+
+## Provera i deploy
+
+- `bash scripts/build-site.sh` sklapa sajt u `_site/` sa sabijenim `app.js`,
+  `styles.css` i `data/*.js` (≈40% manje preko mreže). Kod u repou ostaje
+  čitljiv.
+- `node tests/smoke.mjs [_site]` pokreće app u pravom pregledaču (Playwright)
+  sa lažnim Firebase-om iz `tests/stubs/`: svi tabovi u obe teme na 390 i
+  360px, nov nalog, prijava i glavne radnje. Treba instaliran `playwright`.
+- GitHub Actions na svaki push na `main`: build → smoke test → objava. Ako
+  test padne, sajt ostaje na prethodnoj verziji.

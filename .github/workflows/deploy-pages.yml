@@ -30,10 +30,31 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # app.js, styles.css i data/*.js se sabijaju (≈40% manje preko mreže);
+      # u repou ostaju čitljivi. Vidi scripts/build-site.sh.
+      - name: Build site
+        run: bash scripts/build-site.sh
+
+      # Smoke test sabijene verzije u pravom pregledaču (tests/smoke.mjs):
+      # svi tabovi, obe teme, 390/360px, nov nalog, prijava i glavne radnje.
+      # Ako nešto pukne, deploy se zaustavlja i sajt ostaje na staroj verziji.
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+
+      - name: Smoke test
+        run: node tests/smoke.mjs _site
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: Deploy
         id: deployment
