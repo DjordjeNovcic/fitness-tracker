@@ -16017,4 +16017,22 @@ summary,
     padding-top: 10px;
     padding-bottom: 10px;
   }
+
+  /* Namirnice: red ~53px umesto 61 (svetla tema je imala 44px dugme „⋮“
+     koje je diktiralo visinu reda, tamna 40). Dodirna površina ostaje. */
+  :root[data-theme] .food-row {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .food-row-menu,
+  :root[data-theme="dark"] .food-row-menu {
+    position: relative;
+    min-height: 36px;
+    height: 36px;
+  }
+  :root[data-theme] .food-row-menu::after {
+    content: "";
+    position: absolute;
+    inset: -4px -2px;
+  }
 }
