@@ -16975,3 +16975,46 @@ button.training-week-volume-name {
     justify-content: space-between;
   }
 }
+@media (max-width: 720px) {
+  /* Ciljevi: bez nadnaslova „DNEVNI CILJ“ (broj i kcal govore sami). */
+  :root[data-theme] .goals-cilj-main .stat-hero .hero-day-label {
+    display: none;
+  }
+  /* Rutina, niz: broj dana manji, bez reči „DANA“ u svom redu. */
+  :root[data-theme] .routine-streak-card .routine-streak-meter {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+  }
+  :root[data-theme] .routine-streak-card .routine-streak-value {
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+  :root[data-theme] .routine-streak-card .routine-streak-unit {
+    font-size: var(--fs-12);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  :root[data-theme] .routine-streak-card .routine-streak-card-layout {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    column-gap: 10px;
+  }
+  /* Rutina: „Dodaj zadatak“ u zaglavlju ne ostavlja prazan prostor ispod. */
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) + *,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) + * {
+    margin-top: 0;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] main .section > details.form-collapse:not([open]) + .stack {
+    margin-top: 4px;
+  }
+  :root[data-theme] .routine-streak-card .routine-streak-card-layout {
+    grid-template-rows: auto;
+    row-gap: 0;
+  }
+  :root[data-theme] .routine-streak-card .routine-streak-meter {
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}

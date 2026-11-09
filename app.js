@@ -14256,7 +14256,7 @@ function renderRoutineTab() {
           ? `<p class="day-summary-line">${[
               summary.habits.length ? `${summary.doneHabits} od ${summary.habits.length} ${srPlural(summary.habits.length, "navike", "navike", "navika")}` : "",
               summary.tasks.length ? `${summary.doneTasks} od ${summary.tasks.length} ${srPlural(summary.tasks.length, "zadatka", "zadatka", "zadataka")}` : "",
-              summary.longestStreakDays ? `najduži niz ${getDayCountLabel(summary.longestStreakDays)}` : "",
+              summary.longestStreakDays ? `niz ${getDayCountLabel(summary.longestStreakDays).replace(" ", "\u00a0")}` : "",
             ]
               .filter(Boolean)
               .join(" · ")}</p>`
@@ -15094,7 +15094,7 @@ function renderGoalsTab() {
         </div>
         <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
-        <p class="footer-note field--full">Crna kafa ~10 kcal, sa šećerom ~26, sa mlekom i šećerom ~50. Nula znači da se šoljice samo broje.</p>
+        <p class="footer-note field--full">Kafa: crna ~10, sa šećerom ~26, sa mlekom i šećerom ~50 kcal. 0 = samo broji šoljice.</p>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz profila</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
