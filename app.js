@@ -16263,7 +16263,14 @@ function renderProgressEmptyState() {
 function renderProgressSummary(summary) {
   return `
     <section class="section progress-overview-section">
-      ${renderSectionLead("Merenja i slike", "")}
+      <div class="section-header progress-overview-head">
+        <div><h2>Merenja i slike</h2></div>
+        ${
+          getShareProgressData().hasData
+            ? `<button class="ghost-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli", "share")}</button>`
+            : ""
+        }
+      </div>
       ${renderStatRows([
         {
           label: "Poslednje merenje",
@@ -16280,11 +16287,6 @@ function renderProgressSummary(summary) {
           value: summary.photoCount ? `${summary.photoCount}` : "nema",
         },
       ])}
-      ${
-        getShareProgressData().hasData
-          ? `<button class="ghost-button button-with-icon progress-share-button" type="button" data-action="share-progress">${renderButtonContent("Podeli napredak", "share")}</button>`
-          : ""
-      }
       ${
         !summary.measurementCount && !summary.photoCount
           ? `
@@ -17188,7 +17190,7 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct}\u00a0%\u00a0dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} unosa · ${ins.kcalOnTargetPct}\u00a0% na\u00a0cilju`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
       note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct}\u00a0%\u00a0dana` : "",
@@ -17211,7 +17213,7 @@ function renderInsightsSection() {
           : "to je održavanje";
     energyHtml = e.measured
       ? `
-      <p class="insights-energy">Po unosu i vagi trošiš oko ${e.maintenance} kcal dnevno. Uz prosek od ${e.avgKcal} kcal, ${balance}.</p>`
+      <p class="insights-energy">Trošiš ~${e.maintenance} kcal dnevno (po unosu i vagi), ${balance.replace("to je ", "")}.</p>`
       : `
       <p class="insights-energy">Po proceni iz profila trošiš oko ${e.maintenance} kcal dnevno. Uz prosek od ${e.avgKcal} kcal, ${balance}, što predviđa ${formatDecimal(e.expectedRate, 2)} kg nedeljno.${
         e.actualRate != null ? ` Vaga kaže ${formatDecimal(e.actualRate, 2)} kg nedeljno.` : ""

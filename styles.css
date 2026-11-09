@@ -17018,3 +17018,15 @@ button.training-week-volume-name {
     align-self: center;
   }
 }
+.progress-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-overview-head .progress-share-button {
+  width: auto;
+  min-height: 36px;
+  padding: 4px 12px;
+  margin: 0;
+}
