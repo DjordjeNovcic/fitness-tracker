@@ -8199,7 +8199,7 @@ function renderFoodEditorDialog() {
           </section>
           <div class="food-form-actions">
             <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
-            <button class="ghost-button button-with-icon" type="button" data-action="close-food-editor-dialog">${renderButtonContent("Odustani", "close")}</button>
+            <button class="ghost-button" type="button" data-action="close-food-editor-dialog">Odustani</button>
           </div>
         </form>
       </section>
@@ -15245,7 +15245,7 @@ function renderGoalsTab() {
           <div class="footer-note">Plan minus trening</div>
         </article>
       </div>
-      <div style="margin-top:14px;">
+      <div class="goals-weekly-metrics">
         ${renderMetricsGrid(weeklyMetrics)}
       </div>
     </section>
@@ -15848,7 +15848,6 @@ function renderAccountSection() {
               <strong>Deljeni proizvodi</strong>
               <div class="footer-note">Kad skeniraš proizvod, njegov barkod, naziv i vrednosti na 100 g idu u zajednički spisak, a proizvodi drugih se pojavljuju u tvojoj pretrazi. Ostale namirnice ostaju samo tvoje.</div>
             </div>
-            <span class="pill strong ${isSharedFoodsEnabled() ? "pill--success" : "pill--info"}">${isSharedFoodsEnabled() ? "Uključeno" : "Isključeno"}</span>
           </div>
           <label class="settings-toggle">
             <input type="checkbox" class="routine-checkbox" data-action="toggle-shared-foods" ${isSharedFoodsEnabled() ? "checked" : ""} />
@@ -15956,7 +15955,11 @@ function getMeasurementSeries(fieldId) {
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((entry) => ({
       date: entry.date,
-      label: new Date(entry.date).toLocaleDateString("sr-RS"),
+      // „5. oktobra“ umesto „5. 10. 2026.“; godina samo kad nije tekuća.
+      label: (() => {
+        const full = formatDateValueLabel(normalizeDateValue(entry.date)) || "";
+        return full.endsWith(` ${new Date().getFullYear()}.`) ? full.replace(/ \d{4}\.$/, "") : full;
+      })(),
       value: entry[fieldId],
     }));
 }
@@ -17556,6 +17559,30 @@ function renderProgressTab() {
   const compare = getPhotoComparePair(taggedPhotos);
 
   const view = ["pregled", "merenja", "zdravlje", "slike"].includes(state.progressView) ? state.progressView : "pregled";
+  // Prazne „Ostale mere“ (samo rečenica da još nema unosa) idu ispod grafika,
+  // ne između „Dodaj merenje“ i trenda; sa unosima ostaju gore.
+  const hasFilledOtherMeasures = measurementFields.some(
+    (field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id) && getMeasurementSeries(field.id).length
+  );
+  const otherMeasuresSection = `
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <h2>Ostale mere</h2>
+        </div>
+      </div>
+      ${(() => {
+        // Mere bez ijednog unosa su bile po jedna kartica sa crticom i „Još nema
+        // unosa“ — tri prazne kartice za jednu rečenicu. Kartice ostaju samo za
+        // mere koje imaju broj; prazne se nabroje u jednom redu.
+        const otherFields = measurementFields.filter((field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id));
+        const filled = otherFields.filter((field) => getMeasurementSeries(field.id).length);
+        const empty = otherFields.filter((field) => !getMeasurementSeries(field.id).length);
+        return `
+          ${filled.length ? `<div class="stats-grid stats-grid--glance">${filled.map((field) => renderMeasurementCard(field)).join("")}</div>` : ""}
+          ${empty.length ? `<p class="measure-empty-line">${escapeHtml(joinSerbianList(empty.map((field, index) => (index ? field.label.toLowerCase() : field.label))))} još nemaju unos. Upisuju se u „Dodaj merenje“.</p>` : ""}`;
+      })()}
+    </section>`;
   const segNav = `<div class="seg-nav">${[["pregled", "Pregled"], ["merenja", "Merenja"], ["zdravlje", "Zdravlje"], ["slike", "Slike"]]
     .map(([id, label]) => `<button type="button" class="seg-nav-btn ${id === view ? "is-active" : ""}" data-action="set-progress-view" data-view="${id}">${label}</button>`)
     .join("")}</div>`;
@@ -17662,24 +17689,7 @@ function renderProgressTab() {
     </details>`;
     })()}
 
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <h2>Ostale mere</h2>
-        </div>
-      </div>
-      ${(() => {
-        // Mere bez ijednog unosa su bile po jedna kartica sa crticom i „Još nema
-        // unosa“ — tri prazne kartice za jednu rečenicu. Kartice ostaju samo za
-        // mere koje imaju broj; prazne se nabroje u jednom redu.
-        const otherFields = measurementFields.filter((field) => !["weightKg", "upperWaistCm", "lowerWaistCm"].includes(field.id));
-        const filled = otherFields.filter((field) => getMeasurementSeries(field.id).length);
-        const empty = otherFields.filter((field) => !getMeasurementSeries(field.id).length);
-        return `
-          ${filled.length ? `<div class="stats-grid stats-grid--glance">${filled.map((field) => renderMeasurementCard(field)).join("")}</div>` : ""}
-          ${empty.length ? `<p class="measure-empty-line">${escapeHtml(joinSerbianList(empty.map((field, index) => (index ? field.label.toLowerCase() : field.label))))} još nemaju unos. Upisuju se u „Dodaj merenje“.</p>` : ""}`;
-      })()}
-    </section>
+    ${hasFilledOtherMeasures ? otherMeasuresSection : ""}
 
     <section class="section">
       <div class="section-header">
@@ -17707,6 +17717,7 @@ function renderProgressTab() {
           ${none.length ? `<p class="measure-empty-line">${escapeHtml(joinSerbianList(none.map((field, index) => (index ? field.label.toLowerCase() : field.label))))} još nemaju merenja.</p>` : ""}`;
       })()}
     </section>
+    ${hasFilledOtherMeasures ? "" : otherMeasuresSection}
     ` : ""}
 
     ${view === "zdravlje" ? `
@@ -17750,6 +17761,7 @@ function renderProgressTab() {
         <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
       </form>
       </details>
+      ${photos.length >= 2 ? `
       <div class="compare-block progress-compare-block">
         <div class="section-header">
           <div>
@@ -17833,6 +17845,7 @@ function renderProgressTab() {
             : `<div class="empty">Dodaj bar dve slike da ih uporediš jednu pored druge.</div>`
         }
       </div>
+      ` : ""}
       <div class="photo-session-list">
         ${
           photos.length

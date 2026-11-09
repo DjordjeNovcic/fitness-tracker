@@ -15565,3 +15565,120 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
   flex-basis: 0;
   min-width: 0;
 }
+
+/* ============================================================
+   2026-11-09 — Utezanje 4: dijalozi, Nedeljno, Nalog.
+   ============================================================ */
+/* Brzi unos: dno dijaloga je bio blok, pa su „Zabeleži“ i „Otkaži“ stajali
+   na različitim visinama. Sada: čekboks u svom redu, glavna radnja široka,
+   „Otkaži“ uz nju. */
+:root[data-theme] .quick-entry-dialog .app-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.quick-entry-dialog .app-dialog-actions .quick-entry-eaten {
+  flex: 1 0 100%;
+}
+.quick-entry-dialog .app-dialog-actions .solid-button {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.quick-entry-dialog .app-dialog-actions > .ghost-button {
+  flex: 0 0 auto;
+}
+/* Nova namirnica: „Sačuvaj“ i „Odustani“ u jednom redu, glavna radnja široka
+   (bile su jedna ispod druge, poravnate levo). */
+.food-form-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.food-form-actions .solid-button {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.food-form-actions .ghost-button {
+  flex: 0 0 auto;
+}
+/* Ciljevi → Nedeljno: makroi kao redovi (naziv i zbir u istom redu, traka
+   ispod), ne tri pločice sa velikim brojem gde „Masti“ ostaju same u redu.
+   Veliki broj je rezervisan za jedan glavni broj ekrana. */
+.goals-weekly-metrics {
+  margin-top: 6px;
+}
+.goals-weekly-metrics .macro-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.goals-weekly-metrics .macro-card,
+:root[data-theme="dark"] .goals-weekly-metrics .macro-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 6px;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.goals-weekly-metrics .macro-card > header h3 {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.goals-weekly-metrics .macro-card > .macro-value {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.goals-weekly-metrics .macro-card > .macro-value .macro-goal {
+  font-size: var(--fs-14);
+}
+.goals-weekly-metrics .macro-card > :not(header):not(.macro-value) {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+/* Nalog: „Osveži aplikaciju“ i „Odjavi se“ iste visine, jedno pored drugog. */
+.status-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.status-summary-actions > .ghost-button {
+  flex: 1 1 auto;
+  width: auto;
+  min-height: 44px;
+  justify-content: center;
+}
+.food-form-actions .solid-button {
+  white-space: nowrap;
+}
+.goals-weekly-metrics .macro-card:first-child,
+:root[data-theme="dark"] .goals-weekly-metrics .macro-card:first-child {
+  border-top: 0;
+}
+.goals-weekly-metrics .macro-card > .macro-value .macro-unit {
+  margin-left: 2px;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--muted);
+}
+/* Trend: naziv mere je podnaslov u odeljku „Trend“, ne veći od njega. */
+.chart-card .chart-card-top h3 {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.chart-card .chart-card-value {
+  font-size: var(--fs-16);
+}
