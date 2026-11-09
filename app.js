@@ -968,7 +968,6 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
     runs: Array.isArray(rawStore.runs) ? rawStore.runs : [],
-    trainingSchedule: normalizeTrainingSchedule(rawStore.trainingSchedule),
     trainingBurnByWeekday:
       rawStore.trainingBurnByWeekday && typeof rawStore.trainingBurnByWeekday === "object"
         ? rawStore.trainingBurnByWeekday
@@ -6521,328 +6520,6 @@ function getWeeklyTrainingPlan(weekTrack = state.selectedWeekTrack) {
   }));
 }
 
-// ── Zakazivanje treninga ────────────────────────────────────────────────
-// Dva nivoa, kao i ostatak plana: stalno vreme za dan plana (po nedelji
-// ciklusa, ključ „track:weekday“) i pojedinačni termin za tačan datum
-// (pomeren trening, dodatni trening ili „ovaj put preskačem“). Datum ima
-// prednost nad planom. U Google Kalendar ide preko linka koji otvara
-// popunjen događaj (bez OAuth-a i bez Google-ove provere aplikacije), a
-// .ics fajl pokriva Apple i Outlook kalendar.
-const TRAINING_DURATION_OPTIONS = [30, 45, 60, 75, 90, 120];
-const TRAINING_SCHEDULE_DEFAULT = { time: "18:00", duration: 60 };
-const TRAINING_SCHEDULE_KEEP_DAYS = 60;
-
-function isValidScheduleTime(value) {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
-}
-
-function normalizeScheduleSlot(slot) {
-  if (!slot || typeof slot !== "object") return null;
-  if (slot.skip) return { skip: true };
-  if (!isValidScheduleTime(slot.time)) return null;
-  const duration = Math.round(toNumber(slot.duration));
-  return { time: slot.time, duration: duration >= 10 && duration <= 600 ? duration : TRAINING_SCHEDULE_DEFAULT.duration };
-}
-
-function normalizeTrainingSchedule(raw) {
-  const result = { days: {}, dates: {} };
-  if (!raw || typeof raw !== "object") return result;
-  Object.entries(raw.days && typeof raw.days === "object" ? raw.days : {}).forEach(([key, slot]) => {
-    const clean = normalizeScheduleSlot(slot);
-    if (/^[01]:/.test(key) && clean && !clean.skip) result.days[key] = clean;
-  });
-  Object.entries(raw.dates && typeof raw.dates === "object" ? raw.dates : {}).forEach(([key, slot]) => {
-    const clean = normalizeScheduleSlot(slot);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(key) && clean) result.dates[key] = clean;
-  });
-  return result;
-}
-
-function getTrainingSchedule() {
-  if (!store.trainingSchedule || typeof store.trainingSchedule !== "object") {
-    store.trainingSchedule = { days: {}, dates: {} };
-  }
-  store.trainingSchedule.days = store.trainingSchedule.days || {};
-  store.trainingSchedule.dates = store.trainingSchedule.dates || {};
-  return store.trainingSchedule;
-}
-
-function trainingScheduleDayKey(weekTrack, weekday) {
-  return `${normalizeWeekTrack(weekTrack)}:${weekday}`;
-}
-
-function addDaysToDateValue(dateValue, days) {
-  const date = getDateValueAsLocalDate(dateValue);
-  if (!date) return dateValue;
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-// Stvarni datum dana u izabranoj nedelji ciklusa: „Ova“ je tekuća nedelja,
-// „Sledeća“ je naredna.
-function getDateValueForTrackWeekday(weekTrack, weekday) {
-  const base = getCurrentWeekDateValue(weekday);
-  return normalizeWeekTrack(weekTrack) === getCurrentWeekTrack() ? base : addDaysToDateValue(base, 7);
-}
-
-function isSameScheduleSlot(a, b) {
-  return Boolean(a && b && a.time === b.time && a.duration === b.duration);
-}
-
-// Termin za dan u nedelji ciklusa: { date, time, duration, source, repeat }
-// ili { date, skipped: true, plan } ili null.
-function getTrainingSlot(weekTrack, weekday) {
-  const schedule = getTrainingSchedule();
-  const date = getDateValueForTrackWeekday(weekTrack, weekday);
-  const plan = schedule.days[trainingScheduleDayKey(weekTrack, weekday)] || null;
-  const otherPlan = schedule.days[trainingScheduleDayKey(1 - normalizeWeekTrack(weekTrack), weekday)] || null;
-  const byDate = schedule.dates[date] || null;
-  if (byDate?.skip) return { date, skipped: true, plan };
-  if (byDate) return { date, ...byDate, source: "date", plan };
-  if (plan) return { date, ...plan, source: "plan", repeat: isSameScheduleSlot(plan, otherPlan) ? "weekly" : "biweekly", plan };
-  return null;
-}
-
-function formatScheduleEnd(time, duration) {
-  const [hours, minutes] = time.split(":").map(Number);
-  const total = (hours * 60 + minutes + duration) % (24 * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-function formatScheduleDateShort(dateValue) {
-  return (formatDateValueLabel(dateValue) || dateValue).replace(/ \d{4}\.$/, "");
-}
-
-function getTrainingSlotRepeatLabel(slot) {
-  if (!slot || slot.skipped) return "";
-  if (slot.source === "date") return `samo ${formatScheduleDateShort(slot.date)}`;
-  return slot.repeat === "weekly" ? "svake nedelje" : "svake druge nedelje";
-}
-
-function getScheduledEventDetails(weekTrack, weekday) {
-  const templates = getTrainingForDay(weekday, weekTrack);
-  const title = templates.length ? `Trening: ${templates.map((template) => template.name).join(", ")}` : "Trening";
-  const lines = [];
-  templates.forEach((template) => {
-    if (templates.length > 1) lines.push(`${template.name}:`);
-    (template.exercises || []).forEach((exercise) => {
-      // Isti opis kao na kartici vežbe („3-4 serije, 8-12 ponavljanja“).
-      const name = String(exercise.name || "").trim();
-      const details = String(exercise.details || "").trim();
-      const rest = name && details.toLowerCase().startsWith(name.toLowerCase()) ? details.slice(name.length).trim() : details;
-      const dose = getExerciseDose(exercise);
-      const doseLabel = rest || formatExerciseDose(dose.sets, dose.reps);
-      lines.push(`• ${name}${doseLabel ? ` — ${doseLabel}` : ""}`);
-    });
-  });
-  lines.push("", "Iz Fit Trackera");
-  return { title, details: lines.join("\n") };
-}
-
-// Prvi termin za kalendar: za plan koji se ponavlja to je prvi dolazeći
-// dan (ne prošli), da Google ne pravi niz koji počinje u prošlosti.
-function getSlotEventStart(slot) {
-  let date = slot.date;
-  if (slot.source === "plan") {
-    const step = slot.repeat === "weekly" ? 7 : 14;
-    while (date < getTodayDateValue()) date = addDaysToDateValue(date, step);
-  }
-  return date;
-}
-
-function formatCalendarStamp(dateValue, time, addMinutes = 0) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  const [hours, minutes] = time.split(":").map(Number);
-  const date = new Date(year, month - 1, day, hours, minutes + addMinutes);
-  const pad = (value) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
-}
-
-function getSlotRecurrenceRule(slot) {
-  if (slot.source !== "plan") return "";
-  return slot.repeat === "weekly" ? "RRULE:FREQ=WEEKLY" : "RRULE:FREQ=WEEKLY;INTERVAL=2";
-}
-
-function buildGoogleCalendarUrl(slot, weekTrack, weekday) {
-  const { title, details } = getScheduledEventDetails(weekTrack, weekday);
-  const start = getSlotEventStart(slot);
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: title,
-    dates: `${formatCalendarStamp(start, slot.time)}/${formatCalendarStamp(start, slot.time, slot.duration)}`,
-    details,
-  });
-  try {
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timeZone) params.set("ctz", timeZone);
-  } catch (error) {
-    /* bez zone Google uzima zonu kalendara, što je obično ista */
-  }
-  const recur = getSlotRecurrenceRule(slot);
-  if (recur) params.set("recur", recur);
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function escapeIcsText(value) {
-  return String(value || "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
-}
-
-function buildTrainingIcs(slot, weekTrack, weekday) {
-  const { title, details } = getScheduledEventDetails(weekTrack, weekday);
-  const start = getSlotEventStart(slot);
-  const recur = getSlotRecurrenceRule(slot);
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Fit Tracker//Trening//SR",
-    "CALSCALE:GREGORIAN",
-    "BEGIN:VEVENT",
-    `UID:trening-${weekTrack}-${weekday}-${start}-${slot.time.replace(":", "")}@fittracker`,
-    `DTSTAMP:${stamp}`,
-    `DTSTART:${formatCalendarStamp(start, slot.time)}`,
-    `DTEND:${formatCalendarStamp(start, slot.time, slot.duration)}`,
-    ...(recur ? [recur] : []),
-    `SUMMARY:${escapeIcsText(title)}`,
-    `DESCRIPTION:${escapeIcsText(details)}`,
-    "BEGIN:VALARM",
-    "TRIGGER:-PT30M",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${escapeIcsText(title)}`,
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
-}
-
-function pruneTrainingScheduleDates(schedule) {
-  const cutoff = addDaysToDateValue(getTodayDateValue(), -TRAINING_SCHEDULE_KEEP_DAYS);
-  Object.keys(schedule.dates).forEach((date) => {
-    if (date < cutoff) delete schedule.dates[date];
-  });
-}
-
-function renderTrainingScheduleRow(weekTrack, weekday) {
-  const slot = getTrainingSlot(weekTrack, weekday);
-  const dayLabel = weekdayAccusative(weekday);
-  if (!slot) {
-    return `
-      <div class="training-schedule-row is-empty">
-        <button class="ghost-button button-with-icon training-schedule-add" type="button" data-action="open-training-schedule">${renderButtonContent("Zakaži termin", "clock")}</button>
-      </div>`;
-  }
-  if (slot.skipped) {
-    return `
-      <div class="training-schedule-row is-skipped">
-        <span class="training-schedule-icon" aria-hidden="true">${renderActionIcon("clock")}</span>
-        <span class="training-schedule-copy">
-          <strong>Preskočeno ${escapeHtml(formatScheduleDateShort(slot.date))}</strong>
-          ${slot.plan ? `<span>Inače ${slot.plan.time}</span>` : ""}
-        </span>
-        <button class="ghost-button training-schedule-restore" type="button" data-action="restore-training-slot" data-date="${slot.date}">Vrati</button>
-      </div>`;
-  }
-  return `
-    <div class="training-schedule-row">
-      <span class="training-schedule-icon" aria-hidden="true">${renderActionIcon("clock")}</span>
-      <span class="training-schedule-copy">
-        <strong>${slot.time}–${formatScheduleEnd(slot.time, slot.duration)}</strong>
-        <span>${escapeHtml(getTrainingSlotRepeatLabel(slot))}</span>
-      </span>
-      <a class="ghost-button button-with-icon training-schedule-google" href="${escapeHtml(buildGoogleCalendarUrl(slot, weekTrack, weekday))}" target="_blank" rel="noopener" aria-label="Dodaj trening za ${dayLabel} u Google Kalendar">${renderActionIcon("calendar")}<span class="button-label">Google<span class="training-schedule-google-long"> Kalendar</span></span></a>
-      <button class="ghost-button icon-only-action training-schedule-edit" type="button" data-action="open-training-schedule" aria-label="Izmeni termin za ${dayLabel}" title="Izmeni termin">${renderActionIcon("edit")}</button>
-    </div>`;
-}
-
-function renderTrainingScheduleDialog() {
-  const dialog = state.trainingScheduleDialog;
-  if (!dialog) return "";
-  const date = getDateValueForTrackWeekday(dialog.weekTrack, dialog.weekday);
-  const slot = getTrainingSlot(dialog.weekTrack, dialog.weekday);
-  // „Jednom“ za dan koji je već prošao nema smisla (za sledeću nedelju je
-  // „Sledeća“ u traci dana), osim ako je baš takav termin već sačuvan.
-  const scopes = [
-    ["weekly", "Svake nedelje"],
-    ["biweekly", "Svake druge"],
-    ...(date >= getTodayDateValue() || dialog.scope === "date" ? [["date", "Jednom"]] : []),
-  ];
-  const durationOptions = TRAINING_DURATION_OPTIONS.includes(dialog.duration) ? TRAINING_DURATION_OPTIONS : [...TRAINING_DURATION_OPTIONS, dialog.duration].sort((a, b) => a - b);
-  const hasPlan = Boolean(slot?.plan);
-  const canRemove = dialog.scope === "date" ? Boolean(getTrainingSchedule().dates[date]) : hasPlan;
-  const scopeHint =
-    dialog.scope === "weekly"
-      ? `Svaki ${weekdayLabel(dialog.weekday).toLowerCase()}, u obe nedelje plana.`
-      : dialog.scope === "biweekly"
-        ? `${weekdayLabel(dialog.weekday)} ${normalizeWeekTrack(dialog.weekTrack) === getCurrentWeekTrack() ? "ove" : "sledeće"} nedelje, pa svake druge.`
-        : `Samo ${formatScheduleDateShort(date)}${hasPlan ? `; ostali dani ostaju u ${slot.plan.time}` : ""}.`;
-
-  return `
-    <div class="app-dialog-shell">
-      <button class="app-dialog-backdrop" type="button" data-action="close-training-schedule" aria-label="Zatvori"></button>
-      <section class="app-dialog training-builder-dialog training-schedule-dialog" role="dialog" aria-modal="true" aria-labelledby="training-schedule-title">
-        <div class="app-dialog-head training-builder-head">
-          <div class="training-builder-title">
-            <h3 id="training-schedule-title">Termin za ${weekdayAccusative(dialog.weekday)}</h3>
-          </div>
-          <button class="ghost-button menu-close" type="button" data-action="close-training-schedule" aria-label="Zatvori">
-            ${renderMenuToggleIcon(true)}
-          </button>
-        </div>
-        <form id="training-schedule-form" class="training-builder-body training-schedule-body">
-          <div class="training-schedule-fields">
-            <div class="field">
-              <label for="training-schedule-time">Početak</label>
-              <input id="training-schedule-time" name="time" type="time" step="300" required value="${escapeHtml(dialog.time)}" />
-            </div>
-            <div class="field">
-              <label for="training-schedule-duration">Trajanje</label>
-              <select id="training-schedule-duration" name="duration">
-                ${durationOptions.map((minutes) => `<option value="${minutes}" ${minutes === dialog.duration ? "selected" : ""}>${minutes < 60 ? `${minutes} min` : minutes % 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes / 60} h`}</option>`).join("")}
-              </select>
-            </div>
-          </div>
-          <div class="choice-field">
-            <span class="choice-field-label" id="training-schedule-scope-label">Ponavljanje</span>
-            <div class="choice-chips" role="radiogroup" aria-labelledby="training-schedule-scope-label">
-              ${scopes
-                .map(
-                  ([id, label]) =>
-                    `<button type="button" class="choice-chip ${dialog.scope === id ? "is-active" : ""}" role="radio" aria-checked="${dialog.scope === id}" data-action="training-schedule-scope" data-scope="${id}"><span class="choice-chip-label">${label}</span></button>`
-                )
-                .join("")}
-            </div>
-            <p class="footer-note training-schedule-hint">${escapeHtml(scopeHint)}</p>
-          </div>
-          ${
-            hasPlan && dialog.scope === "date"
-              ? `<button class="ghost-button training-schedule-skip" type="button" data-action="skip-training-slot">Bez treninga ${escapeHtml(formatScheduleDateShort(date))}</button>`
-              : ""
-          }
-          ${
-            slot && !slot.skipped
-              ? `<button class="training-schedule-ics" type="button" data-action="download-training-ics">${renderActionIcon("calendar")}<span>Apple ili Outlook kalendar (.ics)</span></button>`
-              : ""
-          }
-        </form>
-        <div class="app-dialog-actions training-builder-actions">
-          ${canRemove ? `<button class="ghost-button training-schedule-remove" type="button" data-action="remove-training-schedule">Ukloni termin</button>` : "<span></span>"}
-          <button class="solid-button button-with-icon" type="submit" form="training-schedule-form">${renderButtonContent("Sačuvaj termin", "apply")}</button>
-        </div>
-      </section>
-    </div>`;
-}
-
-// Vrednosti iz polja pre ponovnog crtanja (izbor ponavljanja ne sme da
-// obriše upisano vreme).
-function readTrainingScheduleInputs() {
-  const dialog = state.trainingScheduleDialog;
-  if (!dialog) return;
-  const timeInput = document.querySelector("#training-schedule-time");
-  const durationInput = document.querySelector("#training-schedule-duration");
-  if (timeInput && isValidScheduleTime(timeInput.value)) dialog.time = timeInput.value;
-  if (durationInput) dialog.duration = Math.round(toNumber(durationInput.value)) || dialog.duration;
-}
-
 function getFavoriteTrainingsDetailed() {
   return [...store.favoriteTrainings]
     .map((training) => ({
@@ -8760,7 +8437,6 @@ function isOverlayOpen() {
       state.scannerOpen ||
       state.trainingBuilder ||
       state.trainingPlanPicker ||
-      state.trainingScheduleDialog ||
       state.exerciseSwap ||
       (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
   );
@@ -9084,8 +8760,6 @@ function renderActionIcon(kind) {
     up: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 15l6-6 6 6"/>',
     down: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>',
     flash: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2Z"/>',
-    clock: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.1"/><path fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M12 7.5V12l3 2"/>',
-    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.1"/><path fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
@@ -13244,11 +12918,7 @@ function renderTrainingTab() {
       dayHint: (weekday) => {
         const day = weeklyTrainingPlan.find((entry) => entry.weekday === weekday);
         const names = day ? day.templates.map((template) => template.name) : [];
-        const slot = getTrainingSlot(state.selectedWeekTrack, weekday);
-        return {
-          planned: names.length > 0 || Boolean(slot?.time),
-          title: `${weekdayLabel(weekday)} · ${names.length ? names.join(", ") : slot?.time ? "trening" : "odmor"}${slot?.time ? ` u ${slot.time}` : ""}`,
-        };
+        return { planned: names.length > 0, title: `${weekdayLabel(weekday)} · ${names.length ? names.join(", ") : "odmor"}` };
       },
     })}
     <section class="section routine-overview-section">
@@ -13259,9 +12929,7 @@ function renderTrainingTab() {
       </div>
       ${renderHelpNote("Dva su nivoa: <strong>plan treninga</strong> je šta radiš kog dana (vežbe + potrošnja kalorija koja ulazi u dnevni bilans). Kalorije se kucaju po sekcijama (<strong>trening, stomak, kardio</strong>), ovde ili u redu „Trening“ na „Danas“, a ukupno je njihov zbir; broj sa sata važi samo kad nijedna sekcija nije upisana. <strong>Napredak po vežbi</strong> je dnevnik kilaže i serija za svaku vežbu, beleži kilažu i broj ponavljanja, pa kroz vreme vidiš grafik napretka i najbolji rezultat. Plan treninga je, kao i jelovnik, šablon za dve naizmenične nedelje, isti šablon važi svake druge nedelje dok ga ne promeniš.")}
       ${(() => {
-        const plannedDays = weeklyTrainingPlan.filter(
-          (day) => day.templates.length || day.trainingBurn > 0 || getTrainingSlot(state.selectedWeekTrack, day.weekday)?.time
-        );
+        const plannedDays = weeklyTrainingPlan.filter((day) => day.templates.length || day.trainingBurn > 0);
         if (!plannedDays.length) {
           // Bez ovoga je kartica bila samo naslov.
           return `<div class="training-empty-row">
@@ -13275,10 +12943,6 @@ function renderTrainingTab() {
               .map((day) => {
                 const exerciseCount = day.templates.reduce((count, template) => count + template.exercises.length, 0);
                 const meta = [];
-                const slot = getTrainingSlot(state.selectedWeekTrack, day.weekday);
-                if (slot?.time) {
-                  meta.push(slot.time);
-                }
                 if (day.templates.length) {
                   meta.push(`${exerciseCount} ${srPlural(exerciseCount, "vežba", "vežbe", "vežbi")}`);
                   meta.push(`${day.completedExerciseCount}/${day.totalExerciseCount}`);
@@ -13291,7 +12955,7 @@ function renderTrainingTab() {
                     <button type="button" class="training-week-item-button" data-action="select-weekday" data-weekday="${day.weekday}">
                       <span class="training-week-item-main">
                         <strong>${weekdayLabel(day.weekday)}</strong>
-                        <span class="training-week-item-name">${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : day.trainingBurn > 0 ? "Bez plana, samo potrošnja" : "Trening bez vežbi u planu"}</span>
+                        <span class="training-week-item-name">${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : "Bez plana, samo potrošnja"}</span>
                       </span>
                       <span class="training-week-item-meta">${meta.join(" · ")}</span>
                     </button>
@@ -13309,21 +12973,12 @@ function renderTrainingTab() {
         <div>
           <h2>Vežbe</h2>
         </div>
-        <div class="training-section-actions">
-          ${
-            // Bez termina: „Zakaži“ je dugme u zaglavlju, ne poseban red.
-            getTrainingSlot(state.selectedWeekTrack, state.selectedWeekday)
-              ? ""
-              : `<button class="ghost-button button-with-icon training-schedule-add" type="button" data-action="open-training-schedule" aria-label="Zakaži termin za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Zakaži", "clock")}</button>`
-          }
-          ${
-            templates.length
-              ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-builder" aria-label="Sastavi još jedan trening za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Sastavi", "add")}</button>`
-              : ""
-          }
-        </div>
+        ${
+          templates.length
+            ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-builder" aria-label="Sastavi još jedan trening za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Sastavi", "add")}</button>`
+            : ""
+        }
       </div>
-      ${getTrainingSlot(state.selectedWeekTrack, state.selectedWeekday) ? renderTrainingScheduleRow(state.selectedWeekTrack, state.selectedWeekday) : ""}
       ${
         // Prazan blok je i dalje nosio marginu od 14px ispod naslova „Vežbe“.
         templates.length
@@ -18297,7 +17952,6 @@ function renderApp() {
       ${renderQuickEntryDialog()}
       ${renderTrainingBuilderDialog()}
       ${renderTrainingPlanDialog()}
-      ${renderTrainingScheduleDialog()}
       ${renderExerciseSwapDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
@@ -21230,97 +20884,6 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "open-training-schedule") {
-    rememberDialogTrigger(actionTarget);
-    const slot = getTrainingSlot(state.selectedWeekTrack, state.selectedWeekday);
-    const base = slot && !slot.skipped ? slot : slot?.plan || TRAINING_SCHEDULE_DEFAULT;
-    state.trainingScheduleDialog = {
-      weekday: state.selectedWeekday,
-      weekTrack: state.selectedWeekTrack,
-      time: base.time,
-      duration: base.duration,
-      scope: slot?.source === "date" ? "date" : slot?.source === "plan" ? slot.repeat : "weekly",
-    };
-    render();
-    window.requestAnimationFrame(() => document.querySelector("#training-schedule-time")?.focus({ preventScroll: true }));
-    return;
-  }
-
-  if (action === "close-training-schedule") {
-    state.trainingScheduleDialog = null;
-    render();
-    restoreFocusAfterDialog();
-    return;
-  }
-
-  if (action === "training-schedule-scope") {
-    if (state.trainingScheduleDialog) {
-      readTrainingScheduleInputs();
-      const scope = actionTarget.dataset.scope;
-      state.trainingScheduleDialog.scope = ["weekly", "biweekly", "date"].includes(scope) ? scope : "weekly";
-      render();
-    }
-    return;
-  }
-
-  if (action === "remove-training-schedule" || action === "skip-training-slot") {
-    const dialog = state.trainingScheduleDialog;
-    if (!dialog) return;
-    const schedule = getTrainingSchedule();
-    const date = getDateValueForTrackWeekday(dialog.weekTrack, dialog.weekday);
-    const key = trainingScheduleDayKey(dialog.weekTrack, dialog.weekday);
-    const otherKey = trainingScheduleDayKey(1 - normalizeWeekTrack(dialog.weekTrack), dialog.weekday);
-    if (action === "skip-training-slot") {
-      schedule.dates[date] = { skip: true };
-    } else if (dialog.scope === "date") {
-      delete schedule.dates[date];
-    } else {
-      // „Svake nedelje“ briše obe nedelje plana, „svake druge“ samo ovu.
-      if (dialog.scope === "weekly" && isSameScheduleSlot(schedule.days[key], schedule.days[otherKey])) delete schedule.days[otherKey];
-      delete schedule.days[key];
-    }
-    state.trainingScheduleDialog = null;
-    persist();
-    render();
-    restoreFocusAfterDialog();
-    showFeedbackToast({
-      title: action === "skip-training-slot" ? `Bez treninga ${formatScheduleDateShort(date)}` : "Termin je uklonjen",
-      detail: "Ako je već u Google Kalendaru, obriši ga i tamo.",
-      tone: "info",
-      duration: 3600,
-    });
-    return;
-  }
-
-  if (action === "download-training-ics") {
-    const dialog = state.trainingScheduleDialog;
-    const weekTrack = dialog ? dialog.weekTrack : state.selectedWeekTrack;
-    const weekday = dialog ? dialog.weekday : state.selectedWeekday;
-    const slot = getTrainingSlot(weekTrack, weekday);
-    if (!slot || slot.skipped) return;
-    const blob = new Blob([buildTrainingIcs(slot, weekTrack, weekday)], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `trening-${weekdayLabel(weekday).toLowerCase()}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 4000);
-    return;
-  }
-
-  if (action === "restore-training-slot") {
-    const date = String(actionTarget.dataset.date || "");
-    const schedule = getTrainingSchedule();
-    if (schedule.dates[date]?.skip) {
-      delete schedule.dates[date];
-      persist();
-      render();
-    }
-    return;
-  }
-
   if (action === "open-training-plans") {
     rememberDialogTrigger(actionTarget);
     state.trainingPlanPicker = { planId: TRAINING_PLANS[0].id, scope: "both" };
@@ -22005,44 +21568,6 @@ async function handleSubmit(event) {
 
   event.preventDefault();
   const formData = new FormData(event.target);
-
-  if (event.target.id === "training-schedule-form") {
-    const dialog = state.trainingScheduleDialog;
-    if (!dialog) return;
-    readTrainingScheduleInputs();
-    const time = String(formData.get("time") || "");
-    if (!isValidScheduleTime(time)) {
-      document.querySelector("#training-schedule-time")?.focus();
-      return;
-    }
-    const slot = { time, duration: dialog.duration };
-    const schedule = getTrainingSchedule();
-    const date = getDateValueForTrackWeekday(dialog.weekTrack, dialog.weekday);
-    const key = trainingScheduleDayKey(dialog.weekTrack, dialog.weekday);
-    const otherKey = trainingScheduleDayKey(1 - normalizeWeekTrack(dialog.weekTrack), dialog.weekday);
-    if (dialog.scope === "date") {
-      schedule.dates[date] = slot;
-    } else {
-      const previous = schedule.days[key];
-      schedule.days[key] = slot;
-      if (dialog.scope === "weekly") {
-        schedule.days[otherKey] = { ...slot };
-      } else if (isSameScheduleSlot(previous, schedule.days[otherKey])) {
-        // Bilo je „svake nedelje“, sada je svake druge: druga nedelja ne
-        // nasleđuje stari termin.
-        delete schedule.days[otherKey];
-      }
-      // Novo stalno vreme važi i ovaj put, osim ako je dan preskočen.
-      if (schedule.dates[date] && !schedule.dates[date].skip) delete schedule.dates[date];
-    }
-    pruneTrainingScheduleDates(schedule);
-    state.trainingScheduleDialog = null;
-    persist();
-    render();
-    restoreFocusAfterDialog();
-    showFeedbackToast({ title: "Termin je sačuvan", detail: "Dodaj ga u kalendar dugmetom „Google Kalendar“.", tone: "success", duration: 3200 });
-    return;
-  }
 
   if (event.target.id === "onboarding-form") {
     const ob = state.onboarding;
@@ -23885,8 +23410,6 @@ document.addEventListener("keydown", (event) => {
           ? '[data-action="close-training-builder"]'
         : state.trainingPlanPicker
           ? '[data-action="close-training-plans"]'
-        : state.trainingScheduleDialog
-          ? '[data-action="close-training-schedule"]'
         : state.exerciseSwap
           ? '[data-action="close-exercise-swap"]'
         : state.navMenuOpen

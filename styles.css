@@ -15450,123 +15450,6 @@ body:has(.feedback-toast.is-visible) .foods-add-fab {
 }
 
 /* ============================================================
-   2026-11-03 — Zakazivanje treninga.
-   ============================================================ */
-/* Red sa terminom ispod naslova „Vežbe“: sat, vreme, ponavljanje, pa
-   „Google Kalendar“ i izmena desno. */
-.training-schedule-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-}
-.training-schedule-row.is-empty {
-  padding: 0 0 12px;
-}
-.training-schedule-icon {
-  display: inline-flex;
-  color: var(--accent);
-}
-.training-schedule-copy {
-  display: grid;
-  gap: 1px;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.training-schedule-copy strong {
-  font-size: var(--fs-17);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.training-schedule-copy span {
-  color: var(--muted);
-  font-size: var(--fs-13);
-}
-.training-schedule-row .ghost-button:not(.icon-only-action) {
-  flex: 0 0 auto;
-  min-height: 38px;
-  padding: 6px 12px;
-  font-size: var(--fs-14);
-  text-decoration: none;
-}
-.training-schedule-row .training-schedule-edit {
-  flex: 0 0 auto;
-  margin-right: -8px;
-}
-@media (max-width: 380px) {
-  .training-schedule-google .button-label {
-    display: none;
-  }
-}
-/* Dijalog termina. */
-.training-schedule-dialog {
-  max-width: 460px;
-}
-.training-schedule-body {
-  display: grid;
-  gap: 16px;
-}
-.training-schedule-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-}
-.training-schedule-fields input[type="time"],
-.training-schedule-fields select {
-  width: 100%;
-  font-variant-numeric: tabular-nums;
-}
-.training-schedule-hint {
-  margin: 8px 0 0;
-}
-.training-schedule-skip {
-  justify-self: start;
-}
-.training-schedule-ics {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-self: start;
-  min-height: 40px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent-strong);
-  font: inherit;
-  font-size: var(--fs-14);
-  font-weight: 700;
-  cursor: pointer;
-}
-:root[data-theme="dark"] .training-schedule-ics { color: var(--accent); }
-.training-schedule-dialog .app-dialog-actions {
-  justify-content: space-between;
-}
-.training-schedule-remove,
-:root[data-theme="dark"] .training-schedule-remove {
-  color: var(--status-error-text);
-}
-.training-schedule-copy strong,
-.training-schedule-copy span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.training-schedule-row .training-schedule-google {
-  gap: 6px;
-}
-@media (max-width: 480px) {
-  .training-schedule-google-long {
-    display: none;
-  }
-}
-.training-schedule-dialog .choice-chip {
-  flex-basis: 0;
-  min-width: 0;
-}
-
-/* ============================================================
    2026-11-09 — Utezanje 4: dijalozi, Nedeljno, Nalog.
    ============================================================ */
 /* Brzi unos: dno dijaloga je bio blok, pa su „Zabeleži“ i „Otkaži“ stajali
@@ -16370,17 +16253,6 @@ summary,
     padding-inline: 9px;
   }
 }
-.training-section-actions {
-  display: flex;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-@media (max-width: 720px) {
-  :root[data-theme] .training-section-actions > .ghost-button {
-    min-height: 38px;
-    padding-inline: 11px;
-  }
-}
 /* Traka dana (Danas, Trening, Rutina): čipovi 38px, manje vazduha iznad. */
 @media (max-width: 720px) {
   :root[data-theme] .hero-day-chips .chip {
@@ -16513,27 +16385,4 @@ summary,
     max-height: 0;
   }
 }
-/* Najuži telefoni (≤350px): „Zakaži“ i „Sastavi“ kao ikonice pored
-   naslova „Vežbe“ (imaju aria-label). */
-@media (max-width: 350px) {
-  :root[data-theme] .training-section-actions > .ghost-button {
-    width: 40px;
-    min-width: 40px;
-    padding-inline: 0;
-    justify-content: center;
-  }
-  :root[data-theme] .training-section-actions > .ghost-button .button-label {
-    display: none;
-  }
-}
 /* Termin: polje za vreme ima svoju minimalnu širinu i na 320px je prelazilo
-   preko „Trajanje“. */
-.training-schedule-fields > .field,
-.training-schedule-fields input[type="time"],
-.training-schedule-fields select {
-  min-width: 0;
-  max-width: 100%;
-}
-.training-schedule-fields input[type="time"] {
-  padding-inline: 10px;
-}
