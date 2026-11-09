@@ -16400,3 +16400,14 @@ summary,
 .routine-streak-meta .nowrap {
   display: inline-block;
 }
+@media (max-width: 720px) {
+  /* Danas: zaglavlje „Obroci“ niže, „Brzi unos“ 38px. */
+  :root[data-theme] .plan-quick-entry-button {
+    min-height: 38px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .plan-meals-section > .section-header {
+    margin-bottom: 6px;
+  }
+}
