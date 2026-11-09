@@ -14207,7 +14207,7 @@ function renderRunningTab() {
             </div>
             ${renderStatRows([
               { label: "Najduže trčanje", value: `${formatDecimal(stats.longestKm, 1)} km` },
-              { label: "Najbrži tempo", note: "na bar 1 km", value: `${formatRunPace(stats.bestPaceSec)} /km` },
+              { label: "Najbrži tempo", note: "1 km+", value: `${formatRunPace(stats.bestPaceSec)} /km` },
               { label: "Ukupno", note: `${stats.totalCount} ${srPlural(stats.totalCount, "trčanje", "trčanja", "trčanja")}`, value: `${formatDecimal(stats.totalKm, 1)} km` },
               { label: "Ukupno vreme", value: stats.totalSec ? formatRunDuration(stats.totalSec) : "0:00" },
             ])}

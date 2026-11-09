@@ -16877,3 +16877,101 @@ button.training-week-volume-name {
     margin-top: 0;
   }
 }
+
+@media (max-width: 720px) {
+  /* Recepti: „Napravi recept“ jedan red (podnaslov samo pri izmeni). */
+  :root[data-theme] main .recipes-builder-section.is-collapsed.section:not(.workspace-header):not(.hero) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  :root[data-theme] .recipes-builder-section.is-collapsed .section-disclosure {
+    align-items: center;
+  }
+  :root[data-theme] .recipes-builder-section.is-collapsed .section-disclosure-copy > p:not(:has(+ *)) {
+    display: none;
+  }
+  /* Trčanje: rekordi kao 2×2 pločice. */
+  :root[data-theme] .running-records-section .stat-rows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 8px 10px 8px 0;
+    border-top: 1px solid var(--line);
+  }
+  :root[data-theme] .running-records-section .stat-row:nth-child(even) {
+    padding-left: 12px;
+    border-left: 1px solid var(--line);
+  }
+  :root[data-theme] .running-records-section .stat-row > * {
+    text-align: left;
+    justify-self: start;
+  }
+  :root[data-theme] .running-records-section .stat-row strong,
+  :root[data-theme] .running-records-section .stat-row .stat-row-value {
+    order: 2;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .running-records-section .stat-row {
+    grid-template-areas: "label" "value" "note";
+  }
+  :root[data-theme] .running-records-section .stat-row > dt {
+    display: contents;
+  }
+  :root[data-theme] .running-records-section .stat-row > dt::before {
+    content: none;
+  }
+  :root[data-theme] .running-records-section .stat-row .stat-row-note {
+    grid-area: note;
+    margin: 0;
+    font-size: var(--fs-12);
+  }
+  :root[data-theme] .running-records-section .stat-row > dd {
+    grid-area: value;
+    margin: 0;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .running-records-section .stat-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  :root[data-theme] .running-records-section .stat-row > dt {
+    display: flex;
+    flex-direction: column-reverse;
+    order: 1;
+  }
+  :root[data-theme] .running-records-section .stat-row > dd {
+    order: 0;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .running-records-section .stat-row > dt {
+    display: block;
+    order: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row > dd {
+    order: 1;
+  }
+  :root[data-theme] .running-records-section .stat-row .stat-row-note {
+    display: inline;
+    margin-left: 4px;
+  }
+  :root[data-theme] .running-records-section .stat-row .stat-row-note::before {
+    content: "· ";
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .running-records-section .stat-row .stat-row-note {
+    white-space: nowrap;
+  }
+  :root[data-theme] .running-records-section .stat-row {
+    justify-content: space-between;
+  }
+}
