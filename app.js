@@ -13173,7 +13173,7 @@ function renderTrainingTab() {
                   <li class="training-week-item ${day.weekday === state.selectedWeekday ? "is-active" : ""}">
                     <button type="button" class="training-week-item-button" data-action="select-weekday" data-weekday="${day.weekday}">
                       <span class="training-week-item-main">
-                        <strong>${weekdayLabel(day.weekday).slice(0, 3)}</strong>
+                        <strong><span class="week-day-short">${weekdayLabel(day.weekday).slice(0, 3)}</span><span class="week-day-long">${weekdayLabel(day.weekday)}</span></strong>
                         <span class="training-week-item-name">${day.templates.length ? day.templates.map((template) => escapeHtml(template.name)).join(", ") : "Bez plana, samo potrošnja"}</span>
                       </span>
                       <span class="training-week-item-meta">${meta.join(" · ")}</span>

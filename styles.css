@@ -17303,3 +17303,8 @@ button.training-week-volume-name {
     margin: 4px 0 0;
   }
 }
+.week-day-short { display: none; }
+@media (max-width: 720px) {
+  .week-day-short { display: inline; }
+  .week-day-long { display: none; }
+}
