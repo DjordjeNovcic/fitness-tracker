@@ -17132,3 +17132,49 @@ button.training-week-volume-name {
     flex-basis: 100%;
   }
 }
+.privacy-card > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
+  list-style: none;
+}
+.privacy-card > summary::-webkit-details-marker { display: none; }
+.privacy-card-hint {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: var(--fs-13);
+}
+.privacy-card > summary .chevron-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.privacy-card[open] > summary .chevron-icon { transform: rotate(180deg); }
+@media (max-width: 720px) {
+  /* Nalog: „Izvezi“ i „Uvezi kopiju“ jedno pored drugog. */
+  :root[data-theme] .status-summary-actions > .solid-button,
+  :root[data-theme] .status-summary-actions > label.ghost-button {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 42px;
+    justify-content: center;
+  }
+  :root[data-theme] .status-summary-actions {
+    flex-wrap: nowrap;
+  }
+  /* Nedeljno: niže pločice. */
+  :root[data-theme] .goals-weekly-section .stat-card,
+  :root[data-theme] .stats-grid--glance .stat-card {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+.privacy-card:not([open]) {
+  padding-bottom: 0;
+}
+.privacy-card:not([open]) > .status-summary-copy {
+  display: none;
+}

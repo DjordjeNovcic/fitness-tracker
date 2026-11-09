@@ -9067,12 +9067,12 @@ function renderPrivacyList() {
 
 function renderPrivacyCard() {
   return `
-        <article class="status-summary-card privacy-card">
+        <details class="status-summary-card privacy-card">
+          <summary class="privacy-card-summary"><strong>Privatnost</strong><span class="privacy-card-hint">šta se čuva i gde</span>${renderChevronIcon(false)}</summary>
           <div class="status-summary-copy">
-            <strong>Privatnost</strong>
             ${renderPrivacyList()}
           </div>
-        </article>`;
+        </details>`;
 }
 
 function renderDeleteAccountDialog() {
@@ -15135,7 +15135,7 @@ function renderGoalsTab() {
 
     ${gView === "nedeljno" ? `
     <section class="section goals-weekly-section">
-      ${renderSectionLead("Nedeljni nivo", "Zbir za svih 7 dana, da odmah vidiš da li si u kalorijama i makroima na nivou cele nedelje.")}
+      ${renderSectionLead("Nedeljni nivo", "")}
       <div class="stats-grid stats-grid--glance">
         <article class="stat-card">
           <strong>U planu, 7 dana</strong>
@@ -15145,17 +15145,14 @@ function renderGoalsTab() {
         <article class="stat-card">
           <strong>Nedeljni cilj</strong>
           <div class="macro-value">${formatInt(weeklyOverview.goals.kcal)} kcal</div>
-          <div class="footer-note">${WEEKDAYS.length} × dnevni cilj</div>
         </article>
         <article class="stat-card">
           <strong>Potrošeno na treningu</strong>
           <div class="macro-value">${formatInt(weeklyOverview.totals.trainingBurn)} kcal</div>
-          <div class="footer-note">Zbir kalorija treninga po danima</div>
         </article>
         <article class="stat-card">
           <strong>Neto kcal</strong>
           <div class="macro-value">${formatInt(weeklyOverview.netKcal)} kcal</div>
-          <div class="footer-note">Plan minus trening</div>
         </article>
       </div>
       <div class="goals-weekly-metrics">
