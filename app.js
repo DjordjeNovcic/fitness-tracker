@@ -14294,12 +14294,12 @@ function renderRunningTab() {
             <input id="run-seconds" name="seconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="sek" aria-label="Sekunde" value="${draftSeconds}" />
           </div>
         </div>
-        <div class="field">
+        <div class="field run-hr-field">
           <label for="run-avg-hr">Prosečan puls</label>
           <input id="run-avg-hr" name="avgHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 145" value="${draftAvgHr}" />
         </div>
-        <div class="field">
-          <label for="run-max-hr">Maksimalan puls</label>
+        <div class="field run-hr-field">
+          <label for="run-max-hr">Maks. puls</label>
           <input id="run-max-hr" name="maxHr" type="number" min="0" max="260" step="1" inputmode="numeric" placeholder="npr. 168" value="${draftMaxHr}" />
         </div>
         <div class="field run-note-field">

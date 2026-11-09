@@ -16222,4 +16222,55 @@ summary,
   :root[data-theme] .recipe-library-ingredient-head .footer-note {
     margin: 0;
   }
+
+  /* Forme: polja 42px (bila 46), izbor-čipovi 40px (48), manje razmaka
+     između labele i polja. Tekst u poljima ostaje 16px (iOS zum). */
+  :root[data-theme] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  :root[data-theme] select {
+    min-height: 42px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  :root[data-theme] .field {
+    gap: 4px;
+  }
+  :root[data-theme] .choice-chip {
+    min-height: 40px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  /* Opcione slike uz merenje: naziv i dugme u jednom redu, bez okvira
+     oko svakog izbora (tri reda od ~90px → ~44px). */
+  :root[data-theme] .measurement-photo-row {
+    display: grid;
+    gap: 6px;
+  }
+  :root[data-theme] .measurement-photo-slot {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick {
+    padding: 0;
+    border: 0;
+    background: none;
+    min-height: 40px;
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick-button {
+    min-height: 36px;
+    padding: 4px 12px;
+  }
+
+  :root[data-theme] .measurement-photo-slot .file-pick-title {
+    align-self: center;
+    margin: 0;
+  }
+  /* Trčanje: prosečan i maksimalan puls jedan pored drugog. */
+  :root[data-theme] .run-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :root[data-theme] .run-form > :not(.run-hr-field) {
+    grid-column: 1 / -1;
+  }
 }
