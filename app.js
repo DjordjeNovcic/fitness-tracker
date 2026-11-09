@@ -12326,7 +12326,12 @@ function renderTrainingBuilderPick(builder) {
                           <span class="exercise-pick-check" aria-hidden="true">${renderActionIcon("apply")}</span>
                           <span class="exercise-pick-copy">
                             <strong>${escapeHtml(exercise.name)}</strong>
-                            <span>${exercise.custom ? "Tvoja vežba · " : ""}${escapeHtml(formatExerciseDose(exercise.sets, exercise.reps))}</span>
+                            <span class="exercise-pick-meta"><span>${exercise.custom ? "Tvoja vežba · " : ""}${escapeHtml(formatExerciseDose(exercise.sets, exercise.reps))}</span>${(() => {
+                              const tags = getExerciseTags(exercise.name, exercise.group);
+                              // Ostali delovi tela, bez grupe koja je već izabrana gore.
+                              const shown = tags.filter((tag) => tag !== (builder.filter !== "all" ? builder.filter : exercise.group));
+                              return tags.length > 1 && shown.length ? renderExerciseTagChips(shown, { muted: true }) : "";
+                            })()}</span>
                           </span>
                         </button>
                         ${
