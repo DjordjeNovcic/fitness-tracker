@@ -17324,3 +17324,32 @@ button.training-week-volume-name {
     font-size: var(--fs-12);
   }
 }
+@media (max-width: 720px) {
+  /* Otvorena forma „Dodaj …“: njen naslov i × ostaju desno u redu sa
+     naslovom odeljka (kao zatvorena), forma ide ispod preko cele širine. */
+  :root[data-theme] main .section > .section-header + details.form-collapse[open],
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] {
+    margin-top: -36px;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse[open] > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary {
+    width: max-content;
+    max-width: 60%;
+    margin-left: auto;
+    min-height: 34px;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse[open] > summary .form-collapse-title,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary .form-collapse-title {
+    font-size: var(--fs-14);
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 0;
+  }
+  :root[data-theme] main .section:has(> .help-note:not(.help-note--inline)) > .section-header + details.form-collapse[open] > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary {
+    margin-right: 40px;
+  }
+}
