@@ -16153,4 +16153,43 @@ summary,
   :root[data-theme] .feedback-toast.is-raised {
     bottom: calc(80px + env(safe-area-inset-bottom));
   }
+
+  /* Prijava: manje vazduha između delova kartice. */
+  :root[data-theme] .auth-box {
+    gap: 14px;
+    padding: 24px 20px 18px;
+  }
+  :root[data-theme] .auth-form {
+    gap: 12px;
+  }
+  :root[data-theme] .auth-forgot {
+    min-height: 36px;
+    margin-top: -4px;
+  }
+  :root[data-theme] .auth-privacy {
+    margin-top: 2px;
+    padding-top: 6px;
+  }
+
+  /* Vodič za novi nalog: „Dodaj obrok“ i „Brzi unos“ u jednom redu. */
+  :root[data-theme] .plan-welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  :root[data-theme] .plan-welcome-actions > .solid-button,
+  :root[data-theme] .plan-welcome-actions > .ghost-button {
+    padding-inline: 10px;
+    gap: 5px;
+    min-height: 40px;
+  }
+
+  /* Vodič: tekst bliže broju koraka, opis manji (bio je veći od teksta
+     ostatka aplikacije). */
+  :root[data-theme] .plan-welcome-step {
+    gap: 10px;
+  }
+  :root[data-theme] .plan-welcome-head p {
+    font-size: var(--fs-15);
+  }
 }
