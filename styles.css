@@ -16526,3 +16526,14 @@ summary,
     display: none;
   }
 }
+/* Termin: polje za vreme ima svoju minimalnu širinu i na 320px je prelazilo
+   preko „Trajanje“. */
+.training-schedule-fields > .field,
+.training-schedule-fields input[type="time"],
+.training-schedule-fields select {
+  min-width: 0;
+  max-width: 100%;
+}
+.training-schedule-fields input[type="time"] {
+  padding-inline: 10px;
+}
