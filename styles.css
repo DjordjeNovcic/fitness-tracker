@@ -16435,3 +16435,153 @@ summary,
 :root[data-theme] .routine-overview-section > .training-week-list {
   margin-top: 4px;
 }
+/* Trening: „Mapa tela“ sklopiva, red ispod liste dana. */
+.training-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 6px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.training-map-toggle-title {
+  font-weight: 700;
+}
+.training-map-toggle-meta {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+}
+.training-map-toggle-icon {
+  display: inline-flex;
+  color: var(--muted);
+}
+.training-map-toggle-icon .chevron-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+.training-map-toggle-icon .chevron-icon.is-open {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .training-map-toggle-icon .chevron-icon { transition: none; }
+}
+/* Danas: voda, kafa, koraci, kalorije treninga i težina kao pločice u dve
+   kolone (bilo pet redova ~57px). Poslednja pločica, kad je neparan broj,
+   ide preko cele širine kao red. */
+@media (max-width: 720px) {
+  :root[data-theme] .plan-glance-rows {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row,
+  :root[data-theme] .plan-glance-rows > .plan-glance-row + .plan-glance-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon label label"
+      "value value btn"
+      "sub sub sub";
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 9px 10px 9px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:nth-child(odd):not(:last-child) {
+    border-right: 1px solid var(--line);
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:nth-child(even) {
+    padding-left: 12px;
+    padding-right: 0;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child {
+    border-bottom: 0;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon label btn"
+      "icon value btn"
+      "icon sub btn";
+    border-top: 1px solid var(--line);
+    padding-right: 0;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-copy,
+  :root[data-theme] .plan-glance-row .plan-glance-line {
+    display: contents;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-icon {
+    grid-area: icon;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-label {
+    grid-area: label;
+    font-size: var(--fs-13);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-value {
+    grid-area: value;
+    font-size: var(--fs-16);
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    text-align: left;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-btn {
+    grid-area: btn;
+    min-height: 32px;
+    padding-inline: 4px;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-bar,
+  :root[data-theme] .plan-glance-row .plan-glance-sub {
+    grid-area: sub;
+    margin: 2px 0 0;
+  }
+  :root[data-theme] .plan-glance-row .plan-glance-sub {
+    font-size: var(--fs-12);
+    line-height: 1.3;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:not(:last-child) .plan-glance-sub:not(:has(a, button)) {
+    display: none;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row,
+  :root[data-theme] .plan-glance-rows > .plan-glance-row + .plan-glance-row {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+}
+@media (max-width: 380px) {
+  :root[data-theme] .plan-glance-rows > .plan-glance-row .plan-glance-value {
+    font-size: var(--fs-15);
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row--burn .plan-glance-value {
+    font-size: var(--fs-14);
+    font-weight: 600;
+  }
+}

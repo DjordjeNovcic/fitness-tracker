@@ -12857,8 +12857,23 @@ function renderTrainingWeekMap(weeklyTrainingPlan) {
     groupStates[group.id] = levelFor(planned[group.id]).state;
   });
   const missing = EXERCISE_GROUPS.filter((group) => !planned[group.id]).map((group) => group.label);
+  // Sklopljena po defaultu (~300px); stanje se pamti na uređaju.
+  const isOpen = Boolean(store.ui && store.ui.trainingMapOpen);
+  const totalPlanned = plannedGroups.reduce((sum, group) => sum + planned[group.id], 0);
+  const totalDone = plannedGroups.reduce((sum, group) => sum + (done[group.id] || 0), 0);
+  const toggle = `
+    <button class="training-map-toggle" type="button" data-action="toggle-training-map" aria-expanded="${isOpen}">
+      <span class="training-map-toggle-title">Mapa tela</span>
+      <span class="training-map-toggle-meta">${plannedGroups.length} ${srPlural(plannedGroups.length, "grupa", "grupe", "grupa")} · ${
+        isCurrentWeek ? `${totalDone}/${totalPlanned}` : totalPlanned
+      } ${srPlural(totalPlanned, "serija", "serije", "serija")}</span>
+      <span class="training-map-toggle-icon" aria-hidden="true">${renderChevronIcon(isOpen)}</span>
+    </button>`;
+  if (!isOpen) {
+    return toggle;
+  }
 
-  return `
+  return `${toggle}
     <div class="training-week-map">
       ${renderBodyMap({ groupStates })}
       <div class="training-week-map-key">
@@ -20883,6 +20898,14 @@ async function handleDocumentClick(event) {
     });
     render();
     restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "toggle-training-map") {
+    store.ui = store.ui || {};
+    store.ui.trainingMapOpen = !store.ui.trainingMapOpen;
+    persist();
+    render();
     return;
   }
 
