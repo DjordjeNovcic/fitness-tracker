@@ -17030,3 +17030,25 @@ button.training-week-volume-name {
   padding: 4px 12px;
   margin: 0;
 }
+/* Uvidi: 30/60/90 u redu sa naslovom, levo od info (i). */
+.insights-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 40px;
+}
+.insights-head .section-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.insights-head .insights-period {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+:root[data-theme] .insights-head .insights-period .chip {
+  min-height: 30px;
+  padding: 3px 9px;
+  font-size: var(--fs-13);
+}

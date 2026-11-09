@@ -17222,12 +17222,12 @@ function renderInsightsSection() {
 
   return `
     <section class="section insights-section">
-      <div class="section-header">
+      <div class="section-header insights-head">
         <div class="section-copy">
           <h2>Uvidi</h2>
         </div>
+        <div class="insights-period">${periodChips}</div>
       </div>
-      <div class="insights-period">${periodChips}</div>
       ${hero}
       ${rows}
       ${energyHtml}
