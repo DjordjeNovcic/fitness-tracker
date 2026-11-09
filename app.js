@@ -12347,7 +12347,7 @@ function renderRecipesTab() {
                               : ""
                           }
                           <div class="entry-actions recipe-library-actions">
-                            <button class="ghost-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}">
+                            <button class="ghost-button button-with-icon" data-action="open-recipe-apply-dialog" data-favorite-id="${favorite.id}" aria-label="Dodaj „${escapeHtml(favorite.name)}“ u plan">
                               ${renderButtonContent("Dodaj u plan", "add")}
                             </button>
                             ${

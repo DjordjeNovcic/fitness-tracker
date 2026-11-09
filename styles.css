@@ -16478,3 +16478,19 @@ summary,
     margin-right: 40px;
   }
 }
+/* Uski telefoni (≤380px): doza vežbe i makroi recepta ostaju celi. */
+@media (max-width: 380px) {
+  :root[data-theme] .training-exercise-row .training-rest:not(.training-swap):not(.is-running) .button-icon,
+  :root[data-theme] .training-exercise-row .training-rest:not(.training-swap):not(.is-running) > svg {
+    display: none;
+  }
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-actions > .ghost-button:not(.icon-only-action) {
+    width: 42px;
+    min-width: 42px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-actions > .ghost-button:not(.icon-only-action) .button-label {
+    display: none;
+  }
+}
