@@ -16381,3 +16381,22 @@ summary,
     padding-inline: 11px;
   }
 }
+/* Traka dana (Danas, Trening, Rutina): čipovi 38px, manje vazduha iznad. */
+@media (max-width: 720px) {
+  :root[data-theme] .hero-day-chips .chip {
+    min-height: 38px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  :root[data-theme] .hero-day-picker {
+    margin-top: 8px;
+  }
+  :root[data-theme] .hero--plan:not(.hero--sub) {
+    padding-top: 12px;
+  }
+}
+/* Niz: delovi opisa razdvojeni tačkom; kad se red prelomi, tačka ne
+   počinje novi red (ostaje na kraju prethodnog). */
+.routine-streak-meta .nowrap {
+  display: inline-block;
+}

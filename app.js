@@ -14519,7 +14519,8 @@ function renderRoutineTab() {
                           ]
                             .filter(Boolean)
                             // Tačka ide uz sledeći deo, da ne visi na kraju reda.
-                            .map((part, index) => `<span class="nowrap">${index ? "· " : ""}${escapeHtml(part)}</span>`)
+                            // Tačka ide uz PRETHODNI deo: pri prelomu ostaje na kraju reda.
+                            .map((part, index, parts) => `<span class="nowrap">${escapeHtml(part)}${index < parts.length - 1 ? " ·" : ""}</span>`)
                             .join(" ")}</div>
                         </div>
                         <div class="entry-actions routine-streak-actions">
