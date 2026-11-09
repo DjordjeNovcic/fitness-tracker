@@ -16513,3 +16513,16 @@ summary,
     max-height: 0;
   }
 }
+/* Najuži telefoni (≤350px): „Zakaži“ i „Sastavi“ kao ikonice pored
+   naslova „Vežbe“ (imaju aria-label). */
+@media (max-width: 350px) {
+  :root[data-theme] .training-section-actions > .ghost-button {
+    width: 40px;
+    min-width: 40px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+  :root[data-theme] .training-section-actions > .ghost-button .button-label {
+    display: none;
+  }
+}
