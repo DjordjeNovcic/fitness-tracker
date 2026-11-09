@@ -968,6 +968,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     trainingLogs: Array.isArray(rawStore.trainingLogs) ? rawStore.trainingLogs : [],
     trainingProgressLogs: Array.isArray(rawStore.trainingProgressLogs) ? rawStore.trainingProgressLogs : [],
     runs: Array.isArray(rawStore.runs) ? rawStore.runs : [],
+    exerciseTags: rawStore.exerciseTags && typeof rawStore.exerciseTags === "object" && !Array.isArray(rawStore.exerciseTags) ? rawStore.exerciseTags : {},
     trainingBurnByWeekday:
       rawStore.trainingBurnByWeekday && typeof rawStore.trainingBurnByWeekday === "object"
         ? rawStore.trainingBurnByWeekday
@@ -5645,6 +5646,77 @@ function guessExerciseGroup(name) {
   return hint ? hint[0] : "";
 }
 
+// Oznake (delovi tela) po vežbi: glavna grupa + mišići koji takođe rade.
+// Višezglobne vežbe iz biblioteke imaju podrazumevane dodatne oznake, a
+// korisnik ih menja u listu „deo tela“ (store.exerciseTags[ključ imena] =
+// ceo spisak). Volumen na mapi se i dalje broji samo po glavnoj grupi.
+const EXERCISE_EXTRA_TAGS_BY_NAME = [
+  ["Zgibovi", ["biceps"]],
+  ["Lat mašina", ["biceps"]],
+  ["Veslanje sa šipkom", ["biceps"]],
+  ["Veslanje bučicom", ["biceps"]],
+  ["Veslanje na sajli", ["biceps"]],
+  ["Veslanje", ["biceps"]],
+  ["Mrtvo dizanje", ["noge"]],
+  ["Rumunsko mrtvo dizanje", ["ledja"]],
+  ["Potisak sa klupe", ["triceps", "ramena"]],
+  ["Bench press", ["triceps", "ramena"]],
+  ["Kosi potisak sa bučicama", ["ramena", "triceps"]],
+  ["Potisak sa bučicama", ["triceps", "ramena"]],
+  ["Sklekovi", ["triceps", "ramena"]],
+  ["Potisak iznad glave", ["triceps"]],
+  ["Military press", ["triceps"]],
+  ["Rameni potisak sa bučicama", ["triceps"]],
+  ["Face pull", ["ledja"]],
+  ["Veslanje do brade", ["ledja"]],
+  ["Čučanj", ["stomak"]],
+  ["Bugarski čučanj", ["stomak"]],
+  ["Potisak uskim hvatom", ["grudi"]],
+  ["Propadanja na razboju", ["grudi", "ramena"]],
+  ["Propadanje", ["grudi", "ramena"]],
+];
+let exerciseExtraTagsIndex = null;
+
+function isExerciseGroupId(value) {
+  return EXERCISE_GROUPS.some((group) => group.id === value);
+}
+
+function getExerciseTags(name, primary = "") {
+  const key = normalizeLookupValue(name);
+  if (!key) {
+    return primary ? [primary] : [];
+  }
+  const own = store.exerciseTags && Array.isArray(store.exerciseTags[key]) ? store.exerciseTags[key].filter(isExerciseGroupId) : null;
+  if (own && own.length) {
+    return [...new Set(own)];
+  }
+  if (!exerciseExtraTagsIndex) {
+    exerciseExtraTagsIndex = new Map(EXERCISE_EXTRA_TAGS_BY_NAME.map(([label, tags]) => [normalizeLookupValue(label), tags]));
+  }
+  const first = primary || guessExerciseGroup(name);
+  return [...new Set([first, ...(exerciseExtraTagsIndex.get(key) || [])].filter(isExerciseGroupId))];
+}
+
+function setExerciseTags(name, tags) {
+  const key = normalizeLookupValue(name);
+  if (!key) {
+    return;
+  }
+  store.exerciseTags = store.exerciseTags && typeof store.exerciseTags === "object" ? store.exerciseTags : {};
+  const clean = [...new Set(tags.filter(isExerciseGroupId))];
+  if (clean.length) {
+    store.exerciseTags[key] = clean;
+  } else {
+    delete store.exerciseTags[key];
+  }
+}
+
+function renderExerciseTagChips(tags, { muted = false } = {}) {
+  return tags.length
+    ? `<span class="exercise-tags ${muted ? "is-muted" : ""}">${tags.map((tag) => `<span class="exercise-tag">${escapeHtml(getExerciseGroupLabel(tag))}</span>`).join("")}</span>`
+    : "";
+}
+
 // ---------------------------------------------------------------------------
 // Mapa tela: MuscleMap obrisi (data/body-map.js, MIT) obojeni po grupama
 // vežbi. Fajl ima ~90 KB pa se učitava tek kad mapa prvi put zatreba; do tada
@@ -8437,6 +8509,7 @@ function isOverlayOpen() {
       state.scannerOpen ||
       state.trainingBuilder ||
       state.trainingPlanPicker ||
+      state.muscleSheet ||
       state.exerciseSwap ||
       (state.recipeApplyDialog && state.recipeApplyDialog.favoriteId)
   );
@@ -8749,6 +8822,7 @@ function renderActionIcon(kind) {
     copy: '<path fill="currentColor" d="M8 7V4h11v13h-3v3H5V7h3Zm2 0h6v8h1V6H10v1Zm-3 2v9h7V9H7Z"/>',
     open: '<path fill="currentColor" d="M4 7h7l2 2h7v10H4V7Zm2 2v8h12v-6h-6.2l-2-2H6Z"/>',
     go: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/>',
+    tag: '<path fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/>',
     swap: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M7 4 3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/>',
     undo: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     refresh: '<path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.3 2.3Z"/>',
@@ -12228,7 +12302,15 @@ function renderTrainingBuilderPick(builder) {
     <div class="training-builder-body training-builder-library" data-keep-scroll="training-builder-pick">
       ${visibleGroups
         .map((group) => {
-          const exercises = library.filter((exercise) => exercise.group === group.id);
+          // Sa izabranom grupom: i vežbe kojima je to dodatna oznaka
+          // (zgibovi u Bicepsu), posle onih kojima je glavna.
+          const exercises =
+            builder.filter === "all"
+              ? library.filter((exercise) => exercise.group === group.id)
+              : [
+                  ...library.filter((exercise) => exercise.group === group.id),
+                  ...library.filter((exercise) => exercise.group !== group.id && getExerciseTags(exercise.name, exercise.group).includes(group.id)),
+                ];
           return `
             <div class="exercise-pick-group" data-exercise-group="${group.id}" ${exercises.some((exercise) => matchesQuery(exercise.name)) ? "" : "hidden"}>
               ${builder.filter === "all" ? `<h4 class="exercise-pick-group-title">${group.label}</h4>` : ""}
@@ -12822,6 +12904,122 @@ function renderExerciseSwapDialog() {
 // od toga odrađeno. Vežba bez broja serija (stari tekstualni šabloni) se
 // računa kao uobičajene 3. Poslednji red je onaj koji se zapravo čita:
 // „Bez vežbi: Ramena, Stomak“.
+// List „deo tela“: tap na mišić (mapa na Treningu) → vežbe sa tom oznakom.
+// Gore one koje su već u planu ove nedelje, ispod predlozi iz biblioteke sa
+// „+“ (ide u izabrani dan). Svakoj vežbi oznake mogu da se promene.
+function getMuscleSheetData(group, keepKey = "") {
+  const plan = getWeeklyTrainingPlan();
+  const inPlan = [];
+  const seen = new Set();
+  plan.forEach((day) => {
+    day.templates.forEach((template) => {
+      (template.exercises || []).forEach((exercise) => {
+        const tags = getExerciseTags(exercise.name, getExerciseGroupId(exercise));
+        const key = normalizeLookupValue(exercise.name);
+        if (!tags.includes(group) && key !== keepKey) return;
+        const entry = inPlan.find((item) => item.key === key);
+        if (entry) {
+          if (!entry.days.includes(day.weekday)) entry.days.push(day.weekday);
+          return;
+        }
+        seen.add(key);
+        inPlan.push({ key, name: exercise.name, primary: getExerciseGroupId(exercise), tags, days: [day.weekday] });
+      });
+    });
+  });
+  const todayKeys = new Set(
+    getTrainingForDay(state.selectedWeekday).flatMap((template) => (template.exercises || []).map((exercise) => normalizeLookupValue(exercise.name)))
+  );
+  const library = getExerciseLibrary();
+  const suggestions = [
+    ...library.filter((exercise) => exercise.group === group),
+    ...library.filter(
+      (exercise) =>
+        exercise.group !== group &&
+        (getExerciseTags(exercise.name, exercise.group).includes(group) || (keepKey && normalizeLookupValue(exercise.name) === keepKey))
+    ),
+  ]
+    .filter((exercise) => !seen.has(normalizeLookupValue(exercise.name)))
+    .map((exercise) => ({
+      key: normalizeLookupValue(exercise.name),
+      libraryKey: exercise.key,
+      name: exercise.name,
+      primary: exercise.group,
+      tags: getExerciseTags(exercise.name, exercise.group),
+      sets: exercise.sets,
+      reps: exercise.reps,
+    }));
+  return { inPlan, suggestions, todayKeys };
+}
+
+function renderMuscleSheetRow(item, { sheet, todayKeys, showDays = false }) {
+  const editing = sheet.editKey === item.key;
+  const inToday = todayKeys.has(item.key);
+  const meta = [
+    showDays ? item.days.map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ") : formatExerciseDose(item.sets, item.reps),
+  ].filter(Boolean);
+  return `
+    <li class="muscle-sheet-row ${editing ? "is-editing" : ""}">
+      <div class="muscle-sheet-row-main">
+        <span class="muscle-sheet-copy">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="muscle-sheet-meta">${meta.length ? `<span>${escapeHtml(meta.join(" · "))}</span>` : ""}${editing ? "" : renderExerciseTagChips(item.tags, { muted: true })}</span>
+        </span>
+        <button class="ghost-button icon-only-action muscle-sheet-tag-btn ${editing ? "is-active" : ""}" type="button" data-action="muscle-sheet-edit-tags" data-key="${escapeHtml(item.key)}" aria-expanded="${editing}" aria-label="Oznake za „${escapeHtml(item.name)}“" title="Oznake">${renderActionIcon("tag")}</button>
+        ${
+          inToday
+            ? `<span class="muscle-sheet-in-day" title="Već je u treningu za ${weekdayAccusative(state.selectedWeekday)}">${renderActionIcon("apply")}</span>`
+            : `<button class="ghost-button icon-only-action muscle-sheet-add" type="button" data-action="muscle-sheet-add" data-key="${escapeHtml(item.key)}" aria-label="Dodaj „${escapeHtml(item.name)}“ u trening za ${weekdayAccusative(state.selectedWeekday)}" title="Dodaj u ${weekdayAccusative(state.selectedWeekday)}">${renderActionIcon("add")}</button>`
+        }
+      </div>
+      ${
+        editing
+          ? `<div class="muscle-sheet-tag-edit" role="group" aria-label="Delovi tela za „${escapeHtml(item.name)}“">
+              ${EXERCISE_GROUPS.map((group) => {
+                const on = item.tags.includes(group.id);
+                return `<button type="button" class="foods-chip ${on ? "is-active" : ""}" aria-pressed="${on}" data-action="muscle-sheet-toggle-tag" data-key="${escapeHtml(item.key)}" data-group="${group.id}">${group.label}</button>`;
+              }).join("")}
+            </div>`
+          : ""
+      }
+    </li>`;
+}
+
+function renderMuscleSheetDialog() {
+  const sheet = state.muscleSheet;
+  if (!sheet) return "";
+  const label = getExerciseGroupLabel(sheet.group);
+  const { inPlan, suggestions, todayKeys } = getMuscleSheetData(sheet.group, sheet.editKey);
+  const ctx = { sheet, todayKeys };
+  return `
+    <div class="app-dialog-shell">
+      <button class="app-dialog-backdrop" type="button" data-action="close-muscle-sheet" aria-label="Zatvori"></button>
+      <section class="app-dialog training-builder-dialog muscle-sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="muscle-sheet-title">
+        <div class="app-dialog-head training-builder-head">
+          <div class="training-builder-title">
+            <h3 id="muscle-sheet-title">${escapeHtml(label)}</h3>
+          </div>
+          <button class="ghost-button menu-close" type="button" data-action="close-muscle-sheet" aria-label="Zatvori">
+            ${renderMenuToggleIcon(true)}
+          </button>
+        </div>
+        <div class="training-builder-body muscle-sheet-body" data-keep-scroll="muscle-sheet">
+          <div class="foods-chips muscle-sheet-groups" role="group" aria-label="Deo tela">
+            ${EXERCISE_GROUPS.map((group) => `<button type="button" class="foods-chip ${group.id === sheet.group ? "is-active" : ""}" aria-pressed="${group.id === sheet.group}" data-action="open-muscle-sheet" data-group="${group.id}">${group.label}</button>`).join("")}
+          </div>
+          ${
+            inPlan.length
+              ? `<h4 class="muscle-sheet-title">U planu ove nedelje</h4>
+                 <ul class="muscle-sheet-list">${inPlan.map((item) => renderMuscleSheetRow(item, { ...ctx, showDays: true })).join("")}</ul>`
+              : `<p class="muscle-sheet-empty">Ove nedelje nema vežbi za ${escapeHtml(label.toLowerCase())}.</p>`
+          }
+          <h4 class="muscle-sheet-title">Predlozi · „+“ dodaje u ${weekdayAccusative(state.selectedWeekday)}</h4>
+          <ul class="muscle-sheet-list">${suggestions.map((item) => renderMuscleSheetRow(item, ctx)).join("")}</ul>
+        </div>
+      </section>
+    </div>`;
+}
+
 const WEEK_VOLUME_LEVELS = [
   { min: 10, state: "active", label: "10+" },
   { min: 6, state: "mid", label: "6–9" },
@@ -12874,8 +13072,9 @@ function renderTrainingWeekMap(weeklyTrainingPlan) {
   }
 
   return `${toggle}
+    <p class="training-week-map-hint">Tapni mišić za vežbe koje ga rade.</p>
     <div class="training-week-map">
-      ${renderBodyMap({ groupStates })}
+      ${renderBodyMap({ groupStates, action: "open-muscle-sheet" })}
       <div class="training-week-map-key">
         <ul class="training-week-volume">
           ${plannedGroups
@@ -12885,7 +13084,7 @@ function renderTrainingWeekMap(weeklyTrainingPlan) {
               return `
             <li>
               <span class="body-map-swatch" data-state="${groupStates[group.id]}" aria-hidden="true"></span>
-              <span class="training-week-volume-name">${group.label}</span>
+              <button class="training-week-volume-name" type="button" data-action="open-muscle-sheet" data-group="${group.id}">${group.label}</button>
               <span class="training-week-volume-sets" aria-label="${
                 isCurrentWeek ? `${done[group.id] || 0} od ${sets} ${srPlural(sets, "serije", "serije", "serija")} odrađeno` : `${sets} ${srPlural(sets, "serija", "serije", "serija")}`
               }">${count}</span>
@@ -17969,6 +18168,7 @@ function renderApp() {
       ${renderQuickEntryDialog()}
       ${renderTrainingBuilderDialog()}
       ${renderTrainingPlanDialog()}
+      ${renderMuscleSheetDialog()}
       ${renderExerciseSwapDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
@@ -20901,6 +21101,96 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-muscle-sheet") {
+    const group = String(actionTarget.dataset.group || "");
+    if (!isExerciseGroupId(group)) return;
+    if (!state.muscleSheet) rememberDialogTrigger(actionTarget);
+    state.muscleSheet = { group, editKey: "" };
+    render();
+    const body = document.querySelector(".muscle-sheet-body");
+    if (body) body.scrollTop = 0;
+    const chip = document.querySelector(".muscle-sheet-groups .foods-chip.is-active");
+    const strip = chip && chip.parentElement;
+    if (chip && strip) strip.scrollLeft = chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2;
+    return;
+  }
+
+  if (action === "close-muscle-sheet") {
+    state.muscleSheet = null;
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "muscle-sheet-edit-tags") {
+    if (!state.muscleSheet) return;
+    const key = String(actionTarget.dataset.key || "");
+    state.muscleSheet.editKey = state.muscleSheet.editKey === key ? "" : key;
+    render();
+    return;
+  }
+
+  if (action === "muscle-sheet-toggle-tag") {
+    const sheet = state.muscleSheet;
+    if (!sheet) return;
+    const key = String(actionTarget.dataset.key || "");
+    const group = String(actionTarget.dataset.group || "");
+    const { inPlan, suggestions } = getMuscleSheetData(sheet.group, key);
+    const item = [...inPlan, ...suggestions].find((entry) => entry.key === key);
+    if (!item || !isExerciseGroupId(group)) return;
+    const next = item.tags.includes(group) ? item.tags.filter((tag) => tag !== group) : [...item.tags, group];
+    if (!next.length) {
+      showFeedbackToast({ title: "Bar jedan deo tela", detail: "Vežba mora da ima bar jednu oznaku.", tone: "info", duration: 2400 });
+      return;
+    }
+    setExerciseTags(item.name, next);
+    persist();
+    // Vežba koja izgubi ovu oznaku ostaje u listi dok je izmena otvorena.
+    render();
+    return;
+  }
+
+  if (action === "muscle-sheet-add") {
+    const sheet = state.muscleSheet;
+    if (!sheet) return;
+    const key = String(actionTarget.dataset.key || "");
+    const { suggestions, inPlan } = getMuscleSheetData(sheet.group, sheet.editKey);
+    const item = [...suggestions, ...inPlan].find((entry) => entry.key === key);
+    if (!item) return;
+    const libraryEntry = getExerciseLibrary().find((entry) => normalizeLookupValue(entry.name) === key);
+    const sets = item.sets || libraryEntry?.sets || DEFAULT_CUSTOM_EXERCISE_DOSE.sets;
+    const reps = String(item.reps || libraryEntry?.reps || DEFAULT_CUSTOM_EXERCISE_DOSE.reps);
+    const exercise = {
+      id: uid("exercise"),
+      name: item.name,
+      group: item.primary || guessExerciseGroup(item.name),
+      sets,
+      reps,
+      details: buildExerciseDetails(item.name, sets, reps),
+    };
+    const templates = getTrainingForDay(state.selectedWeekday);
+    if (templates.length) {
+      templates[0].exercises = [...(templates[0].exercises || []), exercise];
+    } else {
+      store.trainingTemplates.push({
+        id: uid("training"),
+        weekday: state.selectedWeekday,
+        weekTrack: state.selectedWeekTrack,
+        name: getExerciseGroupLabel(sheet.group),
+        exercises: [exercise],
+      });
+    }
+    persist();
+    render();
+    showFeedbackToast({
+      title: `Dodato u ${weekdayAccusative(state.selectedWeekday)}`,
+      detail: templates.length ? `${item.name} → ${templates[0].name}` : `${item.name}, nov trening „${getExerciseGroupLabel(sheet.group)}“`,
+      tone: "success",
+      duration: 2400,
+    });
+    return;
+  }
+
   if (action === "toggle-training-map") {
     store.ui = store.ui || {};
     store.ui.trainingMapOpen = !store.ui.trainingMapOpen;
@@ -23435,6 +23725,8 @@ document.addEventListener("keydown", (event) => {
           ? '[data-action="close-training-builder"]'
         : state.trainingPlanPicker
           ? '[data-action="close-training-plans"]'
+        : state.muscleSheet
+          ? '[data-action="close-muscle-sheet"]'
         : state.exerciseSwap
           ? '[data-action="close-exercise-swap"]'
         : state.navMenuOpen
