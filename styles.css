@@ -16071,4 +16071,56 @@ summary,
   :root[data-theme] .insights-hero {
     margin-top: 2px;
   }
+
+  /* Listovi (dijalozi): manje okvira i razmaka ispod zaglavlja, manje
+     dugme × (dodirna površina ostaje). */
+  :root[data-theme] .app-dialog:not(.training-builder-dialog) {
+    padding: 22px 16px 16px;
+  }
+  :root[data-theme] .app-dialog:not(.training-builder-dialog) .app-dialog-head {
+    margin-bottom: 12px;
+  }
+  /* Listovi za trening imaju razmak u svojim delovima (zaglavlje, telo,
+     dno), ne na okviru. */
+  :root[data-theme] .training-builder-dialog {
+    --builder-pad: 16px;
+  }
+  :root[data-theme] .training-builder-head {
+    padding-top: 20px;
+  }
+  :root[data-theme] .app-dialog-head h2,
+  :root[data-theme] .app-dialog-head h3 {
+    font-size: 1.35rem;
+  }
+  :root[data-theme] .app-dialog-head p {
+    margin-top: 4px;
+    font-size: var(--fs-14);
+  }
+  :root[data-theme] .app-dialog .menu-close {
+    position: relative;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+  :root[data-theme] .app-dialog .menu-close::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  :root[data-theme] .quick-entry-dialog .app-dialog-actions {
+    margin: 0 -16px -16px;
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+    bottom: -16px;
+  }
+
+  :root[data-theme] .app-dialog .menu-close {
+    padding: 0;
+    justify-content: center;
+  }
+  :root[data-theme] .app-dialog .menu-close svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
 }
