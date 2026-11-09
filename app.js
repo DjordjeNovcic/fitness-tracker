@@ -12981,7 +12981,9 @@ function renderTrainingTab() {
       </div>
       ${
         // Prazan blok je i dalje nosio marginu od 14px ispod naslova „Vežbe“.
-        templates.length
+        // Sa jednim treningom „x od y“ već piše na njegovoj kartici (0/9), a
+        // kalorije u „Kalorije treninga“ ispod — red je samo ponavljao oba.
+        templates.length > 1 || (templates.length && trainingBurn > 0)
           ? `<div class="training-day-spotlight">
         <p class="day-summary-line">${todayExerciseCompleted} od ${todayExerciseTotal} ${srPlural(todayExerciseTotal, "vežbe", "vežbe", "vežbi")} odrađeno · ${
           trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : "kalorije nisu unete"
@@ -14026,10 +14028,10 @@ function renderRoutineTab() {
 
   return `
     ${renderDayBar({ headingLevel: 2 })}
-    <section class="section routine-overview-section">
+    <section class="section routine-overview-section routine-day-summary">
       <div class="section-header">
         <div>
-          <h2>Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
+          <h2 class="sr-only">Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
         </div>
       </div>
       ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}

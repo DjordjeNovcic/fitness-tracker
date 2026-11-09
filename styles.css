@@ -16386,3 +16386,52 @@ summary,
   }
 }
 /* Termin: polje za vreme ima svoju minimalnu širinu i na 320px je prelazilo
+/* Rutina: sažetak dana je jedan red ispod trake dana, ne kartica (dan već
+   piše u traci). Info (i) desno u istom redu. */
+:root[data-theme] main .section.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary,
+:root[data-theme="dark"] main .section.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary.routine-day-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 0 14px;
+  margin-block: -2px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  min-height: 34px;
+}
+:root[data-theme] .routine-day-summary::before { content: none; }
+:root[data-theme] .routine-day-summary > .section-header {
+  display: none;
+}
+:root[data-theme] .routine-day-summary .day-summary-line {
+  flex: 1 1 auto;
+  order: 0;
+  margin: 0;
+  padding-right: 40px;
+  font-size: var(--fs-14);
+  color: var(--muted);
+}
+:root[data-theme] .routine-day-summary > .help-note:not(.help-note--inline) > summary {
+  top: 2px;
+  right: 4px;
+}
+:root[data-theme] .routine-day-summary > .help-note[open] {
+  flex-basis: 100%;
+  order: 2;
+  margin-right: 0;
+}
+:root[data-theme] .routine-day-summary > .help-note[open] .help-note-body {
+  margin-top: 6px;
+}
+:root[data-theme] .routine-day-summary:has(> .help-note[open]) {
+  flex-wrap: wrap;
+}
+/* Ciljevi: dugmad forme 4px ispod napomene (pravilo za .meta-row u formi
+   ima 18px i jaču prednost od ranije ispravke). */
+:root[data-theme] form.goals-form-layout > .meta-row {
+  margin-top: 0;
+}
+:root[data-theme] .routine-overview-section > .training-week-list {
+  margin-top: 4px;
+}
