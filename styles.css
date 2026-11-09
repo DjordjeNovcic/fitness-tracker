@@ -15769,3 +15769,147 @@ summary,
     transition: none;
   }
 }
+
+/* ============================================================
+   2026-11-09 — Gustina na telefonu.
+   Jedna razmera za ceo app umesto ekran po ekran: osnovni tekst 15px
+   (tokeni su u rem, pa se sve spušta ~6%), prored 1.4, manji razmaci
+   kartica, redova i dugmadi. Polja za unos ostaju 16px — iOS zumira
+   stranicu kad je tekst u polju manji od 16px.
+   ============================================================ */
+@media (max-width: 720px) {
+  html {
+    font-size: 15px;
+  }
+  body {
+    line-height: 1.4;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Raspored stranice. */
+  :root[data-theme] main.app-main {
+    row-gap: 10px;
+  }
+  /* Sekcije bez sopstvene površine (obroci, podsetnici, Danas blok) imaju
+     namerno 0 i ne diraju se. */
+  :root[data-theme] main .section:not(.workspace-header):not(.hero):not(.plan-meals-section):not(.today-reminders):not(.plan-summary-section) {
+    padding-top: 13px;
+    padding-bottom: 13px;
+    padding-inline: 14px;
+  }
+  :root[data-theme] main .section-header {
+    margin-bottom: 8px;
+  }
+  :root[data-theme] main .section-header p {
+    margin-top: 2px;
+  }
+
+  /* Dugmad: 42px je i dalje udobna meta za prst. */
+  :root[data-theme] .ghost-button,
+  :root[data-theme] .solid-button {
+    min-height: 42px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Danas: obroci. */
+  :root[data-theme] .plan-meals-section .meal-card {
+    padding: 12px 14px;
+  }
+  :root[data-theme] .plan-meals-section .meal-card-header {
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+  :root[data-theme] .plan-meals-section .meal-card.is-collapsed .meal-card-header {
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Danas: voda, kafa, koraci, kalorije treninga, težina. */
+  :root[data-theme] .plan-glance-row {
+    padding-top: 0;
+    padding-bottom: 8px;
+  }
+  :root[data-theme] .plan-glance-row + .plan-glance-row {
+    padding-top: 8px;
+  }
+
+  /* Liste sa redovima. */
+  :root[data-theme] .training-week-item-button {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  :root[data-theme] .training-exercise-row {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  :root[data-theme] .food-row {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Sklopive kartice („Dodaj merenje“, „Alati za plan“…): niže zaglavlje. */
+  :root[data-theme] main details.section.form-collapse:not([open]) {
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  /* Zaglavlje stranice i podtabovi. */
+  :root[data-theme] .seg-nav-btn {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+  :root[data-theme] .workspace-header h1 {
+    font-size: 1.6rem;
+  }
+
+  /* Danas blok: prsten 136px (bio 156), manje vazduha ispod. Broj ostaje
+     glavni broj ekrana, samo u manjem okviru. */
+  :root[data-theme] .day-block .day-ring {
+    grid-template-columns: 136px minmax(0, 1fr);
+    column-gap: 18px;
+  }
+  :root[data-theme] .day-block .day-ring-dial,
+  :root[data-theme] .day-block .day-ring-svg {
+    width: 136px;
+    height: 136px;
+  }
+  :root[data-theme] .day-block .day-ring-value {
+    font-size: 2.6rem;
+  }
+  :root[data-theme] .day-block .plan-summary-section {
+    padding-bottom: 16px;
+  }
+
+  /* Danas: ikonice u redovima vode, kafe, koraka (38 → 32px). */
+  :root[data-theme] .plan-glance-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 1rem;
+  }
+
+  /* Trening: odmor, zamena i kilaža niži (34 → 30px); dodirna površina
+     ostaje veća kroz nevidljiv sloj. */
+  :root[data-theme] .training-rest,
+  :root[data-theme] .training-swap,
+  :root[data-theme] .training-exercise-log {
+    position: relative;
+    min-height: 30px;
+    height: 30px;
+  }
+  :root[data-theme] .training-rest::after,
+  :root[data-theme] .training-exercise-log::after {
+    content: "";
+    position: absolute;
+    inset: -6px -2px;
+  }
+}
