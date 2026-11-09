@@ -12885,7 +12885,9 @@ function renderExerciseSwapDialog() {
                         group ? "" : getExerciseGroupLabel(option.group),
                         dose.sets || dose.reps ? "" : formatExerciseDose(option.sets, option.reps),
                       ].filter(Boolean);
-                      return hint.length ? `<span>${escapeHtml(hint.join(" · "))}</span>` : "";
+                      // Oznake (delovi tela) pomažu da se izabere slična vežba.
+                      const tags = getExerciseTags(option.name, option.group);
+                      return `<span class="exercise-swap-meta">${hint.length ? `<span>${escapeHtml(hint.join(" · "))}</span>` : ""}${tags.length > 1 ? renderExerciseTagChips(tags, { muted: true }) : ""}</span>`;
                     })()}
                   </span>
                   <span class="exercise-swap-go" aria-hidden="true">${renderActionIcon("swap")}</span>

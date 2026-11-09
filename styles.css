@@ -17052,3 +17052,23 @@ button.training-week-volume-name {
   padding: 3px 9px;
   font-size: var(--fs-13);
 }
+@media (max-width: 720px) {
+  :root[data-theme] .run-row {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+}
+.exercise-swap-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.exercise-swap-meta:empty { display: none; }
+@media (max-width: 720px) {
+  :root[data-theme] .exercise-swap-dialog .exercise-pick-row {
+    min-height: 44px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+}
