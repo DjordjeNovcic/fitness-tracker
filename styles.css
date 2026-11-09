@@ -16069,7 +16069,7 @@ summary,
     padding-block: 4px;
   }
   :root[data-theme] .insights-hero {
-    margin-top: 2px;
+    margin-top: 8px;
   }
 
   /* Listovi (dijalozi): manje okvira i razmaka ispod zaglavlja, manje
@@ -16122,5 +16122,35 @@ summary,
     width: 18px;
     height: 18px;
     flex: 0 0 auto;
+  }
+
+  /* Donja traka: 75 → 62px (bliže iOS/Android tab bar-u). Sadržaj, poruke
+     i dugme „Nova namirnica“ prate novu visinu. */
+  :root[data-theme] .tab-bar {
+    padding-top: 4px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+  :root[data-theme] .tab-bar-item {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    gap: 1px;
+  }
+  :root[data-theme] .tab-bar-icon {
+    height: 28px;
+  }
+  :root[data-theme] .app-main.shell,
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    padding-bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+
+  :root[data-theme] .foods-add-fab {
+    bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+  :root[data-theme] body:has(.undo-banner) .foods-add-fab,
+  :root[data-theme] body:has(.feedback-toast.is-visible) .foods-add-fab {
+    bottom: calc(154px + env(safe-area-inset-bottom));
+  }
+  :root[data-theme] .feedback-toast.is-raised {
+    bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
