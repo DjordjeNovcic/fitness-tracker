@@ -16566,7 +16566,7 @@ function renderProgressHistorySection() {
       <div class="section-header">
         <div class="section-copy">
           <h2>Dnevnik ishrane</h2>
-          <p>Poslednjih 5 nedelja. Zeleno je dan na cilju.</p>
+          <p>Poslednjih 5 nedelja.</p>
         </div>
         ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
       </div>
@@ -16601,9 +16601,9 @@ function renderProgressHistorySection() {
       </div>
       <ul class="history-legend" aria-label="Legenda">
         ${[
-          ["ok", "na cilju (80–110 %)"],
-          ["low", "ispod 80 %"],
-          ["over", "preko 110 %"],
+          ["ok", "na cilju"],
+          ["low", "ispod\u00a080\u00a0%"],
+          ["over", "preko\u00a0110\u00a0%"],
           ["none", "bez unosa"],
         ]
           .map(([tone, label]) => `<li><span class="history-legend-swatch" style="background:${toneColor[tone]};"></span>${label}</li>`)

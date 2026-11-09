@@ -16796,3 +16796,22 @@ button.training-week-volume-name {
     border-top: 1px solid var(--line);
   }
 }
+@media (max-width: 720px) {
+  /* Napredak: kalendar niži (polja 2:1), legenda u jednom redu. */
+  :root[data-theme] .history-cell {
+    aspect-ratio: 2 / 1;
+    border-radius: 6px;
+  }
+  :root[data-theme] .history-legend {
+    gap: 4px 10px;
+    font-size: var(--fs-12);
+  }
+  /* „Podeli napredak“: kompaktno dugme, ne pun red. */
+  :root[data-theme] .progress-share-button {
+    width: auto;
+    min-height: 38px;
+    justify-self: start;
+    align-self: flex-start;
+    padding-inline: 14px;
+  }
+}
