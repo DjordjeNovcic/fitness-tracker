@@ -17306,10 +17306,10 @@ function renderInsightsSection() {
       : `<p class="insights-headline">${ins.loggedCount ? `Uneto ${ins.loggedCount} od ${period} dana. Težina se pojavljuje ovde kad uneseš bar dva merenja.` : `Pregled za poslednjih ${period} dana.`}</p>`;
 
   const rows = renderStatRows([
-    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct}\u00a0% dana`, value: `${ins.avgKcal} kcal/dan` },
+    ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} sa unosom · na cilju ${ins.kcalOnTargetPct}\u00a0%\u00a0dana`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
       label: "Protein",
-      note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct}\u00a0% dana` : "",
+      note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct}\u00a0%\u00a0dana` : "",
       value: `${ins.avgProtein} g/dan`,
     },
     ins.fatChange != null && { label: "Telesna mast", value: `${signed(ins.fatChange, 1)}\u00a0%` },

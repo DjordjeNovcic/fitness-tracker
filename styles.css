@@ -15912,4 +15912,32 @@ summary,
     position: absolute;
     inset: -6px -2px;
   }
+
+  /* Info (i) u uglu kartice: centriran na naslov. Posle nižeg zaglavlja
+     stajao je 4px preko polja za pretragu u „Biblioteka recepata“. */
+  :root[data-theme] .help-note:not(.help-note--inline) > summary {
+    top: 8px;
+    right: 10px;
+  }
+
+  /* Recepti: „Dodaj u plan“ desno od kalorija i makroa umesto u svom redu
+     (recept je bio ~170px visok). */
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: end;
+  }
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-body > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-body > .recipe-library-stats {
+    grid-column: 1;
+  }
+  :root[data-theme] .recipe-library-card.is-collapsed .recipe-library-body > .recipe-library-actions {
+    grid-column: 2;
+    grid-row: auto;
+    margin-top: 0;
+    align-self: end;
+  }
 }
