@@ -7500,7 +7500,6 @@ function renderRecipeApplyDialog() {
           <div class="stack" style="gap:4px;">
             <div class="hero-picker-label">Dodaj recept</div>
             <h3 id="recipe-apply-title">${escapeHtml(favorite.name)}</h3>
-            <p>Izaberi dan i obrok u koji želiš da dodaš ovu ${favorite.servings > 1 ? "porciju recepta" : "stavku"}.</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-recipe-apply-dialog" aria-label="Zatvori dijalog">
             ${renderMenuToggleIcon(true)}
@@ -9831,7 +9830,6 @@ function renderQuickEntryDialog() {
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
             <h3 id="quick-entry-title">Brzi unos</h3>
-            <p>Napiši obrok običnim rečima. Aplikacija prepozna namirnice iz tvoje baze, a ti samo potvrdiš.</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-quick-entry" aria-label="Zatvori brzi unos">
             ${renderMenuToggleIcon(true)}
@@ -9841,7 +9839,7 @@ function renderQuickEntryDialog() {
         <div class="field">
           <label for="quick-entry-input">Šta je bilo u obroku</label>
           <textarea id="quick-entry-input" rows="3" placeholder="npr. 200 g piletine, 150 pirinča i 2 jajeta u ručak" autocomplete="off" spellcheck="false">${escapeHtml(state.quickEntryText)}</textarea>
-          <p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice znači grame, a mali broj („2 jajeta“) komade; „u ručak“ na kraju bira obrok.</p>
+          ${rows.length ? "" : `<p class="footer-note">Napiši obrok običnim rečima, razdvoj zarezom ili sa „i“. Broj bez jedinice su grami, mali broj („2 jajeta“) komadi; „u ručak“ na kraju bira obrok.</p>`}
         </div>
 
         ${

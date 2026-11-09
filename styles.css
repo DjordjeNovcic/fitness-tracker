@@ -17089,3 +17089,32 @@ button.training-week-volume-name {
     margin-bottom: 0;
   }
 }
+@media (max-width: 720px) {
+  /* Dodaj recept: „Odustani“ i „Dodaj u plan“ u jednom redu. */
+  :root[data-theme] .recipe-apply-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  :root[data-theme] .recipe-apply-actions > .ghost-button {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  :root[data-theme] .recipe-apply-actions > .solid-button {
+    flex: 1 1 auto;
+    width: auto;
+    justify-content: center;
+  }
+  :root[data-theme] .recipe-apply-summary {
+    margin: 0;
+  }
+  /* Brzi unos: gušće stavke. */
+  :root[data-theme] .quick-entry-row {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  :root[data-theme] .quick-entry-row-controls .quick-entry-field--amount > span {
+    display: none;
+  }
+}
