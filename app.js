@@ -13207,7 +13207,7 @@ function renderTrainingWeekMap(weeklyTrainingPlan) {
             })
             .join("")}
         </ul>
-        <p class="training-week-volume-scale">${isCurrentWeek ? "Serija nedeljno, odrađeno / u planu" : "Serija nedeljno"}</p>
+        <p class="training-week-volume-scale">${isCurrentWeek ? "Serija: urađeno / plan" : "Serija nedeljno"}</p>
         <p class="training-week-volume-scale training-week-volume-levels">${[...WEEK_VOLUME_LEVELS]
           .reverse()
           .map((level) => `<span><span class="body-map-swatch" data-state="${level.state}" aria-hidden="true"></span>${level.label}</span>`)

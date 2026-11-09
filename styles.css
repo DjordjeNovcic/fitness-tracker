@@ -15940,4 +15940,36 @@ summary,
     margin-top: 0;
     align-self: end;
   }
+
+  /* Trening, nedeljni plan: redovi dana niži (naziv i plan u jednom redu
+     sa brojem vežbi), mapa tela bliže listi, kraći opis legende. */
+  :root[data-theme] .training-week-item-button {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .training-week-item.is-active .training-week-item-button {
+    padding-inline: 8px;
+    margin-inline: -8px;
+    width: calc(100% + 16px);
+  }
+  :root[data-theme] .training-week-map {
+    margin-top: 8px;
+    gap: 12px;
+  }
+  :root[data-theme] .training-week-volume {
+    gap: 2px;
+  }
+  :root[data-theme] .training-week-volume li {
+    font-size: var(--fs-13);
+  }
+  :root[data-theme] .training-plans-open {
+    margin-top: 8px;
+  }
+
+  /* Trčanje, petrolej blok: brojevi bliže nazivima. */
+  :root[data-theme] .running-summary-section .glance-item {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
 }
