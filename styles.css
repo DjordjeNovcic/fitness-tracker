@@ -17258,3 +17258,22 @@ button.training-week-volume-name {
     font-size: var(--fs-14);
   }
 }
+@media (min-width: 360px) and (max-width: 720px) {
+  /* Ciljevi: Cilj / Nedeljno / Nalog u redu sa naslovom. */
+  :root[data-theme] .app-main .workspace-header + .seg-nav:has([data-action="set-goals-view"]) {
+    margin-top: -50px;
+    margin-left: auto;
+    margin-bottom: 0;
+    width: max-content;
+    position: relative;
+    z-index: 1;
+    transform: translateY(-5px);
+    gap: 4px;
+  }
+  :root[data-theme] .seg-nav:has([data-action="set-goals-view"]) .seg-nav-btn {
+    padding-inline: 10px;
+    min-height: 34px;
+    font-size: var(--fs-14);
+    flex: 0 0 auto;
+  }
+}
