@@ -17217,3 +17217,27 @@ button.training-week-volume-name {
   font-size: var(--fs-12);
   text-align: right;
 }
+@media (max-width: 720px) {
+  /* Nedeljni plan treninga: dan i naziv treninga u jednom redu. */
+  :root[data-theme] .training-week-item-main {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  :root[data-theme] .training-week-item-main > strong {
+    flex: 0 0 auto;
+    width: 3.4em;
+  }
+  :root[data-theme] .training-week-item-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :root[data-theme] .training-week-item-meta {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
