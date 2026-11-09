@@ -13371,7 +13371,11 @@ function renderTrainingTab() {
                                     const name = String(exercise.name || "").trim();
                                     const details = String(exercise.details || "").trim();
                                     const rest = name && details.toLowerCase().startsWith(name.toLowerCase()) ? details.slice(name.length).trim() : details;
-                                    return rest && rest !== name ? `<div class="training-exercise-detail">${escapeHtml(rest)}</div>` : "";
+                                    if (!rest || rest === name) return "";
+                                    // Na telefonu kratko („3-4 × 8-12“), da odmor, zamena i kilaža stanu u isti red.
+                                    const doseMatch = rest.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:x|×|serij\w*,?)\s*(\d+(?:\s*[-–]\s*\d+)?)\s*(?:ponavlj\w*|pon\.?)?$/i);
+                                    const short = doseMatch ? `${doseMatch[1].replace(/\s+/g, "")} × ${doseMatch[2].replace(/\s+/g, "")}` : "";
+                                    return `<div class="training-exercise-detail${short ? " has-short" : ""}"><span class="training-exercise-detail-long">${escapeHtml(rest)}</span>${short ? `<span class="training-exercise-detail-short" aria-hidden="true">${escapeHtml(short)}</span>` : ""}</div>`;
                                   })()}
                                   ${renderExerciseProgression(exercise.name, exercise.details)}
                                 </div>

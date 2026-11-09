@@ -16321,4 +16321,52 @@ summary,
   :root[data-theme] .meal-composer-actions > :only-child {
     min-height: 36px;
   }
+
+  /* Trening: vežba u dva reda — naziv, pa kratka doza („3-4 × 8-12“) sa
+     odmorom, zamenom i kilažom desno. Bilo je tri reda (~95px). */
+  .training-exercise-detail-short { display: none; }
+}
+@media (max-width: 599px) {
+  :root[data-theme] .training-exercise-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+  }
+  :root[data-theme] .training-exercise-row > .training-exercise-check {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  :root[data-theme] .training-exercise-row > .training-exercise-copy {
+    display: contents;
+  }
+  :root[data-theme] .training-exercise-row .training-exercise-name {
+    grid-column: 2 / -1;
+    grid-row: 1;
+  }
+  :root[data-theme] .training-exercise-row .training-exercise-detail {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :root[data-theme] .training-exercise-row .training-exercise-detail.has-short .training-exercise-detail-long { display: none; }
+  :root[data-theme] .training-exercise-row .training-exercise-detail.has-short .training-exercise-detail-short { display: inline; }
+  :root[data-theme] .training-exercise-row > .training-exercise-copy > :not(.training-exercise-name):not(.training-exercise-detail) {
+    grid-column: 2 / -1;
+  }
+  :root[data-theme] .training-exercise-row > .training-exercise-actions {
+    grid-column: 3;
+    grid-row: 2;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  :root[data-theme] .training-exercise-row .training-rest:not(.is-running):not(.training-swap) {
+    padding-inline: 8px;
+  }
+  :root[data-theme] .training-exercise-row .training-exercise-log {
+    padding-inline: 9px;
+  }
 }
