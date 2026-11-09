@@ -16035,4 +16035,40 @@ summary,
     position: absolute;
     inset: -4px -2px;
   }
+
+  /* Rutina: navike, zadaci i nizovi gušće (12 → 8px). */
+  :root[data-theme] .routine-habit-stack > .food-card.routine-card,
+  :root[data-theme] .routine-task-stack > .food-card.routine-card,
+  :root[data-theme] .routine-streak-stack > .food-card.routine-card,
+  :root[data-theme="dark"] .routine-habit-stack > .food-card.routine-card,
+  :root[data-theme="dark"] .routine-task-stack > .food-card.routine-card,
+  :root[data-theme="dark"] .routine-streak-stack > .food-card.routine-card {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  :root[data-theme] .routine-habit-stack > .food-card.routine-card:last-child,
+  :root[data-theme] .routine-task-stack > .food-card.routine-card:last-child,
+  :root[data-theme] .routine-streak-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-habit-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-task-stack > .food-card.routine-card:last-child,
+  :root[data-theme="dark"] .routine-streak-stack > .food-card.routine-card:last-child {
+    padding-bottom: 2px;
+  }
+
+  /* Liste „naziv … vrednost“ (Uvidi, Nedeljni izveštaj, Rekordi,
+     Kalibracija): 12 → 9px po redu. */
+  :root[data-theme] .stat-row {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  /* Uvidi: izbor perioda (30/60/90 dana) kao kompaktni čipovi. */
+  :root[data-theme] .insights-section .chip,
+  :root[data-theme] .insights-section .seg-nav-btn {
+    min-height: 32px;
+    padding-block: 4px;
+  }
+  :root[data-theme] .insights-hero {
+    margin-top: 2px;
+  }
 }
