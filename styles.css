@@ -16444,3 +16444,37 @@ summary,
     margin-top: 4px;
   }
 }
+/* „Dodaj naviku / zadatak / nalaz / analizu“ u redu sa naslovom odeljka,
+   ne u posebnom redu ispod njega (kad je forma zatvorena). */
+@media (max-width: 720px) {
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    margin-top: -36px;
+    margin-left: auto;
+    width: max-content;
+    max-width: 60%;
+    position: relative;
+    z-index: 1;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) > summary {
+    gap: 8px;
+    min-height: 34px;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) > summary .form-collapse-title,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) > summary .form-collapse-title {
+    font-size: var(--fs-14);
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 0;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) + *,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) + * {
+    margin-top: 6px;
+  }
+  /* Sa info (i) u uglu: dugme levo od njega. */
+  :root[data-theme] main .section:has(> .help-note:not(.help-note--inline)) > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    margin-right: 40px;
+  }
+}

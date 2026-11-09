@@ -14541,7 +14541,7 @@ function renderRoutineTab() {
     <section class="section routine-tasks-section">
       <div class="section-header">
         <div>
-          <h2>Zadaci za ${weekdayAccusative(state.selectedWeekday)}</h2>
+          <h2>Zadaci</h2>
           <p>Sitne obaveze za izabrani dan.</p>
         </div>
       </div>
