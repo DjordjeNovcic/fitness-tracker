@@ -17308,3 +17308,19 @@ button.training-week-volume-name {
   .week-day-short { display: inline; }
   .week-day-long { display: none; }
 }
+@media (max-width: 720px) {
+  /* Krvna slika: vrednost i datum jedno pored drugog. */
+  :root[data-theme] #lab-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :root[data-theme] #lab-form > :not(.lab-pair-field) {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] #lab-form input[type="date"] {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+  :root[data-theme] .lab-disclaimer {
+    font-size: var(--fs-12);
+  }
+}

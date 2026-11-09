@@ -16777,11 +16777,11 @@ function renderLabSection() {
               ${LAB_MARKERS.map((m) => `<option value="${escapeHtml(m.name)}"></option>`).join("")}
             </datalist>
           </div>
-          <div class="field">
+          <div class="field lab-pair-field">
             <label for="lab-value">Vrednost</label>
             <input id="lab-value" name="value" type="number" inputmode="decimal" step="0.01" min="0" placeholder="npr. 34" value="${editingLab && editingLab.value != null ? escapeHtml(String(editingLab.value)) : ""}" required />
           </div>
-          <div class="field">
+          <div class="field lab-pair-field">
             <label for="lab-date">Datum</label>
             <input id="lab-date" name="date" type="date" value="${editingLab ? normalizeDateValue(editingLab.date) : getLocalDateInputValue()}" required />
           </div>
