@@ -16192,4 +16192,34 @@ summary,
   :root[data-theme] .plan-welcome-head p {
     font-size: var(--fs-15);
   }
+
+  /* Lista za kupovinu: red 38px umesto 48 („imam već“ niže dugme). */
+  :root[data-theme] .shopping-row {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  :root[data-theme] .shopping-tag-button {
+    position: relative;
+    padding: 3px 10px;
+    font-size: var(--fs-13);
+  }
+  :root[data-theme] .shopping-tag-button::after {
+    content: "";
+    position: absolute;
+    inset: -6px -2px;
+  }
+
+  /* Otvoren recept: sastojak u dva reda (naziv, pa količina · kcal · makroi). */
+  :root[data-theme] .recipe-library-ingredient-card {
+    padding: 6px 0;
+  }
+  :root[data-theme] .recipe-library-ingredient-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  :root[data-theme] .recipe-library-ingredient-head .footer-note {
+    margin: 0;
+  }
 }

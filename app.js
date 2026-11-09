@@ -10492,13 +10492,10 @@ function renderPlanSupplementsSection() {
                         </label>
                         <div class="routine-content">
                           <strong>${escapeHtml(supplement.name)}</strong>
-                          ${supplement.note ? `<div class="footer-note">${escapeHtml(supplement.note)}</div>` : ""}
-                          <div class="pill-row">
-                            <span class="pill strong">${getSupplementTimingLabel(supplement.timing)}</span>
-                            <span class="pill ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "pill--success" : "pill--info"}">
-                              ${isSupplementDoneForDay(supplement, state.selectedWeekday) ? "Označeno" : "Čeka danas"}
-                            </span>
-                          </div>
+                          <div class="footer-note supplement-plan-meta">${[supplement.note, getSupplementTimingLabel(supplement.timing)]
+                            .filter(Boolean)
+                            .map((part) => escapeHtml(part))
+                            .join(" · ")}</div>
                         </div>
                       </div>
                     </article>
