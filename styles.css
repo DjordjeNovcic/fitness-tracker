@@ -16273,4 +16273,52 @@ summary,
   :root[data-theme] .run-form > :not(.run-hr-field) {
     grid-column: 1 / -1;
   }
+
+  /* Otvoren obrok: namirnice bez dodatne margine između redova (8px +
+     linija), niži red „Dodaj namirnicu“. */
+  :root[data-theme] .plan-meals-section .meal-entry + .meal-entry {
+    margin-top: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .plan-meals-section .meal-add-row {
+    min-height: 40px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .plan-meals-section .meal-secondary-actions {
+    margin-top: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-secondary-action {
+    min-height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  /* Dodavanje namirnice: predlozi „Ide uz ovo“ ~44px po redu, „Zatvori“
+     bliže dugmetu „Dodaj“. */
+  :root[data-theme] .meal-composer-suggestions .suggestion-row {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    min-height: 0;
+  }
+  :root[data-theme] .meal-composer-suggestions .suggestion-row-add {
+    position: relative;
+    min-height: 36px;
+    height: 36px;
+    padding-block: 0;
+  }
+  :root[data-theme] .meal-composer-suggestions .suggestion-row-add::after {
+    content: "";
+    position: absolute;
+    inset: -4px -2px;
+  }
+  :root[data-theme] .meal-composer-actions {
+    margin-top: -4px;
+  }
+  :root[data-theme] .meal-composer-actions > :only-child {
+    min-height: 36px;
+  }
 }
