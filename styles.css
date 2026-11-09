@@ -17277,3 +17277,29 @@ button.training-week-volume-name {
     flex: 0 0 auto;
   }
 }
+@media (max-width: 720px) {
+  /* Merenja: prvi grafik (težina) preko cele širine, ostali po dva u redu. */
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+  }
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:first-child {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:not(:first-child) .trend-chart {
+    height: 80px;
+  }
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:not(:first-child) .chart-card-top h3,
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:not(:first-child) .chart-card-value {
+    font-size: var(--fs-14);
+  }
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:not(:first-child) > .chart-dates {
+    font-size: var(--fs-12);
+  }
+  :root[data-theme] .chart-grid:has(> .chart-card:nth-child(3)) > .chart-card:not(:first-child) > .meta-row {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    margin: 4px 0 0;
+  }
+}
