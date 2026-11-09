@@ -16732,3 +16732,67 @@ button.training-week-volume-name {
   padding-block: 5px;
   overflow-y: hidden;
 }
+/* Trening, sklopljeni odeljci (Napredak po vežbi, Poslednji unosi,
+   Beleške): stanje desno u istom redu, kao „Kalorije treninga“. */
+@media (max-width: 720px) {
+  :root[data-theme] .section-toolbox .form-collapse > summary {
+    flex-wrap: nowrap;
+  }
+  :root[data-theme] .section-toolbox .form-collapse > summary .form-collapse-title {
+    order: 1;
+    flex: 0 1 auto;
+  }
+  :root[data-theme] .section-toolbox .form-collapse > summary .form-collapse-hint {
+    order: 2;
+    flex: 0 1 auto;
+    margin-left: auto;
+    padding-right: 10px;
+    white-space: nowrap;
+  }
+  :root[data-theme] .section-toolbox .form-collapse > summary .form-collapse-icon {
+    order: 3;
+    margin-left: 0;
+  }
+  :root[data-theme] .section-toolbox > .section.form-collapse:not([open]) {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Trening: vežba bez opisa (samo naziv) u jednom redu sa dugmadima. */
+  :root[data-theme] .training-exercise-row:not(:has(.training-exercise-detail)) .training-exercise-name {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  :root[data-theme] .training-exercise-row:not(:has(.training-exercise-detail)) > .training-exercise-actions {
+    grid-row: 1;
+  }
+  :root[data-theme] .training-exercise-row:not(:has(.training-exercise-detail)) > .training-exercise-check {
+    grid-row: 1;
+  }
+
+  /* „Izmeni“ i „Sačuvaj kao omiljeni“ ispod vežbi: tihe radnje. */
+  :root[data-theme] .training-template-actions {
+    margin-top: 6px !important;
+    gap: 4px;
+  }
+  :root[data-theme] .training-template-actions > .ghost-button {
+    min-height: 34px;
+    padding: 4px 10px;
+    border-color: transparent;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: var(--fs-14);
+  }
+}
+@media (max-width: 720px) {
+  /* Trening: „Kalorije treninga“ bliže radnjama treninga (bilo 28px). */
+  :root[data-theme] .routine-habits-section .training-template-card {
+    padding-bottom: 4px;
+  }
+  :root[data-theme] .routine-habits-section .training-burn-collapse {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+}

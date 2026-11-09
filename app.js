@@ -13344,8 +13344,8 @@ function renderTrainingTab() {
         <span class="form-collapse-title">Napredak po vežbi</span>
         ${renderCollapseHint(
           progressGroups.length
-            ? `${progressGroups.length} ${srPlural(progressGroups.length, "vežba", "vežbe", "vežbi")} sa istorijom`
-            : "Još nema praćenih vežbi"
+            ? `${progressGroups.length} ${srPlural(progressGroups.length, "vežba", "vežbe", "vežbi")}`
+            : "nema"
         )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
@@ -13396,11 +13396,11 @@ function renderTrainingTab() {
 
     <details class="section form-collapse form-collapse--view">
       <summary>
-        <span class="form-collapse-title">Poslednji unosi opterećenja</span>
+        <span class="form-collapse-title">Poslednji unosi</span>
         ${renderCollapseHint(
           recentProgressLogs.length
-            ? `Poslednji: ${new Date(recentProgressLogs[0].date).toLocaleDateString("sr-RS")}`
-            : "Još nema unosa"
+            ? formatDateValueLabel(normalizeDateValue(recentProgressLogs[0].date)).replace(/ \d{4}\.$/, "")
+            : "nema"
         )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
@@ -13436,8 +13436,8 @@ function renderTrainingTab() {
         <span class="form-collapse-title">Beleške</span>
         ${renderCollapseHint(
           logs.length
-            ? `${logs.length} ${srPlural(logs.length, "beleška", "beleške", "beleški")} za ${weekdayAccusative(state.selectedWeekday)}`
-            : "Nema beleški za ovaj dan"
+            ? `${logs.length} ${srPlural(logs.length, "beleška", "beleške", "beleški")}`
+            : "nema"
         )}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
