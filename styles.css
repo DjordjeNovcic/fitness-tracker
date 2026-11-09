@@ -17178,3 +17178,42 @@ button.training-week-volume-name {
 .privacy-card:not([open]) > .status-summary-copy {
   display: none;
 }
+/* Ciljevi → Pregled po danima: red po danu (dan · kcal · razlika). */
+:root[data-theme] .goals-days-section .stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+:root[data-theme] .goals-days-section .stat-card,
+:root[data-theme="dark"] .goals-days-section .stat-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "day kcal" "day note";
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 0;
+  padding: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .goals-days-section .stat-card > strong {
+  grid-area: day;
+  align-self: center;
+  color: var(--ink);
+  font-size: var(--fs-15);
+}
+:root[data-theme] .goals-days-section .stat-card > .macro-value {
+  grid-area: kcal;
+  margin: 0;
+  font-size: var(--fs-15);
+  text-align: right;
+}
+:root[data-theme] .goals-days-section .stat-card > .footer-note {
+  grid-area: note;
+  margin: 0;
+  font-size: var(--fs-12);
+  text-align: right;
+}
