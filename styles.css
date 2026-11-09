@@ -16411,3 +16411,36 @@ summary,
     margin-bottom: 6px;
   }
 }
+@media (max-width: 720px) {
+  /* Merenja: grafik 120px (bio ~166), manje razmaka oko njega; promena
+     („↓ 2,4 cm“) u redu sa datumima umesto ispod. */
+  :root[data-theme] .chart-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  :root[data-theme] .chart-card > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .chart-card .chart-card-top {
+    margin-bottom: 6px;
+  }
+  :root[data-theme] .chart-card .trend-chart {
+    width: 100%;
+    height: 120px;
+    min-height: 0;
+  }
+  :root[data-theme] .chart-card > .chart-dates {
+    grid-column: 1;
+  }
+  :root[data-theme] .chart-card > .meta-row {
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0 0 0 10px;
+    align-self: center;
+  }
+  :root[data-theme] .chart-card > .chart-legend {
+    margin-top: 4px;
+  }
+}

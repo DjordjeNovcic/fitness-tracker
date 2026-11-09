@@ -16141,7 +16141,7 @@ function renderTrendCard(field) {
         <h3>${field.label}</h3>
         <strong class="chart-card-value">${formatFieldValue(field, latest.value)}</strong>
       </div>
-      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Trend za ${field.label}">
+      <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trend za ${field.label}">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.08"></stop>
