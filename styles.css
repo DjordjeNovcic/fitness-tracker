@@ -17118,3 +17118,17 @@ button.training-week-volume-name {
     display: none;
   }
 }
+@media (max-width: 559px) {
+  /* Alati za plan: „Dan“ i „Nedelja“ jedno pored drugog, „Način“ i dugme
+     ispod. */
+  :root[data-theme] .plan-tool-form--inline {
+    gap: 8px 10px;
+  }
+  :root[data-theme] .plan-tool-form--inline .field {
+    flex: 1 1 calc(50% - 5px);
+    gap: 4px;
+  }
+  :root[data-theme] .plan-tool-form--inline .field:nth-child(3) {
+    flex-basis: 100%;
+  }
+}

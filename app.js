@@ -7937,9 +7937,7 @@ function renderFoodEditorDialog() {
       <section class="app-dialog food-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="food-editor-title">
         <div class="app-dialog-head">
           <div class="stack" style="gap:4px;">
-            <div class="hero-picker-label">${editingFood ? "Namirnica" : "Baza namirnica"}</div>
             <h3 id="food-editor-title">${editingFood ? escapeHtml(editingFood.name) : "Nova namirnica"}</h3>
-            <p>${editingFood ? `Promeni vrednosti za ${editingFoodBasisLabel.toLowerCase()} i sačuvaj izmenu.` : "Izaberi da li namirnicu vodiš na 100 g ili na 1 komad, pa unesi makroe i kalorije."}</p>
           </div>
           <button class="ghost-button menu-close" type="button" data-action="close-food-editor-dialog" aria-label="Zatvori dijalog">
             ${renderMenuToggleIcon(true)}
