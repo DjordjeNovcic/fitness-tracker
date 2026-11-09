@@ -16370,3 +16370,14 @@ summary,
     padding-inline: 9px;
   }
 }
+.training-section-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+@media (max-width: 720px) {
+  :root[data-theme] .training-section-actions > .ghost-button {
+    min-height: 38px;
+    padding-inline: 11px;
+  }
+}

@@ -13309,13 +13309,21 @@ function renderTrainingTab() {
         <div>
           <h2>Vežbe</h2>
         </div>
-        ${
-          templates.length
-            ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-builder" aria-label="Sastavi još jedan trening za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Sastavi", "add")}</button>`
-            : ""
-        }
+        <div class="training-section-actions">
+          ${
+            // Bez termina: „Zakaži“ je dugme u zaglavlju, ne poseban red.
+            getTrainingSlot(state.selectedWeekTrack, state.selectedWeekday)
+              ? ""
+              : `<button class="ghost-button button-with-icon training-schedule-add" type="button" data-action="open-training-schedule" aria-label="Zakaži termin za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Zakaži", "clock")}</button>`
+          }
+          ${
+            templates.length
+              ? `<button class="ghost-button button-with-icon training-compose-button" type="button" data-action="open-training-builder" aria-label="Sastavi još jedan trening za ${weekdayAccusative(state.selectedWeekday)}">${renderButtonContent("Sastavi", "add")}</button>`
+              : ""
+          }
+        </div>
       </div>
-      ${renderTrainingScheduleRow(state.selectedWeekTrack, state.selectedWeekday)}
+      ${getTrainingSlot(state.selectedWeekTrack, state.selectedWeekday) ? renderTrainingScheduleRow(state.selectedWeekTrack, state.selectedWeekday) : ""}
       ${
         // Prazan blok je i dalje nosio marginu od 14px ispod naslova „Vežbe“.
         templates.length
