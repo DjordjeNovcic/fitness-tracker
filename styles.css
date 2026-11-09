@@ -16815,3 +16815,65 @@ button.training-week-volume-name {
     padding-inline: 14px;
   }
 }
+.section-disclosure-status { display: none; }
+@media (max-width: 720px) {
+  /* Danas: Alati / Vitamini / Lista za kupovinu jedan red svaki; kratko
+     stanje („0/3“, „35“) desno umesto rečenice ispod naslova. */
+  :root[data-theme] .plan-utilities .section-disclosure-copy {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  :root[data-theme] .plan-utilities .section-disclosure-copy > p {
+    display: none;
+  }
+  :root[data-theme] .plan-utilities .section-disclosure-copy > h2 {
+    font-size: var(--fs-16);
+    white-space: nowrap;
+  }
+  :root[data-theme] .plan-utilities .section-disclosure-status {
+    display: inline;
+    margin-left: auto;
+    color: var(--muted);
+    font-size: var(--fs-14);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  :root[data-theme] .plan-utilities > .section:not(.is-expanded) {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  /* Krug „Pojedeno“ bez reči pored (krug ima natpis za čitače ekrana). */
+  :root[data-theme] .plan-meals-section .meal-toggle-text {
+    display: none;
+  }
+  /* Težina: ikonica uz naziv, kao u pločicama iznad. */
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child:nth-child(odd) {
+    grid-template-areas:
+      "icon label btn"
+      "value value btn"
+      "sub sub sub";
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] main .plan-utilities > .section.section:not(.is-expanded):not(.workspace-header):not(.hero) {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child:nth-child(odd) {
+    grid-template-areas:
+      "icon label btn"
+      "value value btn"
+      "sub sub btn";
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .plan-utilities .section-disclosure {
+    align-items: center;
+  }
+  :root[data-theme] .plan-utilities > .section:not(.is-expanded) > .section-disclosure ~ * {
+    margin-top: 0;
+  }
+}

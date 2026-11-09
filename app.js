@@ -10213,6 +10213,7 @@ function renderPlanSupplementsSection() {
               ? `${doneCount} od ${supplements.length} uzeto za ${weekdayAccusative(state.selectedWeekday)}.`
               : "Dodaj vitamine koje uzimaš, pa ih čekiraj po danu."
           }</p>
+          ${supplements.length ? `<span class="section-disclosure-status">${doneCount}/${supplements.length}</span>` : ""}
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(isPlanSupplementsExpanded())}</span>
@@ -10829,6 +10830,7 @@ function renderPlanShoppingSection() {
         <div class="section-disclosure-copy">
           <h2>Lista za kupovinu</h2>
           <p>${activeItems.length ? `${activeItems.length} ${srPlural(activeItems.length, "namirnica", "namirnice", "namirnica")} iz plana za ${getWeekTrackAccusative(state.selectedWeekTrack)}.` : "Dodaj namirnice u plan pa će se ovde sabrati."}</p>
+          ${activeItems.length ? `<span class="section-disclosure-status">${activeItems.length}</span>` : ""}
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.shoppingExpanded)}</span>
