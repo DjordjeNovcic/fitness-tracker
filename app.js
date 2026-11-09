@@ -8527,7 +8527,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
           <${tag} class="hero-title">${isToday && headingLevel === 1 ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
           ${
             isToday
-              ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "")}</span>`
+              ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "").replace(/(\d+\.) /, "$1\u00a0")}</span>`
               : ""
           }
         </div>

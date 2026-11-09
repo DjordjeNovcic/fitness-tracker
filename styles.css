@@ -16494,3 +16494,22 @@ summary,
     display: none;
   }
 }
+/* Danas na uskom telefonu: „Ova / Sledeća“ ostaje u redu sa naslovom.
+   Datum se nije prelamao, pa je prekidač padao u drugi red, a
+   `.hero-top { max-height: 64px; overflow: hidden }` ga je skrivao. */
+@media (max-width: 420px) {
+  :root[data-theme] .hero--plan:not(.hero--sub) .hero-top {
+    flex-wrap: nowrap;
+    max-height: 80px;
+  }
+  :root[data-theme] .hero--plan:not(.hero--sub) .hero-title-wrap {
+    min-width: 0;
+  }
+  :root[data-theme] .hero--plan:not(.hero--sub) .hero-date {
+    white-space: normal;
+    line-height: 1.2;
+  }
+  :root[data-theme] body.plan-compact .hero--plan:not(.hero--sub) .hero-top {
+    max-height: 0;
+  }
+}
