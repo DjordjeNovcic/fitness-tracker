@@ -15817,7 +15817,9 @@ summary,
   }
 
   /* Danas: obroci. */
-  :root[data-theme] .plan-meals-section .meal-card {
+  :root[data-theme] .plan-meals-section .meal-card,
+  :root[data-theme="dark"] .plan-meals-section .meal-card,
+  :root[data-theme="dark"] .plan-meals-section .meal-card.is-collapsed {
     padding: 12px 14px;
   }
   :root[data-theme] .plan-meals-section .meal-card-header {
@@ -15972,4 +15974,47 @@ summary,
     padding-bottom: 8px;
   }
 
+  /* Danas, skupljen obrok: red sa nazivom 36px (bio 44: „Pojedeno“ i
+     strelica su imali visinu dugmeta), pa je obrok ~80px umesto 95. Dodirna
+     površina ostaje kroz negativnu marginu. */
+  :root[data-theme] .plan-meals-section .meal-card-topline {
+    min-height: 36px;
+  }
+  :root[data-theme] .plan-meals-section .meal-toggle {
+    padding-block: 3px;
+    margin-block: -4px;
+  }
+  :root[data-theme] .plan-meals-section .meal-toggle-ui {
+    width: 28px;
+    height: 28px;
+  }
+  :root[data-theme] .plan-meals-section .meal-collapse-toggle {
+    min-height: 36px;
+    height: 36px;
+    padding-block: 0;
+    margin-block: -2px;
+  }
+  :root[data-theme] .plan-meals-section .meal-card,
+  :root[data-theme="dark"] .plan-meals-section .meal-card,
+  :root[data-theme="dark"] .plan-meals-section .meal-card.is-collapsed {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  :root[data-theme] .plan-meals-section .meal-card-header {
+    gap: 2px;
+  }
+
+  /* Danas: voda, kafa… redovi 6px gušće. */
+  :root[data-theme] .plan-glance-row {
+    padding-bottom: 6px;
+  }
+  :root[data-theme] .plan-glance-row + .plan-glance-row {
+    padding-top: 6px;
+  }
+
+  /* Danas: Alati, Vitamini, Lista za kupovinu — niži redovi. */
+  :root[data-theme] .plan-utilities > .section {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
 }
