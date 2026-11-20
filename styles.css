@@ -18058,3 +18058,14 @@ button.training-week-volume-name {
 :root[data-theme] .quick-entry-row-controls .quick-entry-field--amount > span {
   display: none;
 }
+@media (max-width: 400px) {
+  /* Uska polja sa jedinicom (tri u redu: Godine/Visina/Težina, makroi):
+     broj se sekao („3(“) jer je razmak za jedinicu bio veći od nje. */
+  :root[data-theme] .input-unit input {
+    padding-left: 10px !important;
+    padding-right: 40px !important;
+  }
+  :root[data-theme] .input-unit .input-unit-suffix {
+    right: 9px;
+  }
+}
