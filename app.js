@@ -16326,7 +16326,7 @@ function renderProgressSummary(summary) {
           ? `
             <div class="empty progress-empty-guide">
               <strong>Kreni od jednostavnog ritma.</strong>
-              <span>Unesi težinu i stomak jednom nedeljno, pa dodaj po jednu sliku za front, side i back. Tako će trend i poređenje odmah postati korisni.</span>
+              <span>Unesi težinu i stomak jednom nedeljno, pa dodaj po jednu sliku spreda, sa boka i s leđa. Tako će trend i poređenje odmah postati korisni.</span>
             </div>
           `
           : ""
@@ -17682,7 +17682,7 @@ function renderProgressTab() {
       <div class="section-header">
         <div>
           <h2>Slike napretka</h2>
-          <p>Ubaci sliku sa telefona i ostavi kratku napomenu tipa front, side ili back.</p>
+          <p>Ubaci sliku sa telefona; poza (spreda, bok, leđa) određuje šta se poredi.</p>
         </div>
       </div>
       <details class="form-collapse">
@@ -17696,7 +17696,7 @@ function renderProgressTab() {
           <input id="photo-date" name="date" type="date" value="${getPhotoDateDefault()}" required />
         </div>
         <div class="field">
-          <label for="photo-tag">Tag</label>
+          <label for="photo-tag">Poza</label>
           <select id="photo-tag" name="tag" required>
             ${PHOTO_TAGS.map((tag) => `<option value="${tag}">${PHOTO_TAG_LABELS[tag] || tag}</option>`).join("")}
           </select>

@@ -17990,3 +17990,7 @@ button.training-week-volume-name {
 :root[data-theme] .compare-card .pill.strong {
   display: none;
 }
+@media (min-width: 900px) {
+  /* Traka „Vrati“: kompaktna, uz tekst, ne 720px sa dugmetom na drugom kraju. */
+  .undo-banner { --max-float: 460px; }
+}
