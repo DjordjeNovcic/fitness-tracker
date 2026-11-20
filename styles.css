@@ -17379,3 +17379,80 @@ button.training-week-volume-name {
   font-variant-numeric: tabular-nums;
 }
 .progress-log-copy > .progress-log-note { font-style: italic; }
+
+/* ============================================================
+   2026-11-20 — Utezanje 5.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* Izmeni trening: natpisi „Serije / Ponavljanja / Odmor“ samo kod prve
+     vežbe; ostale su isti raspored, pa vežba ~200px umesto ~275. */
+  :root[data-theme] .training-builder-item + .training-builder-item .training-builder-dose-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  :root[data-theme] .training-builder-item + .training-builder-item .training-builder-dose {
+    margin-top: 4px;
+  }
+  :root[data-theme] .training-builder-item-name > span {
+    font-size: var(--fs-13);
+  }
+
+  /* Napravi recept: porcije i vreme pripreme jedno pored drugog. */
+  :root[data-theme] .recipe-builder-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :root[data-theme] .recipe-builder-form > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .recipe-builder-form > .field:has(#favorite-servings),
+  :root[data-theme] .recipe-builder-form > .field:has(#favorite-prep-time) {
+    grid-column: auto;
+  }
+  :root[data-theme] .recipes-builder-section.is-expanded .section-disclosure-copy > p {
+    display: none;
+  }
+
+  /* Kuvaj unapred: deo obroka, ne kartica u kartici. */
+  :root[data-theme] .meal-prep-panel,
+  :root[data-theme="dark"] .meal-prep-panel {
+    margin: 4px 0 6px;
+    padding: 8px 0 10px;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+}
+/* Recept u izradi: zbir (0 kcal) tek kad postoji bar jedan sastojak. */
+.recipe-draft-panel:has(#recipe-draft-items > .empty) #recipe-draft-summary {
+  display: none;
+}
+@media (max-width: 720px) {
+  :root[data-theme] .meal-prep-panel,
+  :root[data-theme="dark"] .meal-prep-panel {
+    border-top: 0;
+    margin-top: 0;
+  }
+}
+/* Recept u izradi: polje količine kao ostala polja u aplikaciji. */
+.recipe-draft-item-amount input {
+  width: 84px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-12, 12px);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="dark"] .recipe-draft-item-amount input {
+  background: var(--surface-strong);
+}

@@ -6909,7 +6909,7 @@ function setFavoriteDraftFromRecipe(favorite) {
 // innerHTML, pa bi pun render na svaki karakter izbacio kursor iz polja.
 function renderRecipeDraftSummaryInner(preview) {
   const meta = [
-    preview.mealLabel || "Tip obroka nije izabran",
+    preview.mealLabel ? getMealDisplayParts(preview.mealLabel).title || preview.mealLabel : "Tip obroka nije izabran",
     `${preview.servings} ${srPlural(preview.servings, "porcija", "porcije", "porcija")}`,
     preview.prepTimeMinutes ? `${preview.prepTimeMinutes} min pripreme` : "",
   ].filter(Boolean);
@@ -6962,7 +6962,7 @@ function syncRecipeDraftPreview({ items = false } = {}) {
 }
 
 function renderRecipeDraftCountText(preview) {
-  return `${preview.items.length} ${srPlural(preview.items.length, "stavka", "stavke", "stavki")}`;
+  return `${preview.items.length} ${srPlural(preview.items.length, "sastojak", "sastojka", "sastojaka")}`;
 }
 
 // Lista stavki recepta u izradi. Izdvojena da bi syncRecipeDraftPreview mogao
@@ -6990,7 +6990,7 @@ function renderRecipeDraftItemsInner(draftPreview) {
             <div class="recipe-draft-item-main">
               <strong class="recipe-draft-item-name">${escapeHtml(item.displayName || item.foodName)}</strong>
               ${linkNote ? `<span class="recipe-draft-item-note">${escapeHtml(linkNote)}</span>` : ""}
-              ${item.isPending ? `<span class="recipe-draft-item-note">nova stavka, dodaj je u preview</span>` : ""}
+              ${item.isPending ? `<span class="recipe-draft-item-note">nov sastojak, dodaj ga dugmetom iznad</span>` : ""}
             </div>
             <div class="recipe-draft-item-amount">
               <input
@@ -7035,7 +7035,7 @@ function renderRecipeDraftItemsInner(draftPreview) {
         `;
       })
       .join("")
-    : `<div class="empty">Dodaj prvi sastojak i gramažu, pa ćeš ovde odmah videti kompletan recept.</div>`;
+    : `<div class="empty">Još nema sastojaka. Dodaj prvi iznad.</div>`;
 }
 
 function getFavoriteDraftPreview() {
@@ -11872,7 +11872,7 @@ function renderRecipesTab() {
               <label class="ghost-button button-with-icon" for="favorite-image">${renderButtonContent(state.favoriteDraft.imageUrl ? "Promeni sliku" : "Izaberi sliku", "add")}</label>
               <input id="favorite-image" name="image" type="file" accept="image/*" hidden />
             </div>
-            <div class="footer-note">Opcionalno. Dodaj jednu fotku obroka i recept kartica će odmah izgledati bogatije.</div>
+
             ${
               state.favoriteDraft.imageUrl
                 ? `
@@ -11906,7 +11906,7 @@ function renderRecipesTab() {
           <div class="field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
             <button class="solid-button secondary-button button-with-icon" type="submit">
-              ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj stavku u preview" : "Dodaj stavku u preview", state.editingFavoriteItem.itemId ? "save" : "add")}
+              ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj sastojak" : "Dodaj sastojak", state.editingFavoriteItem.itemId ? "save" : "add")}
             </button>
             ${state.editingFavoriteItem.itemId ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-favorite-item">${renderButtonContent("Odustani", "close")}</button>` : ""}
           </div>
@@ -11916,7 +11916,7 @@ function renderRecipesTab() {
           <div class="food-card-top recipe-draft-top">
             <div class="recipe-draft-copy">
               <h3>${escapeHtml(draftPreview.favoriteName || "Recept u izradi")}</h3>
-              <p>${escapeHtml(draftPreview.description || draftPreview.instructions || "Dodaj opis ili kratku pripremu pa će se ovde pojaviti jasan pregled recepta.")}</p>
+              ${draftPreview.description ? `<p>${escapeHtml(draftPreview.description)}</p>` : ""}
             </div>
             <span class="pill strong" id="recipe-draft-count">${renderRecipeDraftCountText(draftPreview)}</span>
           </div>
