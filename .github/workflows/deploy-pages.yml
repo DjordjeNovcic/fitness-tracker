@@ -11,9 +11,12 @@ permissions:
   pages: write
   id-token: write
 
+# Objava se ne prekida usred posla: prekinuta objava je povremeno ostavljala
+# sledeću bez artefakta („No artifacts named github-pages“). Novi push čeka,
+# a ako ih stigne više, preskaču se svi osim poslednjeg (kao u GitHub šablonu).
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
