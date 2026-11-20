@@ -9440,6 +9440,11 @@ function filterFoodsListInline(query) {
   if (empty) {
     list.appendChild(empty);
     empty.hidden = !(tokens.length > 0 && rows.length > 0 && visible === 0);
+    const create = empty.querySelector(".foods-empty-create");
+    if (create) {
+      // Nova namirnica dobija ime iz pretrage.
+      create.dataset.name = String(query || "").trim();
+    }
   }
 }
 
@@ -11812,7 +11817,10 @@ function renderFoodsTab() {
                 .join("")
             : `<div class="empty empty-passive">Nema namirnica za ovaj filter.</div>`
         }
-        <div class="empty foods-list-empty" hidden>Nema u tvojim namirnicama.</div>
+        <div class="empty foods-list-empty" hidden>
+          <span>Nema u tvojim namirnicama.</span>
+          <button type="button" class="ghost-button button-with-icon foods-empty-create" data-action="open-food-editor-dialog" data-name="">${renderButtonContent("Napravi novu", "add")}</button>
+        </div>
       </div>
       <div class="foods-external" data-role="foods-external"></div>
     </section>
@@ -18848,6 +18856,11 @@ async function handleDocumentClick(event) {
   if (action === "open-food-editor-dialog") {
     rememberDialogTrigger(actionTarget);
     openFoodEditorDialog("");
+    const typedName = String(actionTarget.dataset.name || "").trim();
+    if (typedName) {
+      state.scannedBarcode = "";
+      state.scannedFood = { name: typedName.charAt(0).toUpperCase() + typedName.slice(1) };
+    }
     render();
     return;
   }

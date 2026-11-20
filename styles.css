@@ -18043,3 +18043,13 @@ button.training-week-volume-name {
 .food-suggest-empty .ghost-button {
   min-height: 38px;
 }
+.foods-list-empty:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.foods-list-empty .ghost-button {
+  min-height: 38px;
+}
