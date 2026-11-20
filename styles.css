@@ -17799,3 +17799,12 @@ button.training-week-volume-name {
 :root[data-theme] .quick-entry-field--amount input {
   padding-right: 40px;
 }
+/* Tamna tema: padajuće liste su gubile strelicu (pozadinu prepisuje tamna boja polja). */
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] select.field-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a3aea8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+  padding-right: 40px;
+}
