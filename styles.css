@@ -17560,3 +17560,30 @@ button.training-week-volume-name {
     padding-right: 200px;
   }
 }
+@media (min-width: 721px) {
+  /* Napredak: kalendar ishrane preko cele širine kartice (bio do 320px). */
+  :root[data-theme] .history-heatmap {
+    max-width: none;
+  }
+  /* Hrana: „Skeniraj“ i „Nova namirnica“ u redu sa brojem namirnica, levo
+     od info (i), ne u svom redu ispod filtera. */
+  :root[data-theme] .foods-section {
+    position: relative;
+  }
+  :root[data-theme] .foods-section > .foods-secondary {
+    position: absolute;
+    top: 10px;
+    right: 62px;
+    margin: 0;
+    gap: 8px;
+  }
+  :root[data-theme] .foods-section > .foods-secondary > * {
+    min-height: 38px;
+  }
+}
+@media (min-width: 721px) {
+  :root[data-theme] .foods-section > .foods-head + .help-note + .foods-search,
+  :root[data-theme] .foods-section > .foods-search {
+    margin-top: 12px;
+  }
+}
