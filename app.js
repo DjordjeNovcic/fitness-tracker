@@ -1817,7 +1817,10 @@ async function saveCloudStateNow(options = {}) {
     state.syncStatus = "Sinhronizacija je uključena";
     state.syncConflict = null;
     if (options.renderAfterSave) {
-      render();
+      // Ne ceo render: čuvanje stiže 650 ms posle svake izmene, a pun render
+      // je zatvarao otvorene forme i brisao tekst koji je korisnik kucao.
+      // Promenio se samo status sinhronizacije, pa se osvežava samo on.
+      refreshSyncStatusUi();
     }
     syncPhotosWithCloud();
     return true;
@@ -8837,6 +8840,22 @@ function renderActionIcon(kind) {
   return `<span class="button-icon ${kind === "spinner" ? "is-spinning" : ""}" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" focusable="false">${icons[kind] || icons.add}</svg></span>`;
 }
 
+function refreshSyncStatusUi() {
+  const status = state.syncStatus || "";
+  const tone = getSyncStatusTone();
+  document.querySelectorAll("[data-sync-status]").forEach((pill) => {
+    pill.textContent = status;
+    pill.className = pill.className.replace(/\bpill--[a-z]+\b/, `pill--${tone}`);
+  });
+  document.querySelectorAll(".app-sidebar-account").forEach((button) => {
+    button.setAttribute("aria-label", `Nalog i podešavanja · ${status}`);
+    button.setAttribute("title", `Nalog · ${status}`);
+  });
+  document.querySelectorAll(".app-sidebar-account-dot").forEach((dot) => {
+    dot.className = `app-sidebar-account-dot is-${tone}`;
+  });
+}
+
 function getSyncStatusTone(status = state.syncStatus) {
   const value = `${status || ""}`.toLowerCase();
   if (!value) return "info";
@@ -15741,7 +15760,7 @@ function renderAccountSection() {
               <h2 class="profile-hero-name">${escapeHtml(name)}${demo && name !== "Demo nalog" ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</h2>
               ${email ? `<div class="profile-hero-email">${escapeHtml(email)}</div>` : ""}
               <div class="pill-row profile-hero-pills">
-                <span class="pill strong pill--${syncStatusTone}">${state.syncStatus}</span>
+                <span class="pill strong pill--${syncStatusTone}" data-sync-status>${state.syncStatus}</span>
               </div>
             </div>
           </div>

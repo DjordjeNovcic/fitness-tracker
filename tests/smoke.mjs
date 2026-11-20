@@ -10,7 +10,8 @@
 //    bez vodoravnog skrola, ekran nije prazan;
 //  - novi nalog: uvod u tri koraka → Danas;
 //  - odjavljen korisnik: ekran za prijavu;
-//  - glavne radnje: dodavanje namirnice, tajmer odmora, mapa tela;
+//  - glavne radnje: dodavanje namirnice, tajmer odmora, mapa tela, otvorena
+//    forma preživi čuvanje u pozadini;
 //  - pristupačnost (axe-core, WCAG 2 A/AA) na 390px u obe teme, ako je
 //    axe-core instaliran (u CI jeste; lokalno može AXE_CORE=putanja/axe.min.js).
 // Izlazi sa kodom 1 ako bilo šta ne prođe, pa zaustavlja deploy.
@@ -193,9 +194,22 @@ async function checkActions() {
   await page.waitForTimeout(400);
   if (!(await page.$(".muscle-sheet-dialog"))) fail("Trening", "tap na mišić ne otvara vežbe");
 
+  // Rutina: izmena (čekiranje) se čuva u pozadini posle 650 ms; to čuvanje
+  // ne sme da zatvori otvorenu formu ni da obriše otkucan tekst.
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => (location.hash = "routine"));
+  await page.waitForTimeout(600);
+  await page.click(".routine-habit-stack .routine-checkbox >> nth=0", { force: true });
+  await page.waitForTimeout(100);
+  await page.click(".routine-habits-section details.form-collapse > summary");
+  await page.fill("#habit-name", "Čitanje 20 min");
+  await page.waitForTimeout(1500);
+  const draft = await page.evaluate(() => document.querySelector("#habit-name")?.value || "");
+  if (draft !== "Čitanje 20 min") fail("Rutina", "čuvanje u pozadini obrisalo je tekst u otvorenoj formi");
+
   errors.forEach((message) => fail("radnje", `JS greška: ${message}`));
   await close();
-  console.log("  ✓ radnje (namirnica, tajmer, mapa tela)");
+  console.log("  ✓ radnje (namirnica, tajmer, mapa tela, forma tokom čuvanja)");
 }
 
 async function checkSignedOut() {
