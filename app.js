@@ -7527,7 +7527,7 @@ function renderRecipeApplyDialog() {
               mealOptions.map((mealLabel) => ({ id: mealLabel, label: getMealDisplayParts(mealLabel).title }))
             )}
           </div>
-          <p class="footer-note recipe-apply-summary">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")} · ${favorite.servings || 1} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"} · ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal po porciji</p>
+          <p class="footer-note recipe-apply-summary">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")} ${favorite.servings > 1 ? ` · ${favorite.servings} ${srPlural(favorite.servings, "porcija", "porcije", "porcija")}` : ""} · ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal${favorite.servings > 1 ? " po porciji" : ""}</p>
           <div class="entry-actions recipe-apply-actions">
             <button class="ghost-button" type="button" data-action="close-recipe-apply-dialog">Odustani</button>
             <button class="solid-button button-with-icon" type="submit">

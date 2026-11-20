@@ -1573,7 +1573,7 @@ window.SEED_DATA = {
       "id": "favorite-meal-seed-1",
       "name": "Tortilja sa jajima i piletinom",
       "mealLabel": "1. Dorucak",
-      "description": "Brz dorucak sa dosta proteina i malo vise volumena.",
+      "description": "Brz doručak sa dosta proteina i malo više volumena.",
       "prepTimeMinutes": 12,
       "instructions": "Ispeci jaja, zagrej tortilju, dodaj piletinu i paradajz pa sve preklopi ili urolaj.",
       "createdAt": "2026-03-28T09:00:00.000Z",
@@ -1608,9 +1608,9 @@ window.SEED_DATA = {
       "id": "favorite-meal-seed-2",
       "name": "Ovseni balans mix",
       "mealLabel": "2. Uzina",
-      "description": "Lagani recept za uzinu kada hoces nesto slatko ali kontrolisano.",
+      "description": "Lagan recept za užinu kad hoćeš nešto slatko, ali kontrolisano.",
       "prepTimeMinutes": 5,
-      "instructions": "U ciniju sipaj jogurt, dodaj ovsene i maline, pa preko pospi badem.",
+      "instructions": "U činiju sipaj jogurt, dodaj ovsene pahuljice i maline, pa preko pospi badem.",
       "createdAt": "2026-03-28T09:05:00.000Z",
       "items": [
         {
@@ -1643,9 +1643,9 @@ window.SEED_DATA = {
       "id": "favorite-meal-seed-3",
       "name": "Junetina sa spagetama",
       "mealLabel": "3. Obrok 2h pre treninga",
-      "description": "Klasicna kombinacija za dan kada hoces konkretniji obrok pre treninga.",
+      "description": "Klasična kombinacija za dan kada hoćeš konkretniji obrok pre treninga.",
       "prepTimeMinutes": 20,
-      "instructions": "Isprzi junetinu, skuvaj spagete, dodaj Tomatino i sjedini sve dok sos ne oblozi testeninu.",
+      "instructions": "Isprži junetinu, skuvaj špagete, dodaj Tomatino i sjedini sve dok sos ne obloži testeninu.",
       "createdAt": "2026-03-28T09:10:00.000Z",
       "items": [
         {
@@ -1672,9 +1672,9 @@ window.SEED_DATA = {
       "id": "favorite-meal-seed-4",
       "name": "Tuna salata brzinski",
       "mealLabel": "5. Vecera",
-      "description": "Vecernji recept koji je lagan za stomak i gotov za par minuta.",
+      "description": "Večernji recept, lagan za stomak i gotov za par minuta.",
       "prepTimeMinutes": 7,
-      "instructions": "Pomesaj tunjevinu sa salatom, prelij maslinovim uljem i serviraj hladno.",
+      "instructions": "Pomešaj tunjevinu sa salatom, prelij maslinovim uljem i serviraj hladno.",
       "createdAt": "2026-03-28T09:15:00.000Z",
       "items": [
         {
