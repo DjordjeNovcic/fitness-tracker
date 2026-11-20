@@ -16802,7 +16802,7 @@ function renderLabSection() {
           </div>
           <div class="meta-row field--full">
             ${editingLab ? `<button class="ghost-button" type="button" data-action="cancel-edit-lab-result">Odustani</button>` : ""}
-            <button class="solid-button secondary-button" type="submit">${editingLab ? "Sačuvaj izmenu" : "Sačuvaj nalaz"}</button>
+            <button class="solid-button" type="submit">${editingLab ? "Sačuvaj izmenu" : "Sačuvaj nalaz"}</button>
           </div>
         </form>`;
       })()}
@@ -16921,12 +16921,9 @@ function renderBodyCompositionSection() {
     return raw === null || raw === undefined || raw === "" ? "" : String(raw);
   };
 
-  const formFields = BODY_METRIC_GROUPS.map(
-    (group) => `
-      <div class="bc-form-group">
-        <h4 class="bc-form-group-title">${group.group}</h4>
-        <div class="bc-form-fields">
-          ${group.metrics
+  // Samo „Osnovno“ je otvoreno; ostale grupe se otvaraju kad zatrebaju (forma
+  // je inače ~3500px na telefonu). Pri izmeni je otvorena svaka grupa sa vrednošću.
+  const bodyCompFieldsHtml = (group) => group.metrics
             .map(
               (m) => `
             <div class="field">
@@ -16934,11 +16931,20 @@ function renderBodyCompositionSection() {
               <input id="bc-${m.key}" name="${m.key}" type="number" step="${m.dec === 0 ? "1" : m.dec === 2 ? "0.01" : "0.1"}" min="0" inputmode="decimal" placeholder="—" value="${bodyCompValue(m.key)}" />
             </div>`
             )
-            .join("")}
-        </div>
+            .join("");
+  const formFields = BODY_METRIC_GROUPS.map((group, index) =>
+    index === 0
+      ? `
+      <div class="bc-form-group">
+        <h4 class="bc-form-group-title">${group.group}</h4>
+        <div class="bc-form-fields">${bodyCompFieldsHtml(group)}</div>
       </div>`
+      : `
+      <details class="bc-form-group bc-form-group--fold" ${group.metrics.some((m) => bodyCompValue(m.key) !== "") ? "open" : ""}>
+        <summary class="bc-form-group-title">${group.group} <span class="bc-form-group-count">${group.metrics.length} ${srPlural(group.metrics.length, "polje", "polja", "polja")}</span>${renderChevronIcon(false)}</summary>
+        <div class="bc-form-fields">${bodyCompFieldsHtml(group)}</div>
+      </details>`
   ).join("");
-
   const trends = BODY_METRIC_GROUPS.map((group) => {
     const withData = group.metrics.filter((m) => getBodyMetricSeries(m.key).length > 0);
     if (!withData.length) {
@@ -17017,7 +17023,7 @@ function renderBodyCompositionSection() {
           ${formFields}
           <div class="meta-row bc-submit-row">
             ${editingBodyComp ? `<button class="ghost-button" type="button" data-action="cancel-edit-body-comp">Odustani</button>` : ""}
-            <button class="solid-button secondary-button bc-submit" type="submit">${editingBodyComp ? "Sačuvaj izmenu" : "Sačuvaj analizu"}</button>
+            <button class="solid-button bc-submit" type="submit">${editingBodyComp ? "Sačuvaj izmenu" : "Sačuvaj analizu"}</button>
           </div>
           <div class="footer-note">Popuni samo polja koja imaš sa izveštaja, ostalo ostavi prazno.${
             editingBodyComp ? " Pri izmeni ispražnjeno polje skida tu vrednost sa analize." : ""

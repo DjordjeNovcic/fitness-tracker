@@ -17874,3 +17874,44 @@ button.training-week-volume-name {
   width: 20px;
   height: 20px;
 }
+/* Sastav tela: dodatne grupe mera kao sklopivi naslovi. */
+.bc-form-group--fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.bc-form-group--fold > summary::-webkit-details-marker {
+  display: none;
+}
+.bc-form-group--fold > summary svg {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+.bc-form-group--fold[open] > summary svg {
+  transform: rotate(180deg);
+}
+.bc-form-group-count {
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.bc-form-group-count {
+  text-transform: none;
+}
+.bc-form-group--fold + .bc-form-group--fold {
+  margin-top: -12px;
+}
+/* Krvna slika / Sastav tela: dok je forma otvorena, bez „Još nema…“ ispod. */
+.lab-section:has(details.form-collapse[open]) > .empty,
+.lab-section:has(details.form-collapse[open]) .lab-list-empty,
+.bc-section:has(details.form-collapse[open]) > .empty {
+  display: none;
+}
