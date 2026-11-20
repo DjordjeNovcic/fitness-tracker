@@ -101,9 +101,14 @@ async function checkTabs(width, theme, mode) {
       doubleDose: [...document.querySelectorAll(".training-exercise-detail")].filter(
         (detail) => [...detail.children].filter((child) => getComputedStyle(child).display !== "none").length > 1
       ).length,
+      // Padajuće liste i datumi moraju da imaju strelicu/kalendar u obe teme.
+      bareInputs: [...document.querySelectorAll(".field select, .field input[type='date']")].filter(
+        (input) => input.offsetParent && getComputedStyle(input).backgroundImage === "none"
+      ).length,
     }));
     if (state.overflow > 1) fail(`${label} #${tab}`, `vodoravni skrol ${state.overflow}px`);
     if (state.height < 150) fail(`${label} #${tab}`, `ekran skoro prazan (${Math.round(state.height)}px)`);
+    if (state.bareInputs) fail(`${label} #${tab}`, `${state.bareInputs} polja (izbor/datum) bez ikonice`);
     if (state.doubleDose) fail(`${label} #${tab}`, `${state.doubleDose} vežbi prikazuje dve doze`);
   }
   errors.forEach((message) => fail(label, `JS greška: ${message}`));
