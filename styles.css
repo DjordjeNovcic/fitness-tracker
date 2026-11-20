@@ -17598,3 +17598,49 @@ button.training-week-volume-name {
     display: inline !important;
   }
 }
+@media (min-width: 900px) {
+  /* Trčanje na računaru: nedelja i rekordi u četiri kolone. */
+  :root[data-theme] .running-week-glance {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  :root[data-theme] .running-records-section .stat-rows {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+  }
+  :root[data-theme] .running-records-section .stat-row + .stat-row {
+    border-left: 1px solid var(--line);
+  }
+  :root[data-theme] .running-records-section .stat-row:first-child {
+    padding-left: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row > dd {
+    order: 1;
+    margin: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row .stat-row-note {
+    display: inline;
+    margin-left: 4px;
+  }
+}
+@media (min-width: 900px) {
+  :root[data-theme] .running-records-section .stat-row > dt {
+    display: block;
+    order: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row,
+  :root[data-theme] .running-records-section .stat-row:last-child {
+    border-bottom: 0;
+  }
+  :root[data-theme] .running-week-glance > .glance-item {
+    border-bottom: 0;
+  }
+}
