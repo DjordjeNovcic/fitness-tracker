@@ -18053,3 +18053,8 @@ button.training-week-volume-name {
 .foods-list-empty .ghost-button {
   min-height: 38px;
 }
+/* Brzi unos: jedinica je u polju („g“/„kom“), pa natpis „Grama/Komada“
+   iznad ne treba ni na računaru (ostaje za čitače ekrana kroz aria-label). */
+:root[data-theme] .quick-entry-row-controls .quick-entry-field--amount > span {
+  display: none;
+}
