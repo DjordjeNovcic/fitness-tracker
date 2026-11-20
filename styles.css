@@ -18145,3 +18145,19 @@ button.training-week-volume-name {
   border-right-color: #10181b;
   border-bottom-color: #10181b;
 }
+:root[data-theme] .meal-toggle-checkbox:checked + .meal-toggle-ui {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fbf8ef;
+}
+:root[data-theme] .meal-toggle-checkbox:checked + .meal-toggle-ui::after {
+  border-right-color: #fbf8ef;
+  border-bottom-color: #fbf8ef;
+}
+:root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui {
+  color: #10181b;
+}
+:root[data-theme="dark"] .meal-toggle-checkbox:checked + .meal-toggle-ui::after {
+  border-right-color: #10181b;
+  border-bottom-color: #10181b;
+}
