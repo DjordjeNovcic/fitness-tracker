@@ -12054,7 +12054,8 @@ function renderRecipesTab() {
                           <div class="recipe-library-meta">
                             ${[
                               getMealDisplayParts(favorite.mealLabel).title || favorite.name,
-                              `${favorite.servings} ${favorite.servings === 1 ? "porcija" : favorite.servings < 5 ? "porcije" : "porcija"}`,
+                              // Jedna porcija je podrazumevana, pa se piše samo kad ih je više.
+                              favorite.servings > 1 ? `${favorite.servings} ${srPlural(favorite.servings, "porcija", "porcije", "porcija")}` : null,
                               favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
                             ]
                               .filter(Boolean)
@@ -12062,7 +12063,7 @@ function renderRecipesTab() {
                               .join("")}
                           </div>
                           <div class="recipe-library-stats">
-                            <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal <span class="recipe-library-stat-sub">po porciji</span></span>
+                            <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal${favorite.servings > 1 ? ` <span class="recipe-library-stat-sub">po porciji</span>` : ""}</span>
                             <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
                             ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>

@@ -17695,3 +17695,16 @@ button.training-week-volume-name {
 .routine-task-stack:has(> .empty:only-child) {
   margin-top: 2px !important;
 }
+@media (max-width: 899px) {
+  /* Trčanje › Rekordi 2×2: jedna linija između redova i jedna između kolona. */
+  :root[data-theme] .running-records-section .stat-rows {
+    border-top: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  :root[data-theme] .running-records-section .stat-row:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+}
