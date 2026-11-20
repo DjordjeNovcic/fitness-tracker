@@ -17773,3 +17773,29 @@ button.training-week-volume-name {
 :root[data-theme] .meal-card .meal-composer {
   border-top: 0;
 }
+/* Brzi unos: dugme „izbaci“ ne diže red naslova (42 → ~26px po namirnici). */
+:root[data-theme] .quick-entry-row-head .quick-entry-remove {
+  margin-block: -8px;
+}
+:root[data-theme] .quick-entry-row-head {
+  margin-bottom: 6px;
+}
+:root[data-theme] .quick-entry-field--amount {
+  position: relative;
+}
+:root[data-theme] .quick-entry-field--amount::after {
+  content: attr(data-unit);
+  position: absolute;
+  right: 14px;
+  bottom: 0;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  pointer-events: none;
+}
+:root[data-theme] .quick-entry-field--amount input {
+  padding-right: 40px;
+}

@@ -9903,7 +9903,7 @@ function renderQuickEntryDialog() {
                             ${row.matches.some((m) => m.food.id === row.food.id) ? "" : `<option value="${escapeHtml(row.food.id)}" selected>${escapeHtml(row.food.name)}</option>`}
                           </select>
                         </label>
-                        <label class="field quick-entry-field quick-entry-field--amount">
+                        <label class="field quick-entry-field quick-entry-field--amount" data-unit="${getFoodServingUnit(row.food) === "piece" ? "kom" : "g"}">
                           <span>${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}</span>
                           <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.needsGrams && !row.amount ? "" : row.amount}" placeholder="${row.needsGrams ? "grama" : ""}" data-action="set-quick-entry-amount" data-index="${row.index}" />
                         </label>
