@@ -17648,3 +17648,9 @@ button.training-week-volume-name {
 .routine-habit-form:not(:has([data-choice-value="streak"].is-active)) .field:has(#habit-start-date) {
   display: none;
 }
+@media (min-width: 900px) {
+  /* Danas/Rutina na računaru: dani u heroju dele celu širinu, bez praznine desno. */
+  :root[data-theme] .hero-day-chips {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
