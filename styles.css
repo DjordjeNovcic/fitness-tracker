@@ -17673,3 +17673,20 @@ button.training-week-volume-name {
   height: 18px;
   color: var(--muted);
 }
+/* Napredak › Trend težine: datumi preko cele širine, pa legenda, pa „↓ 2 kg / na cilju“. */
+:root[data-theme] .chart-card:has(> .chart-legend) > .chart-dates {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: space-between;
+}
+:root[data-theme] .chart-card:has(> .chart-legend) > .chart-legend {
+  grid-column: 1 / -1;
+  grid-row: 4;
+}
+:root[data-theme] .chart-card:has(> .chart-legend) > .meta-row {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  justify-content: flex-start;
+  margin-inline: 0;
+  padding-inline: 0;
+}
