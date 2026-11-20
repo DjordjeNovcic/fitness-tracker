@@ -55,6 +55,8 @@ Posle toga app ce biti dostupna na GitHub Pages URL-u tvog repoa.
   čitljiv.
 - `node tests/smoke.mjs [_site]` pokreće app u pravom pregledaču (Playwright)
   sa lažnim Firebase-om iz `tests/stubs/`: svi tabovi u obe teme na 390,
-  360 i 1280px, nov nalog, prijava i glavne radnje. Treba instaliran `playwright`.
+  360 i 1280px, nov nalog, prijava i glavne radnje, plus provera
+  pristupačnosti (axe-core) na 390px. Treba instaliran `playwright`
+  (i `axe-core`, inače se ta provera preskače).
 - GitHub Actions na svaki push na `main`: build → smoke test → objava. Ako
   test padne, sajt ostaje na prethodnoj verziji.

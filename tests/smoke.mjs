@@ -9,7 +9,9 @@
 //    bez vodoravnog skrola, ekran nije prazan;
 //  - novi nalog: uvod u tri koraka → Danas;
 //  - odjavljen korisnik: ekran za prijavu;
-//  - glavne radnje: dodavanje namirnice, tajmer odmora, mapa tela.
+//  - glavne radnje: dodavanje namirnice, tajmer odmora, mapa tela;
+//  - pristupačnost (axe-core, WCAG 2 A/AA) na 390px u obe teme, ako je
+//    axe-core instaliran (u CI jeste; lokalno može AXE_CORE=putanja/axe.min.js).
 // Izlazi sa kodom 1 ako bilo šta ne prođe, pa zaustavlja deploy.
 import { createRequire } from "node:module";
 import { createServer } from "node:http";
@@ -19,7 +21,14 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // require (ne import) da bi radio i sa globalno instaliranim Playwright-om.
-const { chromium } = createRequire(import.meta.url)("playwright");
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+let axeSource = null;
+try {
+  axeSource = await readFile(process.env.AXE_CORE || require.resolve("axe-core/axe.min.js"), "utf8");
+} catch {
+  console.log("  (axe-core nije instaliran: provera pristupačnosti se preskače)");
+}
 const root = resolve(process.argv[2] || join(here, ".."));
 const stubs = join(here, "stubs");
 const TABS = ["plan", "recipes", "foods", "training", "running", "routine", "progress", "goals"];
@@ -91,6 +100,8 @@ async function checkTabs(width, theme, mode) {
   if (mode === "new") {
     await finishOnboarding(page, label);
   }
+  const withAxe = axeSource && width === 390 && mode === "demo";
+  if (withAxe) await page.addScriptTag({ content: axeSource });
   for (const tab of TABS) {
     await page.evaluate((t) => (location.hash = t), tab);
     await page.waitForTimeout(450);
@@ -110,6 +121,15 @@ async function checkTabs(width, theme, mode) {
     if (state.height < 150) fail(`${label} #${tab}`, `ekran skoro prazan (${Math.round(state.height)}px)`);
     if (state.bareInputs) fail(`${label} #${tab}`, `${state.bareInputs} polja (izbor/datum) bez ikonice`);
     if (state.doubleDose) fail(`${label} #${tab}`, `${state.doubleDose} vežbi prikazuje dve doze`);
+    if (withAxe) {
+      const violations = await page.evaluate(async () => {
+        const result = await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"], resultTypes: ["violations"] });
+        return result.violations
+          .filter((v) => v.impact === "critical" || v.impact === "serious")
+          .map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(" ")).join(", ")}`);
+      });
+      violations.forEach((v) => fail(`${label} #${tab}`, `pristupačnost ${v}`));
+    }
   }
   errors.forEach((message) => fail(label, `JS greška: ${message}`));
   await close();

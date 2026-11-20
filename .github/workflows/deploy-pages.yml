@@ -45,7 +45,7 @@ jobs:
       # Ako nešto pukne, deploy se zaustavlja i sajt ostaje na staroj verziji.
       - name: Install Playwright
         run: |
-          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npm install --no-save --no-audit --no-fund playwright@1.48.2 axe-core@4.10.2
           npx playwright install --with-deps chromium
 
       - name: Smoke test
