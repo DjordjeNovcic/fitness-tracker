@@ -10862,7 +10862,7 @@ function renderPlanActivitySection() {
           : ""
       }
       ${renderHelpNote(
-        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance.<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩</code><br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja). Ako za taj dan u Treningu upišeš kalorije po sekcijama, važi taj zbir, a Move se ignoriše, da se isti trening ne broji dva puta.`,
+        `<strong>Prečica te otvori i sačuva dnevnu aktivnost (jedan tap):</strong><br>1) <strong>Shortcuts</strong> → nova prečica. Za svaku metriku dodaj <strong>„Find Health Samples”</strong> za <em>danas</em> i saberi: Active Energy (kcal), Exercise (min), Stand (h), Steps, Walking+Running Distance. Po želji i <strong>Weight</strong> (poslednja) i <strong>Sleep</strong> (sati prošle noći).<br>2) <strong>„Open URLs”</strong> akcija sa ovim linkom (na ⟨…⟩ ubaci svoje vrednosti):<br><code>${escapeHtml(importBase)}#import-activity?move=⟨Active Energy⟩&ex=⟨Exercise⟩&stand=⟨Stand⟩&steps=⟨Steps⟩&dist=⟨Distance⟩&tezina=⟨Weight⟩&san=⟨Sleep⟩</code><br>Polja koja nemaš samo izostavi.<br>3) Pokreneš prečicu → app se otvori, današnja aktivnost sačuvana, Move kcal ušao u bilans.<br><br><strong>Rezerva (clipboard):</strong> „Copy to Clipboard” sa <code>FITACT;move=⟨kcal⟩;ex=⟨min⟩;stand=⟨h⟩;steps=⟨n⟩;dist=⟨km⟩;tezina=⟨kg⟩;san=⟨h⟩</code>, pa tapni „Iz clipboard-a”.<br><br><em>Napomena:</em> koraci i distanca su info; samo Move kcal ulazi u bilans (uključuje i hodanje, pa nema duplog brojanja). Ako za taj dan u Treningu upišeš kalorije po sekcijama, važi taj zbir, a Move se ignoriše, da se isti trening ne broji dva puta.`,
         "Kako da povučem dnevnu aktivnost?",
         true
       )}
@@ -14055,9 +14055,12 @@ function buildActivityFromFields(fields) {
   const distanceKm = roundValue(parseRunNumber(fields.dist ?? fields.distance ?? fields.distanca ?? fields.km), 2);
   const workouts = parseActivityWorkouts(fields.workouts ?? fields.treninzi ?? fields.w);
   const date = normalizeDateValue(fields.datum ?? fields.date ?? "") || getTodayDateValue();
+  // Težina i san iz Health-a (Body Mass, Sleep Analysis u satima).
+  const weightKg = roundValue(parseRunNumber(fields.weight ?? fields.tezina ?? fields.kg), 1);
+  const sleepHours = roundValue(parseRunNumber(fields.sleep ?? fields.san), 1);
 
   const hasAny =
-    moveKcal > 0 || exerciseMin > 0 || standHours > 0 || steps > 0 || distanceKm > 0 || workouts.length > 0;
+    moveKcal > 0 || exerciseMin > 0 || standHours > 0 || steps > 0 || distanceKm > 0 || workouts.length > 0 || weightKg > 0 || sleepHours > 0;
   if (!hasAny) {
     return null;
   }
@@ -14070,6 +14073,8 @@ function buildActivityFromFields(fields) {
     steps: steps > 0 ? steps : null,
     distanceKm: distanceKm > 0 ? distanceKm : null,
     workouts,
+    weightKg: weightKg >= 25 && weightKg <= 350 ? weightKg : null,
+    sleepHours: sleepHours > 0 && sleepHours <= 16 ? sleepHours : null,
   };
 }
 
@@ -14111,6 +14116,15 @@ function parseActivityClipboard(rawText) {
   return buildActivityFromFields(fields);
 }
 
+function describeActivityImport(record) {
+  const parts = [];
+  if (record?.steps != null) parts.push(`${Math.round(record.steps).toLocaleString("sr-RS")} koraka`);
+  if (record?.moveKcal != null) parts.push(`${record.moveKcal} kcal aktivnosti`);
+  if (record?.weightKg != null) parts.push(`${formatDecimal(record.weightKg, 1)} kg`);
+  if (record?.sleepHours != null) parts.push(`${formatDecimal(record.sleepHours, 1)} h sna`);
+  return parts.length ? `Sačuvano: ${parts.join(", ")}.` : "Dnevni podaci su sačuvani.";
+}
+
 function getActivityForDate(dateValue) {
   const record = (store.activityByDate || {})[dateValue];
   return record && typeof record === "object" ? record : null;
@@ -14137,6 +14151,31 @@ function applyActivityImport(record) {
     store.stepsByDate = store.stepsByDate && typeof store.stepsByDate === "object" ? store.stepsByDate : {};
     store.stepsByDate[record.date] = record.steps;
   }
+  if (record.sleepHours != null) {
+    store.sleepByDate = store.sleepByDate && typeof store.sleepByDate === "object" ? store.sleepByDate : {};
+    store.sleepByDate[record.date] = { ...(store.sleepByDate[record.date] || {}), hours: record.sleepHours };
+  }
+  if (record.weightKg != null) {
+    // Jedno merenje po danu iz uvoza: ponovni uvoz istog dana menja težinu,
+    // ne pravi novo merenje.
+    store.measurements = Array.isArray(store.measurements) ? store.measurements : [];
+    const existing = store.measurements.find((entry) => normalizeDateValue(entry.date) === record.date && entry.source === "health");
+    if (existing) {
+      existing.weightKg = record.weightKg;
+    } else if (!store.measurements.some((entry) => normalizeDateValue(entry.date) === record.date && toNumber(entry.weightKg) > 0)) {
+      store.measurements.push({
+        id: uid("measurement"),
+        date: record.date,
+        weightKg: record.weightKg,
+        calorieGoal: getCalorieGoalForDate(record.date),
+        source: "health",
+      });
+    }
+    const isLatest = !store.measurements.some((entry) => normalizeDateValue(entry.date) > record.date && toNumber(entry.weightKg) > 0);
+    if (isLatest) {
+      store.profile.weightKg = record.weightKg;
+    }
+  }
   persist();
   return true;
 }
@@ -14159,7 +14198,7 @@ function applyActivityClipboardText(text, options = {}) {
   render();
   showFeedbackToast({
     title: "Aktivnost učitana",
-    detail: "Dnevni podaci sa sata su sačuvani.",
+    detail: describeActivityImport(record),
     tone: "success",
     duration: 3400,
   });
@@ -14202,7 +14241,7 @@ function consumeImportFromUrl() {
       applyActivityImport(record);
       showFeedbackToast({
         title: "Aktivnost učitana",
-        detail: "Dnevni podaci sa sata su sačuvani.",
+        detail: describeActivityImport(record),
         tone: "success",
         duration: 3400,
       });
