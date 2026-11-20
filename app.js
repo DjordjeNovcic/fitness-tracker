@@ -427,7 +427,7 @@ function renderMoreSheet() {
           ? `<button class="more-sheet-user" type="button" data-action="open-account" aria-label="Nalog i profil">
               <span class="more-sheet-user-avatar" aria-hidden="true">${escapeHtml(userInitial)}</span>
               <div class="more-sheet-user-info">
-                <span class="more-sheet-user-name">${escapeHtml(displayName)}${isDemo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
+                <span class="more-sheet-user-name">${escapeHtml(displayName)}${isDemo && displayName !== "Demo nalog" ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</span>
                 ${userEmail ? `<span class="more-sheet-user-email">${escapeHtml(userEmail)}</span>` : ""}
               </div>
               <span class="more-sheet-user-chevron" aria-hidden="true">${renderSideChevronIcon(false)}</span>
@@ -14793,7 +14793,7 @@ function renderGoalCalibrationCard() {
   // dnevnog cilja; sad je red kao i ostala poređenja.
   const comparison = renderStatRows([
     { label: "Promena težine", note: `plan je ${formatSignedRate(cal.expectedRate)}`, value: formatSignedRate(cal.actualRate) },
-    { label: `Prosečan unos, ${CALIBRATION_INTAKE_WINDOW_DAYS} dana`, note: `${cal.loggedDays} ${srPlural(cal.loggedDays, "kompletan dan", "kompletna dana", "kompletnih dana")}`, value: `${cal.avgKcal} kcal/dan` },
+    { label: `Prosečan unos, ${CALIBRATION_INTAKE_WINDOW_DAYS} dana`, value: `${cal.avgKcal} kcal/dan` },
     { label: "Potrošnja iz tvojih podataka", note: tdeeNote, value: `${cal.measuredTdee} kcal/dan` },
   ]);
 
@@ -15720,7 +15720,7 @@ function renderAccountSection() {
           <div class="profile-hero">
             <span class="profile-hero-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
             <div class="profile-hero-copy">
-              <h2 class="profile-hero-name">${escapeHtml(name)}${demo ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</h2>
+              <h2 class="profile-hero-name">${escapeHtml(name)}${demo && name !== "Demo nalog" ? `<span class="more-sheet-user-badge">DEMO</span>` : ""}</h2>
               ${email ? `<div class="profile-hero-email">${escapeHtml(email)}</div>` : ""}
               <div class="pill-row profile-hero-pills">
                 <span class="pill strong pill--${syncStatusTone}">${state.syncStatus}</span>

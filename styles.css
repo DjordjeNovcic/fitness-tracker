@@ -17456,3 +17456,16 @@ button.training-week-volume-name {
 :root[data-theme="dark"] .recipe-draft-item-amount input {
   background: var(--surface-strong);
 }
+/* Ciljevi: otvoreni „Tvoji podaci“ bez sažetka (isto piše u poljima). */
+.goals-profile-fold[open] .goals-profile-fold-sub {
+  display: none;
+}
+@media (max-width: 720px) {
+  /* Izbori sa dužim natpisom („Dobijanje mase“) u jednom redu. */
+  :root[data-theme] .choice-chip {
+    padding-inline: 8px;
+  }
+  :root[data-theme] .choice-chip-label {
+    white-space: nowrap;
+  }
+}
