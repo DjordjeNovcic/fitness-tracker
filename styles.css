@@ -18117,3 +18117,31 @@ button.training-week-volume-name {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   color: var(--accent);
 }
+/* Kružići za čekiranje: bez „sjaja“ (bela unutrašnja senka je u tamnoj
+   temi crtala svetlu liniju) i sa jasnijom ivicom dok nisu čekirani. */
+:root[data-theme] .routine-check-ui,
+:root[data-theme] .meal-toggle-ui {
+  box-shadow: none;
+}
+:root[data-theme] .routine-checkbox:not(:checked) + .routine-check-ui {
+  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+:root[data-theme="dark"] .routine-checkbox:not(:checked) + .routine-check-ui,
+:root[data-theme="dark"] .meal-toggle-ui {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: transparent;
+}
+/* Čekirano = puna petrol boja i svetla kvačica (bilo je bledo, teško se
+   na brzinu videlo šta je urađeno). */
+:root[data-theme] .routine-checkbox:checked + .routine-check-ui {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+:root[data-theme] .routine-checkbox:checked + .routine-check-ui::after {
+  border-right-color: #fbf8ef;
+  border-bottom-color: #fbf8ef;
+}
+:root[data-theme="dark"] .routine-checkbox:checked + .routine-check-ui::after {
+  border-right-color: #10181b;
+  border-bottom-color: #10181b;
+}
