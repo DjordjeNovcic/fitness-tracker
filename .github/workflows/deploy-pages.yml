@@ -18,13 +18,11 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Dva posla kao u GitHub-ovom šablonu: objava u istom poslu odmah posle
+# otpremanja ponekad nije „videla“ artefakt („No artifacts named github-pages“).
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -44,7 +42,7 @@ jobs:
         run: bash scripts/build-site.sh
 
       # Smoke test sabijene verzije u pravom pregledaču (tests/smoke.mjs):
-      # svi tabovi, obe teme, 390/360px, nov nalog, prijava i glavne radnje.
+      # svi tabovi, obe teme, 390/360/768/1280px, pristupačnost, nov nalog, prijava i glavne radnje.
       # Ako nešto pukne, deploy se zaustavlja i sajt ostaje na staroj verziji.
       - name: Install Playwright
         run: |
@@ -59,6 +57,15 @@ jobs:
         with:
           path: _site
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
