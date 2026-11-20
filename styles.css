@@ -17469,3 +17469,94 @@ button.training-week-volume-name {
     white-space: nowrap;
   }
 }
+
+/* Računar: dve kolone navika, nizova i zadataka imaju razmak između sebe
+   (nizovi su se dodirivali: „13 DANA“ uz kantu prethodnog). */
+@media (min-width: 721px) {
+  :root[data-theme] .routine-habit-stack,
+  :root[data-theme] .routine-streak-stack,
+  :root[data-theme] .routine-task-stack {
+    column-gap: 28px;
+  }
+  /* „Dodaj …“ u redu sa naslovom odeljka i na računaru. */
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    margin-top: -40px;
+    margin-left: auto;
+    width: max-content;
+    max-width: 60%;
+    position: relative;
+    z-index: 1;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) > summary {
+    gap: 8px;
+    min-height: 34px;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]) > summary .form-collapse-title,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) > summary .form-collapse-title {
+    font-size: var(--fs-14);
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 0;
+  }
+  :root[data-theme] main .section:has(> .help-note:not(.help-note--inline)) > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    margin-right: 44px;
+  }
+}
+@media (min-width: 721px) {
+  /* Tačno u visini naslova, bez obzira na podnaslov: gornji desni ugao. */
+  :root[data-theme] main .section:has(> .section-header + details.form-collapse:not([open])),
+  :root[data-theme] main .section:has(> .section-header + .help-note + details.form-collapse:not([open])) {
+    position: relative;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    margin: 0;
+  }
+  :root[data-theme] main .section:has(> .help-note:not(.help-note--inline)) > .section-header + details.form-collapse:not([open]),
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse:not([open]) {
+    right: 62px;
+    margin: 0;
+  }
+  :root[data-theme] main .section:has(> .section-header + details.form-collapse:not([open])) > .section-header,
+  :root[data-theme] main .section:has(> .section-header + .help-note + details.form-collapse:not([open])) > .section-header {
+    padding-right: 200px;
+  }
+}
+@media (min-width: 721px) {
+  /* Otvorena forma: naziv i × u gornjem desnom uglu, polja odmah ispod
+     zaglavlja odeljka. */
+  :root[data-theme] main .section:has(> .section-header + details.form-collapse[open]),
+  :root[data-theme] main .section:has(> .section-header + .help-note + details.form-collapse[open]) {
+    position: relative;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse[open] > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    gap: 8px;
+    min-height: 34px;
+    z-index: 1;
+  }
+  :root[data-theme] main .section:has(> .help-note:not(.help-note--inline)) > .section-header + details.form-collapse[open] > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary {
+    right: 62px;
+  }
+  :root[data-theme] main .section > .section-header + details.form-collapse[open] > summary .form-collapse-title,
+  :root[data-theme] main .section > .section-header + .help-note:not(.help-note--inline) + details.form-collapse[open] > summary .form-collapse-title {
+    font-size: var(--fs-14);
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 0;
+  }
+  :root[data-theme] main .section:has(> .section-header + details.form-collapse[open]) > .section-header,
+  :root[data-theme] main .section:has(> .section-header + .help-note + details.form-collapse[open]) > .section-header {
+    padding-right: 200px;
+  }
+}
