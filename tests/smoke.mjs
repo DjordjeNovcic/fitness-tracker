@@ -114,6 +114,10 @@ async function checkTabs(width, theme, mode) {
       doubleDose: [...document.querySelectorAll(".training-exercise-detail")].filter(
         (detail) => [...detail.children].filter((child) => getComputedStyle(child).display !== "none").length > 1
       ).length,
+      // Broj u polju sa jedinicom („30 god.“) ne sme da se seče.
+      clippedUnits: [...document.querySelectorAll(".input-unit input")].filter(
+        (input) => input.offsetParent && input.value && input.scrollWidth > input.clientWidth + 1
+      ).map((input) => input.id),
       // Padajuće liste i datumi moraju da imaju strelicu/kalendar u obe teme.
       bareInputs: [...document.querySelectorAll(".field select, .field input[type='date']")].filter(
         (input) => input.offsetParent && getComputedStyle(input).backgroundImage === "none"
@@ -121,6 +125,7 @@ async function checkTabs(width, theme, mode) {
     }));
     if (state.overflow > 1) fail(`${label} #${tab}`, `vodoravni skrol ${state.overflow}px`);
     if (state.height < 150) fail(`${label} #${tab}`, `ekran skoro prazan (${Math.round(state.height)}px)`);
+    if (state.clippedUnits.length) fail(`${label} #${tab}`, `isečen broj u poljima ${state.clippedUnits.join(", ")}`);
     if (state.bareInputs) fail(`${label} #${tab}`, `${state.bareInputs} polja (izbor/datum) bez ikonice`);
     if (state.doubleDose) fail(`${label} #${tab}`, `${state.doubleDose} vežbi prikazuje dve doze`);
     if (withAxe) {

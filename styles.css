@@ -18063,6 +18063,9 @@ button.training-week-volume-name {
      broj se sekao („3(“) jer je razmak za jedinicu bio veći od nje. */
   :root[data-theme] .input-unit input {
     padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  :root[data-theme] .input-unit:has(.input-unit-suffix:not(:empty)) input {
     padding-right: 40px !important;
   }
   :root[data-theme] .input-unit .input-unit-suffix {
