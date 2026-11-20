@@ -200,6 +200,17 @@ async function checkActions() {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
 
+  // Danas: skrol ne sme da menja visinu bloka sa danima — ranije se naslov
+  // skupljao na pragu od 28px, sadržaj je skakao i treptao pri sporom skrolu.
+  const heroHeights = [];
+  for (const y of [0, 20, 40, 120]) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(200);
+    heroHeights.push(await page.evaluate(() => Math.round(document.querySelector(".hero--plan")?.getBoundingClientRect().height || 0)));
+  }
+  if (new Set(heroHeights).size > 1) fail("Danas", `blok sa danima menja visinu pri skrolu: ${heroHeights.join(" → ")}`);
+  await page.evaluate(() => window.scrollTo(0, 0));
+
   // Trening: tajmer odmora i mapa tela.
   await page.evaluate(() => (location.hash = "training"));
   await page.waitForTimeout(600);

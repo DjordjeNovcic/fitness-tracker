@@ -8508,7 +8508,7 @@ function scrollPageTop(behavior = "smooth") {
   window.scrollTo({ top: 0, behavior });
   lastHeaderScrollY = 0;
   state.isPlanHeroCompact = false;
-  document.body.classList.remove("app-header-hidden", "plan-compact");
+  document.body.classList.remove("app-header-hidden", "plan-compact", "plan-scrolled");
 }
 
 function isOverlayOpen() {
@@ -9314,6 +9314,20 @@ function renderAuthShell() {
   `;
 }
 
+function syncPlanHeroStickyTop() {
+  const hero = document.querySelector(".day-block > .hero--plan");
+  const picker = hero?.querySelector(".hero-day-picker");
+  if (!hero || !picker) {
+    return;
+  }
+  // offsetTop je u odnosu na sam blok (lepljiv = pozicioniran); 6px vazduha
+  // iznad dana kad je blok zalepljen.
+  const top = `${-Math.max(0, picker.offsetTop - 6)}px`;
+  if (hero.style.top !== top) {
+    hero.style.top = top;
+  }
+}
+
 function updateHeroScrollState() {
   if (heroScrollFrame) {
     window.cancelAnimationFrame(heroScrollFrame);
@@ -9327,10 +9341,16 @@ function updateHeroScrollState() {
     // The Plan hero's title row (tag + h1 + refresh) collapses once scrolled
     // away; unlike the workspace header below, its week/day pickers stay put
     // and usable the whole time.
-    const isPlanCompact = state.activeTab === "plan" && y >= 28;
-    if (isPlanCompact !== state.isPlanHeroCompact) {
-      state.isPlanHeroCompact = isPlanCompact;
-      body.classList.toggle("plan-compact", isPlanCompact);
+    // Ranije se red sa naslovom skupljao (max-height → 0) čim se pređe 28px:
+    // visina bloka se menjala za ~60px, sadržaj je skakao i pri sporom skrolu
+    // oko praga treptao tamo-amo. Sada blok ne menja visinu: lepljiv je sa
+    // negativnim top-om, pa naslov prirodno ode gore, a traka dana ostane.
+    // Klasa „plan-scrolled“ služi samo za izgled (bledi naslov, uglovi).
+    syncPlanHeroStickyTop();
+    const isPlanScrolled = state.activeTab === "plan" && y >= 28;
+    if (isPlanScrolled !== state.isPlanHeroCompact) {
+      state.isPlanHeroCompact = isPlanScrolled;
+      body.classList.toggle("plan-scrolled", isPlanScrolled);
     }
 
     // Trening/Rutina: the petrol day bar squares its top corners once it is
@@ -18022,7 +18042,7 @@ function render() {
 
 function renderApp() {
   if (!state.authReady) {
-    document.body.classList.remove("plan-compact");
+    document.body.classList.remove("plan-compact", "plan-scrolled");
     state.navMenuOpen = false;
     syncBodyScrollLock();
     document.querySelector("#app").innerHTML = renderLoadingShell();
@@ -18030,7 +18050,7 @@ function renderApp() {
   }
 
   if (!state.authUser) {
-    document.body.classList.remove("plan-compact");
+    document.body.classList.remove("plan-compact", "plan-scrolled");
     state.navMenuOpen = false;
     syncBodyScrollLock();
     document.querySelector("#app").innerHTML = renderAuthShell();
@@ -18038,7 +18058,7 @@ function renderApp() {
   }
 
   if (shouldShowOnboarding()) {
-    document.body.classList.remove("plan-compact");
+    document.body.classList.remove("plan-compact", "plan-scrolled");
     state.navMenuOpen = false;
     if (!state.onboarding) {
       state.onboarding = {
@@ -18284,7 +18304,7 @@ function renderApp() {
     // over from the previous tab, otherwise the hidden (translated) header keeps
     // a blank header-sized gap above the content until the next scroll event.
     state.isPlanHeroCompact = false;
-    document.body.classList.remove("plan-compact", "app-header-hidden");
+    document.body.classList.remove("plan-compact", "plan-scrolled", "app-header-hidden");
     lastHeaderScrollY = 0;
   } else {
     if (preservedFocus) {

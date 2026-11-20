@@ -18176,3 +18176,17 @@ button.training-week-volume-name {
 :root[data-theme] .food-row-info {
   padding-left: 0;
 }
+/* Danas: dok se skroluje, naslov bloka samo bledi (ne menja visinu, vidi
+   syncPlanHeroStickyTop); uglovi kad je traka zalepljena za vrh. */
+.hero--plan:not(.hero--sub) .hero-top {
+  transition: opacity 0.18s ease;
+}
+body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
+  opacity: 0;
+}
+@media (min-width: 721px) {
+  :root[data-theme] body.plan-scrolled .day-block > .hero--plan {
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 14px 26px -20px oklch(0.25 0.05 222 / 0.7);
+  }
+}
