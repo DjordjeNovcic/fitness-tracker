@@ -17769,3 +17769,7 @@ button.training-week-volume-name {
     height: 22px;
   }
 }
+/* Dodaj namirnicu u obrok: poslednja namirnica već ima liniju ispod, bez druge iznad pretrage. */
+:root[data-theme] .meal-card .meal-composer {
+  border-top: 0;
+}

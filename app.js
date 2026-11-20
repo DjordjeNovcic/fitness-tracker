@@ -9838,7 +9838,7 @@ function renderQuickEntryDialog() {
         <div class="field">
           <label for="quick-entry-input">Šta je bilo u obroku</label>
           <textarea id="quick-entry-input" rows="3" placeholder="npr. 200 g piletine, 150 pirinča i 2 jajeta u ručak" autocomplete="off" spellcheck="false">${escapeHtml(state.quickEntryText)}</textarea>
-          ${rows.length ? "" : `<p class="footer-note">Napiši obrok običnim rečima, razdvoj zarezom ili sa „i“. Broj bez jedinice su grami, mali broj („2 jajeta“) komadi; „u ručak“ na kraju bira obrok.</p>`}
+          ${rows.length ? "" : `<p class="footer-note">Razdvoj zarezom ili sa „i“. Broj bez jedinice su grami, „2 jajeta“ su komadi, „u ručak“ bira obrok.</p>`}
         </div>
 
         ${
