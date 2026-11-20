@@ -18351,10 +18351,38 @@ function syncValidationState(root = document, options = {}) {
   root.querySelectorAll("input, select, textarea").forEach((control) => updateValidationState(control, options));
 }
 
+// Poruka pregledača ide na jeziku telefona („Please fill out this field“),
+// pa se piše na srpskom. Postavlja se samo za ovaj prikaz i briše odmah posle:
+// zaostala setCustomValidity poruka bi zauvek blokirala formu.
+function getSerbianValidationMessage(control) {
+  const v = control.validity;
+  if (v.valueMissing) {
+    if (control instanceof HTMLSelectElement) return "Izaberi jednu od ponuđenih vrednosti.";
+    if (control.type === "file") return "Izaberi fajl.";
+    return "Popuni ovo polje.";
+  }
+  if (v.typeMismatch && control.type === "email") return "Upiši ispravnu e-poštu, npr. ime@email.com.";
+  if (v.tooShort) return `Najmanje ${control.minLength} karaktera (sada ${control.value.length}).`;
+  if (v.tooLong) return `Najviše ${control.maxLength} karaktera.`;
+  if (v.rangeUnderflow) return `Najmanje ${String(control.min).replace(".", ",")}.`;
+  if (v.rangeOverflow) return `Najviše ${String(control.max).replace(".", ",")}.`;
+  if (v.stepMismatch) return "Upiši zaokruženiju vrednost.";
+  if (v.badInput) return control.type === "number" ? "Upiši broj." : "Neispravna vrednost.";
+  if (v.patternMismatch) return control.title || "Vrednost nije u dobrom obliku.";
+  return "";
+}
+
 function handleInvalidField(event) {
   const target = event.target;
   if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
     return;
+  }
+  const message = target.validity.customError ? "" : getSerbianValidationMessage(target);
+  if (message) {
+    target.setCustomValidity(message);
+    // Pregledač oblačić crta tek posle ovog događaja, pa poruka mora malo da
+    // poživi; briše se i na prvi unos (handleValidationInteraction).
+    setTimeout(() => target.setCustomValidity(""), 1000);
   }
 
   if (target.form) {
@@ -18370,6 +18398,9 @@ function handleValidationInteraction(event) {
     return;
   }
 
+  if (target.validity.customError && "setCustomValidity" in target) {
+    target.setCustomValidity("");
+  }
   target.dataset.touched = "true";
   updateValidationState(target, { reveal: true });
 }
