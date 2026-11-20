@@ -17816,3 +17816,15 @@ button.training-week-volume-name {
   background-size: 18px 18px;
   padding-right: 48px;
 }
+@media (min-width: 900px) {
+  /* Računar: podtabovi (Trening/Trčanje, Cilj/Nedeljno/Nalog…) desno u redu
+     sa naslovom stranice, kao na telefonu, umesto u svom redu (~80px). */
+  :root[data-theme] .app-main .workspace-header + .group-seg-nav,
+  :root[data-theme] .app-main .workspace-header + .seg-nav {
+    margin-top: -59px;
+    margin-left: auto;
+    width: max-content;
+    position: relative;
+    z-index: 1;
+  }
+}
