@@ -180,6 +180,21 @@ async function checkActions() {
     fail("Danas", "pretraga „banana“ ne nalazi namirnicu");
   }
 
+  // Brzi unos: padeži se prepoznaju, a nepoznata namirnica ne postaje neka
+  // slična po prvim slovima („kinoe“ nije Kineska mešavina).
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.click("button:has-text('Brzi unos')");
+  await page.waitForTimeout(400);
+  await page.fill("textarea", "150 pirinča, 50 sira, 150 spanaća, 100 g kinoe");
+  await page.waitForTimeout(700);
+  const picked = await page.$$eval("[data-action='set-quick-entry-food']", (selects) =>
+    selects.map((select) => select.options[select.selectedIndex]?.text || "")
+  );
+  const expected = ["Beli pirinac", "Ella sir", "Spanać"];
+  if (picked.join("|") !== expected.join("|")) fail("Brzi unos", `prepoznato ${JSON.stringify(picked)}, očekivano ${JSON.stringify(expected)}`);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+
   // Trening: tajmer odmora i mapa tela.
   await page.evaluate(() => (location.hash = "training"));
   await page.waitForTimeout(600);

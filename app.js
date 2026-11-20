@@ -9642,22 +9642,39 @@ function parseQuickEntryText(text) {
 // word progressively shortened before giving up.
 function rankQuickEntryMatches(query, limit = 5) {
   const foods = getSelectableFoods();
-  const direct = rankFoodsForQuery(query, foods, limit);
   const words = normalizeLookupValue(query).split(" ").filter(Boolean);
   if (!words.length) {
-    return direct;
+    return [];
   }
   const last = words[words.length - 1];
+  // Pogodak samo „uz jednu grešku u kucanju“ (score 4) za kratku reč je
+  // nagađanje („kinoe“ → Kineska mešavina), a ovde se prvi pogodak upisuje
+  // sam. Za kratke reči bolje „nije pronađeno“ nego pogrešna namirnica.
+  const strict = (list) => (last.length >= 7 ? list : list.filter((entry) => entry.score !== 4));
+  const direct = strict(rankFoodsForQuery(query, foods, limit));
   // Padež može biti i početak druge reči: „pirinča“ je početak „pirinčani
   // griz“, pa direktna pretraga nađe griz, a „Beli pirinac“ promaši. Zato se
   // uvek proba i osnova reči, a prednost ima reč najbliže dužine kucanoj.
   const pool = [...direct];
   for (let trim = 1; trim <= 3; trim += 1) {
-    if (last.length - trim < (direct.length ? 4 : 3)) {
+    if (last.length - trim < 3) {
       break;
     }
     const stem = last.slice(0, last.length - trim);
-    const found = rankFoodsForQuery([...words.slice(0, -1), stem].join(" "), foods, limit);
+    let found = strict(rankFoodsForQuery([...words.slice(0, -1), stem].join(" "), foods, limit * 4));
+    if (stem.length < 4) {
+      // Osnova od tri slova hvata svašta („kinoe“ → „kin“ → Kineska mešavina).
+      // Važi samo ako se neka reč u nazivu poklapa skoro cela („jaja“ → „jaje“).
+      found = found.filter((entry) =>
+        normalizeLookupValue(entry.food.name)
+          .split(" ")
+          .some((part) => {
+            let shared = 0;
+            while (shared < part.length && shared < last.length && part[shared] === last[shared]) shared += 1;
+            return shared >= last.length - 1 && Math.abs(part.length - last.length) <= 1;
+          })
+      );
+    }
     found.forEach((entry) => {
       if (!pool.some((known) => known.food === entry.food)) {
         pool.push(entry);
@@ -9669,21 +9686,26 @@ function rankQuickEntryMatches(query, limit = 5) {
   }
   if (!pool.length && words.length > 1) {
     // „grčkog jogurta“: padež je u svakoj reči, pa se sve skraćuju na osnovu.
-    const stems = words.map((word) => (word.length > 4 ? word.slice(0, Math.max(4, word.length - 3)) : word));
-    pool.push(...rankFoodsForQuery(stems.join(" "), foods, limit));
+    const stems = words.map((word) => (word.length > 3 ? word.slice(0, Math.max(3, word.length - 3)) : word));
+    pool.push(...strict(rankFoodsForQuery(stems.join(" "), foods, limit)));
   }
   if (pool.length === direct.length) {
     return direct;
   }
+  // Koliko je reč iz naziva daleko od kucane: razlika u dužini, plus pola
+  // poena po slovu koje se ne poklapa. „sira“ = „sir“ + padež, pa reč koja je
+  // početak kucane nema dodatnu kaznu (pobeđuje „sirup“); „spanaća“ je bliže
+  // „spanać“ nego „špagete“ jer im se poklapa šest, a ne tri slova.
   const distance = (entry) => {
     const diffs = normalizeLookupValue(entry.food.name)
       .split(" ")
-      .filter((part) => {
+      .map((part) => {
         let shared = 0;
         while (shared < part.length && shared < last.length && part[shared] === last[shared]) shared += 1;
-        return shared >= Math.min(4, last.length);
-      })
-      .map((part) => Math.abs(part.length - last.length));
+        if (shared < Math.min(3, last.length)) return 99;
+        const unshared = Math.min(part.length, last.length) - shared;
+        return last.startsWith(part) ? last.length - part.length : Math.abs(part.length - last.length) + 0.5 + unshared * 0.5;
+      });
     return diffs.length ? Math.min(...diffs) : 99;
   };
   return pool
