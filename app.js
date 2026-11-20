@@ -13257,8 +13257,8 @@ function renderTrainingTab() {
                                     const rest = name && details.toLowerCase().startsWith(name.toLowerCase()) ? details.slice(name.length).trim() : details;
                                     if (!rest || rest === name) return "";
                                     // Na telefonu kratko („3-4 × 8-12“), da odmor, zamena i kilaža stanu u isti red.
-                                    const doseMatch = rest.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:x|×|serij\w*,?)\s*(\d+(?:\s*[-–]\s*\d+)?)\s*(?:ponavlj\w*|pon\.?)?$/i);
-                                    const short = doseMatch ? `${doseMatch[1].replace(/\s+/g, "")} × ${doseMatch[2].replace(/\s+/g, "")}` : "";
+                                    const doseMatch = rest.match(/^(\d+(?:\s*[-–]\s*\d+)?)\s*(?:x|×|serij\w*,?)\s*(\d+(?:\s*[-–]\s*\d+)?)\s*(s\b|sek\w*)?\s*(?:ponavlj\w*|pon\.?)?$/i);
+                                    const short = doseMatch ? `${doseMatch[1].replace(/\s+/g, "")} × ${doseMatch[2].replace(/\s+/g, "")}${doseMatch[3] ? " s" : ""}` : "";
                                     return `<div class="training-exercise-detail${short ? " has-short" : ""}"><span class="training-exercise-detail-long">${escapeHtml(rest)}</span>${short ? `<span class="training-exercise-detail-short" aria-hidden="true">${escapeHtml(short)}</span>` : ""}</div>`;
                                   })()}
                                   ${renderExerciseProgression(exercise.name, exercise.details)}
@@ -13399,42 +13399,39 @@ function renderTrainingTab() {
       </div>
     </details>
 
-    <details class="section form-collapse form-collapse--view">
+    ${
+      // Samo lista; dok je prazna ne zauzima red (unos je u „Napredak po vežbi“).
+      recentProgressLogs.length
+        ? `<details class="section form-collapse form-collapse--view">
       <summary>
         <span class="form-collapse-title">Poslednji unosi</span>
-        ${renderCollapseHint(
-          recentProgressLogs.length
-            ? formatDateValueLabel(normalizeDateValue(recentProgressLogs[0].date)).replace(/ \d{4}\.$/, "")
-            : "nema"
-        )}
+        ${renderCollapseHint(formatDateValueLabel(normalizeDateValue(recentProgressLogs[0].date)).replace(/ \d{4}\.$/, ""))}
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
       </summary>
-      <div class="stack">
-        ${
-          recentProgressLogs.length
-            ? recentProgressLogs
-                .map(
-                  (log) => `
-                    <article class="food-card">
-                      <div class="food-card-top">
-                        <strong>${escapeHtml(log.exerciseName)}</strong>
-                        <button class="danger-button" data-action="delete-training-progress" data-progress-id="${log.id}">Obriši</button>
-                      </div>
-                      <div class="pill-row">
-                        <span class="pill strong">${formatDecimal(log.weightKg, 1)} kg</span>
-                        <span class="pill">${new Date(log.date).toLocaleDateString("sr-RS")}</span>
-                        <span class="pill">${log.weekday}</span>
-                        ${log.reps ? `<span class="pill">${escapeHtml(log.reps)}</span>` : ""}
-                      </div>
-                      ${log.note ? `<div class="footer-note">${escapeHtml(log.note)}</div>` : ""}
-                    </article>
-                  `
-                )
-                .join("")
-            : `<div class="empty">Još nema sačuvanih unosa opterećenja.</div>`
-        }
-      </div>
-    </details>
+      <ul class="progress-log-list">
+        ${recentProgressLogs
+          .map(
+            (log) => `
+              <li class="progress-log-row">
+                <span class="progress-log-copy">
+                  <strong>${escapeHtml(log.exerciseName)}</strong>
+                  <span>${[
+                    `${formatDecimal(log.weightKg, 1)} kg`,
+                    log.reps ? escapeHtml(log.reps) : "",
+                    (formatDateValueLabel(normalizeDateValue(log.date)) || "").replace(/ \d{4}\.$/, ""),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}</span>
+                  ${log.note ? `<span class="progress-log-note">${escapeHtml(log.note)}</span>` : ""}
+                </span>
+                <button class="ghost-button icon-only-action" type="button" data-action="delete-training-progress" data-progress-id="${log.id}" aria-label="Obriši unos ${escapeHtml(log.exerciseName)}" title="Obriši">${renderActionIcon("delete")}</button>
+              </li>`
+          )
+          .join("")}
+      </ul>
+    </details>`
+        : ""
+    }
 
     <details class="section form-collapse form-collapse--view">
       <summary>

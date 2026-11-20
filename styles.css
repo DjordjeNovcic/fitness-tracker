@@ -17353,3 +17353,29 @@ button.training-week-volume-name {
     margin-right: 40px;
   }
 }
+/* Trening → Poslednji unosi: red po unosu (vežba, kilaža · ponavljanja ·
+   datum), kanta desno — umesto kartica sa pilulama. */
+.progress-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.progress-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.progress-log-row:first-child { border-top: 0; }
+.progress-log-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.progress-log-copy > span {
+  color: var(--muted);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+.progress-log-copy > .progress-log-note { font-style: italic; }
