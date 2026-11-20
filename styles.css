@@ -18190,3 +18190,37 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     box-shadow: 0 14px 26px -20px oklch(0.25 0.05 222 / 0.7);
   }
 }
+
+/* Podtabovi (Trening/Trčanje, Namirnice/Recepti, Cilj/Nedeljno/Nalog,
+   Pregled/Merenja/…): aktivni je bio beo na kremastom, a neaktivni siv tekst
+   sa tankom ivicom — ceo vrh je delovao bledo. Aktivni je sada pune petrol
+   boje, neaktivni meka pločica sa tamnijim tekstom. */
+:root[data-theme] .seg-nav .seg-nav-btn {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: color-mix(in srgb, var(--ink) 78%, transparent);
+  box-shadow: none;
+  font-weight: 700;
+}
+:root[data-theme] .seg-nav .seg-nav-btn:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+:root[data-theme] .seg-nav .seg-nav-btn.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fbf8ef;
+}
+:root[data-theme="dark"] .seg-nav .seg-nav-btn {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(244, 239, 230, 0.82);
+}
+:root[data-theme="dark"] .seg-nav .seg-nav-btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0c1417;
+}
+/* Pozadina stranice i ispod statusne trake: html je imao samo gradijent bez
+   boje, pa je telefon gore i pri povlačenju pokazivao belo. */
+:root[data-theme="light"] {
+  background-color: #f4efe6;
+}
