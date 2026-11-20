@@ -17829,3 +17829,8 @@ button.training-week-volume-name {
     z-index: 1;
   }
 }
+/* Pretraga namirnica: fokus vidljiv kao kod ostalih polja, ne samo tanka ivica. */
+:root[data-theme] .foods-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
