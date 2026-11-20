@@ -18072,3 +18072,48 @@ button.training-week-volume-name {
     right: 9px;
   }
 }
+
+/* ============================================================
+   2026-11-20 — Vizuelni krug: tipografija.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* Naslovi sekcija jedne veličine: sklopive sekcije („Napredak po vežbi“,
+     „Beleške“, „Alati za plan“) bile su 15,9px, obične 16,9px. */
+  :root[data-theme] details.section > summary .form-collapse-title,
+  :root[data-theme] .section-disclosure .section-disclosure-copy > h2,
+  :root[data-theme] .section-header h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+  }
+  /* Najsitniji običan tekst (makroi u redu namirnice, napomene u redovima,
+     opisi izbora) 11,25 → 12,2px; velika slova sa razmakom ostaju sitna. */
+  :root[data-theme] .meal-entry-macros,
+  :root[data-theme] .stat-row-note,
+  :root[data-theme] .choice-chip-hint {
+    font-size: 0.8125rem;
+  }
+}
+/* Red vežbe: tajmer, zamena i kilaža kao meke pločice bez okvira — tri
+   obrubljene pilule u svakom redu bile su glasnije od naziva vežbe. */
+:root[data-theme] .training-exercise-row .training-rest,
+:root[data-theme] .training-exercise-row .training-exercise-log {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+:root[data-theme] .training-exercise-row .training-rest:hover,
+:root[data-theme] .training-exercise-row .training-exercise-log:hover {
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+}
+:root[data-theme] .training-exercise-row .training-rest.is-running {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .training-exercise-row .training-rest,
+:root[data-theme="dark"] .training-exercise-row .training-exercise-log {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .training-exercise-row .training-rest.is-running {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
