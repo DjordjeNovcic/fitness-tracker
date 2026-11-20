@@ -18161,3 +18161,14 @@ button.training-week-volume-name {
   border-right-color: #10181b;
   border-bottom-color: #10181b;
 }
+@media (min-width: 721px) {
+  /* Namirnice u obroku na računaru: red 74 → ~60px, kao gustina liste Hrane. */
+  :root[data-theme] .meal-entry {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+}
+/* Namirnice u obroku poravnate sa naslovom obroka (bile uvučene 4px). */
+:root[data-theme] .meal-entry-body {
+  padding-left: 0;
+}
