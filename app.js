@@ -10720,10 +10720,10 @@ function renderTodayRemindersBanner() {
 function formatShoppingAmount(unit, amount) {
   const value = toNumber(amount);
   if (unit === "piece") {
-    return `${roundValue(value, Number.isInteger(value) ? 0 : 1)} kom`;
+    return `${formatDecimal(value, Number.isInteger(value) ? 0 : 1)} kom`;
   }
   if (value >= 1000) {
-    return `${roundValue(value / 1000, value % 1000 === 0 ? 0 : 1)} kg`;
+    return `${formatDecimal(value / 1000, value % 1000 === 0 ? 0 : 1)} kg`;
   }
   return `${roundValue(value, 0)} g`;
 }
