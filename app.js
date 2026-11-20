@@ -10485,7 +10485,7 @@ function renderPlanTrainingBurnRow() {
         <span class="plan-glance-icon" aria-hidden="true">🏋️</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Kalorije treninga</span><span class="plan-glance-value">${
-            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nema unosa"
+            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "0 kcal"
           }</span></div>
           ${
             open
