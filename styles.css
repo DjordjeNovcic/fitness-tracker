@@ -17644,3 +17644,7 @@ button.training-week-volume-name {
     border-bottom: 0;
   }
 }
+/* Dodaj naviku: „Brojanje od“ samo kad je izabran niz (nedeljnoj ne treba). */
+.routine-habit-form:not(:has([data-choice-value="streak"].is-active)) .field:has(#habit-start-date) {
+  display: none;
+}

@@ -14305,10 +14305,6 @@ function renderRoutineTab() {
             value="${editingHabit?.trackingMode === "streak" ? editingHabit.streakStartDate || "" : ""}"
           />
         </div>
-        <div class="footer-note routine-habit-form-note">
-          Za naviku sa nizom upiši naziv onako kako želiš da piše u evidenciji, npr. "bez alkohola". Ako ostane
-          nedeljna navika, datum se ignoriše.
-        </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
           <button class="solid-button" type="submit">${editingHabit ? "Sačuvaj izmenu" : "Dodaj naviku"}</button>
           ${editingHabit ? '<button class="ghost-button" type="button" data-action="cancel-edit-habit">Odustani</button>' : ""}
