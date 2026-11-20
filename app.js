@@ -14199,7 +14199,8 @@ function renderRunningTab() {
   const draftSeconds = draft.durationSec != null ? String(draft.durationSec % 60) : "";
   const draftAvgHr = draft.avgHr != null ? String(draft.avgHr) : "";
   const draftMaxHr = draft.maxHr != null ? String(draft.maxHr) : "";
-  const draftType = draft.type || "";
+  // Bez izbora se čuva kao „lagano“, pa forma to i pokazuje.
+  const draftType = draft.type || "lagano";
   const draftNote = draft.note != null ? String(draft.note) : "";
 
   return `
@@ -14249,7 +14250,7 @@ function renderRunningTab() {
           <input id="run-date" name="date" type="date" value="${draftDate}" required />
         </div>
         ${renderChoiceField("Tip trčanja", "type", draftType, RUN_TYPES.map((type) => ({ id: type.id, label: type.label })))}
-        ${renderUnitField("run-distance", "Distanca", "km", `<input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5.2" value="${draftKm}" required />`)}
+        ${renderUnitField("run-distance", "Distanca", "km", `<input id="run-distance" name="distanceKm" type="number" step="0.01" min="0" inputmode="decimal" placeholder="npr. 5,2" value="${draftKm}" required />`)}
         <div class="field">
           <label for="run-minutes">Vreme (min : sek)</label>
           <div class="run-time-inputs">
