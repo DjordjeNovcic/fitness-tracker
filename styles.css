@@ -17690,3 +17690,8 @@ button.training-week-volume-name {
   margin-inline: 0;
   padding-inline: 0;
 }
+/* Rutina: prazna lista odmah ispod naslova, kao kod nizova. */
+.routine-habit-stack:has(> .empty:only-child),
+.routine-task-stack:has(> .empty:only-child) {
+  margin-top: 2px !important;
+}

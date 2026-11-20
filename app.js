@@ -14403,7 +14403,7 @@ function renderRoutineTab() {
                   `;
                 })
                 .join("")
-            : `<div class="empty">Dodaj prvi niz i dobićeš brojač tipa „90 dana bez alkohola“.</div>`
+            : `<div class="empty">Brojač tipa „90 dana bez alkohola“. Dodaje se preko „Dodaj naviku“ → Niz.</div>`
         }
       </div>
     </section>
