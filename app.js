@@ -989,6 +989,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     progressPhotos: Array.isArray(rawStore.progressPhotos) ? rawStore.progressPhotos : [],
     foodUsage: rawStore.foodUsage && typeof rawStore.foodUsage === "object" ? rawStore.foodUsage : {},
     stepsByDate: rawStore.stepsByDate && typeof rawStore.stepsByDate === "object" ? rawStore.stepsByDate : {},
+    sleepByDate: rawStore.sleepByDate && typeof rawStore.sleepByDate === "object" && !Array.isArray(rawStore.sleepByDate) ? rawStore.sleepByDate : {},
     coffeeByDate: rawStore.coffeeByDate && typeof rawStore.coffeeByDate === "object" ? rawStore.coffeeByDate : {},
     activityByDate: rawStore.activityByDate && typeof rawStore.activityByDate === "object" ? rawStore.activityByDate : {},
     shortcutNames: {
@@ -1117,6 +1118,8 @@ function ensureStoreCollections(targetStore) {
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
+  targetStore.sleepByDate =
+    targetStore.sleepByDate && typeof targetStore.sleepByDate === "object" && !Array.isArray(targetStore.sleepByDate) ? targetStore.sleepByDate : {};
   targetStore.coffeeByDate =
     targetStore.coffeeByDate && typeof targetStore.coffeeByDate === "object" ? targetStore.coffeeByDate : {};
   targetStore.activityByDate =
@@ -10642,9 +10645,56 @@ function renderPlanGlanceRows() {
         </div>
         <button class="plan-glance-btn ${state.stepsEditOpen ? "is-active" : ""}" type="button" data-action="toggle-steps-edit" aria-label="${state.stepsEditOpen ? "Zatvori unos koraka" : "Unesi korake"}">${state.stepsEditOpen ? "Zatvori" : "Unesi"}</button>
       </div>
+      ${renderPlanSleepRow()}
       ${renderPlanTrainingBurnRow()}
       ${renderPlanWeightRow()}
     </div>`;
+}
+
+// San prošle noći i energija danas (1–5), po datumu. Upisuje se ujutru, jednim
+// dodirom; posle par nedelja Napredak pokazuje vezu sna sa unosom.
+const ENERGY_LABELS = ["", "iscrpljen", "umoran", "ok", "dobro", "odlično"];
+
+function getSleepEntry(dateValue = getTodayDateValue()) {
+  const entry = (store.sleepByDate || {})[dateValue];
+  return entry && typeof entry === "object" ? entry : null;
+}
+
+function renderPlanSleepRow() {
+  const entry = getSleepEntry();
+  const open = state.sleepEditOpen;
+  const hours = toNumber(entry?.hours);
+  const energy = Math.round(toNumber(entry?.energy));
+  const draftEnergy = Math.round(toNumber(state.sleepDraftEnergy ?? energy));
+  const value = hours > 0 ? `${formatDecimal(hours, 1)} h${energy ? ` · ${energy}/5` : ""}` : energy ? `energija ${energy}/5` : "—";
+  const sub = energy ? `energija ${energy}/5 · ${ENERGY_LABELS[energy]}` : hours > 0 ? "energija nije upisana" : "sati sna i energija 1–5";
+  return `
+      <div class="plan-glance-row plan-glance-row--sleep">
+        <span class="plan-glance-icon" aria-hidden="true">😴</span>
+        <div class="plan-glance-copy">
+          <div class="plan-glance-line"><span class="plan-glance-label">San</span><span class="plan-glance-value">${value}</span></div>
+          ${
+            open
+              ? `<div class="plan-sleep-edit">
+                  <label class="plan-sleep-hours">
+                    <input id="sleep-hours-input" type="number" inputmode="decimal" min="0" max="16" step="0.5" placeholder="7,5" value="${hours || ""}" aria-label="Sati sna" />
+                    <span aria-hidden="true">h</span>
+                  </label>
+                  <div class="plan-sleep-energy" role="radiogroup" aria-label="Energija danas">
+                    ${[1, 2, 3, 4, 5]
+                      .map(
+                        (level) =>
+                          `<button type="button" class="plan-sleep-energy-btn ${draftEnergy === level ? "is-active" : ""}" role="radio" aria-checked="${draftEnergy === level}" data-action="pick-sleep-energy" data-energy="${level}" aria-label="Energija ${level}: ${ENERGY_LABELS[level]}">${level}</button>`
+                      )
+                      .join("")}
+                  </div>
+                  <button class="solid-button" type="button" data-action="save-sleep">Sačuvaj</button>
+                </div>`
+              : `<div class="plan-glance-sub">${sub}</div>`
+          }
+        </div>
+        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-sleep-edit" aria-label="${open ? "Zatvori unos sna" : "Unesi san i energiju"}">${open ? "Zatvori" : "Unesi"}</button>
+      </div>`;
 }
 
 // Kalorije treninga (trening, stomak, kardio) za dan na ekranu — isti podaci
@@ -16845,7 +16895,26 @@ function getWeeklyReport() {
     0
   );
   const proteinGoal = toNumber(store.goals?.protein);
+  // San: prosek za ovih 7 dana, i veza sa unosom za poslednjih 60 dana
+  // (dan posle kratkog sna naspram dana posle 7+ sati).
+  const sleepWeek = thisWeek.map((d) => getSleepEntry(d.date)).filter(Boolean);
+  const sleepHours = sleepWeek.map((e) => toNumber(e.hours)).filter((h) => h > 0);
+  const energies = sleepWeek.map((e) => toNumber(e.energy)).filter((x) => x > 0);
+  const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const shortKcal = [];
+  const restedKcal = [];
+  getHistoryDays(60).forEach((d) => {
+    const hours = toNumber(getSleepEntry(d.date)?.hours);
+    if (!(hours > 0) || !isHistoryDayFinal(d) || !(d.snap?.kcal > 0)) return;
+    if (hours < 6.5) shortKcal.push(d.snap.kcal);
+    else if (hours >= 7) restedKcal.push(d.snap.kcal);
+  });
+  const sleepKcalGap = shortKcal.length >= 3 && restedKcal.length >= 3 ? Math.round(mean(shortKcal) - mean(restedKcal)) : null;
   return {
+    avgSleep: sleepHours.length ? roundValue(mean(sleepHours), 1) : 0,
+    sleepDays: sleepHours.length,
+    avgEnergy: energies.length ? roundValue(mean(energies), 1) : 0,
+    sleepKcalGap,
     avgProtein: avg(thisWeek, "protein"),
     proteinGoal,
     trainingPlanned,
@@ -16885,6 +16954,16 @@ function renderWeeklyReportSection() {
   const vsLast = (value, more, less) => (value ? `${Math.abs(value)} ${value > 0 ? more : less} nego prošle nedelje` : "kao prošle nedelje");
   // Najviše dve konkretne preporuke, najvažnija prva.
   const tips = [];
+  if (r.sleepKcalGap !== null && Math.abs(r.sleepKcalGap) >= 150) {
+    tips.push(
+      r.sleepKcalGap > 0
+        ? `Kad spavaš manje od 6,5 h, pojedeš ~${r.sleepKcalGap} kcal više nego posle 7+ sati. San je deo dijete.`
+        : `Posle kratkog sna jedeš ~${Math.abs(r.sleepKcalGap)} kcal manje — pazi da ne preskačeš obroke kad si umoran.`
+    );
+  }
+  if (r.sleepDays >= 3 && r.avgSleep > 0 && r.avgSleep < 7) {
+    tips.push(`Prosek sna je ${formatDecimal(r.avgSleep, 1)} h. Cilj je 7–9 h: probaj da legneš 30 min ranije.`);
+  }
   if (r.proteinGoal > 0 && r.avgProtein > 0 && r.avgProtein < r.proteinGoal * 0.85) {
     tips.push(`Fali ~${roundValue(r.proteinGoal - r.avgProtein, 0)} g proteina dnevno: dodaj jogurt, jaja ili porciju mesa u jedan obrok.`);
   }
@@ -16910,6 +16989,11 @@ function renderWeeklyReportSection() {
         r.avgKcal && { label: "Prosečan unos, 7 dana", note: vsLast(kcalDelta, "kcal više", "kcal manje"), value: `${r.avgKcal} kcal/dan` },
         r.avgProtein && r.proteinGoal > 0 && { label: "Proteini", note: `cilj ${roundValue(r.proteinGoal, 0)} g`, value: `${r.avgProtein} g/dan` },
         r.trainingPlanned && { label: "Treninzi", note: "planirani do danas", value: `${r.trainingDone} od ${r.trainingPlanned}` },
+        r.sleepDays && {
+          label: "San",
+          note: r.avgEnergy ? `energija ${formatDecimal(r.avgEnergy, 1)}/5` : `${r.sleepDays} ${srPlural(r.sleepDays, "noć", "noći", "noći")} upisano`,
+          value: `${formatDecimal(r.avgSleep, 1)} h`,
+        },
         r.habitPossible && { label: "Navike", note: "čekirano ove nedelje", value: `${Math.round((r.habitDone / r.habitPossible) * 100)} %` },
         r.weightDelta !== null
           ? { label: "Težina", note: "za poslednjih 7 dana", value: `${r.weightDelta > 0 ? "+" : r.weightDelta < 0 ? "−" : ""}${formatDecimal(Math.abs(r.weightDelta), 1)} kg` }
@@ -19621,6 +19705,45 @@ async function handleDocumentClick(event) {
     if (!state.planDraft.mealLabel) {
       state.planDraft.mealLabel = defaultMeals[0];
     }
+    render();
+    return;
+  }
+
+  if (action === "toggle-sleep-edit") {
+    state.sleepEditOpen = !state.sleepEditOpen;
+    state.sleepDraftEnergy = null;
+    render();
+    if (state.sleepEditOpen) document.querySelector("#sleep-hours-input")?.focus();
+    return;
+  }
+
+  if (action === "pick-sleep-energy") {
+    state.sleepDraftEnergy = toNumber(actionTarget.dataset.energy);
+    const hoursValue = document.querySelector("#sleep-hours-input")?.value;
+    document.querySelectorAll(".plan-sleep-energy-btn").forEach((button) => {
+      const on = button === actionTarget;
+      button.classList.toggle("is-active", on);
+      button.setAttribute("aria-checked", String(on));
+    });
+    if (hoursValue !== undefined) {
+      // bez render(): kucani sati ostaju u polju
+    }
+    return;
+  }
+
+  if (action === "save-sleep") {
+    const hours = Math.min(16, Math.max(0, roundValue(toNumber(document.querySelector("#sleep-hours-input")?.value), 1)));
+    const energy = Math.round(toNumber(state.sleepDraftEnergy ?? getSleepEntry()?.energy));
+    const today = getTodayDateValue();
+    store.sleepByDate = store.sleepByDate && typeof store.sleepByDate === "object" ? store.sleepByDate : {};
+    if (!(hours > 0) && !(energy > 0)) {
+      delete store.sleepByDate[today];
+    } else {
+      store.sleepByDate[today] = { ...(hours > 0 ? { hours } : {}), ...(energy > 0 ? { energy } : {}) };
+    }
+    state.sleepEditOpen = false;
+    state.sleepDraftEnergy = null;
+    persist();
     render();
     return;
   }

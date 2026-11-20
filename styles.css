@@ -18399,3 +18399,94 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   font-size: var(--fs-14);
   line-height: 1.4;
 }
+/* Danas › San: sati + energija 1–5. */
+.plan-sleep-edit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.plan-sleep-hours {
+  position: relative;
+  width: 84px;
+}
+.plan-sleep-hours input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 26px 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-12, 12px);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+:root[data-theme="dark"] .plan-sleep-hours input {
+  background: var(--surface-strong);
+}
+.plan-sleep-hours span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: var(--fs-13);
+}
+.plan-sleep-energy {
+  display: flex;
+  gap: 4px;
+}
+.plan-sleep-energy-btn {
+  width: 34px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.plan-sleep-energy-btn.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fbf8ef;
+}
+:root[data-theme="dark"] .plan-sleep-energy-btn.is-active {
+  color: #0c1417;
+}
+.plan-sleep-edit .solid-button {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+@media (max-width: 720px) {
+  /* San dok se unosi: cela širina (sati + 5 dugmadi ne staju u pola). */
+  :root[data-theme] .plan-glance-rows > .plan-glance-row--sleep:has(.plan-sleep-edit) {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    border-right: 0;
+  }
+  :root[data-theme] .plan-glance-row--sleep .plan-sleep-edit {
+    grid-column: 1 / -1;
+  }
+}
+:root[data-theme] .plan-glance-row .plan-sleep-energy-btn.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fbf8ef;
+}
+:root[data-theme="dark"] .plan-glance-row .plan-sleep-energy-btn.is-active {
+  color: #0c1417;
+}
+@media (max-width: 720px) {
+  /* Težina je sada pločica u paru: napomena sa linkom „više mera“ se prelama. */
+  :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child .plan-glance-sub {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
