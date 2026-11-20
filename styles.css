@@ -18172,3 +18172,7 @@ button.training-week-volume-name {
 :root[data-theme] .meal-entry-body {
   padding-left: 0;
 }
+/* Hrana: nazivi namirnica poravnati sa brojem namirnica i pretragom iznad. */
+:root[data-theme] .food-row-info {
+  padding-left: 0;
+}
