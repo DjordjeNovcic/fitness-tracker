@@ -16823,7 +16823,35 @@ function getWeeklyReport() {
       weightDelta = roundValue(toNumber(recent.weightKg) - toNumber(prior.weightKg), 1);
     }
   }
+  // Trening ove nedelje: dani sa planom do danas, i koliko ih ima bar jednu
+  // urađenu vežbu (čekiranje se briše na početku nedelje, pa je ovo tekuća).
+  const track = getCurrentWeekTrack();
+  const todayIndex = WEEKDAYS.indexOf(getTodayWeekday());
+  let trainingPlanned = 0;
+  let trainingDone = 0;
+  WEEKDAYS.forEach((weekday, index) => {
+    const templates = getTrainingForDay(weekday, track);
+    if (!templates.length || index > todayIndex) return;
+    trainingPlanned += 1;
+    if (templates.some((template) => template.exercises.some((exercise) => isTrainingExerciseCompleted(weekday, template.id, exercise.id)))) {
+      trainingDone += 1;
+    }
+  });
+  // Nedeljne navike: čekirani dani / mogući dani do danas.
+  const weeklyHabits = getWeeklyHabits();
+  const habitPossible = weeklyHabits.length * (todayIndex + 1);
+  const habitDone = weeklyHabits.reduce(
+    (sum, habit) => sum + WEEKDAYS.slice(0, todayIndex + 1).filter((weekday) => isHabitDoneForDay(habit, weekday)).length,
+    0
+  );
+  const proteinGoal = toNumber(store.goals?.protein);
   return {
+    avgProtein: avg(thisWeek, "protein"),
+    proteinGoal,
+    trainingPlanned,
+    trainingDone,
+    habitPossible,
+    habitDone,
     avgKcal: avg(thisWeek, "kcal"),
     avgKcalLast: avg(lastWeek, "kcal"),
     avgWater: avg(thisWeek, "waterMl"),
@@ -16831,7 +16859,8 @@ function getWeeklyReport() {
     onTargetLast: onTarget(lastWeek),
     loggedDays,
     weightDelta,
-    hasData: loggedDays > 0,
+    calorieGoal: toNumber(store.goals?.calories),
+    hasData: loggedDays > 0 || trainingDone > 0,
   };
 }
 
@@ -16840,8 +16869,11 @@ function renderWeeklyReportSection() {
   if (!r.hasData) {
     return "";
   }
+  const trainingBehind = r.trainingPlanned >= 2 && r.trainingDone < r.trainingPlanned - 1;
   const verdict =
-    r.onTarget >= 5
+    r.onTarget >= 5 && trainingBehind
+      ? "Ishrana na cilju, trening je ove nedelje kasnio."
+      : r.onTarget >= 5
       ? "Sjajna nedelja 💪 Većinu dana na cilju."
       : r.onTarget >= 3
         ? "Solidna nedelja, samo nastavi."
@@ -16851,6 +16883,20 @@ function renderWeeklyReportSection() {
   const onTargetDelta = r.onTarget - r.onTargetLast;
   const kcalDelta = r.avgKcal && r.avgKcalLast ? r.avgKcal - r.avgKcalLast : 0;
   const vsLast = (value, more, less) => (value ? `${Math.abs(value)} ${value > 0 ? more : less} nego prošle nedelje` : "kao prošle nedelje");
+  // Najviše dve konkretne preporuke, najvažnija prva.
+  const tips = [];
+  if (r.proteinGoal > 0 && r.avgProtein > 0 && r.avgProtein < r.proteinGoal * 0.85) {
+    tips.push(`Fali ~${roundValue(r.proteinGoal - r.avgProtein, 0)} g proteina dnevno: dodaj jogurt, jaja ili porciju mesa u jedan obrok.`);
+  }
+  if (r.trainingPlanned >= 2 && r.trainingDone < r.trainingPlanned) {
+    tips.push(`Urađeno ${r.trainingDone} od ${r.trainingPlanned} planiranih treninga. Ako plan ne staje u nedelju, skrati ga umesto da ga preskačeš.`);
+  }
+  if (r.onTarget < 4 && r.avgKcal && r.calorieGoal && r.avgKcal > r.calorieGoal * 1.1) {
+    tips.push(`Prosek je ~${roundValue(r.avgKcal - r.calorieGoal, 0)} kcal iznad cilja. Isplaniraj obroke unapred bar za radne dane.`);
+  }
+  if (r.loggedDays < 5) {
+    tips.push("Upisano je samo " + r.loggedDays + " " + srPlural(r.loggedDays, "dan", "dana", "dana") + ": Brzi unos posle obroka traje 10 sekundi.");
+  }
   return `
     <section class="section weekly-report-section">
       <div class="section-header">
@@ -16862,10 +16908,21 @@ function renderWeeklyReportSection() {
       ${renderStatRows([
         { label: "Dana na cilju", note: vsLast(onTargetDelta, "više", "manje"), value: `${r.onTarget} od 7` },
         r.avgKcal && { label: "Prosečan unos, 7 dana", note: vsLast(kcalDelta, "kcal više", "kcal manje"), value: `${r.avgKcal} kcal/dan` },
+        r.avgProtein && r.proteinGoal > 0 && { label: "Proteini", note: `cilj ${roundValue(r.proteinGoal, 0)} g`, value: `${r.avgProtein} g/dan` },
+        r.trainingPlanned && { label: "Treninzi", note: "planirani do danas", value: `${r.trainingDone} od ${r.trainingPlanned}` },
+        r.habitPossible && { label: "Navike", note: "čekirano ove nedelje", value: `${Math.round((r.habitDone / r.habitPossible) * 100)} %` },
         r.weightDelta !== null
           ? { label: "Težina", note: "za poslednjih 7 dana", value: `${r.weightDelta > 0 ? "+" : r.weightDelta < 0 ? "−" : ""}${formatDecimal(Math.abs(r.weightDelta), 1)} kg` }
           : r.avgWater && { label: "Voda", note: "prosek za 7 dana", value: `${formatDecimal(r.avgWater / 1000, 1)} L` },
       ])}
+      ${
+        tips.length
+          ? `<div class="weekly-tips"><span class="weekly-tips-label">Za sledeću nedelju</span><ul>${tips
+              .slice(0, 2)
+              .map((tip) => `<li>${escapeHtml(tip)}</li>`)
+              .join("")}</ul></div>`
+          : ""
+      }
     </section>`;
 }
 
