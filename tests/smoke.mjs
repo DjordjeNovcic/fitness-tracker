@@ -5,7 +5,8 @@
 //   node tests/smoke.mjs _site           # sabijena verzija za Pages
 //
 // Proverava:
-//  - svaki tab u svetloj i tamnoj temi, na 390px i 360px: bez JS grešaka,
+//  - svaki tab u svetloj i tamnoj temi, na 390, 360 i 1280px (i 768px u
+//    svetloj): bez JS grešaka,
 //    bez vodoravnog skrola, ekran nije prazan;
 //  - novi nalog: uvod u tri koraka → Danas;
 //  - odjavljen korisnik: ekran za prijavu;
@@ -214,6 +215,7 @@ try {
       await checkTabs(width, theme, "demo");
     }
   }
+  await checkTabs(768, "light", "demo");
   await checkTabs(390, "light", "new");
   await checkSignedOut();
   await checkActions();

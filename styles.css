@@ -17852,3 +17852,25 @@ button.training-week-volume-name {
     margin-top: 0;
   }
 }
+/* Prijava: „prikaži lozinku“ kao ikonica u polju, ne kvadrat sa okvirom
+   (ikonica je bila 10px). */
+:root[data-theme] .password-toggle {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+}
+:root[data-theme] .password-toggle:hover {
+  color: var(--ink);
+  background: none;
+}
+:root[data-theme] .password-toggle {
+  padding: 0;
+  width: 44px;
+  justify-content: center;
+}
+:root[data-theme] .password-toggle svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
