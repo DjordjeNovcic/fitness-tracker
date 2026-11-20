@@ -8143,7 +8143,7 @@ function generateCompanionSuggestions() {
 
   if (macroGroup === "Proteini") {
     pushSuggestion(carbFood, calculateGramsForTarget(carbFood, "carbs", Math.max(20, remaining.carbs * 0.35), 80, 40, 180), "Da zatvoris UH");
-    pushSuggestion(vegFood, 150, "Laksi dodatak uz obrok");
+    pushSuggestion(vegFood, 150, "Lakši dodatak uz obrok");
   } else if (macroGroup === "UH") {
     pushSuggestion(leanProtein, calculateGramsForTarget(leanProtein, "protein", Math.max(20, remaining.protein * 0.25), 150, 80, 250), "Da podignes proteine");
     pushSuggestion(fatFood, calculateGramsForTarget(fatFood, "fat", Math.max(8, remaining.fat * 0.18), 10, 5, 30), "Da izbalansiras masti");

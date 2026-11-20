@@ -17817,8 +17817,8 @@ button.training-week-volume-name {
   background-size: 18px 18px;
   padding-right: 48px;
 }
-@media (min-width: 900px) {
-  /* Računar: podtabovi (Trening/Trčanje, Cilj/Nedeljno/Nalog…) desno u redu
+@media (min-width: 721px) {
+  /* Računar i tablet: podtabovi (Trening/Trčanje, Cilj/Nedeljno/Nalog…) desno u redu
      sa naslovom stranice, kao na telefonu, umesto u svom redu (~80px). */
   :root[data-theme] .app-main .workspace-header + .group-seg-nav,
   :root[data-theme] .app-main .workspace-header + .seg-nav {
@@ -17833,4 +17833,22 @@ button.training-week-volume-name {
 :root[data-theme] .foods-search:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+@media (min-width: 721px) and (max-width: 1099px) {
+  /* Tablet/manji računar: prsten i makroi jedno pored drugog, kao na
+     širokom ekranu, umesto prstena samog u praznom pojasu (~470 → ~300px). */
+  .plan-summary-section .plan-section-body.is-expanded {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 28px;
+  }
+  .plan-summary-section .plan-section-body.is-expanded > .cal-ring,
+  .plan-summary-section .plan-section-body.is-expanded > .plan-summary-headline {
+    grid-row: 1 / -1;
+    margin-bottom: 0;
+  }
+  .plan-summary-section .plan-glance-rows {
+    margin-top: 0;
+  }
 }
