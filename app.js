@@ -421,7 +421,7 @@ function renderMoreSheet() {
   const displayName = isDemo ? "Demo nalog" : profileName || (userEmail ? userEmail.split("@")[0] : "Nalog");
   const userInitial = (displayName || userEmail || "?").charAt(0).toUpperCase() || "?";
   return `
-    <div class="more-sheet ${state.navMenuOpen ? "is-open" : ""}" role="menu" aria-label="Više">
+    <div class="more-sheet ${state.navMenuOpen ? "is-open" : ""}" role="dialog" aria-label="Više">
       ${
         userEmail || profileName
           ? `<button class="more-sheet-user" type="button" data-action="open-account" aria-label="Nalog i profil">
@@ -438,7 +438,7 @@ function renderMoreSheet() {
         ${moreTabs
           .map(
             (tab) => `
-              <button class="more-sheet-item ${tab.isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${tab.id}" role="menuitem">
+              <button class="more-sheet-item ${tab.isActive ? "is-active" : ""}" type="button" data-action="switch-tab" data-tab="${tab.id}" ${tab.isActive ? 'aria-current="page"' : ""}>
                 <span class="more-sheet-icon">${renderTabIcon(tab.icon)}</span>
                 <span class="more-sheet-label">${tab.label}</span>
                 ${tab.isActive ? `<span class="more-sheet-dot" aria-hidden="true"></span>` : ""}
@@ -5289,12 +5289,12 @@ function updateFoodSuggestions(query, selectedFood = null) {
     const grams = quickAddGramsFor(food, usage[food.id]);
     const kcal = roundValue(calculateEntry(food, grams).kcal, 0);
     return `
-      <div class="food-suggest-row">
+      <div class="food-suggest-row" role="none">
         <button type="button" class="food-suggest-item" role="option" aria-selected="false" data-action="pick-plan-food" data-food-id="${food.id}">
           <span class="food-suggest-name">${tokens ? highlightMatch(food.name, tokens) : escapeHtml(food.name)}</span>
           <span class="food-suggest-meta">${meta}</span>
         </button>
-        <button type="button" class="food-suggest-add" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)}, ${formatFoodAmount(food, grams)}" title="Dodaj ${formatFoodAmount(food, grams)} · ${kcal} kcal">
+        <button type="button" class="food-suggest-add" tabindex="-1" aria-hidden="true" data-action="quick-add-food" data-food-id="${food.id}" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Dodaj ${escapeHtml(food.name)}, ${formatFoodAmount(food, grams)}" title="Dodaj ${formatFoodAmount(food, grams)} · ${kcal} kcal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>`;
@@ -9905,7 +9905,7 @@ function renderQuickEntryDialog() {
                         </label>
                         <label class="field quick-entry-field quick-entry-field--amount" data-unit="${getFoodServingUnit(row.food) === "piece" ? "kom" : "g"}">
                           <span>${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}</span>
-                          <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" value="${row.needsGrams && !row.amount ? "" : row.amount}" placeholder="${row.needsGrams ? "grama" : ""}" data-action="set-quick-entry-amount" data-index="${row.index}" />
+                          <input type="number" inputmode="decimal" min="0" step="${getFoodServingUnit(row.food) === "piece" ? "0.5" : "1"}" aria-label="${getFoodServingUnit(row.food) === "piece" ? "Komada" : "Grama"}: ${escapeHtml(row.food.name)}" value="${row.needsGrams && !row.amount ? "" : row.amount}" placeholder="${row.needsGrams ? "grama" : ""}" data-action="set-quick-entry-amount" data-index="${row.index}" />
                         </label>
                         ${sharedMeal ? "" : `<label class="field quick-entry-field quick-entry-field--meal">
                           <span>Obrok</span>

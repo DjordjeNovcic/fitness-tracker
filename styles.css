@@ -1000,6 +1000,7 @@ textarea::placeholder {
 :root[data-theme="dark"] .foods-chip-count { background: rgba(255, 255, 255, 0.09); }
 :root[data-theme="dark"] .foods-chip.is-active .foods-chip-count {
   background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--ink);
 }
 
 .foods-list {
