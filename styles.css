@@ -17915,3 +17915,78 @@ button.training-week-volume-name {
 .bc-section:has(details.form-collapse[open]) > .empty {
   display: none;
 }
+/* Slike napretka: dan je deo liste (linija), ne kartica u kartici; brisanje
+   je ikonica, ne veliko crveno dugme ispod svake slike. */
+:root[data-theme] .photo-session {
+  padding: 12px 0 14px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .photo-session:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+:root[data-theme] .photo-session-list {
+  gap: 0;
+}
+@media (max-width: 720px) {
+  :root[data-theme] .photo-session-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+:root[data-theme] .photo-session-item figcaption {
+  flex-wrap: nowrap;
+}
+:root[data-theme] .photo-delete {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  color: var(--muted);
+}
+:root[data-theme] .photo-delete:hover {
+  color: var(--danger, #a3412a);
+}
+.section:has(> details.form-collapse[open]) .photo-session-list > .empty {
+  display: none;
+}
+/* Slike › Uporedo: dve slike jedna pored druge i na telefonu (to je i
+   svrha poređenja), bez okvira kartice oko svake. */
+:root[data-theme] .compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+:root[data-theme] .compare-card {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .compare-card img,
+:root[data-theme] .compare-card .photo-loading {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--r-12, 12px);
+}
+:root[data-theme] .compare-card .photo-card-body {
+  padding: 6px 0 0;
+  gap: 4px;
+}
+@media (max-width: 720px) {
+  /* Uporedo: poza u svom redu, leva i desna slika jedna pored druge. */
+  :root[data-theme] .progress-compare-block .form-grid:has(#compare-left) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :root[data-theme] .progress-compare-block .form-grid > .field:has(#compare-tag) {
+    grid-column: 1 / -1;
+  }
+}
+/* Poza je već izabrana gore, pa se ne ponavlja ispod svake slike. */
+:root[data-theme] .compare-card .pill.strong {
+  display: none;
+}

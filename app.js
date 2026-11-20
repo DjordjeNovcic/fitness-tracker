@@ -16177,7 +16177,7 @@ function renderMeasurementGoalNote(date) {
 }
 
 function getPhotoTagLabel(tag) {
-  return PHOTO_TAG_LABELS[tag] || tag || "bez taga";
+  return PHOTO_TAG_LABELS[tag] || tag || "bez poze";
 }
 
 // Slike i merenja se spajaju po datumu, bez tvrde veze: postojeće slike se same
@@ -16369,12 +16369,12 @@ function getPhotoComparePair(photos) {
 function getPhotoLabel(photo) {
   const parts = [new Date(photo.date).toLocaleDateString("sr-RS")];
   if (photo.tag) {
-    parts.push(photo.tag);
+    parts.push(getPhotoTagLabel(photo.tag));
   }
   if (photo.note) {
     parts.push(photo.note);
   }
-  return parts.join(" - ");
+  return parts.join(" · ");
 }
 
 function readFileAsDataUrl(file) {
@@ -17698,7 +17698,7 @@ function renderProgressTab() {
         <div class="field">
           <label for="photo-tag">Tag</label>
           <select id="photo-tag" name="tag" required>
-            ${PHOTO_TAGS.map((tag) => `<option value="${tag}">${tag}</option>`).join("")}
+            ${PHOTO_TAGS.map((tag) => `<option value="${tag}">${PHOTO_TAG_LABELS[tag] || tag}</option>`).join("")}
           </select>
         </div>
         <div class="field">
@@ -17712,12 +17712,12 @@ function renderProgressTab() {
         <button class="solid-button" type="submit">Dodaj sliku</button>
       </form>
       </details>
-      ${photos.length >= 2 ? `
+      ${PHOTO_TAGS.some((tag) => photos.filter((photo) => photo.tag === tag).length >= 2) ? `
       <div class="compare-block progress-compare-block">
         <div class="section-header">
           <div>
             <h2>Uporedo</h2>
-            <p>Izaberi tag pa poredi samo isti ugao slikanja, recimo front sa front.</p>
+            <p>Ista poza, dva datuma.</p>
           </div>
         </div>
         ${
@@ -17725,12 +17725,12 @@ function renderProgressTab() {
             ? `
               <div class="form-grid split">
                 <div class="field">
-                  <label for="compare-tag">Tag za poredjenje</label>
+                  <label for="compare-tag">Poza</label>
                   <select id="compare-tag">
                     ${PHOTO_TAGS.map(
                       (tag) => `
                         <option value="${tag}" ${tag === activeCompareTag ? "selected" : ""} ${!photos.some((photo) => photo.tag === tag) ? "disabled" : ""}>
-                          ${tag}
+                          ${PHOTO_TAG_LABELS[tag] || tag}
                         </option>
                       `
                     ).join("")}
@@ -17790,7 +17790,7 @@ function renderProgressTab() {
                     </div>
                     ${renderCompareDelta(compare.leftPhoto, compare.rightPhoto)}
                   `
-                  : `<div class="empty">Za tag "${escapeHtml(activeCompareTag)}" dodaj bar dve slike ili izaberi druge dve razlicite slike.</div>`
+                  : `<div class="empty">Za „${escapeHtml(getPhotoTagLabel(activeCompareTag))}“ dodaj bar dve slike ili izaberi dve različite.</div>`
               }
             `
             : `<div class="empty">Dodaj bar dve slike da ih uporediš jednu pored druge.</div>`
@@ -17817,7 +17817,7 @@ function renderProgressTab() {
                                 ${renderProgressPhotoImg(photo, `Progress slika ${photo.date} (${getPhotoTagLabel(photo.tag)})`)}
                                 <figcaption>
                                   <span class="pill strong">${escapeHtml(getPhotoTagLabel(photo.tag))}</span>
-                                  <button class="danger-button" data-action="delete-photo" data-photo-id="${photo.id}">Obriši</button>
+                                  <button class="ghost-button icon-only-action photo-delete" type="button" data-action="delete-photo" data-photo-id="${photo.id}" aria-label="Obriši sliku (${escapeHtml(getPhotoTagLabel(photo.tag))})">${renderActionIcon("delete")}</button>
                                 </figcaption>
                                 ${photo.note ? `<div class="footer-note">${escapeHtml(photo.note)}</div>` : ""}
                               </figure>
