@@ -17553,7 +17553,7 @@ function renderProgressTab() {
               `
             ).join("")}
           </div>
-          <div class="footer-note">Slike dobijaju datum merenja, pa u tabu „Slike“ stoje u istom redu sa težinom tog dana. ${isDemoAccount() ? "Na demo nalogu ostaju samo na ovom uređaju." : "Čuvaju se na nalogu, pa ih vidiš i na drugim uređajima."}${
+          <div class="footer-note">Slike dobijaju datum merenja.${isDemoAccount() ? " Na demo nalogu ostaju samo na ovom uređaju." : ""}${
             editing
               ? " Postojeće slike se izmenom ne diraju: vezane su za datum, pa ako promeniš datum ostaju na starom."
               : ""

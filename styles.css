@@ -17708,3 +17708,64 @@ button.training-week-volume-name {
     border-bottom: 1px solid var(--line);
   }
 }
+/* Dodaj merenje: cilj se upisuje sam, pa ga forma ne objašnjava. */
+.measurement-goal-note {
+  display: none;
+}
+@media (max-width: 720px) {
+  /* Slike uz merenje: tri pločice u jednom redu umesto tri reda. */
+  :root[data-theme] .measurement-photo-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  :root[data-theme] .measurement-photo-slot {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick-title {
+    font-size: var(--fs-13);
+    color: var(--muted);
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick {
+    display: grid;
+    place-items: center;
+    min-height: 56px;
+    padding: 4px 6px;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--r-12, 12px);
+    background: var(--surface-strong);
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick.has-file {
+    border-style: solid;
+    border-color: var(--accent);
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick-button {
+    min-height: 0;
+    padding: 0;
+    background: none;
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick-button > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick-name {
+    display: none;
+    max-width: 100%;
+    font-size: var(--fs-12, 12px);
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick.has-file .file-pick-name {
+    display: block;
+  }
+  :root[data-theme] .measurement-photo-slot .file-pick.has-file .file-pick-button {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .measurement-photo-slot .file-pick-button svg {
+    width: 22px;
+    height: 22px;
+  }
+}
