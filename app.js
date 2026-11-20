@@ -15091,7 +15091,7 @@ function renderGoalsTab() {
         </div>
         <!-- Crna kafa je ~10 kcal na šoljicu od 200 ml; šećer i mleko su ono
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
-        <p class="footer-note field--full">Kafa: crna ~10, sa šećerom ~26, sa mlekom i šećerom ~50 kcal. 0 = samo broji šoljice.</p>
+        <p class="footer-note field--full">Kafa: crna ~10, sa šećerom ~26, sa mlekom ~50 kcal; 0 samo broji šoljice.</p>
         <div class="meta-row">
           <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz profila</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
@@ -15140,6 +15140,7 @@ function renderGoalsTab() {
           <strong>Nedeljni cilj</strong>
           <div class="macro-value">${formatInt(weeklyOverview.goals.kcal)} kcal</div>
         </article>
+        ${weeklyOverview.totals.trainingBurn > 0 ? `
         <article class="stat-card">
           <strong>Potrošeno na treningu</strong>
           <div class="macro-value">${formatInt(weeklyOverview.totals.trainingBurn)} kcal</div>
@@ -15147,7 +15148,7 @@ function renderGoalsTab() {
         <article class="stat-card">
           <strong>Neto kcal</strong>
           <div class="macro-value">${formatInt(weeklyOverview.netKcal)} kcal</div>
-        </article>
+        </article>` : ""}
       </div>
       <div class="goals-weekly-metrics">
         ${renderMetricsGrid(weeklyMetrics)}
@@ -15737,7 +15738,7 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Nalog</strong>
-              <div class="footer-note">Sinhronizacija čuva plan, obroke, trening, rutinu, merenja, ciljeve i slike, pa su isti na telefonu i računaru.</div>
+              <div class="footer-note">Plan, obroci, trening, rutina, merenja, ciljevi i slike su isti na telefonu i računaru.</div>
             </div>
           </div>
           <div class="meta-row meta-row--compact status-summary-actions">
@@ -15750,7 +15751,7 @@ function renderAccountSection() {
           <div class="status-summary-top">
             <div class="status-summary-copy">
               <strong>Deljeni proizvodi</strong>
-              <div class="footer-note">Kad skeniraš proizvod, njegov barkod, naziv i vrednosti na 100 g idu u zajednički spisak, a proizvodi drugih se pojavljuju u tvojoj pretrazi. Ostale namirnice ostaju samo tvoje.</div>
+              <div class="footer-note">Skenirani proizvodi (barkod, naziv, vrednosti na 100 g) idu u zajednički spisak i pojavljuju se drugima u pretrazi. Ostale namirnice ostaju samo tvoje.</div>
             </div>
           </div>
           <label class="settings-toggle">
