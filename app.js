@@ -677,6 +677,8 @@ const state = {
   lastAddedEntryId: "",
   trainingProgressOpen: false,
   trainingProgressPrefill: "",
+  // Unos po serijama ispod vežbe: { key, templateId, exerciseId, sets: [{ kg, reps, done }] }.
+  setLogger: null,
   // „Sastavi trening“: null kad je zatvoren, inače nacrt (vidi openTrainingBuilder).
   trainingBuilder: null,
   selectedWeekday: getTodayWeekday(),
@@ -6321,6 +6323,94 @@ function parseRepsAchieved(repsText) {
   return numbers.length ? Math.max(...numbers) : 0;
 }
 
+// Unos po serijama: vrh opsega se računa tek kad ga dostigne svaka serija na
+// radnoj kilaži (najslabija), ne samo najbolja serija.
+function getLogTopReps(log) {
+  const sets = Array.isArray(log?.sets) ? log.sets : [];
+  const top = toNumber(log?.weightKg);
+  const working = sets.filter((set) => toNumber(set.kg) >= top && toNumber(set.reps) > 0);
+  if (working.length) {
+    return Math.min(...working.map((set) => toNumber(set.reps)));
+  }
+  return parseRepsAchieved(log?.reps);
+}
+
+function getLatestExerciseLog(exerciseName) {
+  const key = String(exerciseName || "").trim().toLowerCase();
+  return [...(store.trainingProgressLogs || [])]
+    .filter((log) => String(log.exerciseName || "").trim().toLowerCase() === key && toNumber(log.weightKg) > 0)
+    .sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0] || null;
+}
+
+function getExerciseDoseText(exercise) {
+  const dose = getExerciseDose(exercise);
+  return exercise?.details || (dose.sets && dose.reps ? `${dose.sets}x${dose.reps} ponavljanja` : dose.reps ? `${dose.reps} ponavljanja` : "");
+}
+
+// Nacrt serija: broj serija iz plana, kilaža iz predloga povećanja ili prošlog
+// treninga, ponavljanja iz prošlog treninga (inače prazno, cilj je u placeholderu).
+function buildSetLoggerDraft(template, exercise) {
+  const dose = getExerciseDose(exercise);
+  const last = getLatestExerciseLog(exercise.name);
+  const progression = getExerciseProgression(exercise.name, getExerciseDoseText(exercise));
+  const lastSets = Array.isArray(last?.sets) && last.sets.length ? last.sets : null;
+  const count = Math.min(8, Math.max(1, dose.sets || lastSets?.length || 3));
+  const nextKg = progression?.kind === "increase" ? progression.nextWeight : null;
+  const sets = Array.from({ length: count }, (_, index) => {
+    const previous = lastSets ? lastSets[Math.min(index, lastSets.length - 1)] : null;
+    const kg = nextKg ?? (previous ? toNumber(previous.kg) : last ? toNumber(last.weightKg) : 0);
+    // Posle povećanja kilaže ponavljanja kreću od dna opsega, ne od prošlih.
+    const reps = nextKg ? "" : previous ? toNumber(previous.reps) : "";
+    return { kg: kg > 0 ? String(kg) : "", reps: reps ? String(reps) : "", done: false };
+  });
+  return { key: `${template.id}:${exercise.id}`, templateId: template.id, exerciseId: exercise.id, sets };
+}
+
+function renderSetLogger(template, exercise) {
+  const logger = state.setLogger;
+  if (!logger || logger.key !== `${template.id}:${exercise.id}`) {
+    return "";
+  }
+  const range = parseRepRange(getExerciseDoseText(exercise));
+  const repsHint = range ? (range.min === range.max ? String(range.max) : `${range.min}-${range.max}`) : "pon.";
+  const last = getLatestExerciseLog(exercise.name);
+  const lastText = last
+    ? Array.isArray(last.sets) && last.sets.length
+      ? last.sets.map((set) => `${formatDecimal(toNumber(set.kg), 1)}×${set.reps}`).join(", ")
+      : `${formatDecimal(toNumber(last.weightKg), 1)} kg${last.reps ? ` × ${escapeHtml(last.reps)}` : ""}`
+    : "";
+  const doneCount = logger.sets.filter((set) => set.done).length;
+  return `
+    <div class="set-logger" role="group" aria-label="Serije: ${escapeHtml(exercise.name)}">
+      ${lastText ? `<p class="set-logger-last">Prošli put: ${lastText}</p>` : ""}
+      <div class="set-logger-rows">
+        ${logger.sets
+          .map(
+            (set, index) => `
+          <div class="set-row ${set.done ? "is-done" : ""}">
+            <span class="set-index" aria-hidden="true">${index + 1}</span>
+            <label class="set-field">
+              <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" value="${escapeHtml(set.kg)}" data-set-field="kg" data-set-index="${index}" aria-label="Serija ${index + 1}, kilaža" />
+              <span aria-hidden="true">kg</span>
+            </label>
+            <span class="set-times" aria-hidden="true">×</span>
+            <label class="set-field set-field--reps">
+              <input type="number" inputmode="numeric" step="1" min="0" placeholder="${repsHint}" value="${escapeHtml(set.reps)}" data-set-field="reps" data-set-index="${index}" aria-label="Serija ${index + 1}, ponavljanja" />
+            </label>
+            <button type="button" class="set-done" data-action="toggle-set-done" data-set-index="${index}" aria-pressed="${set.done}" aria-label="Serija ${index + 1} ${set.done ? "urađena, poništi" : "urađena"}">${renderActionIcon("apply")}</button>
+          </div>`
+          )
+          .join("")}
+      </div>
+      <div class="set-logger-actions">
+        <button type="button" class="text-link-button" data-action="add-set">+ Serija</button>
+        <span class="set-logger-spacer"></span>
+        <button type="button" class="ghost-button" data-action="close-set-logger">Otkaži</button>
+        <button type="button" class="solid-button" data-action="save-set-log" ${doneCount ? "" : "disabled"}>${doneCount ? `Sačuvaj ${doneCount} ${srPlural(doneCount, "seriju", "serije", "serija")}` : "Čekiraj seriju"}</button>
+      </div>
+    </div>`;
+}
+
 // Big compound lifts move in 5 kg steps, everything else in 2.5 kg.
 const BIG_LIFT_PATTERN = /(cucanj|celni cucanj|mrtvo|potisak nogama|leg press|hip thrust|zgib sa tegom|veslanje sa sipkom)/;
 
@@ -6343,10 +6433,10 @@ function getExerciseProgression(exerciseName, details) {
   const last = logs[logs.length - 1];
   const previous = logs[logs.length - 2];
   const lastWeight = roundValue(toNumber(last.weightKg), 1);
-  const lastReps = parseRepsAchieved(last.reps);
+  const lastReps = getLogTopReps(last);
   const atTop = lastReps >= range.max;
   const previousAtTop =
-    previous && roundValue(toNumber(previous.weightKg), 1) === lastWeight && parseRepsAchieved(previous.reps) >= range.max;
+    previous && roundValue(toNumber(previous.weightKg), 1) === lastWeight && getLogTopReps(previous) >= range.max;
 
   if (atTop && previousAtTop) {
     const step = progressionStepFor(exerciseName);
@@ -13368,9 +13458,10 @@ function renderTrainingTab() {
                                     ${renderRestIcon()}<span class="training-rest-label">${formatRestClock(getExerciseRestSeconds(exercise))}</span>
                                   </button>
                                   <button class="training-rest training-swap" type="button" data-action="open-exercise-swap" data-template-id="${template.id}" data-exercise-id="${exercise.id}" aria-label="Zameni „${escapeHtml(exercise.name)}“" title="Zameni vežbu">${renderActionIcon("swap")}</button>
-                                  <button class="training-exercise-log" type="button" data-action="prefill-exercise-progress" data-exercise-name="${escapeHtml(exercise.name)}" aria-label="Unesi kilažu za ${escapeHtml(exercise.name)}" title="Unesi kilažu">Kilaža</button>
+                                  <button class="training-exercise-log ${state.setLogger?.key === `${template.id}:${exercise.id}` ? "is-open" : ""}" type="button" data-action="open-set-logger" data-template-id="${template.id}" data-exercise-id="${exercise.id}" aria-expanded="${state.setLogger?.key === `${template.id}:${exercise.id}`}" aria-label="Serije i kilaža za ${escapeHtml(exercise.name)}" title="Upiši serije">Kilaža</button>
                                 </div>
                               </div>
+                              ${renderSetLogger(template, exercise)}
                             `
                           )
                           .join("")}
@@ -19477,6 +19568,135 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "open-set-logger") {
+    const templateId = String(actionTarget.dataset.templateId || "");
+    const exerciseId = String(actionTarget.dataset.exerciseId || "");
+    const template = getTrainingForDay(state.selectedWeekday).find((entry) => entry.id === templateId);
+    const exercise = template?.exercises.find((entry) => entry.id === exerciseId);
+    if (!template || !exercise) {
+      return;
+    }
+    const key = `${templateId}:${exerciseId}`;
+    state.setLogger = state.setLogger?.key === key ? null : buildSetLoggerDraft(template, exercise);
+    render();
+    if (state.setLogger) {
+      window.requestAnimationFrame(() => {
+        const logger = document.querySelector(".set-logger");
+        logger?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        const firstEmpty = [...(logger?.querySelectorAll("input") || [])].find((input) => !input.value);
+        (firstEmpty || logger?.querySelector("input"))?.focus({ preventScroll: true });
+      });
+    }
+    return;
+  }
+
+  if (action === "close-set-logger") {
+    state.setLogger = null;
+    render();
+    return;
+  }
+
+  if (action === "add-set") {
+    const sets = state.setLogger?.sets;
+    if (!sets || sets.length >= 12) {
+      return;
+    }
+    const last = sets[sets.length - 1] || { kg: "", reps: "" };
+    sets.push({ kg: last.kg, reps: last.reps, done: false });
+    render();
+    return;
+  }
+
+  if (action === "toggle-set-done") {
+    const logger = state.setLogger;
+    const index = toNumber(actionTarget.dataset.setIndex);
+    const set = logger?.sets[index];
+    if (!set) {
+      return;
+    }
+    if (!set.done) {
+      // Prazna ponavljanja = cilj iz placeholdera (gornja granica opsega).
+      if (!toNumber(set.reps)) {
+        const input = document.querySelector(`[data-set-field="reps"][data-set-index="${index}"]`);
+        const hint = String(input?.placeholder || "").split("-").pop();
+        if (toNumber(hint) > 0) set.reps = String(toNumber(hint));
+      }
+      if (!(toNumber(set.kg) > 0) || !(toNumber(set.reps) > 0)) {
+        document.querySelector(`[data-set-field="${toNumber(set.kg) > 0 ? "reps" : "kg"}"][data-set-index="${index}"]`)?.focus();
+        return;
+      }
+      set.done = true;
+      // Sledeće serije bez kilaže preuzimaju ovu.
+      logger.sets.slice(index + 1).forEach((next) => {
+        if (!next.kg) next.kg = set.kg;
+      });
+      // Posle serije odmah kreće odmor za tu vežbu.
+      const template = getTrainingForDay(state.selectedWeekday).find((entry) => entry.id === logger.templateId);
+      const exercise = template?.exercises.find((entry) => entry.id === logger.exerciseId);
+      const isLast = logger.sets.every((entry) => entry.done);
+      if (exercise && !isLast) {
+        startRestTimer(logger.key, getExerciseRestSeconds(exercise));
+      }
+    } else {
+      set.done = false;
+    }
+    render();
+    return;
+  }
+
+  if (action === "save-set-log") {
+    const logger = state.setLogger;
+    const template = getTrainingForDay(state.selectedWeekday).find((entry) => entry.id === logger?.templateId);
+    const exercise = template?.exercises.find((entry) => entry.id === logger?.exerciseId);
+    const sets = (logger?.sets || [])
+      .filter((set) => set.done && toNumber(set.kg) > 0 && toNumber(set.reps) > 0)
+      .map((set) => ({ kg: roundValue(toNumber(set.kg), 2), reps: Math.round(toNumber(set.reps)) }));
+    if (!exercise || !sets.length) {
+      return;
+    }
+    const exerciseName = String(exercise.name || "").trim();
+    const weightKg = Math.max(...sets.map((set) => set.kg));
+    const reps = sets.map((set) => set.reps).join(", ");
+    const topSet = sets.filter((set) => set.kg === weightKg).sort((a, b) => b.reps - a.reps)[0];
+    // Datum izabranog dana u ovoj nedelji, ali nikad u budućnosti.
+    const today = getTodayDateValue();
+    const dayDate = getCurrentWeekDateValue(state.selectedWeekday);
+    const date = dayDate > today ? today : dayDate;
+    const exerciseKey = exerciseName.toLowerCase();
+    const previous = getExerciseRecords(store.trainingProgressLogs.filter((log) => String(log.exerciseName || "").trim().toLowerCase() === exerciseKey));
+    const oneRepMax = estimateOneRepMax(topSet.kg, String(topSet.reps));
+    const isHeaviest = Boolean(previous.heaviest) && weightKg > toNumber(previous.heaviest.weightKg);
+    const isBestOneRepMax = Boolean(oneRepMax && previous.bestOneRepMax) && oneRepMax > previous.bestOneRepMax.value + 0.05;
+    store.trainingProgressLogs.unshift({
+      id: uid("training-progress"),
+      date,
+      weekday: state.selectedWeekday,
+      exerciseName,
+      weightKg,
+      reps,
+      sets,
+      note: "",
+      createdAt: new Date().toISOString(),
+    });
+    if (!isTrainingExerciseCompleted(state.selectedWeekday, template.id, exercise.id)) {
+      toggleTrainingExerciseCompletion(state.selectedWeekday, template.id, exercise.id);
+    }
+    state.setLogger = null;
+    persist();
+    render();
+    showFeedbackToast(
+      isHeaviest || isBestOneRepMax
+        ? {
+            title: "Novi rekord! 🏆",
+            detail: `${exerciseName}: ${formatDecimal(topSet.kg, 1)} kg × ${topSet.reps}${oneRepMax ? ` · 1RM ≈ ${formatDecimal(roundValue(oneRepMax, 0), 0)} kg` : ""}`,
+            tone: "success",
+            duration: 4000,
+          }
+        : { title: `${exerciseName} sačuvan`, detail: sets.map((set) => `${formatDecimal(set.kg, 1)}×${set.reps}`).join(", "), tone: "success", duration: 2600 }
+    );
+    return;
+  }
+
   if (action === "prefill-exercise-progress") {
     state.trainingProgressPrefill = String(actionTarget.dataset.exerciseName || "").trim();
     state.trainingProgressOpen = true;
@@ -23044,6 +23264,15 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // Serije ispod vežbe: kucanje samo upisuje u nacrt, bez render().
+  if (target instanceof HTMLInputElement && target.dataset.setField && state.setLogger) {
+    const set = state.setLogger.sets[toNumber(target.dataset.setIndex)];
+    if (set) {
+      set[target.dataset.setField === "reps" ? "reps" : "kg"] = target.value;
+    }
+    return;
+  }
 
   // Menjanje datuma merenja prepisuje samo natpis sa ciljem — bez render(), da
   // se već popunjena forma ne resetuje ispod prstiju.

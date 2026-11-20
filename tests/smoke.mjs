@@ -217,6 +217,20 @@ async function checkActions() {
   await page.click(".training-exercise-row .training-rest:not(.training-swap)");
   await page.waitForTimeout(400);
   if (!(await page.$(".training-rest.is-running"))) fail("Trening", "tajmer odmora ne kreće");
+  // Serije: otvori unos ispod vežbe, čekiraj seriju, sačuvaj → vežba odrađena.
+  await page.click("[data-action='open-set-logger'] >> nth=0");
+  await page.waitForTimeout(300);
+  await page.fill("[data-set-field='kg'][data-set-index='0']", "60");
+  await page.fill("[data-set-field='reps'][data-set-index='0']", "8");
+  await page.click("[data-action='toggle-set-done'][data-set-index='0']");
+  await page.waitForTimeout(200);
+  await page.click("[data-action='save-set-log']");
+  await page.waitForTimeout(400);
+  const setSaved = await page.evaluate(() => ({
+    open: Boolean(document.querySelector(".set-logger")),
+    checked: Boolean(document.querySelector(".training-exercise-row .routine-checkbox")?.checked),
+  }));
+  if (setSaved.open || !setSaved.checked) fail("Trening", "unos serija se nije sačuvao");
   if (!(await page.$(".training-week-map"))) {
     await page.click("[data-action='toggle-training-map']");
     await page.waitForTimeout(1200);

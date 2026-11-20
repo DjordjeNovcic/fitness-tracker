@@ -18232,3 +18232,139 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     padding-top: calc(24px + env(safe-area-inset-top, 0px));
   }
 }
+
+/* ============================================================
+   Trening: unos po serijama ispod vežbe.
+   ============================================================ */
+.set-logger {
+  margin: 2px 0 10px;
+  padding: 10px 12px 12px;
+  border-radius: var(--r-16, 16px);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+:root[data-theme="dark"] .set-logger {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.set-logger-last {
+  margin: 0 0 8px;
+  font-size: var(--fs-13);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.set-logger-rows {
+  display: grid;
+  gap: 6px;
+}
+.set-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto minmax(0, 0.8fr) 44px;
+  align-items: center;
+  gap: 8px;
+}
+.set-index {
+  font-weight: 800;
+  font-size: var(--fs-14);
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.set-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.set-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-12, 12px);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.set-field--reps input {
+  padding-right: 12px;
+}
+.set-field input::-webkit-inner-spin-button,
+.set-field input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+:root[data-theme="dark"] .set-field input {
+  background: var(--surface-strong);
+}
+.set-field > span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--muted);
+  pointer-events: none;
+}
+.set-times {
+  color: var(--muted);
+  font-weight: 700;
+}
+.set-done {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-12, 12px);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.set-done svg {
+  width: 20px;
+  height: 20px;
+}
+.set-row.is-done .set-done {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fbf8ef;
+}
+:root[data-theme="dark"] .set-row.is-done .set-done {
+  color: #0c1417;
+}
+.set-row.is-done input {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--muted);
+}
+.set-logger-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.set-logger-spacer {
+  flex: 1;
+}
+.set-logger-actions .solid-button,
+.set-logger-actions .ghost-button {
+  min-height: 40px;
+  padding-inline: 14px;
+}
+.set-logger-actions .solid-button:disabled {
+  opacity: 0.55;
+}
+:root[data-theme] .training-exercise-row .training-exercise-log.is-open {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .training-exercise-row .training-exercise-log.is-open {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
