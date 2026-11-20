@@ -9320,9 +9320,10 @@ function syncPlanHeroStickyTop() {
   if (!hero || !picker) {
     return;
   }
-  // offsetTop je u odnosu na sam blok (lepljiv = pozicioniran); 6px vazduha
-  // iznad dana kad je blok zalepljen.
-  const top = `${-Math.max(0, picker.offsetTop - 6)}px`;
+  // offsetTop je u odnosu na sam blok (lepljiv = pozicioniran). Kad je blok
+  // zalepljen, iznad dana ostaje 16px petrol boje: iOS zamućuje ~20px ispod
+  // statusne trake, pa dani ne smeju da budu skroz gore.
+  const top = `${-Math.max(0, picker.offsetTop - 16)}px`;
   if (hero.style.top !== top) {
     hero.style.top = top;
   }

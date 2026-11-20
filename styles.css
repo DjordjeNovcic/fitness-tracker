@@ -18224,3 +18224,11 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme="light"] {
   background-color: #f4efe6;
 }
+@media (max-width: 720px) {
+  /* Novi iOS zamućuje i bledi vrh web prikaza ispod statusne trake (~20px).
+     Zaglavlje je počinjalo 3–10px od vrha, pa su naslov i podtabovi gore
+     bili mutni. Sadržaj počinje niže; safe-area za slučaj prikaza ispod trake. */
+  :root[data-theme] .app-main.shell {
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  }
+}
