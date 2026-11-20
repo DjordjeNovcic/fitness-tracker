@@ -5330,10 +5330,19 @@ function updateFoodSuggestions(query, selectedFood = null) {
   }
   const ranked = rankFoodsForQuery(query, getSelectableFoods(), 6);
   if (!ranked.length) {
-    list.hidden = true;
-    list.innerHTML = "";
+    // Bez ovoga se ništa ne dešava (ni predlozi, ni Enter), pa nije jasno da
+    // namirnice nema; nudi se da se napravi odmah, sa imenom iz pretrage.
+    const typed = String(query || "").trim();
+    list.setAttribute("role", "status");
+    list.innerHTML = `
+      <div class="food-suggest-empty">
+        <span>Nema „${escapeHtml(typed)}“ u bazi.</span>
+        <button type="button" class="ghost-button button-with-icon" data-action="composer-add-food" data-name="${escapeHtml(typed)}">${renderButtonContent("Napravi namirnicu", "add")}</button>
+      </div>`;
+    list.hidden = false;
     return;
   }
+  list.setAttribute("role", "listbox");
   const tokens = normalizedQuery.split(" ").filter(Boolean);
   list.innerHTML = ranked
     .map((entry) => row(entry.food, tokens, `${getFoodNutritionBasisLabel(entry.food)} · ${roundValue(entry.food.kcal, 0)} kcal${entry.recent ? ` · <em>nedavno</em>` : ""}`))
@@ -21643,6 +21652,22 @@ async function handleDocumentClick(event) {
     state.quickEntryOverrides = {};
     state.quickEntryEaten = isSelectedDayLoggable();
     render();
+    return;
+  }
+
+  if (action === "composer-add-food") {
+    const name = String(actionTarget.dataset.name || "").trim();
+    rememberDialogTrigger(actionTarget);
+    state.nutritionEditingFoodId = "";
+    state.editingFoodId = "";
+    state.scannedBarcode = "";
+    state.scannedFood = name ? { name: name.charAt(0).toUpperCase() + name.slice(1) } : null;
+    // Posle čuvanja nova namirnica postaje izabrana u ovom obroku (isti put
+    // kao proizvod skeniran iz obroka).
+    state.scannerReturnTo = "composer";
+    state.foodEditorOpen = true;
+    render();
+    (name ? document.querySelector("#food-kcal") : document.querySelector("#food-name"))?.focus();
     return;
   }
 

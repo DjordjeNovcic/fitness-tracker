@@ -18029,3 +18029,17 @@ button.training-week-volume-name {
 #progress-weight {
   -moz-appearance: textfield;
 }
+/* Pretraga u obroku bez rezultata: poruka i „Napravi namirnicu“. */
+.food-suggest-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: var(--fs-14);
+}
+.food-suggest-empty .ghost-button {
+  min-height: 38px;
+}
