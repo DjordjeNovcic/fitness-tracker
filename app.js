@@ -8830,6 +8830,7 @@ function renderActionIcon(kind) {
     minus: '<path fill="currentColor" d="M5 11h14v2H5z"/>',
     up: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 15l6-6 6 6"/>',
     down: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>',
+    "chevron-right": '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/>',
     flash: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 2 3.5 14h6.2l-1.4 8L20.5 9h-6.2Z"/>',
     spinner: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="34 16"/>',
   };
@@ -16268,7 +16269,7 @@ function renderProgressSummary(summary) {
         {
           label: "Poslednje merenje",
           note: `${summary.measurementCount} ${srPlural(summary.measurementCount, "merenje", "merenja", "merenja")} ukupno`,
-          value: summary.latestMeasurement ? formatRelativeDayLabel(summary.latestMeasurement.date) : "još nema",
+          value: `<button type="button" class="stat-row-link" data-action="set-progress-view" data-view="merenja">${summary.latestMeasurement ? formatRelativeDayLabel(summary.latestMeasurement.date) : "još nema"}${renderActionIcon("chevron-right")}</button>`,
         },
         {
           label: "Slike napretka",
@@ -16277,7 +16278,7 @@ function renderProgressSummary(summary) {
             : summary.photoCount
               ? "za poređenje treba bar dve slike iste poze"
               : "",
-          value: summary.photoCount ? `${summary.photoCount}` : "nema",
+          value: `<button type="button" class="stat-row-link" data-action="set-progress-view" data-view="slike">${summary.photoCount ? `${summary.photoCount}` : "nema"}${renderActionIcon("chevron-right")}</button>`,
         },
       ])}
       ${

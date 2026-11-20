@@ -17654,3 +17654,22 @@ button.training-week-volume-name {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
+/* Napredak › Pregled: „Poslednje merenje“ i „Slike“ vode na svoj tab. */
+.stat-row-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  margin: -8px -6px -8px 0;
+  padding: 0 0 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.stat-row-link svg {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
