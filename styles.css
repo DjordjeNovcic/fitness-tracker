@@ -17994,3 +17994,38 @@ button.training-week-volume-name {
   /* Traka „Vrati“: kompaktna, uz tekst, ne 720px sa dugmetom na drugom kraju. */
   .undo-banner { --max-float: 460px; }
 }
+/* Napredak po vežbi: datum i dan, kilaža i serije u parovima (forma je bila
+   šest redova jedan ispod drugog), bez strelica za broj. */
+@media (max-width: 720px) {
+  :root[data-theme] #training-progress-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :root[data-theme] #training-progress-form > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] #training-progress-form > .field:has(#progress-date),
+  :root[data-theme] #training-progress-form > .field:has(#progress-weekday),
+  :root[data-theme] #training-progress-form > .field:has(#progress-weight),
+  :root[data-theme] #training-progress-form > .field:has(#progress-reps) {
+    grid-column: auto;
+  }
+  :root[data-theme] #training-progress-form > .field {
+    min-width: 0;
+  }
+  :root[data-theme] #training-progress-form input[type="date"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 34px;
+    background-position: right 10px center;
+  }
+}
+#progress-weight::-webkit-inner-spin-button,
+#progress-weight::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#progress-weight {
+  -moz-appearance: textfield;
+}

@@ -13417,7 +13417,7 @@ function renderTrainingTab() {
           </datalist>
         </div>
         <div class="field">
-          <label for="progress-weight">Kilaža</label>
+          <label for="progress-weight">Kilaža (kg)</label>
           <input id="progress-weight" name="weightKg" type="number" inputmode="decimal" step="0.5" min="0" placeholder="npr. 80" required />
         </div>
         <div class="field">
