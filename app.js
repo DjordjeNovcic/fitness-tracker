@@ -6569,7 +6569,7 @@ function renderTrainingBurnSection() {
           }</p>
           ${watchField}
           <div class="training-burn-actions">
-            <button class="solid-button secondary-button training-burn-submit" type="submit">Sačuvaj kcal</button>
+            <button class="solid-button training-burn-submit" type="submit">Sačuvaj kcal</button>
           </div>
         </form>
       </details>`;
@@ -10305,7 +10305,7 @@ function renderPlanSupplementsSection() {
             <input id="supplement-note" name="note" placeholder="npr. posle obroka, uz magnezijum" value="${escapeHtml(editingSupplement?.note || "")}" />
           </div>
           <div class="meta-row">
-            <button class="solid-button secondary-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
+            <button class="solid-button" type="submit">${editingSupplement ? "Sačuvaj izmenu" : "Dodaj suplement"}</button>
             ${editingSupplement ? '<button class="ghost-button" type="button" data-action="cancel-edit-supplement">Odustani</button>' : ""}
           </div>
         </form>
@@ -11925,7 +11925,7 @@ function renderRecipesTab() {
           </div>
           <div class="field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
-            <button class="solid-button secondary-button button-with-icon" type="submit">
+            <button class="solid-button button-with-icon" type="submit">
               ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj sastojak" : "Dodaj sastojak", state.editingFavoriteItem.itemId ? "save" : "add")}
             </button>
             ${state.editingFavoriteItem.itemId ? `<button class="ghost-button button-with-icon" type="button" data-action="cancel-edit-favorite-item">${renderButtonContent("Odustani", "close")}</button>` : ""}
@@ -13409,7 +13409,7 @@ function renderTrainingTab() {
           <label for="progress-note">Napomena</label>
           <input id="progress-note" name="note" placeholder="npr. lagano, ostalo još" />
         </div>
-        <button class="solid-button secondary-button" type="submit">Sačuvaj unos</button>
+        <button class="solid-button" type="submit">Sačuvaj unos</button>
       </form>
       <div class="chart-grid" style="margin-top:14px;">
         ${
@@ -13469,7 +13469,7 @@ function renderTrainingTab() {
           <label for="training-note">Beleška</label>
           <textarea id="training-note" name="note" placeholder="Npr. čučanj lagan, povećati težinu sledeći put"></textarea>
         </div>
-        <button class="solid-button secondary-button" type="submit">Sačuvaj belešku</button>
+        <button class="solid-button" type="submit">Sačuvaj belešku</button>
       </form>
       <div class="stack training-log-stack" style="margin-top:14px;">
         ${
@@ -14213,7 +14213,7 @@ function renderRunningTab() {
           <input id="run-note" name="note" placeholder="npr. lagano oko jezera, lepo vreme" value="${escapeHtml(draftNote)}" />
         </div>
         ${editingRun ? `<button class="ghost-button" type="button" data-action="cancel-edit-run">Odustani</button>` : ""}
-        <button class="solid-button secondary-button run-form-submit" type="submit">${editingRun ? "Sačuvaj izmenu" : "Sačuvaj trčanje"}</button>
+        <button class="solid-button run-form-submit" type="submit">${editingRun ? "Sačuvaj izmenu" : "Sačuvaj trčanje"}</button>
       </form>
     </details>
 
@@ -14462,7 +14462,7 @@ function renderRoutineTab() {
           <input id="task-note" name="note" placeholder="opciono" value="${escapeHtml(editingTask?.note || "")}" />
         </div>
         <div class="entry-actions" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-          <button class="solid-button secondary-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj zadatak"}</button>
+          <button class="solid-button" type="submit">${editingTask ? "Sačuvaj izmenu" : "Dodaj zadatak"}</button>
           ${editingTask ? '<button class="ghost-button" type="button" data-action="cancel-edit-task">Odustani</button>' : ""}
         </div>
       </form>
@@ -15598,7 +15598,7 @@ function renderNutritionTab() {
                     Ako ostaviš kcal prazno, app će ga izračunati iz P/UH/M. Kad sačuvaš, stavka izlazi iz ovog review inbox-a i ostaje dostupna u Namirnice.
                   </div>
                   <div class="entry-actions nutrition-card-actions">
-                    <button class="solid-button secondary-button button-with-icon" type="submit">
+                    <button class="solid-button button-with-icon" type="submit">
                       ${renderButtonContent("Sačuvaj vrednosti", "save")}
                     </button>
                     <button class="ghost-button button-with-icon" type="button" data-action="cancel-nutrition-food">
@@ -17690,7 +17690,7 @@ function renderProgressTab() {
           ${renderFilePicker("photo-file", "photo", "Slika", { required: true })}
           <div class="footer-note">${isDemoAccount() ? "Slika se smanjuje i na demo nalogu ostaje samo na ovom uređaju." : "Slika se smanjuje i čuva na nalogu, pa je vidiš i na telefonu i na računaru."}</div>
         </div>
-        <button class="solid-button secondary-button" type="submit">Dodaj sliku</button>
+        <button class="solid-button" type="submit">Dodaj sliku</button>
       </form>
       </details>
       ${photos.length >= 2 ? `
