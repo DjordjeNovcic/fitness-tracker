@@ -9622,37 +9622,56 @@ function parseQuickEntryText(text) {
 // prefix/substring based, so a genitive ending can miss. Retry with the last
 // word progressively shortened before giving up.
 function rankQuickEntryMatches(query, limit = 5) {
-  const direct = rankFoodsForQuery(query, getSelectableFoods(), limit);
-  if (direct.length) {
-    return direct;
-  }
+  const foods = getSelectableFoods();
+  const direct = rankFoodsForQuery(query, foods, limit);
   const words = normalizeLookupValue(query).split(" ").filter(Boolean);
   if (!words.length) {
-    return [];
+    return direct;
   }
   const last = words[words.length - 1];
+  // Padež može biti i početak druge reči: „pirinča“ je početak „pirinčani
+  // griz“, pa direktna pretraga nađe griz, a „Beli pirinac“ promaši. Zato se
+  // uvek proba i osnova reči, a prednost ima reč najbliže dužine kucanoj.
+  const pool = [...direct];
   for (let trim = 1; trim <= 3; trim += 1) {
-    if (last.length - trim < 3) {
+    if (last.length - trim < (direct.length ? 4 : 3)) {
       break;
     }
     const stem = last.slice(0, last.length - trim);
-    const found = rankFoodsForQuery([...words.slice(0, -1), stem].join(" "), getSelectableFoods(), limit);
-    if (found.length) {
-      // A stem matches both "pirinač" and "pirinčani griz". The word closest in
-      // length to what the user actually typed is the likelier one.
-      return [...found].sort((a, b) => {
-        const distance = (entry) => {
-          const word = normalizeLookupValue(entry.food.name)
-            .split(" ")
-            .filter((part) => part.startsWith(stem))
-            .sort((x, y) => Math.abs(x.length - last.length) - Math.abs(y.length - last.length))[0];
-          return word ? Math.abs(word.length - last.length) : 99;
-        };
-        return distance(a) - distance(b) || a.score - b.score;
-      });
+    const found = rankFoodsForQuery([...words.slice(0, -1), stem].join(" "), foods, limit);
+    found.forEach((entry) => {
+      if (!pool.some((known) => known.food === entry.food)) {
+        pool.push(entry);
+      }
+    });
+    if (found.length && !direct.length) {
+      break;
     }
   }
-  return [];
+  if (!pool.length && words.length > 1) {
+    // „grčkog jogurta“: padež je u svakoj reči, pa se sve skraćuju na osnovu.
+    const stems = words.map((word) => (word.length > 4 ? word.slice(0, Math.max(4, word.length - 3)) : word));
+    pool.push(...rankFoodsForQuery(stems.join(" "), foods, limit));
+  }
+  if (pool.length === direct.length) {
+    return direct;
+  }
+  const distance = (entry) => {
+    const diffs = normalizeLookupValue(entry.food.name)
+      .split(" ")
+      .filter((part) => {
+        let shared = 0;
+        while (shared < part.length && shared < last.length && part[shared] === last[shared]) shared += 1;
+        return shared >= Math.min(4, last.length);
+      })
+      .map((part) => Math.abs(part.length - last.length));
+    return diffs.length ? Math.min(...diffs) : 99;
+  };
+  return pool
+    .map((entry, index) => ({ entry, index, d: distance(entry) }))
+    .sort((a, b) => a.d - b.d || a.index - b.index)
+    .slice(0, limit)
+    .map((item) => item.entry);
 }
 
 // A bare number reads as a count ("2 jajeta"), a number with a weight unit
