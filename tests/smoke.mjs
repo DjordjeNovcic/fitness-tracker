@@ -97,9 +97,14 @@ async function checkTabs(width, theme, mode) {
     const state = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       height: document.querySelector("main")?.getBoundingClientRect().height || 0,
+      // Kod vežbe sme da se vidi samo jedna doza (kratka ili puna).
+      doubleDose: [...document.querySelectorAll(".training-exercise-detail")].filter(
+        (detail) => [...detail.children].filter((child) => getComputedStyle(child).display !== "none").length > 1
+      ).length,
     }));
     if (state.overflow > 1) fail(`${label} #${tab}`, `vodoravni skrol ${state.overflow}px`);
     if (state.height < 150) fail(`${label} #${tab}`, `ekran skoro prazan (${Math.round(state.height)}px)`);
+    if (state.doubleDose) fail(`${label} #${tab}`, `${state.doubleDose} vežbi prikazuje dve doze`);
   }
   errors.forEach((message) => fail(label, `JS greška: ${message}`));
   await close();
@@ -180,7 +185,7 @@ async function checkSignedOut() {
 console.log(`Smoke test: ${root}`);
 try {
   for (const theme of ["light", "dark"]) {
-    for (const width of [390, 360]) {
+    for (const width of [390, 360, 1280]) {
       await checkTabs(width, theme, "demo");
     }
   }

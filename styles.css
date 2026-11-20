@@ -17587,3 +17587,14 @@ button.training-week-volume-name {
     margin-top: 12px;
   }
 }
+/* Kratka doza („4 × 6-8“) samo na telefonu; na širim ekranima pun opis.
+   Pravilo je ranije bilo samo unutar telefonskog bloka, pa su se na
+   računaru videle obe doze jedna uz drugu. */
+@media (min-width: 600px) {
+  .training-exercise-detail .training-exercise-detail-short {
+    display: none !important;
+  }
+  .training-exercise-detail .training-exercise-detail-long {
+    display: inline !important;
+  }
+}
