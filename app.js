@@ -8294,7 +8294,7 @@ function formatPlanDelta(delta, unit) {
   if (Math.abs(delta) < 0.05) {
     return `Tačno na cilju`;
   }
-  const amount = Math.abs(delta) >= 1000 ? formatInt(Math.abs(delta)) : formatDecimal(Math.abs(delta), Math.abs(delta) >= 100 ? 0 : 1);
+  const amount = Math.abs(delta) >= 1000 ? formatInt(Math.abs(delta)) : formatDecimal(Math.abs(delta), Math.abs(delta) >= 10 ? 0 : 1);
   if (delta > 0) {
     return `+${amount} ${unit} preko cilja`;
   }
