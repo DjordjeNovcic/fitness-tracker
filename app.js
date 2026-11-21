@@ -6638,7 +6638,7 @@ function renderTrainingBurnSection() {
       <details class="form-collapse training-burn-collapse">
         <summary>
           <span class="form-collapse-title">Kalorije treninga</span>
-          <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "nema unosa"}</span>
+          <span class="${resolved > 0 ? "pill strong" : "footer-note"}">${resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "0 kcal"}</span>
           <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
         </summary>
         <p class="footer-note training-burn-intro">Zbir se oduzima od unosa na Danas.</p>
@@ -16522,7 +16522,7 @@ function getProgressSummary(history, photos) {
 function renderProgressEmptyState() {
   return `
     <section class="section progress-empty-section">
-      ${renderSectionLead("Napredak", "")}
+      ${renderSectionLead("Prvi koraci", "")}
       <div class="empty progress-empty-guide">
         <strong>Još nema merenja.</strong>
         <span>Unesi težinu jednom nedeljno. Trend, uvidi i poređenje slika se pojavljuju sami kako se podaci skupljaju.</span>
