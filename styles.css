@@ -18531,3 +18531,11 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     margin-bottom: 4px;
   }
 }
+@media (max-width: 720px) {
+  /* Pločice na Danas: sadržaj od vrha, pa su vrednosti u obe kolone u istoj
+     visini (desne bez trake napretka bile su ~8px niže). */
+  :root[data-theme] .plan-glance-rows > .plan-glance-row,
+  :root[data-theme] .plan-glance-rows > .plan-glance-row + .plan-glance-row {
+    align-content: start;
+  }
+}
