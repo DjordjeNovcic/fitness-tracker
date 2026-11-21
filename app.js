@@ -14436,11 +14436,11 @@ function renderRunningTab() {
               </div>
             </dl>
           `
-          : `<div class="empty">Još nema trčanja ove nedelje. Dodaj prvo ispod i ovde se pojavljuje nedeljni zbir.</div>`
+          : `<div class="empty">${(store.runs || []).length ? "Ove nedelje još nema trčanja." : "Još nema trčanja. Prvo upiši ispod, a ovde stiže nedeljni zbir."}</div>`
       }
     </section>
 
-    <details class="section form-collapse running-add-section" ${state.runImportDraft || editingRun ? "open" : ""}>
+    <details class="section form-collapse running-add-section" ${state.runImportDraft || editingRun || !(store.runs || []).length ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">${editingRun ? "Izmeni trčanje" : "Dodaj trčanje"}</span>
         <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
