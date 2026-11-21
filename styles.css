@@ -18577,3 +18577,25 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     margin-left: 42px;
   }
 }
+@media (min-width: 721px) {
+  /* Skupljeni obroci na računaru: 106 → ~84px (padding kao na telefonu
+     uz malo više vazduha, red sa naslovom niži). */
+  :root[data-theme] .plan-meals-section .meal-card:not(.is-editing) {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+  :root[data-theme] .meal-card-header {
+    row-gap: 2px;
+  }
+  :root[data-theme] .meal-card-topline {
+    min-height: 40px;
+  }
+}
+/* Suplementi: opis odmah ispod naziva (bilo 8px razmaka i 12px po redu). */
+:root[data-theme] .supplement-plan-meta {
+  margin-top: 2px;
+}
+:root[data-theme] .supplement-plan-card {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
