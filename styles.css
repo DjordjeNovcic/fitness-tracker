@@ -18519,3 +18519,15 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .meal-entry-action--danger:hover {
   color: var(--danger, #a3412a);
 }
+@media (max-width: 720px) {
+  /* Isti razmak između kartica na svim ekranima (Danas 12px, ostali 10px). */
+  :root[data-theme] .app-main.shell {
+    row-gap: var(--main-gap);
+  }
+}
+@media (max-width: 720px) {
+  /* Napredak: podtabovi u svom redu, malo vazduha ispod (bilo 7px). */
+  :root[data-theme] .app-main > .seg-nav:not(.group-seg-nav) {
+    margin-bottom: 4px;
+  }
+}
