@@ -18490,3 +18490,32 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     text-overflow: clip;
   }
 }
+
+/* ============================================================
+   Vizuelni krug 2: tiše akcije u redovima.
+   Olovka/kanta/reset se ponavljaju u svakom redu (navike, nizovi, trčanja,
+   namirnice u obroku): tanja linija, svetlija boja, puna boja na dodir.
+   ============================================================ */
+:root[data-theme] .icon-only-action svg,
+:root[data-theme] .meal-entry-action svg {
+  width: 17px;
+  height: 17px;
+}
+:root[data-theme] .icon-only-action svg [stroke-width],
+:root[data-theme] .meal-entry-action svg [stroke-width] {
+  stroke-width: 1.8;
+}
+:root[data-theme] .icon-only-action:not(.quick-entry-remove):not(.set-done),
+:root[data-theme] .meal-entry-action {
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+}
+:root[data-theme] .icon-only-action:hover,
+:root[data-theme] .icon-only-action:focus-visible,
+:root[data-theme] .meal-entry-action:hover,
+:root[data-theme] .meal-entry-action:focus-visible {
+  color: var(--ink);
+}
+:root[data-theme] .danger-button.icon-only-action:hover,
+:root[data-theme] .meal-entry-action--danger:hover {
+  color: var(--danger, #a3412a);
+}

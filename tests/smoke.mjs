@@ -214,6 +214,16 @@ async function checkActions() {
   // Trening: tajmer odmora i mapa tela.
   await page.evaluate(() => (location.hash = "training"));
   await page.waitForTimeout(600);
+  // Demo nema trening svakog dana (npr. subotom): izaberi prvi dan koji ga ima.
+  if (!(await page.$(".training-exercise-row"))) {
+    const dayChips = page.locator(".hero-day-chips .chip");
+    const dayCount = await dayChips.count();
+    for (let index = 0; index < dayCount; index += 1) {
+      await dayChips.nth(index).click();
+      await page.waitForTimeout(300);
+      if (await page.$(".training-exercise-row")) break;
+    }
+  }
   await page.click(".training-exercise-row .training-rest:not(.training-swap)");
   await page.waitForTimeout(400);
   if (!(await page.$(".training-rest.is-running"))) fail("Trening", "tajmer odmora ne kreće");
