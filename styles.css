@@ -18539,3 +18539,27 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     align-content: start;
   }
 }
+/* Recepti: naziv recepta iznad sastojaka po važnosti (bili su isti 15px/700). */
+:root[data-theme] .recipe-library-head h3 {
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+:root[data-theme] .recipe-library-ingredient-head strong,
+:root[data-theme] .recipe-library-ingredient-head > span:first-child {
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+.recipe-ingredients-label {
+  margin: 12px 0 2px;
+  font-size: var(--fs-12);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Pretraga recepata kao ostale pretrage: bez senke ispod polja. */
+:root[data-theme] .recipes-library-section input[type="search"],
+:root[data-theme] .recipes-library-section .foods-search,
+:root[data-theme] .recipe-library-search {
+  box-shadow: none;
+}

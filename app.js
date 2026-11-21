@@ -12313,7 +12313,7 @@ function renderRecipesTab() {
                                     ? `<div class="recipe-library-method">${escapeHtml(truncateText(favorite.instructions, 220))}</div>`
                                     : ""
                                 }
-                                <div class="footer-note" style="margin-top:10px;">Sastav recepta:</div>
+                                <div class="recipe-ingredients-label">Sastojci</div>
                                 <div class="stack recipe-library-ingredients" style="margin-top:12px;">
                                   ${favorite.items
                                     .map(
