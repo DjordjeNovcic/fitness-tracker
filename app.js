@@ -5330,13 +5330,14 @@ const AMOUNT_UNIT_FORMS = {
   clove: ["čen", "čena", "čenova"],
   sachet: ["kesica", "kesice", "kesica"],
   pinch: ["prstohvat", "prstohvata", "prstohvata"],
+  scoop: ["merica", "merice", "merica"],
   ml: ["ml", "ml", "ml"],
   dl: ["dl", "dl", "dl"],
 };
 // Zapremina za tečnosti: ml i dl se nude samo njima (gustina ispod).
 const FOOD_VOLUME_UNITS = ["ml", "dl"];
 // Mere čija težina zavisi od namirnice (jaje, glavica luka, čen belog luka).
-const FOOD_COUNT_UNITS = ["piece", "head", "clove", "sachet", "pinch"];
+const FOOD_COUNT_UNITS = ["piece", "head", "clove", "sachet", "pinch", "scoop"];
 
 function amountUnitLabel(unit) {
   return (AMOUNT_UNIT_FORMS[unit] || AMOUNT_UNIT_FORMS.g)[0];
@@ -5437,6 +5438,13 @@ const FOOD_PINCH_GRAMS = [
   [/\bso\b|biber|cimet|zacin|vegeta|aleva paprika|mlevena paprika|origano|bosiljak|\bkim\b|muskatn|kurkuma|curry|kari\b/, 0.5],
 ];
 
+// Merica proteina u prahu = 30 g. Proteinske čokoladice, pudinzi, jogurti i
+// slično nisu prah, pa njima merica ne treba.
+const FOOD_SCOOP_GRAMS = [
+  [/bar\b|cokolad|plocic|puding|jogurt|mleko|napitak|shake|keks|pahuljic|hleb|testenin|palacin|sladoled|kafa/, 0],
+  [/protein|whey|izolat|isolate|kazein|casein|gainer/, 30],
+];
+
 const FOOD_CLOVE_GRAMS = [
   [/prah|granul|susen/, 0],
   [GARLIC_NAME_PATTERN, 5],
@@ -5470,6 +5478,9 @@ function getFoodUnitGrams(food, unit) {
   }
   if (unit === "pinch") {
     return matchFoodUnitGrams(food, FOOD_PINCH_GRAMS);
+  }
+  if (unit === "scoop") {
+    return matchFoodUnitGrams(food, FOOD_SCOOP_GRAMS);
   }
   if (FOOD_VOLUME_UNITS.includes(unit)) {
     const density = matchFoodUnitGrams(food, FOOD_LIQUID_DENSITY);
@@ -10475,7 +10486,10 @@ function parseQuickEntryChunk(raw) {
     return null;
   }
   // Leading amount: "200 g piletine", "2 jaja", "1,5 kasike ulja".
-  let match = cleaned.match(/^(\d+(?:[.,]\d+)?)\s*([^\s\d]+)?\s*(.*)$/);
+  // „pola kašičice ulja“ / „½ merice“ = 0,5; „kašičica i po“ ne pokrivamo.
+  const halfMatch = cleaned.match(/^(?:pola|½)\s*(\S+)/i);
+  const cleanedAmount = halfMatch && isQuickEntryUnitWord(halfMatch[1]) ? cleaned.replace(/^(?:pola|½)\s*/i, "0.5 ") : cleaned;
+  let match = cleanedAmount.match(/^(\d+(?:[.,]\d+)?)\s*([^\s\d]+)?\s*(.*)$/);
   let amount = 0;
   let unit = "";
   let query = cleaned;
@@ -11013,7 +11027,8 @@ function renderAmountPresetChipsInner(food) {
   if (unit === "g") {
     return gramsPresetChipsMarkup(base, "g");
   }
-  const counts = unit === "ml" ? [100, 200, 250] : FOOD_COUNT_UNITS.includes(unit) ? [0.5, 1, 2] : [1, 2, 3];
+  // Kašičica/kašika/merica: i pola („½ kašičice ulja“).
+  const counts = unit === "ml" ? [100, 200, 250] : unit === "tsp" || unit === "tbsp" || unit === "scoop" ? [0.5, 1, 1.5, 2] : FOOD_COUNT_UNITS.includes(unit) ? [0.5, 1, 2] : [1, 2, 3];
   return counts
     .map((count) => {
       const grams = roundValue(convertAmountUnitToGrams(count, unit, food), 1);
@@ -20991,6 +21006,11 @@ async function handleDocumentClick(event) {
     }
     state.planDraft.foodId = food.id;
     state.planDraft.grams = String(roundValue(food.servingBaseGrams || 100, 0));
+    state.planDraft.amountUnit = "g";
+    if (getFoodUnitGrams(food, "scoop") > 0) {
+      state.planDraft.amountUnit = "scoop";
+      state.planDraft.grams = String(getFoodUnitGrams(food, "scoop"));
+    }
     if (!state.planDraft.mealLabel) {
       state.planDraft.mealLabel = defaultMeals[0];
     }
@@ -22037,7 +22057,7 @@ async function handleDocumentClick(event) {
     const food = getFoodById(state.planDraft.foodId);
     const isPiece = getFoodServingUnit(food) === "piece";
     const unit = getPlanDraftUnit(food);
-    const step = isPiece ? 1 : unit === "g" || unit === "ml" ? 10 : 1;
+    const step = isPiece ? 1 : unit === "g" || unit === "ml" ? 10 : unit === "tsp" || unit === "tbsp" || unit === "scoop" ? 0.5 : 1;
     const visibleInput = document.querySelector(isPiece ? "#grams" : "#amount-input");
     const current = toNumber(visibleInput?.value) || 0;
     const minValue = isPiece || unit === "g" ? 1 : unit === "ml" ? 10 : 0.5;
@@ -25677,8 +25697,13 @@ function handleInput(event) {
     state.planDraft.foodId = selectedFood?.id || "";
     if (state.planDraft.foodId !== previousFoodId) {
       // Switching food resets the unit — a spoon choice made for honey
-      // shouldn't silently carry over to chicken breast.
+      // shouldn't silently carry over to chicken breast. Protein u prahu
+      // kreće od 1 merice (30 g), da ne moraš da kucaš grame.
       state.planDraft.amountUnit = "g";
+      if (selectedFood && getFoodUnitGrams(selectedFood, "scoop") > 0) {
+        state.planDraft.amountUnit = "scoop";
+        state.planDraft.grams = String(getFoodUnitGrams(selectedFood, "scoop"));
+      }
     }
 
     const hiddenInput = document.querySelector("#foodId");

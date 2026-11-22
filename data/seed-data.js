@@ -984,6 +984,36 @@ window.SEED_DATA = {
       "carbs": 0.0,
       "fat": 4.2,
       "category": "Proteini"
+    },
+    {
+      "id": "food-96",
+      "name": "Mozzarella / mocarela (sveža, u salamuri)",
+      "servingBaseGrams": 100.0,
+      "kcal": 250.0,
+      "protein": 18.0,
+      "carbs": 1.0,
+      "fat": 19.5,
+      "category": "Proteini i masti"
+    },
+    {
+      "id": "food-97",
+      "name": "Mozzarella / mocarela light",
+      "servingBaseGrams": 100.0,
+      "kcal": 165.0,
+      "protein": 19.0,
+      "carbs": 1.0,
+      "fat": 9.5,
+      "category": "Proteini"
+    },
+    {
+      "id": "food-98",
+      "name": "Mozzarella / mocarela rendana (za picu)",
+      "servingBaseGrams": 100.0,
+      "kcal": 300.0,
+      "protein": 22.0,
+      "carbs": 2.2,
+      "fat": 22.4,
+      "category": "Proteini i masti"
     }
   ],
   "weeklyPlanEntries": [
