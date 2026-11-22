@@ -12422,6 +12422,15 @@ function renderPlanTab(entries) {
                   const isMealPartial = doneEntries.length > 0 && doneEntries.length < mealEntries.length;
                   const eatenMealKcal = isMealPartial ? roundValue(getDayTotals(doneEntries).kcal, 0) : 0;
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
+                  // Prazan obrok: „Kopiraj od juče“ je treći tihi link u redu sa
+                  // „Dodaj namirnicu / Dodaj obrok“, ne kutija sa porukom i dugmetom.
+                  const copyFromPreviousCount =
+                    mealEntries.length || isMealReadOnly
+                      ? 0
+                      : (() => {
+                          const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
+                          return getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel).length;
+                        })();
                   return `
                     <article class="meal-card ${isEditingMeal || isPickingRecipeForMeal(mealLabel) ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
@@ -12429,6 +12438,7 @@ function renderPlanTab(entries) {
                         <div class="meal-card-topline">
                           <div class="meal-card-heading">
                             <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
+                            ${mealEntries.length || isEditingMeal ? "" : `<span class="meal-empty-tag">prazno</span>`}
                             ${
                               prepBadgeCount >= 2
                                 ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 priprema za ${prepBadgeCount} dana</span>`
@@ -12512,21 +12522,7 @@ function renderPlanTab(entries) {
                             ? getMealEntryBlocks(mealEntries)
                                 .map((block) => (block.group ? renderMealRecipeGroup(block.group, isMealReadOnly) : renderMealEntryRow(block.entry, isMealReadOnly)))
                                 .join("")
-                            : (() => {
-                                const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
-                                const previousEntries = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
-                                const canCopy = previousEntries.length > 0 && !isMealReadOnly;
-                                // The "Dodaj namirnicu" row renders right below and already says
-                                // the meal is empty. Repeating it in five stacked cards is what
-                                // made a new user's first screen 600px of the same sentence — so
-                                // the message stays only when it carries something extra (the
-                                // copy-from-yesterday shortcut) or when there is no add row at
-                                // all because the meal is already checked off.
-                                if (!canCopy) {
-                                  return isMealDone ? `<div class="empty meal-empty">Još nema stavki u ovom obroku.</div>` : "";
-                                }
-                                return `<div class="empty meal-empty">Još nema stavki u ovom obroku.<div class="meal-empty-actions"><button class="ghost-button button-with-icon" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">${renderButtonContent(`Kopiraj od juče (${previousEntries.length})`, "copy")}</button></div></div>`;
-                              })()
+                            : ""
                         }
                         ${
                           !isMealReadOnly
@@ -12542,6 +12538,13 @@ function renderPlanTab(entries) {
                                     ? `<button class="meal-add-row" type="button" data-action="open-meal-recipe-picker" data-meal-label="${escapeHtml(mealLabel)}">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                                   <span>Dodaj obrok</span>
+                                </button>`
+                                    : ""
+                                }${
+                                  copyFromPreviousCount
+                                    ? `<button class="meal-add-row meal-add-row--muted" type="button" data-action="copy-meal-from-previous-day" data-meal-label="${escapeHtml(mealLabel)}">
+                                  ${renderActionIcon("copy")}
+                                  <span>Kopiraj od juče (${copyFromPreviousCount})</span>
                                 </button>`
                                     : ""
                                 }</div>`

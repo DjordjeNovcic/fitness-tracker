@@ -18882,3 +18882,50 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .day-block .chip.is-partial-plan .day-bar-dot {
   background: transparent;
 }
+
+/* Danas, pregled obroka (2026-11-22): prazan obrok je jedan red — naziv sa
+   „prazno“ levo, tihi linkovi desno (ili ispod na uskom ekranu); nema više
+   kutije „Još nema stavki“ sa velikim dugmetom. */
+:root[data-theme] .plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 16px;
+}
+:root[data-theme] .plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) > .meal-card-content {
+  flex: 0 1 auto;
+}
+:root[data-theme] .plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) .meal-title {
+  color: var(--muted);
+  font-weight: 700;
+}
+.meal-empty-tag {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong, var(--line));
+  color: var(--muted);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  vertical-align: middle;
+}
+.meal-card-heading:has(.meal-empty-tag) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.meal-add-row--muted,
+:root[data-theme] .plan-meals-section .meal-add-row--muted {
+  color: var(--muted);
+}
+.meal-add-row--muted svg {
+  width: 16px;
+  height: 16px;
+}
+/* Radnje za ceo dan: odvojene linijom, poravnate sa karticama. */
+.plan-delete-actions {
+  margin-top: 14px;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--line);
+}
