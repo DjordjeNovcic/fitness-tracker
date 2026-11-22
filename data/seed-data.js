@@ -964,6 +964,26 @@ window.SEED_DATA = {
       "carbs": 14.7,
       "fat": 0.5,
       "category": "Ugljeni hidrati"
+    },
+    {
+      "id": "food-94",
+      "name": "Pileći karabatak (sa kožom, sirov)",
+      "servingBaseGrams": 100.0,
+      "kcal": 214.0,
+      "protein": 16.4,
+      "carbs": 0.0,
+      "fat": 16.0,
+      "category": "Proteini"
+    },
+    {
+      "id": "food-95",
+      "name": "Pileći karabatak (bez kože, sirov)",
+      "servingBaseGrams": 100.0,
+      "kcal": 120.0,
+      "protein": 19.3,
+      "carbs": 0.0,
+      "fat": 4.2,
+      "category": "Proteini"
     }
   ],
   "weeklyPlanEntries": [
