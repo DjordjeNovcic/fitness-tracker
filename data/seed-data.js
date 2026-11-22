@@ -944,6 +944,16 @@ window.SEED_DATA = {
       "carbs": 0.0,
       "fat": 0.3,
       "category": "Proteini"
+    },
+    {
+      "id": "food-92",
+      "name": "Cimet",
+      "servingBaseGrams": 100.0,
+      "kcal": 247.0,
+      "protein": 4.0,
+      "carbs": 80.6,
+      "fat": 1.2,
+      "category": "Ostalo"
     }
   ],
   "weeklyPlanEntries": [

@@ -724,6 +724,8 @@ const state = {
   editingMealNoteKey: "",
   // „Dodaj obrok“: za koji obrok (ključ dana kao kod beleške) je otvoren izbor recepta.
   recipePickKey: "",
+  // Otvoreni recepti u obroku (prikaz sastojaka), samo za ovu sesiju.
+  expandedRecipeGroups: [],
   mealNoteDraft: "",
   // Meal prep ("kuvaj unapred"): which meal's prep panel is open + chosen days.
   prepMealLabel: "",
@@ -7989,6 +7991,10 @@ async function applyFavoriteMealToDay(favorite, options = {}) {
     return true;
   }
 
+  // Sastojci nose oznaku recepta, pa se u obroku vide kao jedan red
+  // („Pita sa ovsenim pahuljicama“) koji se otvara na sastojke i briše odjednom.
+  const recipeGroupId = uid("recipe-group");
+  const recipeGrams = cookedWeight && eatenGrams > 0 ? eatenGrams : 0;
   favorite.items.forEach((item) => {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
@@ -7999,6 +8005,10 @@ async function applyFavoriteMealToDay(favorite, options = {}) {
       foodName: item.foodName,
       grams: Math.max(0.1, roundValue(toNumber(item.grams) * ratio, 1)),
       done: false,
+      recipeGroupId,
+      recipeId: favorite.id,
+      recipeName: favorite.name,
+      ...(recipeGrams ? { recipeGrams } : {}),
     });
   });
 
@@ -11993,6 +12003,91 @@ function renderPlanSummaryCompact(ring) {
     </div>`;
 }
 
+function renderMealEntryRow(entry, isReadOnly) {
+  return `
+    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
+      <div class="meal-entry-row">
+      ${isReadOnly ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
+        <div class="meal-entry-main">
+          <div class="meal-entry-title-group">
+            <strong>${escapeHtml(entry.foodName)}</strong>
+          </div>
+        </div>
+        <div class="meal-entry-stats">
+          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
+          <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
+          <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
+        </div>
+      ${isReadOnly ? `</div>` : `</button>`}
+      ${
+        // Brisanje direktno u redu; izmena je tap na sam red. Sakriveno kad
+        // je obrok čekiran ili dan zaključan.
+        isReadOnly
+          ? ""
+          : `<div class="meal-entry-actions">
+              <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
+            </div>`
+      }
+      </div>
+    </div>
+  `;
+}
+
+// Stavke obroka redom, a sastojci istog dodatog recepta skupljeni u jedan red.
+function getMealEntryBlocks(mealEntries) {
+  const blocks = [];
+  const groups = new Map();
+  mealEntries.forEach((entry) => {
+    if (!entry.recipeGroupId) {
+      blocks.push({ entry });
+      return;
+    }
+    if (!groups.has(entry.recipeGroupId)) {
+      const group = { groupId: entry.recipeGroupId, name: entry.recipeName || "Recept", recipeId: entry.recipeId, recipeGrams: toNumber(entry.recipeGrams), entries: [] };
+      groups.set(entry.recipeGroupId, group);
+      blocks.push({ group });
+    }
+    groups.get(entry.recipeGroupId).entries.push(entry);
+  });
+  return blocks;
+}
+
+function renderMealRecipeGroup(group, isReadOnly) {
+  const expanded = (state.expandedRecipeGroups || []).includes(group.groupId);
+  const totals = getDayTotals(group.entries);
+  const grams = group.recipeGrams || group.entries.reduce((sum, entry) => sum + (getFoodServingUnit(entry.food) === "piece" ? 0 : toNumber(entry.grams)), 0);
+  const recipe = (store.favoriteMeals || []).find((entry) => entry.id === group.recipeId);
+  const swapText = group.recipeGrams ? formatSwapEquivalent(normalizeSwap(recipe?.swap), group.recipeGrams) : "";
+  const count = group.entries.length;
+  return `
+    <div class="meal-entry meal-entry-group ${expanded ? "is-expanded" : ""}">
+      <div class="meal-entry-row">
+        <button class="meal-entry-body" type="button" data-action="toggle-recipe-group" data-group-id="${escapeHtml(group.groupId)}" aria-expanded="${expanded}" aria-label="${escapeHtml(group.name)}, ${count} ${srPlural(count, "sastojak", "sastojka", "sastojaka")}, ${expanded ? "sakrij" : "prikaži"} sastojke">
+          <div class="meal-entry-main">
+            <div class="meal-entry-title-group">
+              <strong>${escapeHtml(group.name)}</strong>
+              <span class="meal-entry-group-badge">recept · ${count} ${srPlural(count, "sastojak", "sastojka", "sastojaka")}</span>
+              <svg class="meal-entry-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="meal-entry-stats">
+            ${grams ? `<span class="meal-entry-grams">${roundValue(grams, 0)} g${swapText ? ` <span class="meal-entry-swap">(${escapeHtml(swapText)})</span>` : ""}</span>` : ""}
+            <span class="meal-entry-kcal">${roundValue(totals.kcal, 0)} kcal</span>
+            <span class="meal-entry-macros">P ${formatDecimal(totals.protein, 1)} · UH ${formatDecimal(totals.carbs, 1)} · M ${formatDecimal(totals.fat, 1)} g</span>
+          </div>
+        </button>
+        ${
+          isReadOnly
+            ? ""
+            : `<div class="meal-entry-actions">
+                <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-recipe-group" data-group-id="${escapeHtml(group.groupId)}" aria-label="Obriši iz obroka: ${escapeHtml(group.name)}" title="Obriši ceo recept iz obroka">${renderActionIcon("delete")}</button>
+              </div>`
+        }
+      </div>
+      ${expanded ? `<div class="meal-entry-group-items">${group.entries.map((entry) => renderMealEntryRow(entry, isReadOnly)).join("")}</div>` : ""}
+    </div>`;
+}
+
 // --- Jelovnici -------------------------------------------------------------
 // Sačuvan jelovnik = obe nedelje plana + svi recepti + namirnice koje oni
 // koriste + beleške uz obroke, pod jednim imenom („Nevenin jelovnik“).
@@ -12358,8 +12453,8 @@ function renderPlanTab(entries) {
                                   }
                                 </div>
                                 <div class="meal-card-summary-items">${escapeHtml(
-                                  mealEntries
-                                    .map((entry) => String(entry.displayName || entry.foodName || "").replace(/\s*\([^)]*\)/g, "").trim())
+                                  getMealEntryBlocks(mealEntries)
+                                    .map((block) => (block.group ? block.group.name : String(block.entry.displayName || block.entry.foodName || "").replace(/\s*\([^)]*\)/g, "").trim()))
                                     .filter(Boolean)
                                     .join(", ")
                                 )}</div>
@@ -12395,39 +12490,8 @@ function renderPlanTab(entries) {
                         ${state.prepMealLabel === mealLabel && !isMealReadOnly ? renderMealPrepPanel(mealLabel) : ""}
                         ${
                           mealEntries.length
-                            ? mealEntries
-                                .map(
-                                  (entry) => `
-                                    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
-                                      <div class="meal-entry-row">
-                                      ${isMealReadOnly ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
-                                        <div class="meal-entry-main">
-                                          <div class="meal-entry-title-group">
-                                            <strong>${escapeHtml(entry.foodName)}</strong>
-                                          </div>
-                                        </div>
-                                        <div class="meal-entry-stats">
-                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
-                                          <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
-                                          <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
-                                        </div>
-                                      ${isMealReadOnly ? `</div>` : `</button>`}
-                                      ${
-                                        // Brisanje direktno u redu: ranije se do brisanja stizalo tek
-                                        // kroz kompozitor, dva tapa za nešto što se najčešće radi odmah
-                                        // po unosu. Izmena je tap na sam red (ceo red je dugme), pa
-                                        // olovka tik uz kantu nije dodavala ništa osim šanse za
-                                        // pogrešan tap. Sakriveno kad je obrok čekiran.
-                                        isMealReadOnly
-                                          ? ""
-                                          : `<div class="meal-entry-actions">
-                                              <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
-                                            </div>`
-                                      }
-                                      </div>
-                                    </div>
-                                  `
-                                )
+                            ? getMealEntryBlocks(mealEntries)
+                                .map((block) => (block.group ? renderMealRecipeGroup(block.group, isMealReadOnly) : renderMealEntryRow(block.entry, isMealReadOnly)))
                                 .join("")
                             : (() => {
                                 const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
@@ -20876,6 +20940,36 @@ async function handleDocumentClick(event) {
     persist();
     queuePendingUndo(`Primenjen „${preset.name}“: ${result.added} ${srPlural(result.added, "stavka", "stavke", "stavki")}.`, () => {
       Object.assign(store, before);
+      persist();
+    });
+    render();
+    return;
+  }
+
+  if (action === "toggle-recipe-group") {
+    const groupId = String(actionTarget.dataset.groupId || "");
+    const open = state.expandedRecipeGroups || [];
+    state.expandedRecipeGroups = open.includes(groupId) ? open.filter((id) => id !== groupId) : [...open, groupId];
+    render();
+    return;
+  }
+
+  if (action === "delete-recipe-group") {
+    const groupId = String(actionTarget.dataset.groupId || "");
+    const weekday = state.selectedWeekday;
+    const weekTrack = state.selectedWeekTrack;
+    const groupEntries = store.weeklyPlanEntries.filter(
+      (entry) => entry.recipeGroupId === groupId && entry.weekday === weekday && normalizeWeekTrack(entry.weekTrack) === weekTrack
+    );
+    if (!groupEntries.length || isMealCompletedForWeekday(weekday, groupEntries[0].mealLabel, weekTrack)) {
+      return;
+    }
+    const ids = new Set(groupEntries.map((entry) => entry.id));
+    const previousEntries = store.weeklyPlanEntries;
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !ids.has(entry.id));
+    persist();
+    queuePendingUndo(`„${groupEntries[0].recipeName || "Recept"}“ obrisan iz obroka.`, () => {
+      store.weeklyPlanEntries = previousEntries;
       persist();
     });
     render();

@@ -18826,3 +18826,41 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Dodat recept u obroku: jedan red sa nazivom recepta, otvara se na sastojke. */
+.meal-entry-group .meal-entry-title-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+:root[data-theme] .plan-meals-section .meal-entry-group > .meal-entry-row .meal-entry-title-group strong {
+  font-size: var(--fs-15);
+  font-weight: 700;
+}
+.meal-entry-group-badge {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--muted);
+}
+.meal-entry-group-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.meal-entry-group.is-expanded .meal-entry-group-chevron {
+  transform: rotate(180deg);
+}
+.meal-entry-group-items {
+  margin: 4px 0 0 4px;
+  padding-left: 12px;
+  border-left: 1px dashed var(--line-strong, var(--line));
+}
+:root[data-theme] .plan-meals-section .meal-entry-group-items .meal-entry {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+:root[data-theme] .plan-meals-section .meal-entry-group-items .meal-entry:not(:has(~ .meal-entry)) {
+  border-bottom: 0;
+}
