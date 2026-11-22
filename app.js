@@ -1188,6 +1188,65 @@ function ensureStoreCollections(targetStore) {
   normalizeFoodCategoriesAcrossStore(targetStore);
   normalizeFoodServingUnitsAcrossStore(targetStore);
   syncCatalogFoods(targetStore);
+  (targetStore.favoriteMeals || []).forEach((favorite) => syncRecipeFood(targetStore, favorite));
+}
+
+// Recept sa težinom gotovog jela (npr. ispečen hleb) postaje i namirnica na
+// 100 g, pa „Integralni hleb 120 g“ može u obrok ili kao sastojak drugog
+// recepta. ID je izveden iz recepta, da dva uređaja ne naprave duplikat.
+// Vrednosti prate sastojke: osvežavaju se pri svakom čuvanju recepta i
+// učitavanju. Namirnicu koju si obrisao ne vraća sve do sledećeg čuvanja recepta.
+function getRecipeFoodId(favorite) {
+  return `food-recipe-${favorite.id}`;
+}
+
+function syncRecipeFood(targetStore, favorite, { force = false } = {}) {
+  if (!favorite?.id) {
+    return null;
+  }
+  const foodId = getRecipeFoodId(favorite);
+  const foods = targetStore.foods || (targetStore.foods = []);
+  const existing = foods.find((food) => food.id === foodId);
+  const cooked = getRecipeCookedWeight(favorite);
+  if (!cooked || !(favorite.items || []).length || (favorite.recipeFoodHidden && !force)) {
+    return existing || null;
+  }
+  const totals = (favorite.items || []).reduce(
+    (sum, item) => {
+      const food = item.foodId !== foodId ? foods.find((entry) => entry.id === item.foodId) : null;
+      if (!food) {
+        return sum;
+      }
+      const entry = calculateEntry(food, toNumber(item.grams));
+      return { kcal: sum.kcal + entry.kcal, protein: sum.protein + entry.protein, carbs: sum.carbs + entry.carbs, fat: sum.fat + entry.fat };
+    },
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+  const per100 = (value) => roundValue((value * 100) / cooked, 1);
+  const recipeName = String(favorite.name || "").trim() || "Recept";
+  const nameTaken = foods.some((food) => food.id !== foodId && normalizeLookupValue(food.name) === normalizeLookupValue(recipeName));
+  const values = {
+    name: nameTaken ? `${recipeName} (recept)` : recipeName,
+    servingUnit: "grams",
+    servingBaseGrams: 100,
+    kcal: per100(totals.kcal),
+    protein: per100(totals.protein),
+    carbs: per100(totals.carbs),
+    fat: per100(totals.fat),
+  };
+  const nextFood = {
+    ...values,
+    category: getRecommendedFoodCategory(values),
+    sourceRecipeId: favorite.id,
+    swap: normalizeSwap(favorite.swap) || normalizeSwap(existing?.swap),
+  };
+  if (existing) {
+    Object.assign(existing, nextFood);
+    return existing;
+  }
+  const created = { id: foodId, ...nextFood };
+  foods.push(created);
+  return created;
 }
 
 // ---------------------------------------------------------------------------
@@ -5604,7 +5663,13 @@ function updateRecipeFoodSuggestions(query, selectedFood = null) {
     list.innerHTML = "";
     return;
   }
-  const ranked = rankFoodsForQuery(query, getSelectableFoods(), 6);
+  // Recept ne može da bude sastojak samog sebe.
+  const editingRecipeId = state.editingFavoriteItem?.favoriteId || "";
+  const ranked = rankFoodsForQuery(
+    query,
+    getSelectableFoods().filter((food) => !editingRecipeId || food.sourceRecipeId !== editingRecipeId),
+    6
+  );
   if (!ranked.length) {
     list.setAttribute("role", "status");
     list.innerHTML = `<div class="food-suggest-empty"><span>Nema „${escapeHtml(String(query || "").trim())}“ u bazi.</span></div>`;
@@ -7667,6 +7732,12 @@ function saveFavoriteMealDraft(payload = {}) {
     amountUnit: getRecipeItemUnit(item, getFoodById(item.foodId)),
   }));
   favorite.updatedAt = new Date().toISOString();
+  // Čuvanje recepta vraća i namirnicu koju si ranije obrisao.
+  delete favorite.recipeFoodHidden;
+  const recipeFood = syncRecipeFood(store, favorite, { force: true });
+  if (recipeFood) {
+    syncFoodNameAcrossStore(recipeFood.id, recipeFood.name);
+  }
   return true;
 }
 
@@ -8380,6 +8451,11 @@ function renderFoodEditorDialog() {
           ${
             isScannedDraft
               ? `<p class="food-form-scan-note">Vrednosti su povučene sa barkoda <strong>${escapeHtml(state.scannedBarcode)}</strong>. Proveri ih i sačuvaj.</p>`
+              : ""
+          }
+          ${
+            editingFood?.sourceRecipeId && (store.favoriteMeals || []).some((meal) => meal.id === editingFood.sourceRecipeId)
+              ? `<p class="food-form-scan-note">Vrednosti se računaju iz recepta i težine gotovog jela. Menjaj recept, jer se izmene ovde prepisuju.</p>`
               : ""
           }
           <section class="food-form-section">
@@ -12517,7 +12593,7 @@ function renderRecipesTab() {
           ${renderUnitField("favorite-prep-time", "Vreme pripreme", "min", `<input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" value="${state.favoriteDraft.prepTimeMinutes}" />`)}
           <div class="recipe-builder-field-wide stack" style="gap:6px;">
             ${renderUnitField("favorite-cooked-weight", "Težina gotovog jela (opciono)", "g", `<input id="favorite-cooked-weight" name="cookedWeightGrams" type="number" inputmode="decimal" min="0" step="any" placeholder="npr. 550" value="${state.favoriteDraft.cookedWeightGrams || ""}" />`)}
-            <div class="footer-note">Izmeri ceo hleb ili jelo posle pečenja/kuvanja. Onda u plan dodaješ koliko si pojeo, npr. 120 g, a ne celu porciju.</div>
+            <div class="footer-note">Izmeri ceo hleb ili jelo posle pečenja/kuvanja. Onda u plan dodaješ koliko si pojeo, npr. 120 g, a ne celu porciju. Recept se pojavljuje i kao namirnica, pa ga možeš dodati u obrok ili kao sastojak drugog recepta.</div>
           </div>
           <div class="recipe-builder-field-wide stack" style="gap:6px;">
             ${renderSwapFields("favorite-swap", state.favoriteDraft.swapName, state.favoriteDraft.swapGrams)}
@@ -20104,6 +20180,12 @@ async function handleDocumentClick(event) {
 
     const result = deleteFoodFromCollections(store, foodId);
     hideCatalogFood(foodId);
+    if (food.sourceRecipeId) {
+      const sourceRecipe = (store.favoriteMeals || []).find((meal) => meal.id === food.sourceRecipeId);
+      if (sourceRecipe) {
+        sourceRecipe.recipeFoodHidden = true;
+      }
+    }
     if (state.editingFoodId === foodId) {
       resetFoodEditing();
     }
