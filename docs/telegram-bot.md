@@ -34,12 +34,18 @@ Actions → New repository secret**. Nikad ih ne stavljaj u kod.
 6. **Probaj.** Actions → Telegram podsetnici → **Run workflow** (ostavi
    „Pošalji test poruku“ čekirano). Stiže „✅ Bot radi“ sa primerom podsetnika.
 
-## Satnica
+## Satnica i vrste podsetnika
 
-U aplikaciji: **Ciljevi → Satnica obroka**. Upiši vreme za svaki obrok, npr.
+U aplikaciji: **Ciljevi → Obaveštenja**. Tu biraš:
+- **Obroci**: u vreme obroka (ili 10–60 min ranije) stiže šta je u planu.
+- **Voda**: od–do, na 1–3 h; „popij vode“ stiže samo kad kasniš za ciljem.
+- **Trening**: ujutru „danas imaš trening“, samo za dane sa treningom.
+- **Rezime dana**: uveče pojedeno naspram cilja, makroi, voda i koraci.
+
+Satnica obroka je na istoj stranici. Upiši vreme za svaki obrok, npr.
 Doručak 08:00, Prva užina 10:30, Ručak 13:30, Druga užina 16:30, Večera 19:30.
-Vreme se vidi i uz naziv obroka na Danas. Prekidač „Šalji podsetnike za
-obroke“ ih gasi bez diranja GitHub-a.
+Vreme se vidi i uz naziv obroka na Danas. Svaku vrstu podsetnika gasiš
+njenim prekidačem, bez diranja GitHub-a.
 
 ## Gašenje
 

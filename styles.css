@@ -18961,3 +18961,30 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
+
+/* Ciljevi → Obaveštenja. */
+.notifications-lead {
+  margin: 0 0 12px;
+}
+.notify-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.notify-label {
+  font-size: var(--fs-13);
+  font-weight: 700;
+  color: var(--muted);
+}
+.notify-chips {
+  margin-bottom: 0;
+}
+.notify-time-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px 12px;
+}
+.notify-time-field input[type="time"] {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}

@@ -101,6 +101,13 @@ const normalizeMealLabel = (label) => String(label || "").trim();
 const mealTitle = (label) => normalizeMealLabel(label).replace(/^\d+\.\s*/, "");
 const escapeHtml = (text) => String(text ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch]);
 const round = (value, digits = 0) => Math.round(Number(value || 0) * 10 ** digits) / 10 ** digits;
+// Srpska množina: 1 čaša, 2–4 čaše, 5+ (i 11–14) čaša.
+const glasses = (count) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  const word = mod10 === 1 && mod100 !== 11 ? "čaša" : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? "čaše" : "čaša";
+  return `${count} ${word}`;
+};
 const toMinutes = (time) => {
   const match = String(time || "").match(/^(\d{2}):(\d{2})$/);
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
@@ -210,38 +217,128 @@ async function main() {
     const entries = dayEntries.filter((entry) => normalizeMealLabel(entry.mealLabel) === label);
     const text = label && entries.length
       ? `✅ Bot radi. Ovako izgleda podsetnik:\n\n${buildMealMessage(appState, label, next[1], entries, now)}`
-      : "✅ Fit Tracker bot radi i vidi tvoj nalog. Upiši satnicu obroka u Ciljevi → Satnica obroka.";
+      : "✅ Fit Tracker bot radi i vidi tvoj nalog. Podsetnike podesi u aplikaciji: Ciljevi → Obaveštenja.";
     await telegram("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
     log("Test poruka poslata.");
     return;
   }
 
-  if (schedule.remindersOn === false) {
-    log("Podsetnici su isključeni u aplikaciji.");
-    return;
-  }
+  // Podešavanja iz Ciljevi → Obaveštenja (stari nalozi: samo mealSchedule).
+  const notify = appState.notifications || {};
+  const mealsOn = notify.meals ? notify.meals.on !== false : schedule.remindersOn !== false;
+  const leadMinutes = Number(notify.meals?.leadMinutes) || 0;
 
   const sentRef = db.doc(`users/${uid}/app/telegram`);
   const sentDoc = await sentRef.get();
   const sent = (sentDoc.exists && sentDoc.data()?.sent) || {};
   const newlySent = {};
-
-  for (const [rawLabel, time] of Object.entries(times)) {
-    const label = normalizeMealLabel(rawLabel);
-    const due = toMinutes(time);
-    const key = `${now.dateKey}|${label}`;
-    if (due === null || sent[key] || now.minutes < due || now.minutes - due > SEND_WINDOW_MIN) {
-      continue;
-    }
-    const entries = dayEntries.filter((entry) => normalizeMealLabel(entry.mealLabel) === label);
-    // Prazan ili već pojeden obrok: nema šta da se podseća.
-    if (!entries.length || entries.every((entry) => entry.done)) {
-      newlySent[key] = "skipped";
-      continue;
-    }
-    await telegram("sendMessage", { chat_id: chatId, text: buildMealMessage(appState, label, time, entries, now), parse_mode: "HTML" });
+  const isDue = (due) => due !== null && now.minutes >= due && now.minutes - due <= SEND_WINDOW_MIN;
+  const send = async (key, text) => {
+    await telegram("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
     newlySent[key] = new Date().toISOString();
-    log(`Poslato: ${label} (${time})`);
+    log(`Poslato: ${key}`);
+  };
+
+  // 🍽 Obroci (po želji X minuta ranije).
+  if (mealsOn) {
+    for (const [rawLabel, time] of Object.entries(times)) {
+      const label = normalizeMealLabel(rawLabel);
+      const mealMinutes = toMinutes(time);
+      const key = `${now.dateKey}|${label}`;
+      if (mealMinutes === null || sent[key] || !isDue(mealMinutes - leadMinutes)) {
+        continue;
+      }
+      const entries = dayEntries.filter((entry) => normalizeMealLabel(entry.mealLabel) === label);
+      // Prazan ili već pojeden obrok: nema šta da se podseća.
+      if (!entries.length || entries.every((entry) => entry.done)) {
+        newlySent[key] = "skipped";
+        continue;
+      }
+      const prefix = leadMinutes ? `⏰ Za ${leadMinutes} min\n` : "";
+      await send(key, prefix + buildMealMessage(appState, label, time, entries, now));
+    }
+  }
+
+  // 💧 Voda: u svakom terminu (od–do, na X min) uporedi popijeno sa ciljem
+  // raspoređenim kroz dan; javi se samo kad kasniš. Gleda se samo poslednji
+  // termin koji je stigao, da kašnjenje cron-a ne pošalje tri poruke odjednom.
+  if (notify.water?.on) {
+    const from = toMinutes(notify.water.from) ?? 9 * 60;
+    const to = toMinutes(notify.water.to) ?? 21 * 60;
+    const every = Number(notify.water.everyMinutes) || 120;
+    const goal = Number(appState.goals?.waterMl) || 2500;
+    const drunk = Math.max(0, Math.round(Number((appState.waterByDate || {})[now.dateKey]) || 0));
+    let slot = null;
+    for (let minute = from + every; minute <= to; minute += every) {
+      if (isDue(minute)) {
+        slot = minute;
+      }
+    }
+    const key = slot === null ? "" : `${now.dateKey}|water|${slot}`;
+    if (slot !== null && !sent[key]) {
+      const expected = Math.round((goal * (slot - from)) / Math.max(1, to - from));
+      if (drunk + 150 < expected) {
+        const liters = (ml) => String(round(ml / 1000, 1)).replace(".", ",");
+        await send(
+          key,
+          `💧 <b>Popij vode</b>\nPopio si ${liters(drunk)} L od ${liters(goal)} L. Do sada je plan ~${liters(expected)} L, fali ti oko ${liters(expected - drunk)} L (${glasses(Math.ceil((expected - drunk) / 250))}).`
+        );
+      } else {
+        newlySent[key] = "on-track";
+      }
+    }
+  }
+
+  // 🏋️ Trening danas.
+  if (notify.training?.on) {
+    const key = `${now.dateKey}|training`;
+    if (!sent[key] && isDue(toMinutes(notify.training.time))) {
+      const templates = (appState.trainingTemplates || []).filter(
+        (template) => template.weekday === now.weekday && normalizeWeekTrack(template.weekTrack) === now.weekTrack
+      );
+      if (templates.length) {
+        const lines = templates.map((template) => {
+          const count = Array.isArray(template.exercises) ? template.exercises.length : 0;
+          return `• ${escapeHtml(template.name || "Trening")}${count ? ` — ${count} ${count === 1 ? "vežba" : count < 5 ? "vežbe" : "vežbi"}` : ""}`;
+        });
+        await send(key, `🏋️ <b>Danas imaš trening</b>\n${lines.join("\n")}\nAjde, odradi ga! 💪`);
+      } else {
+        newlySent[key] = "rest-day";
+      }
+    }
+  }
+
+  // 📊 Rezime dana: pojedeno (čekirano) naspram cilja, voda, koraci.
+  if (notify.summary?.on) {
+    const key = `${now.dateKey}|summary`;
+    if (!sent[key] && isDue(toMinutes(notify.summary.time))) {
+      const foods = appState.foods || [];
+      const eaten = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+      dayEntries
+        .filter((entry) => entry.done)
+        .forEach((entry) => {
+          const part = entryTotals(foods.find((food) => food.id === entry.foodId), entry.grams);
+          Object.keys(eaten).forEach((k) => (eaten[k] += part[k]));
+        });
+      const cups = Number((appState.coffeeByDate || {})[now.dateKey]) || 0;
+      eaten.kcal += cups * (Number(appState.goals?.coffeeKcal) || 10);
+      const goalKcal = Number(appState.goals?.calories) || 0;
+      const water = Number((appState.waterByDate || {})[now.dateKey]) || 0;
+      const waterGoal = Number(appState.goals?.waterMl) || 2500;
+      const steps = Number((appState.stepsByDate || {})[now.dateKey]) || 0;
+      const stepsGoal = Number(appState.goals?.stepsGoal) || 10000;
+      const diff = goalKcal ? Math.round(goalKcal - eaten.kcal) : 0;
+      await send(
+        key,
+        [
+          `📊 <b>Rezime dana</b> (${now.weekday})`,
+          `🍽 ${round(eaten.kcal)}${goalKcal ? ` / ${goalKcal}` : ""} kcal${goalKcal ? (diff >= 0 ? ` · ostalo ${diff}` : ` · preko ${-diff}`) : ""}`,
+          `P ${round(eaten.protein)} · UH ${round(eaten.carbs)} · M ${round(eaten.fat)} g`,
+          `💧 ${String(round(water / 1000, 1)).replace(".", ",")} / ${String(round(waterGoal / 1000, 1)).replace(".", ",")} L`,
+          `👟 ${steps.toLocaleString("sr-Latn")} / ${stepsGoal.toLocaleString("sr-Latn")} koraka`,
+        ].join("\n")
+      );
+    }
   }
 
   if (Object.keys(newlySent).length) {

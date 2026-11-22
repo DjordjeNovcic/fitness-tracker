@@ -1016,6 +1016,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       rawStore.lockedPlanDays && typeof rawStore.lockedPlanDays === "object" && !Array.isArray(rawStore.lockedPlanDays) ? rawStore.lockedPlanDays : {},
     menuPresets: Array.isArray(rawStore.menuPresets) ? rawStore.menuPresets : [],
     mealSchedule: normalizeMealSchedule(rawStore.mealSchedule),
+    notifications: normalizeNotifications(rawStore.notifications, rawStore.mealSchedule),
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
@@ -1140,6 +1141,7 @@ function ensureStoreCollections(targetStore) {
       : {};
   targetStore.menuPresets = Array.isArray(targetStore.menuPresets) ? targetStore.menuPresets : [];
   targetStore.mealSchedule = normalizeMealSchedule(targetStore.mealSchedule);
+  targetStore.notifications = normalizeNotifications(targetStore.notifications, targetStore.mealSchedule);
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.sleepByDate =
@@ -8633,6 +8635,126 @@ function normalizeMealSchedule(raw) {
     }
   });
   return { times, remindersOn: raw?.remindersOn !== false };
+}
+
+// Obaveštenja (Ciljevi → Obaveštenja). Čita ih Telegram skripta
+// (scripts/telegram-reminders.mjs); ovde su samo podešavanja.
+const NOTIFY_TIME = /^\d{2}:\d{2}$/;
+function normalizeNotifications(raw, legacySchedule) {
+  const pick = (value, fallback) => (NOTIFY_TIME.test(String(value || "")) ? String(value) : fallback);
+  const meals = raw?.meals || {};
+  const water = raw?.water || {};
+  const training = raw?.training || {};
+  const summary = raw?.summary || {};
+  return {
+    meals: {
+      on: meals.on != null ? Boolean(meals.on) : legacySchedule?.remindersOn !== false,
+      leadMinutes: [0, 10, 15, 30, 45, 60].includes(Number(meals.leadMinutes)) ? Number(meals.leadMinutes) : 0,
+    },
+    water: {
+      on: Boolean(water.on),
+      from: pick(water.from, "09:00"),
+      to: pick(water.to, "21:00"),
+      everyMinutes: [60, 90, 120, 180].includes(Number(water.everyMinutes)) ? Number(water.everyMinutes) : 120,
+    },
+    training: { on: Boolean(training.on), time: pick(training.time, "08:00") },
+    summary: { on: Boolean(summary.on), time: pick(summary.time, "21:30") },
+  };
+}
+
+function getNotificationSettings() {
+  store.notifications = normalizeNotifications(store.notifications, store.mealSchedule);
+  return store.notifications;
+}
+
+function renderNotifyToggle(path, on, label) {
+  return `<label class="settings-toggle">
+    <input type="checkbox" class="routine-checkbox" data-action="toggle-notify" data-path="${path}" ${on ? "checked" : ""} />
+    <span class="routine-check-ui" aria-hidden="true"></span>
+    <span class="settings-toggle-label">${label}</span>
+  </label>`;
+}
+
+function renderNotifyChips(path, current, options) {
+  return `<div class="amount-unit-toggle notify-chips">${options
+    .map(
+      ([value, label]) =>
+        `<button type="button" class="amount-unit-chip ${String(value) === String(current) ? "is-active" : ""}" data-action="set-notify-option" data-path="${path}" data-value="${value}" aria-pressed="${String(value) === String(current)}">${label}</button>`
+    )
+    .join("")}</div>`;
+}
+
+function renderNotifyTime(path, value, label) {
+  const id = `notify-${path.replace(/\./g, "-")}`;
+  return `<div class="field notify-time-field">
+    <label for="${id}">${label}</label>
+    <input id="${id}" type="time" step="300" value="${escapeHtml(value)}" data-notify-time="${path}" />
+  </div>`;
+}
+
+function renderNotificationsSection() {
+  const n = getNotificationSettings();
+  const waterGoal = toNumber(store.goals?.waterMl) || 2500;
+  return `
+    <section class="section notifications-section">
+      ${renderSectionLead("Obaveštenja", "")}
+      <p class="footer-note notifications-lead">Podsetnici stižu na Telegram preko tvog bota (podešava se jednom, vidi docs/telegram-bot.md). GitHub ih pokreće na 10 minuta, pa ponekad stignu i do ~15 min kasnije.</p>
+      <div class="settings-grid">
+        <article class="status-summary-card notify-card">
+          <div class="status-summary-copy">
+            <strong>🍽 Obroci</strong>
+            <div class="footer-note">U vreme obroka stiže šta je u planu (stavke, kcal, beleška). Ne stiže za prazan ili već pojeden obrok.</div>
+          </div>
+          ${renderNotifyToggle("meals.on", n.meals.on, "Podseti me za obroke")}
+          <div class="notify-label">Koliko pre obroka</div>
+          ${renderNotifyChips("meals.leadMinutes", n.meals.leadMinutes, [[0, "U minut"], [10, "10 min"], [15, "15 min"], [30, "30 min"], [45, "45 min"], [60, "1 h"]])}
+          <div class="notify-label">Satnica obroka</div>
+          <div class="meal-schedule-grid">
+            ${getScheduleMealLabels()
+              .map((meal) => {
+                const id = `meal-time-${normalizeLookupValue(meal).replace(/[^a-z0-9]+/g, "-")}`;
+                return `<div class="field meal-schedule-field">
+                  <label for="${id}">${escapeHtml(getMealDisplayParts(meal).title || meal)}</label>
+                  <input id="${id}" type="time" step="300" value="${escapeHtml(getMealTime(meal))}" data-meal-time="${escapeHtml(meal)}" />
+                </div>`;
+              })
+              .join("")}
+          </div>
+        </article>
+
+        <article class="status-summary-card notify-card">
+          <div class="status-summary-copy">
+            <strong>💧 Voda</strong>
+            <div class="footer-note">U zadatim razmacima proveri koliko si popio. Ako kasniš za ciljem (${formatDecimal(waterGoal / 1000, 1)} L, raspoređeno kroz dan), stiže „popij vode“. Ako si u planu, ćuti.</div>
+          </div>
+          ${renderNotifyToggle("water.on", n.water.on, "Podseti me da pijem vodu")}
+          <div class="notify-time-row">
+            ${renderNotifyTime("water.from", n.water.from, "Od")}
+            ${renderNotifyTime("water.to", n.water.to, "Do")}
+          </div>
+          <div class="notify-label">Na koliko</div>
+          ${renderNotifyChips("water.everyMinutes", n.water.everyMinutes, [[60, "1 h"], [90, "1,5 h"], [120, "2 h"], [180, "3 h"]])}
+        </article>
+
+        <article class="status-summary-card notify-card">
+          <div class="status-summary-copy">
+            <strong>🏋️ Trening</strong>
+            <div class="footer-note">Ujutru stiže „danas imaš trening“ sa nazivom i brojem vežbi, samo za dane kad je trening u planu.</div>
+          </div>
+          ${renderNotifyToggle("training.on", n.training.on, "Podseti me za trening")}
+          <div class="notify-time-row">${renderNotifyTime("training.time", n.training.time, "U koliko sati")}</div>
+        </article>
+
+        <article class="status-summary-card notify-card">
+          <div class="status-summary-copy">
+            <strong>📊 Rezime dana</strong>
+            <div class="footer-note">Uveče: koliko si pojeo u odnosu na cilj, makroi, voda i koraci.</div>
+          </div>
+          ${renderNotifyToggle("summary.on", n.summary.on, "Pošalji mi rezime dana")}
+          <div class="notify-time-row">${renderNotifyTime("summary.time", n.summary.time, "U koliko sati")}</div>
+        </article>
+      </div>
+    </section>`;
 }
 
 function getMealTime(mealLabel) {
@@ -16179,8 +16301,8 @@ function renderGoalsTab() {
     },
   ];
 
-  const gView = ["cilj", "nedeljno", "nalog"].includes(state.goalsView) ? state.goalsView : "cilj";
-  const gSegNav = `<div class="seg-nav">${[["cilj", "Cilj"], ["nedeljno", "Nedeljno"], ["nalog", "Nalog"]]
+  const gView = ["cilj", "nedeljno", "nalog", "obavestenja"].includes(state.goalsView) ? state.goalsView : "cilj";
+  const gSegNav = `<div class="seg-nav">${[["cilj", "Cilj"], ["nedeljno", "Nedeljno"], ["nalog", "Nalog"], ["obavestenja", "Obaveštenja"]]
     .map(([id, label]) => `<button type="button" class="seg-nav-btn ${id === gView ? "is-active" : ""}" data-action="set-goals-view" data-view="${id}">${label}</button>`)
     .join("")}</div>`;
 
@@ -16416,6 +16538,8 @@ function renderGoalsTab() {
     ${gView === "nalog" ? `
     ${renderAccountSection()}
     ` : ""}
+
+    ${gView === "obavestenja" ? renderNotificationsSection() : ""}
   `;
 }
 
@@ -16984,29 +17108,16 @@ function renderAccountSection() {
           </div>
         </article>
 
-        <article class="status-summary-card meal-schedule-card">
+        <article class="status-summary-card">
           <div class="status-summary-top">
             <div class="status-summary-copy">
-              <strong>Satnica obroka</strong>
-              <div class="footer-note">Vreme za svaki obrok. Vidi se uz obrok na Danas, a u to vreme stiže podsetnik na Telegram (ako je bot povezan; vidi docs/telegram-bot.md).</div>
+              <strong>Obaveštenja</strong>
+              <div class="footer-note">Satnica obroka i podsetnici (obroci, voda, trening, rezime dana) na Telegram.</div>
             </div>
           </div>
-          <div class="meal-schedule-grid">
-            ${getScheduleMealLabels()
-              .map((meal) => {
-                const id = `meal-time-${normalizeLookupValue(meal).replace(/[^a-z0-9]+/g, "-")}`;
-                return `<div class="field meal-schedule-field">
-                  <label for="${id}">${escapeHtml(getMealDisplayParts(meal).title || meal)}</label>
-                  <input id="${id}" type="time" step="300" value="${escapeHtml(getMealTime(meal))}" data-meal-time="${escapeHtml(meal)}" />
-                </div>`;
-              })
-              .join("")}
+          <div class="meta-row meta-row--compact status-summary-actions">
+            <button class="ghost-button button-with-icon" type="button" data-action="set-goals-view" data-view="obavestenja">${renderButtonContent("Otvori obaveštenja", "go")}</button>
           </div>
-          <label class="settings-toggle">
-            <input type="checkbox" class="routine-checkbox" data-action="toggle-meal-reminders" ${store.mealSchedule?.remindersOn !== false ? "checked" : ""} />
-            <span class="routine-check-ui" aria-hidden="true"></span>
-            <span class="settings-toggle-label">Šalji podsetnike za obroke</span>
-          </label>
         </article>
 
         <article class="status-summary-card">
@@ -20022,7 +20133,7 @@ async function handleDocumentClick(event) {
 
   if (action === "set-goals-view") {
     const view = actionTarget.dataset.view;
-    if (["cilj", "nedeljno", "nalog"].includes(view)) {
+    if (["cilj", "nedeljno", "nalog", "obavestenja"].includes(view)) {
       state.goalsView = view;
       render();
     }
@@ -23716,10 +23827,23 @@ async function handleDocumentClick(event) {
     return;
   }
 
-  if (action === "toggle-meal-reminders") {
-    store.mealSchedule = normalizeMealSchedule(store.mealSchedule);
-    store.mealSchedule.remindersOn = actionTarget instanceof HTMLInputElement ? actionTarget.checked : !store.mealSchedule.remindersOn;
+  if (action === "toggle-notify" || action === "set-notify-option") {
+    const [group, key] = String(actionTarget.dataset.path || "").split(".");
+    const settings = getNotificationSettings();
+    if (!settings[group] || !(key in settings[group])) {
+      return;
+    }
+    settings[group][key] =
+      action === "toggle-notify"
+        ? actionTarget instanceof HTMLInputElement
+          ? actionTarget.checked
+          : !settings[group][key]
+        : Number(actionTarget.dataset.value);
+    store.notifications = normalizeNotifications(settings, store.mealSchedule);
     persist();
+    if (action === "set-notify-option") {
+      render();
+    }
     return;
   }
 
@@ -24877,6 +25001,17 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // Vremena obaveštenja (voda od/do, trening, rezime): čuvaju se odmah.
+  if (target instanceof HTMLInputElement && target.dataset.notifyTime) {
+    const [group, key] = target.dataset.notifyTime.split(".");
+    const settings = getNotificationSettings();
+    if (settings[group] && NOTIFY_TIME.test(target.value)) {
+      settings[group][key] = target.value;
+      persist();
+    }
+    return;
+  }
 
   // Satnica obroka: vreme se čuva odmah, bez render() (polje ostaje u fokusu).
   if (target instanceof HTMLInputElement && target.dataset.mealTime) {
