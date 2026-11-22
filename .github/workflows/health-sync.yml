@@ -1,0 +1,50 @@
+name: Sat (Apple Health)
+
+# iPhone Prečica pošalje podatke iz Apple Health-a (repository_dispatch,
+# event_type "health"), npr. na svakih pola sata, a ovaj posao ih upiše u
+# Fit Tracker (users/{uid}/app/health) i jednom dnevno uveče javi na Telegram.
+# Uputstvo: docs/apple-watch.md. Ručno pokretanje šalje probne brojeve i
+# uvek javi na Telegram, da proveriš da sve radi pre podešavanja Prečice.
+on:
+  repository_dispatch:
+    types: [health]
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "Probni podaci (JSON)"
+        default: '{"steps":"1234","move":"321","sleep":"7,5"}'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12.7.0
+
+      - name: Write health data
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_UID: ${{ secrets.FIREBASE_UID }}
+          HEALTH_PAYLOAD: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload) || inputs.payload }}
+          HEALTH_TEST: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: node scripts/health-sync.mjs
