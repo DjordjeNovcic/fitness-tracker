@@ -5126,7 +5126,8 @@ function amountUnitLabel(unit) {
 // Serbian plural: 1 = singular, 2-4 = "few" form, 5+ reverts to the
 // singular spelling (genitive plural) — the range recipes actually use.
 function pluralizeSpoonUnit(unit, count) {
-  const n = Math.abs(Math.round(toNumber(count)));
+  // Decimalni broj ide uz genitiv jednine: „0,5 kašičice“, „1,5 kašike“.
+  const n = Number.isInteger(toNumber(count)) ? Math.abs(toNumber(count)) : 2;
   if (unit === "tbsp") {
     return n === 1 ? "kašika" : n >= 2 && n <= 4 ? "kašike" : "kašika";
   }
@@ -5169,6 +5170,36 @@ function convertAmountUnitToGrams(amount, unit, food = null) {
 function convertGramsToAmountUnit(grams, unit, food = null) {
   const factor = getAmountUnitFactor(unit, food);
   return roundValue(toNumber(grams) / factor, unit === "g" ? 0 : 2);
+}
+
+// Sastojak recepta pamti jedinicu kojom je unet (kom/kašičica/kašika) i tako
+// se i prikazuje („2 kom“, ne „120 g“). Grami ostaju osnova za računanje;
+// jedinica koja za tu namirnicu više nema smisla pada nazad na grame.
+function getRecipeItemUnit(item, food) {
+  const unit = String(item?.amountUnit || "g");
+  if (!food || getFoodServingUnit(food) === "piece" || unit === "g") {
+    return "g";
+  }
+  if (unit === "piece") {
+    return getFoodPieceGrams(food) ? "piece" : "g";
+  }
+  return AMOUNT_UNIT_FACTORS[unit] ? unit : "g";
+}
+
+function formatRecipeItemAmount(item, food) {
+  const unit = getRecipeItemUnit(item, food);
+  if (unit === "g") {
+    return formatFoodAmount(food, item?.grams);
+  }
+  const count = convertGramsToAmountUnit(item.grams, unit, food);
+  const label = unit === "piece" ? "kom" : pluralizeSpoonUnit(unit, count);
+  return `${formatDecimal(count, 1)} ${label}`;
+}
+
+// Grami sastojka sa jedinicom čuvaju se na jednu decimalu — ½ kašičice je
+// 2,5 g, a zaokruženo na 3 g bi se prikazivalo kao 0,6 kašičice.
+function roundRecipeItemGrams(grams) {
+  return roundValue(toNumber(grams), 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -6990,7 +7021,8 @@ function buildFavoriteDraftItems(items = []) {
     foodId: item.foodId || "",
     foodName: item.foodName || "",
     displayName: item.displayName || item.foodName || "",
-    grams: item.grams ? String(roundValue(item.grams, 0)) : "",
+    grams: item.grams ? String(roundRecipeItemGrams(item.grams)) : "",
+    amountUnit: getRecipeItemUnit(item, getFoodById(item.foodId)),
   }));
 }
 
@@ -7011,10 +7043,9 @@ function setFavoriteDraftFromItem(favorite, item) {
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
-    grams: item.grams ? String(roundValue(item.grams, 0)) : "",
-    // Stored items are always real grams — editing starts in "g" rather
-    // than guessing which spoon size the original amount came from.
-    amountUnit: "g",
+    grams: item.grams ? String(roundRecipeItemGrams(item.grams)) : "",
+    // Izmena kreće u jedinici kojom je sastojak unet (stari sastojci: g).
+    amountUnit: getRecipeItemUnit(item, getFoodById(item.foodId)),
   };
 }
 
@@ -7106,7 +7137,13 @@ function renderRecipeDraftItemsInner(draftPreview) {
       .map((item) => {
         const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
         const itemFood = getFoodById(item.foodId);
-        const unitLabel = getFoodServingUnit(itemFood) === "piece" ? "kom" : "g";
+        const itemUnit = getRecipeItemUnit(item, itemFood);
+        const unitLabel = getFoodServingUnit(itemFood) === "piece" || itemUnit === "piece" ? "kom" : amountUnitLabel(itemUnit);
+        const amountValue = !item.grams
+          ? ""
+          : itemUnit === "g"
+            ? roundValue(item.grams, 0)
+            : convertGramsToAmountUnit(item.grams, itemUnit, itemFood);
         // Naziv je stajao dva puta (jednom kao naslov, jednom kao
         // podnaslov) i kad su isti — druga linija ide samo kad
         // stvarno kaže nešto novo (drugo ime u bazi, ili da veze
@@ -7128,10 +7165,10 @@ function renderRecipeDraftItemsInner(draftPreview) {
                 ${item.isPending ? "" : `data-recipe-draft-item-grams="${item.id}"`}
                 type="number"
                 inputmode="decimal"
-                min="1"
-                step="1"
-                value="${item.grams ? roundValue(item.grams, 0) : ""}"
-                placeholder="${item.isPending ? "" : getFoodQuantityPlaceholder(itemFood)}"
+                min="${itemUnit === "g" ? "1" : "0"}"
+                step="${itemUnit === "g" ? "1" : "0.5"}"
+                value="${amountValue}"
+                placeholder="${item.isPending ? "" : itemUnit === "g" ? getFoodQuantityPlaceholder(itemFood) : "1"}"
                 aria-label="Količina, ${escapeHtml(item.displayName || item.foodName)}"
                 ${item.isPending ? "disabled" : ""}
               />
@@ -7215,6 +7252,7 @@ function getFavoriteDraftPreview() {
         foodName: food.name,
         displayName: food.name,
         grams,
+        amountUnit: getRecipeItemUnit({ amountUnit: state.favoriteDraft.amountUnit }, food),
         totals: calculateEntry(food, grams),
         isPending: true,
         isMatched: true,
@@ -7255,6 +7293,7 @@ function buildFavoriteItemsPayload(includePendingDraft = false) {
         foodName: food.name,
         displayName: item.displayName || item.foodName || food.name,
         grams: normalizedGrams,
+        amountUnit: getRecipeItemUnit(item, food),
       };
     })
     .filter(Boolean);
@@ -7268,6 +7307,7 @@ function buildFavoriteItemsPayload(includePendingDraft = false) {
   if (!pendingFood || !pendingGrams) {
     return recipeItems;
   }
+  const pendingUnit = getRecipeItemUnit({ amountUnit: state.favoriteDraft.amountUnit }, pendingFood);
 
   if (state.editingFavoriteItem.itemId) {
     return recipeItems.map((item) =>
@@ -7278,6 +7318,7 @@ function buildFavoriteItemsPayload(includePendingDraft = false) {
             foodName: pendingFood.name,
             displayName: pendingFood.name,
             grams: pendingGrams,
+            amountUnit: pendingUnit,
           }
         : item
     );
@@ -7291,6 +7332,7 @@ function buildFavoriteItemsPayload(includePendingDraft = false) {
       foodName: pendingFood.name,
       displayName: pendingFood.name,
       grams: pendingGrams,
+      amountUnit: pendingUnit,
     },
   ];
 }
@@ -7392,6 +7434,7 @@ function saveFavoriteMealDraft(payload = {}) {
     foodName: item.foodName,
     displayName: item.displayName || item.foodName,
     grams: item.grams,
+    amountUnit: getRecipeItemUnit(item, getFoodById(item.foodId)),
   }));
   favorite.updatedAt = new Date().toISOString();
   return true;
@@ -12351,7 +12394,7 @@ function renderRecipesTab() {
                                         <div class="recipe-library-ingredient-card">
                                         <div class="recipe-library-ingredient-head">
                                             <strong>${escapeHtml(item.displayName || item.foodName)}</strong>
-                                            <div class="footer-note">${formatFoodAmount(getFoodById(item.foodId), item.grams)}</div>
+                                            <div class="footer-note">${formatRecipeItemAmount(item, getFoodById(item.foodId))}</div>
                                           </div>
                                           <div class="recipe-library-ingredient-macros"><strong>${roundValue(item.totals.kcal, 0)} kcal</strong> · P ${formatDecimal(item.totals.protein, 1)} · UH ${formatDecimal(item.totals.carbs, 1)} · M ${formatDecimal(item.totals.fat, 1)} g</div>
                                         </div>
@@ -23013,7 +23056,8 @@ async function handleSubmit(event) {
       foodId: food.id,
       foodName: food.name,
       displayName: food.name,
-      grams: String(roundValue(grams, 0)),
+      grams: String(roundRecipeItemGrams(grams)),
+      amountUnit: getRecipeItemUnit({ amountUnit: state.favoriteDraft.amountUnit }, food),
     };
 
     if (state.editingFavoriteItem.itemId) {
@@ -23786,7 +23830,7 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "favorite-amount-input") {
     const unit = state.favoriteDraft.amountUnit || "g";
     const grams = convertAmountUnitToGrams(target.value, unit, getFoodById(state.favoriteDraft.foodId));
-    state.favoriteDraft.grams = grams ? String(roundValue(grams, 0)) : "";
+    state.favoriteDraft.grams = grams ? String(roundRecipeItemGrams(grams)) : "";
     const hiddenGrams = document.querySelector("#favorite-grams");
     if (hiddenGrams instanceof HTMLInputElement) {
       hiddenGrams.value = state.favoriteDraft.grams;
@@ -23876,14 +23920,19 @@ function handleInput(event) {
 
   if (target instanceof HTMLInputElement && target.dataset.recipeDraftItemGrams) {
     const itemId = String(target.dataset.recipeDraftItemGrams || "").trim();
-    state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) =>
-      item.id === itemId
-        ? {
-            ...item,
-            grams: target.value,
-          }
-        : item
-    );
+    // Polje je u jedinici sastojka (kom/kašika...), a stavka čuva grame.
+    state.favoriteDraft.items = (state.favoriteDraft.items || []).map((item) => {
+      if (item.id !== itemId) {
+        return item;
+      }
+      const itemFood = getFoodById(item.foodId);
+      const itemUnit = getRecipeItemUnit(item, itemFood);
+      const grams =
+        itemUnit === "g" || target.value === ""
+          ? target.value
+          : String(roundRecipeItemGrams(convertAmountUnitToGrams(target.value, itemUnit, itemFood)));
+      return { ...item, grams };
+    });
     syncRecipeDraftPreview();
     return;
   }
