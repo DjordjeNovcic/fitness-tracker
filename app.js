@@ -764,6 +764,7 @@ const state = {
     cookedWeightGrams: "",
     swapName: "",
     swapGrams: "",
+    pieceCount: "",
     instructions: "",
     items: [],
     foodId: "",
@@ -2494,6 +2495,7 @@ function normalizeFavoriteMealRecord(favorite = {}) {
     prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
     cookedWeightGrams: toNumber(favorite.cookedWeightGrams) > 0 ? roundValue(toNumber(favorite.cookedWeightGrams), 0) : null,
     swap: normalizeSwap(favorite.swap),
+    pieceCount: normalizePieceCount(favorite.pieceCount),
   };
 }
 
@@ -2503,6 +2505,44 @@ function normalizeSwap(raw) {
   const name = String(raw?.name || "").trim().slice(0, 40);
   const grams = toNumber(raw?.grams);
   return name && grams > 0 ? { name, grams: roundValue(grams, 1) } : null;
+}
+
+// Koliko komada daje ceo recept (24 mafina). Prazno = ne broji se na komade.
+function normalizePieceCount(raw) {
+  const count = Math.round(toNumber(raw));
+  return count >= 1 && count <= 1000 ? count : null;
+}
+
+// Na koliko delova se recept deli kad pišemo „4 kom“ / „1 porcija“.
+function getRecipeDivisions(favorite) {
+  const pieces = normalizePieceCount(favorite?.pieceCount);
+  return pieces ? { count: pieces, unit: "kom" } : { count: getRecipeServingCount(favorite), unit: "porcija" };
+}
+
+function formatRecipeDivisionCount(count, unit) {
+  const text = formatAmountCount(count);
+  if (unit === "kom") {
+    return `${text} kom`;
+  }
+  return Number.isInteger(count) ? `${text} ${srPlural(count, "porcija", "porcije", "porcija")}` : `${text} porcije`;
+}
+
+// Udeo recepta (0–1+) → „4 kom“ ili „1 porcija“; prazno kad recept nema
+// podelu ili udeo nije blizu pola komada/porcije.
+function formatRecipeShare(favorite, share) {
+  if (!favorite || !(share > 0)) {
+    return "";
+  }
+  const { count, unit } = getRecipeDivisions(favorite);
+  if (count <= 1) {
+    return "";
+  }
+  const exact = share * count;
+  const rounded = Math.round(exact * 2) / 2;
+  if (rounded < 0.5 || Math.abs(exact - rounded) > 0.08 * Math.max(1, rounded)) {
+    return "";
+  }
+  return formatRecipeDivisionCount(rounded, unit);
 }
 
 function getFoodSwap(food) {
@@ -7339,6 +7379,7 @@ function resetFavoriteDraft(options = {}) {
         cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
         swapName: state.favoriteDraft.swapName,
         swapGrams: state.favoriteDraft.swapGrams,
+        pieceCount: state.favoriteDraft.pieceCount,
         instructions: state.favoriteDraft.instructions,
         items: [...(state.favoriteDraft.items || [])],
       }
@@ -7359,6 +7400,7 @@ function resetFavoriteDraft(options = {}) {
     cookedWeightGrams: preservedDraft?.cookedWeightGrams || "",
     swapName: preservedDraft?.swapName || "",
     swapGrams: preservedDraft?.swapGrams || "",
+    pieceCount: preservedDraft?.pieceCount || "",
     instructions: preservedDraft?.instructions || "",
     items: preservedDraft?.items || [],
     foodId: "",
@@ -7409,6 +7451,7 @@ function setFavoriteDraftFromItem(favorite, item) {
     cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
     swapName: normalizedFavorite.swap?.name || "",
     swapGrams: normalizedFavorite.swap ? String(normalizedFavorite.swap.grams) : "",
+    pieceCount: normalizedFavorite.pieceCount ? String(normalizedFavorite.pieceCount) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
@@ -7430,6 +7473,7 @@ function setFavoriteDraftFromRecipe(favorite) {
     cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
     swapName: normalizedFavorite.swap?.name || "",
     swapGrams: normalizedFavorite.swap ? String(normalizedFavorite.swap.grams) : "",
+    pieceCount: normalizedFavorite.pieceCount ? String(normalizedFavorite.pieceCount) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: "",
@@ -7764,6 +7808,7 @@ function saveFavoriteMealMetadata(payload = {}) {
     prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
     cookedWeightGrams: normalizedCookedWeight > 0 ? roundValue(normalizedCookedWeight, 0) : null,
     swap: normalizeSwap({ name: payload.swapName, grams: payload.swapGrams }),
+    pieceCount: normalizePieceCount(payload.pieceCount),
     updatedAt: new Date().toISOString(),
   };
 
@@ -8146,7 +8191,16 @@ function renderRecipeApplyDialog() {
                 { id: "items", label: "Svi sastojci" },
               ])}
               <div class="stack" id="recipe-apply-grams-block" style="gap:6px;" ${showGrams ? "" : "hidden"}>
-                ${renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required ${showGrams ? "" : "disabled"} />`)}
+                ${(() => {
+                  const gramsField = renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required ${showGrams ? "" : "disabled"} />`);
+                  const divisions = getRecipeDivisions(favorite);
+                  if (divisions.count <= 1) {
+                    return gramsField;
+                  }
+                  const defaultCount = roundValue((defaultGrams * divisions.count) / basis, 2);
+                  const countLabel = divisions.unit === "kom" ? `Komada (od ${divisions.count})` : `Porcija (od ${divisions.count})`;
+                  return `<div class="recipe-apply-amount-row">${gramsField}${renderUnitField("recipe-apply-count", countLabel, divisions.unit === "kom" ? "kom" : "porc.", `<input id="recipe-apply-count" type="number" inputmode="decimal" min="0.5" step="0.5" value="${defaultCount}" />`)}</div>`;
+                })()}
                 <div class="amount-presets">${[
                   { label: "¼ recepta", grams: basis / 4 },
                   { label: getRecipeServingCount(favorite) === 2 ? "½ recepta (1 porcija)" : "½ recepta", grams: basis / 2 },
@@ -12201,6 +12255,17 @@ function renderPlanSummaryCompact(ring) {
     </div>`;
 }
 
+// Recept dodat kao jedna stavka: „4 kom“ uz grame.
+function getEntryRecipeShareText(entry) {
+  const recipeId = entry?.food?.sourceRecipeId;
+  if (!recipeId) {
+    return "";
+  }
+  const favorite = (store.favoriteMeals || []).find((recipe) => recipe.id === recipeId);
+  const basis = favorite ? getRecipeBasisWeight(favorite) : 0;
+  return basis ? formatRecipeShare(favorite, toNumber(entry.grams) / basis) : "";
+}
+
 function isMergingMeal(mealLabel) {
   return Boolean(state.mergeMealKey) && state.mergeMealKey === getMealNoteKey(mealLabel);
 }
@@ -12224,7 +12289,7 @@ function renderMealEntryRow(entry, isReadOnly, { selecting = false } = {}) {
           </div>
         </div>
         <div class="meal-entry-stats">
-          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
+          <span class="meal-entry-grams">${getEntryRecipeShareText(entry) ? `<span class="meal-entry-share">${escapeHtml(getEntryRecipeShareText(entry))}</span> · ` : ""}${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
           <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
         </div>
@@ -12269,6 +12334,20 @@ function renderMealRecipeGroup(group, isReadOnly) {
   const recipe = (store.favoriteMeals || []).find((entry) => entry.id === group.recipeId);
   const swapText = group.recipeGrams ? formatSwapEquivalent(normalizeSwap(recipe?.swap), group.recipeGrams) : "";
   const count = group.entries.length;
+  // Koliki deo recepta je u obroku: po gramima gotovog jela, inače po
+  // odnosu gramaže sastojaka prema receptu.
+  const shareText = (() => {
+    if (!recipe) {
+      return "";
+    }
+    const basis = getRecipeBasisWeight(recipe);
+    if (group.recipeGrams && basis) {
+      return formatRecipeShare(recipe, group.recipeGrams / basis);
+    }
+    const recipeGramsTotal = (recipe.items || []).reduce((sum, item) => sum + toNumber(item.grams), 0);
+    const entryGramsTotal = group.entries.reduce((sum, entry) => sum + toNumber(entry.grams), 0);
+    return recipeGramsTotal ? formatRecipeShare(recipe, entryGramsTotal / recipeGramsTotal) : "";
+  })();
   return `
     <div class="meal-entry meal-entry-group ${expanded ? "is-expanded" : ""}">
       <div class="meal-entry-row">
@@ -12281,7 +12360,7 @@ function renderMealRecipeGroup(group, isReadOnly) {
             </div>
           </div>
           <div class="meal-entry-stats">
-            ${grams ? `<span class="meal-entry-grams">${roundValue(grams, 0)} g${swapText ? ` <span class="meal-entry-swap">(${escapeHtml(swapText)})</span>` : ""}</span>` : ""}
+            ${grams ? `<span class="meal-entry-grams">${shareText ? `<span class="meal-entry-share">${escapeHtml(shareText)}</span> · ` : ""}${roundValue(grams, 0)} g${swapText ? ` <span class="meal-entry-swap">(${escapeHtml(swapText)})</span>` : ""}</span>` : ""}
             <span class="meal-entry-kcal">${roundValue(totals.kcal, 0)} kcal</span>
             <span class="meal-entry-macros">P ${formatDecimal(totals.protein, 1)} · UH ${formatDecimal(totals.carbs, 1)} · M ${formatDecimal(totals.fat, 1)} g</span>
           </div>
@@ -13260,6 +13339,7 @@ function renderRecipesTab() {
             <label for="favorite-servings">Broj porcija</label>
             <input id="favorite-servings" name="servings" type="number" inputmode="decimal" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
           </div>
+          ${renderUnitField("favorite-piece-count", "Komada u receptu (opciono)", "kom", `<input id="favorite-piece-count" name="pieceCount" type="number" inputmode="numeric" min="1" step="1" placeholder="npr. 24 mafina" value="${escapeHtml(String(state.favoriteDraft.pieceCount || ""))}" />`)}
           ${renderUnitField("favorite-prep-time", "Vreme pripreme", "min", `<input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" value="${state.favoriteDraft.prepTimeMinutes}" />`)}
           <div class="recipe-builder-field-wide stack" style="gap:6px;">
             ${renderUnitField("favorite-cooked-weight", "Težina gotovog jela (opciono)", "g", `<input id="favorite-cooked-weight" name="cookedWeightGrams" type="number" inputmode="decimal" min="0" step="any" placeholder="npr. 550" value="${state.favoriteDraft.cookedWeightGrams || ""}" />`)}
@@ -22250,6 +22330,7 @@ async function handleDocumentClick(event) {
       cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
       swapName: state.favoriteDraft.swapName,
       swapGrams: state.favoriteDraft.swapGrams,
+      pieceCount: state.favoriteDraft.pieceCount,
       instructions: state.favoriteDraft.instructions,
       items: nextItems,
     });
@@ -25437,6 +25518,11 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLInputElement && target.id === "favorite-piece-count") {
+    state.favoriteDraft.pieceCount = target.value;
+    return;
+  }
+
   if (target instanceof HTMLInputElement && target.id === "favorite-cooked-weight") {
     state.favoriteDraft.cookedWeightGrams = target.value;
     return;
@@ -25447,8 +25533,29 @@ function handleInput(event) {
     return;
   }
 
+  // Dijalog „Dodaj u plan“: komadi/porcije → grami (pa kcal prati grame).
+  if (target instanceof HTMLInputElement && target.id === "recipe-apply-count") {
+    const favorite = (store.favoriteMeals || []).find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
+    const basis = favorite ? getRecipeBasisWeight(favorite) : 0;
+    const gramsInput = document.getElementById("recipe-apply-grams");
+    const count = toNumber(target.value);
+    if (favorite && basis && gramsInput && count > 0) {
+      gramsInput.value = String(roundValue((basis * count) / getRecipeDivisions(favorite).count, 0));
+      gramsInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    return;
+  }
+
   // Dijalog „Dodaj u plan“ za recept sa težinom gotovog jela: kcal prati grame.
   if (target instanceof HTMLInputElement && target.id === "recipe-apply-grams") {
+    const countInput = document.getElementById("recipe-apply-count");
+    if (countInput && document.activeElement !== countInput) {
+      const recipe = (store.favoriteMeals || []).find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
+      const recipeBasis = recipe ? getRecipeBasisWeight(recipe) : 0;
+      if (recipeBasis) {
+        countInput.value = String(roundValue((toNumber(target.value) * getRecipeDivisions(recipe).count) / recipeBasis, 2));
+      }
+    }
     const favorite = getFavoriteMealsDetailed().find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
     const summary = document.querySelector("#recipe-apply-grams-kcal");
     const cooked = favorite ? getRecipeBasisWeight(favorite) : 0;

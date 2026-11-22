@@ -19124,3 +19124,15 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* „Koliko jedeš“ g + komada/porcija jedno do drugog; „4 kom“ u obroku. */
+.recipe-apply-amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+.meal-entry-share {
+  color: var(--ink);
+  font-weight: 700;
+}
