@@ -18929,3 +18929,15 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   padding: 12px 4px 0;
   border-top: 1px solid var(--line);
 }
+/* Tačkica popunjenosti: malo veća i punija, da se vidi u prolazu. */
+.hero-day-chips .chip .day-bar-dot {
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+}
+.hero-day-chips .chip.has-plan .day-bar-dot {
+  opacity: 1;
+}
+.hero-day-chips .chip.is-partial-plan .day-bar-dot {
+  box-shadow: inset 0 0 0 1.6px currentColor;
+}
