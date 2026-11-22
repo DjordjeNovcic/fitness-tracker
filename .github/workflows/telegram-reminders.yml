@@ -1,40 +1,49 @@
 name: Telegram podsetnici
 
-  on:
-    schedule:
-      - cron: "*/10 * * * *"
-    workflow_dispatch:
-      inputs:
-        test:
-          description: "Pošalji test poruku odmah"
-          type: boolean
-          default: true
+# Svakih 10 minuta proveri da li je vreme za neki obrok (Ciljevi → Satnica
+# obroka) i pošalji podsetnik na Telegram. GitHub cron ume da kasni 5–20 min,
+# pa podsetnik ponekad stigne malo posle zadatog vremena. Skripta pamti šta je
+# poslala, pa kašnjenje ne pravi duplikate. Uputstvo: docs/telegram-bot.md.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Pošalji test poruku odmah"
+        type: boolean
+        default: true
 
-  permissions:
-    contents: read
+permissions:
+  contents: read
 
-  concurrency:
-    group: telegram-reminders
-    cancel-in-progress: false
+concurrency:
+  group: telegram-reminders
+  cancel-in-progress: false
 
-  jobs:
-    remind:
-      runs-on: ubuntu-latest
-      timeout-minutes: 5
-      steps:
-        - uses: actions/checkout@v4
-          with:
-            sparse-checkout: scripts
-        - uses: actions/setup-node@v4
-          with:
-            node-version: 20
-        - run: npm install --no-save --no-audit --no-fund firebase-admin@12.7.0
-        - name: Send reminders
-          env:
-            TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-            TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-            FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-            FIREBASE_UID: ${{ secrets.FIREBASE_UID }}
-            REMINDER_TEST: ${{ github.event_name == 'workflow_dispatch' &&
-  inputs.test && 'true' || 'false' }}
-          run: node scripts/telegram-reminders.mjs
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12.7.0
+
+      - name: Send reminders
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_UID: ${{ secrets.FIREBASE_UID }}
+          REMINDER_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test && 'true' || 'false' }}
+        run: node scripts/telegram-reminders.mjs
