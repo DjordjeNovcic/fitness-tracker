@@ -24,8 +24,9 @@ const TIME_ZONE = "Europe/Belgrade";
 const SEND_WINDOW_MIN = 90;
 
 const env = process.env;
-const token = env.TELEGRAM_BOT_TOKEN || "";
-const chatId = env.TELEGRAM_CHAT_ID || "";
+// trim(): nalepljena tajna često ponese razmak ili novi red na kraju.
+const token = String(env.TELEGRAM_BOT_TOKEN || "").trim();
+const chatId = String(env.TELEGRAM_CHAT_ID || "").trim();
 const testMode = env.REMINDER_TEST === "true";
 
 function log(...args) {
@@ -178,7 +179,7 @@ async function main() {
     log("Test poruka poslata.");
     return;
   }
-  if (!env.FIREBASE_SERVICE_ACCOUNT || !env.FIREBASE_UID) {
+  if (!String(env.FIREBASE_SERVICE_ACCOUNT || "").trim() || !String(env.FIREBASE_UID || "").trim()) {
     log("FIREBASE_SERVICE_ACCOUNT ili FIREBASE_UID nije podešen — preskačem.");
     return;
   }
