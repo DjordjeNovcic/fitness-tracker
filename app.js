@@ -7234,7 +7234,7 @@ function renderRecipeDraftItemsInner(draftPreview) {
                 type="number"
                 inputmode="decimal"
                 min="${itemUnit === "g" ? "1" : "0"}"
-                step="${itemUnit === "g" ? "1" : "0.5"}"
+                step="any"
                 value="${amountValue}"
                 placeholder="${item.isPending ? "" : itemUnit === "g" ? getFoodQuantityPlaceholder(itemFood) : "1"}"
                 aria-label="Količina, ${escapeHtml(item.displayName || item.foodName)}"
@@ -10409,7 +10409,7 @@ function renderAmountFieldInner(food) {
   const amountInputMarkup = isPiece
     ? `<input id="grams" name="grams" type="number" inputmode="decimal" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.planDraft.grams}" required />`
     : `
-      <input id="amount-input" type="number" inputmode="decimal" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
+      <input id="amount-input" type="number" inputmode="decimal" min="0" step="any" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit) : ""}" required />
       <input id="grams" name="grams" type="hidden" value="${state.planDraft.grams}" />
     `;
 
@@ -10452,9 +10452,9 @@ function renderFavoriteAmountFieldInner(food) {
     `;
 
   const inputMarkup = isPiece
-    ? `<input id="favorite-grams" name="grams" type="number" inputmode="decimal" min="1" step="1" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.favoriteDraft.grams}" required />`
+    ? `<input id="favorite-grams" name="grams" type="number" inputmode="decimal" min="0" step="any" placeholder="${getFoodQuantityPlaceholder(food)}" value="${state.favoriteDraft.grams}" required />`
     : `
-      <input id="favorite-amount-input" type="number" inputmode="decimal" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit, food) : ""}" required />
+      <input id="favorite-amount-input" type="number" inputmode="decimal" min="0" step="any" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit, food) : ""}" required />
       <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
       ${unitGrams ? `<div class="footer-note">1 ${amountUnitLabel(unit)} ≈ ${roundValue(unitGrams, 0)} g (recept računa u gramima).</div>` : ""}
     `;
@@ -20546,10 +20546,12 @@ async function handleDocumentClick(event) {
       return;
     }
     state.favoriteDraft.amountUnit = unit;
-    // 100 g jaja bi pisalo „1,72 kom“ — prelaz na kom/glavicu/čen kreće od
-    // celog broja najbližeg dosadašnjoj kilaži (najmanje 1).
-    if (FOOD_COUNT_UNITS.includes(unit)) {
-      const count = Math.max(1, Math.round(toNumber(state.favoriteDraft.grams) / unitGrams));
+    // 100 g jaja bi pisalo „1,72 kom“, a 100 g ulja „6,67 kašika“ — prelaz
+    // kreće od najbližeg celog broja kom/glavica/čenova (najmanje 1), odnosno
+    // pola kašike/kašičice (najmanje ½).
+    if (unit !== "g") {
+      const raw = toNumber(state.favoriteDraft.grams) / unitGrams;
+      const count = FOOD_COUNT_UNITS.includes(unit) ? Math.max(1, Math.round(raw)) : Math.max(0.5, Math.round(raw * 2) / 2);
       state.favoriteDraft.grams = String(roundValue(count * unitGrams, 1));
       syncRecipeDraftPreview({ items: true });
     }
@@ -23109,7 +23111,19 @@ async function handleSubmit(event) {
     const foodId = String(formData.get("foodId") || resolvedFood?.id || "").trim();
     const grams = toNumber(formData.get("grams"));
     const food = getFoodById(foodId);
-    if (!favoriteName || !mealLabel || !food || !grams) {
+    // Ranije je ovde tiho izlazilo — bez izabranog tipa obroka dugme
+    // „Dodaj sastojak“ nije radilo ništa, bez ikakve poruke.
+    const missing = !favoriteName
+      ? ["Fali naziv recepta", "Upiši naziv recepta pa dodaj sastojak."]
+      : !mealLabel
+        ? ["Izaberi tip obroka", "Tapni Doručak, Ručak... iznad, pa dodaj sastojak."]
+        : !food
+          ? ["Namirnica nije pronađena", "Izaberi namirnicu sa liste koja se pojavi dok kucaš."]
+          : !grams
+            ? ["Fali količina", "Upiši količinu sastojka."]
+            : null;
+    if (missing) {
+      showFeedbackToast({ title: missing[0], detail: missing[1], tone: "warning" });
       return;
     }
 
@@ -23872,7 +23886,9 @@ function handleInput(event) {
     if (state.favoriteDraft.foodId !== previousFoodId) {
       state.favoriteDraft.amountUnit = "g";
     }
-    if (selectedFood && !state.favoriteDraft.grams) {
+    // Nova namirnica kreće od svoje osnove (100 g / 1 kom) — ranije su ostajali
+    // grami prethodne, pa bi 7,5 g meda postalo 7,5 jaja.
+    if (selectedFood && (!state.favoriteDraft.grams || state.favoriteDraft.foodId !== previousFoodId)) {
       state.favoriteDraft.grams = String(getFoodServingBaseValue(selectedFood));
     }
 
