@@ -726,6 +726,11 @@ const state = {
   recipePickKey: "",
   // „Više“ u otvorenom obroku (Pripremi / Sačuvaj kao recept / Obriši / Beleška).
   mealMoreKey: "",
+  // „Spoji u jedan obrok“: obrok u kom biraš stavke (npr. salata + ulje → „Salata“).
+  mergeMealKey: "",
+  mergeSelection: [],
+  mergeName: "",
+  mergeError: "",
   // Otvoreni recepti u obroku (prikaz sastojaka), samo za ovu sesiju.
   expandedRecipeGroups: [],
   mealNoteDraft: "",
@@ -11880,6 +11885,30 @@ function isPickingRecipeForMeal(mealLabel) {
   return Boolean(state.recipePickKey) && state.recipePickKey === getMealNoteKey(mealLabel);
 }
 
+// Panel ispod stavki dok biraš šta spajaš: ime + zbir izabranog.
+function renderMealMergePanel(mealLabel, mealEntries) {
+  const selectedIds = new Set(state.mergeSelection || []);
+  const selected = mealEntries.filter((entry) => selectedIds.has(entry.id));
+  const totals = getDayTotals(selected);
+  const grams = selected.reduce((sum, entry) => sum + (getFoodServingUnit(entry.food) === "piece" ? 0 : toNumber(entry.grams)), 0);
+  return `
+    <div class="meal-merge-panel">
+      <p class="meal-merge-hint">${
+        selected.length
+          ? `Izabrano: <strong>${selected.length}</strong> · ${grams ? `${roundValue(grams, 0)} g · ` : ""}${roundValue(totals.kcal, 0)} kcal`
+          : "Tapni namirnice koje spajaš (npr. salata i maslinovo ulje)."
+      }</p>
+      <label class="sr-only" for="meal-merge-name">Naziv obroka</label>
+      <input id="meal-merge-name" class="meal-merge-name" type="text" maxlength="80" placeholder="Naziv, npr. Salata" autocomplete="off" value="${escapeHtml(state.mergeName)}" />
+      ${state.mergeError ? `<p class="meal-merge-error" role="alert">${escapeHtml(state.mergeError)}</p>` : ""}
+      <p class="footer-note">Sačuva se i kao recept, pa ga posle dodaješ kroz „Dodaj obrok“.</p>
+      <div class="meal-note-actions">
+        <button class="ghost-button" type="button" data-action="cancel-meal-merge">Otkaži</button>
+        <button class="solid-button" type="button" data-action="confirm-meal-merge" data-meal-label="${escapeHtml(mealLabel)}" ${selected.length ? "" : "disabled"}>Spoji</button>
+      </div>
+    </div>`;
+}
+
 function renderMealRecipePicker(mealLabel) {
   const recipes = getFavoriteMealsDetailed().sort((a, b) => String(a.name).localeCompare(String(b.name), "sr-Latn"));
   return `
@@ -12172,13 +12201,25 @@ function renderPlanSummaryCompact(ring) {
     </div>`;
 }
 
-function renderMealEntryRow(entry, isReadOnly) {
+function isMergingMeal(mealLabel) {
+  return Boolean(state.mergeMealKey) && state.mergeMealKey === getMealNoteKey(mealLabel);
+}
+
+function renderMealEntryRow(entry, isReadOnly, { selecting = false } = {}) {
+  const selected = selecting && (state.mergeSelection || []).includes(entry.id);
   return `
-    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
+    <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""} ${selecting ? "is-selectable" : ""} ${selected ? "is-selected" : ""}">
       <div class="meal-entry-row">
-      ${isReadOnly ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
+      ${
+        selecting
+          ? `<button class="meal-entry-body" type="button" data-action="toggle-merge-entry" data-entry-id="${entry.id}" aria-pressed="${selected}" aria-label="${escapeHtml(entry.foodName)}, ${selected ? "izabrano" : "izaberi za spajanje"}">`
+          : isReadOnly
+            ? `<div class="meal-entry-body">`
+            : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`
+      }
         <div class="meal-entry-main">
           <div class="meal-entry-title-group">
+            ${selecting ? `<span class="meal-entry-check" aria-hidden="true">${selected ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>` : ""}</span>` : ""}
             <strong>${escapeHtml(entry.foodName)}</strong>
           </div>
         </div>
@@ -12187,11 +12228,11 @@ function renderMealEntryRow(entry, isReadOnly) {
           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
           <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
         </div>
-      ${isReadOnly ? `</div>` : `</button>`}
+      ${isReadOnly && !selecting ? `</div>` : `</button>`}
       ${
         // Brisanje direktno u redu; izmena je tap na sam red. Sakriveno kad
-        // je obrok čekiran ili dan zaključan.
-        isReadOnly
+        // je obrok čekiran ili dan zaključan (i dok biraš stavke za spajanje).
+        isReadOnly || selecting
           ? ""
           : `<div class="meal-entry-actions">
               <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
@@ -12689,13 +12730,19 @@ function renderPlanTab(entries) {
                         ${
                           mealEntries.length
                             ? getMealEntryBlocks(mealEntries)
-                                .map((block) => (block.group ? renderMealRecipeGroup(block.group, isMealReadOnly) : renderMealEntryRow(block.entry, isMealReadOnly)))
+                                .map((block) =>
+                                  block.group
+                                    ? renderMealRecipeGroup(block.group, isMealReadOnly || isMergingMeal(mealLabel))
+                                    : renderMealEntryRow(block.entry, isMealReadOnly, { selecting: !isMealReadOnly && isMergingMeal(mealLabel) })
+                                )
                                 .join("")
                             : ""
                         }
                         ${
                           !isMealReadOnly
-                            ? isEditingMeal
+                            ? isMergingMeal(mealLabel)
+                              ? renderMealMergePanel(mealLabel, mealEntries)
+                              : isEditingMeal
                               ? renderPlanEntryComposer(meals, companionSuggestions, draftFood)
                               : isPickingRecipeForMeal(mealLabel)
                                 ? renderMealRecipePicker(mealLabel)
@@ -12725,8 +12772,13 @@ function renderPlanTab(entries) {
                         }
                         ${renderMealNoteBlock(mealLabel, { readOnly: isDayLocked })}
                         ${
-                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel) && !isDayLocked && (isMealReadOnly || state.mealMoreKey === getMealNoteKey(mealLabel))
+                          !isEditingMeal && !isMergingMeal(mealLabel) && mealEntries.length && !isEditingMealNote(mealLabel) && !isDayLocked && (isMealReadOnly || state.mealMoreKey === getMealNoteKey(mealLabel))
                             ? `<div class="meal-secondary-actions">
+                                ${
+                                  !isMealReadOnly && mealEntries.filter((entry) => !entry.recipeGroupId).length >= 2
+                                    ? `<button class="meal-secondary-action" type="button" data-action="start-meal-merge" data-meal-label="${escapeHtml(mealLabel)}">Spoji u jedan obrok</button>`
+                                    : ""
+                                }
                                 ${
                                   !isMealReadOnly && mealEntries.length
                                     ? `<button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
@@ -21259,6 +21311,113 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "start-meal-merge") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel || isMealCompletedForWeekday(state.selectedWeekday, mealLabel, state.selectedWeekTrack)) {
+      return;
+    }
+    state.mergeMealKey = getMealNoteKey(mealLabel);
+    state.mergeSelection = [];
+    state.mergeName = "";
+    state.mergeError = "";
+    state.mealMoreKey = "";
+    state.editingMealLabel = "";
+    state.recipePickKey = "";
+    render();
+    return;
+  }
+
+  if (action === "toggle-merge-entry") {
+    const entryId = String(actionTarget.dataset.entryId || "");
+    const selection = state.mergeSelection || [];
+    state.mergeSelection = selection.includes(entryId) ? selection.filter((id) => id !== entryId) : [...selection, entryId];
+    state.mergeError = "";
+    render();
+    return;
+  }
+
+  if (action === "cancel-meal-merge") {
+    state.mergeMealKey = "";
+    state.mergeSelection = [];
+    state.mergeName = "";
+    state.mergeError = "";
+    render();
+    return;
+  }
+
+  // Izabrane stavke postaju jedan red („Salata“) i novi recept, pa se isti
+  // obrok posle bira kroz „Dodaj obrok“ u bilo kom danu.
+  if (action === "confirm-meal-merge") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    const weekday = state.selectedWeekday;
+    const weekTrack = state.selectedWeekTrack;
+    if (!mealLabel || isMealCompletedForWeekday(weekday, mealLabel, weekTrack)) {
+      return;
+    }
+    const nameInput = document.getElementById("meal-merge-name");
+    const name = String(nameInput ? nameInput.value : state.mergeName).trim().slice(0, 80);
+    state.mergeName = name;
+    const selectedIds = new Set(state.mergeSelection || []);
+    const picked = store.weeklyPlanEntries.filter(
+      (entry) =>
+        selectedIds.has(entry.id) &&
+        !entry.recipeGroupId &&
+        entry.weekday === weekday &&
+        normalizeWeekTrack(entry.weekTrack) === weekTrack &&
+        normalizeMealLabel(entry.mealLabel) === normalizeMealLabel(mealLabel)
+    );
+    if (!picked.length) {
+      state.mergeError = "Izaberi bar jednu namirnicu.";
+      render();
+      return;
+    }
+    if (!name) {
+      state.mergeError = "Upiši naziv, npr. Salata.";
+      render();
+      requestAnimationFrame(() => document.getElementById("meal-merge-name")?.focus());
+      return;
+    }
+    if (getFavoriteMealByName(name)) {
+      state.mergeError = `Recept „${name}“ već postoji. Daj drugo ime (npr. „${name} sa uljem“) ili ga dodaj kroz „Dodaj obrok“.`;
+      render();
+      requestAnimationFrame(() => document.getElementById("meal-merge-name")?.focus());
+      return;
+    }
+    const previousEntries = store.weeklyPlanEntries.map((entry) => ({ ...entry }));
+    const previousFavorites = store.favoriteMeals.slice();
+    const favorite = {
+      id: uid("favorite-meal"),
+      name,
+      mealLabel: normalizeMealLabel(mealLabel),
+      description: "",
+      instructions: "",
+      servings: 1,
+      prepTimeMinutes: null,
+      items: picked.map((entry) => ({ id: uid("favorite-item"), foodId: entry.foodId, foodName: entry.foodName, grams: entry.grams })),
+      createdAt: new Date().toISOString(),
+    };
+    store.favoriteMeals.unshift(favorite);
+    syncRecipeFood(store, favorite);
+    const recipeGroupId = uid("recipe-group");
+    picked.forEach((entry) => {
+      entry.recipeGroupId = recipeGroupId;
+      entry.recipeId = favorite.id;
+      entry.recipeName = favorite.name;
+    });
+    state.mergeMealKey = "";
+    state.mergeSelection = [];
+    state.mergeName = "";
+    state.mergeError = "";
+    persist();
+    queuePendingUndo(`Spojeno u „${name}“ i sačuvano kao recept.`, () => {
+      store.weeklyPlanEntries = previousEntries;
+      store.favoriteMeals = previousFavorites;
+      persist();
+    });
+    render();
+    return;
+  }
+
   if (action === "edit-meal-note") {
     const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
     if (!mealLabel) {
@@ -25072,6 +25231,12 @@ function handleInput(event) {
     return;
   }
 
+  // Naziv spojenog obroka: samo nacrt, bez render().
+  if (target instanceof HTMLInputElement && target.id === "meal-merge-name") {
+    state.mergeName = target.value;
+    return;
+  }
+
   // Serije ispod vežbe: kucanje samo upisuje u nacrt, bez render().
   if (target instanceof HTMLInputElement && target.dataset.setField && state.setLogger) {
     const set = state.setLogger.sets[toNumber(target.dataset.setIndex)];
@@ -26215,3 +26380,12 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+// Enter u nazivu spojenog obroka = „Spoji“.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement) || event.target.id !== "meal-merge-name") {
+    return;
+  }
+  event.preventDefault();
+  document.querySelector('[data-action="confirm-meal-merge"]:not([disabled])')?.click();
+});

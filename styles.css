@@ -19057,3 +19057,70 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 .meal-more-toggle svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
 .meal-more-toggle.is-open svg { transform: rotate(180deg); }
 .meal-more-toggle:hover { color: var(--accent); }
+
+/* „Spoji u jedan obrok“: kružić za izbor stavke + panel sa nazivom. */
+.meal-entry-check {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  color: var(--surface);
+  vertical-align: middle;
+}
+.meal-entry-check svg {
+  width: 13px;
+  height: 13px;
+}
+.meal-entry.is-selected .meal-entry-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+:root[data-theme] .plan-meals-section .meal-entry.is-selectable .meal-entry-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.meal-entry.is-selected {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.meal-merge-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+}
+.meal-merge-hint {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--muted);
+}
+.meal-merge-hint strong {
+  color: var(--ink);
+}
+.meal-merge-name {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-12);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.meal-merge-error {
+  margin: 0;
+  font-size: var(--fs-13, 13px);
+  color: var(--danger, #d14343);
+}
+.meal-merge-panel .footer-note {
+  margin: 0;
+}
+.meal-merge-panel .solid-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
