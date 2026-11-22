@@ -1023,6 +1023,9 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     lockedPlanDays:
       rawStore.lockedPlanDays && typeof rawStore.lockedPlanDays === "object" && !Array.isArray(rawStore.lockedPlanDays) ? rawStore.lockedPlanDays : {},
     menuPresets: Array.isArray(rawStore.menuPresets) ? rawStore.menuPresets : [],
+    // Podaci sa sata: koji dan iz users/{uid}/app/health je već primenjen.
+    healthAppliedAt:
+      rawStore.healthAppliedAt && typeof rawStore.healthAppliedAt === "object" && !Array.isArray(rawStore.healthAppliedAt) ? rawStore.healthAppliedAt : {},
     mealSchedule: normalizeMealSchedule(rawStore.mealSchedule),
     notifications: normalizeNotifications(rawStore.notifications, rawStore.mealSchedule),
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
@@ -1148,6 +1151,10 @@ function ensureStoreCollections(targetStore) {
       ? targetStore.lockedPlanDays
       : {};
   targetStore.menuPresets = Array.isArray(targetStore.menuPresets) ? targetStore.menuPresets : [];
+  targetStore.healthAppliedAt =
+    targetStore.healthAppliedAt && typeof targetStore.healthAppliedAt === "object" && !Array.isArray(targetStore.healthAppliedAt)
+      ? targetStore.healthAppliedAt
+      : {};
   targetStore.mealSchedule = normalizeMealSchedule(targetStore.mealSchedule);
   targetStore.notifications = normalizeNotifications(targetStore.notifications, targetStore.mealSchedule);
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
@@ -1984,6 +1991,73 @@ function flushPendingCloudSave() {
 
 // After a failed hydrate (offline start) or a failed save, pick sync back up as
 // soon as we're online/visible again instead of waiting for the next edit.
+// Podaci sa sata (iPhone Prečica → GitHub → users/{uid}/app/health). Poseban
+// doc, pa upis na svakih pola sata ne dira rev aplikacije (nema konflikta dok
+// je koristiš); ovde se primene dani koji su stigli posle poslednjeg pogleda,
+// istim applyActivityImport kao uvoz iz Prečice u samoj aplikaciji.
+let healthInboxInFlight = false;
+async function pullHealthInbox() {
+  if (healthInboxInFlight || !state.authUser || !state.authReady || isHydratingCloudState || state.syncConflict || isDemoAccount()) {
+    return false;
+  }
+  healthInboxInFlight = true;
+  try {
+    const snapshot = await getDoc(doc(firebaseDb, "users", state.authUser.uid, "app", "health"));
+    const days = snapshot.exists() ? snapshot.data()?.days : null;
+    if (!days || typeof days !== "object") {
+      return false;
+    }
+    store.healthAppliedAt = store.healthAppliedAt && typeof store.healthAppliedAt === "object" ? store.healthAppliedAt : {};
+    let applied = 0;
+    Object.keys(days)
+      .sort()
+      .forEach((date) => {
+        const record = days[date];
+        const stamp = String(record?.receivedAt || "");
+        const dateValue = normalizeDateValue(date);
+        if (!record || !stamp || !dateValue || String(store.healthAppliedAt[dateValue] || "") >= stamp) {
+          return;
+        }
+        const { receivedAt, ...activity } = record;
+        applyActivityImport({ ...activity, date: dateValue, workouts: Array.isArray(activity.workouts) ? activity.workouts : [] });
+        store.healthAppliedAt[dateValue] = stamp;
+        applied += 1;
+      });
+    // Pamti se samo poslednjih 30 dana.
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    const cutoff = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, "0")}-${String(cutoffDate.getDate()).padStart(2, "0")}`;
+    Object.keys(store.healthAppliedAt).forEach((date) => {
+      if (date < cutoff) {
+        delete store.healthAppliedAt[date];
+      }
+    });
+    if (applied) {
+      persist();
+      render();
+    }
+    return applied > 0;
+  } catch (error) {
+    return false;
+  } finally {
+    healthInboxInFlight = false;
+  }
+}
+
+// Jedno čitanje doc-a: da li je cloud rev odmakao od onog koji imamo.
+async function hasNewerCloudState(uid) {
+  if (knownRev === null) {
+    return false;
+  }
+  try {
+    const snapshot = await getDoc(getUserStateRef(uid));
+    const remoteRev = snapshot.exists() && typeof snapshot.data()?.rev === "number" ? snapshot.data().rev : null;
+    return remoteRev !== null && remoteRev !== knownRev;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function retryCloudSync() {
   if (accountDeletionInProgress || !state.authUser || !state.authReady || isHydratingCloudState || cloudSyncRetryInFlight || state.syncConflict) {
     return;
@@ -2000,6 +2074,12 @@ async function retryCloudSync() {
       render();
     } else if (readSyncMeta(uid).dirty && !cloudSaveTimer) {
       await saveCloudStateNow({ renderAfterSave: true });
+    } else if (!readSyncMeta(uid).dirty && !cloudSaveTimer && (await hasNewerCloudState(uid))) {
+      // Neko drugi je u međuvremenu upisao (drugi tab/telefon, ili podaci sa
+      // sata preko GitHub-a). Bez lokalnih izmena samo povuci novo stanje,
+      // umesto da ga sledeće čuvanje proglasi konfliktom ili pregazi.
+      await hydrateStoreFromCloud(state.authUser);
+      render();
     } else {
       // Photos the other device hadn't uploaded at the last look may be there now.
       cloudPhotoMisses.clear();
@@ -2008,6 +2088,7 @@ async function retryCloudSync() {
   } finally {
     cloudSyncRetryInFlight = false;
   }
+  pullHealthInbox();
 }
 
 function scheduleCloudPersist() {
@@ -26407,6 +26488,7 @@ onAuthStateChanged(firebaseAuth, async (user) => {
     persist();
   }
   state.authReady = true;
+  pullHealthInbox();
   // Cold-start preko deep-linka iz Prečice (#import-run / #import-activity).
   consumeImportFromUrl();
   render();
@@ -26542,3 +26624,11 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault();
   document.querySelector('[data-action="confirm-meal-merge"]:not([disabled])')?.click();
 });
+
+// Dok je aplikacija otvorena i vidljiva, podaci sa sata se proveravaju na 5 min
+// (sat ih šalje na pola sata; jedno čitanje malog doc-a).
+window.setInterval(() => {
+  if (document.visibilityState === "visible") {
+    pullHealthInbox();
+  }
+}, 5 * 60 * 1000);
