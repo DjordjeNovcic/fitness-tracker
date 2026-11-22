@@ -130,8 +130,15 @@ async function main() {
   fields = Object.fromEntries(Object.entries(fields).map(([key, value]) => [String(key).trim().toLowerCase(), value]));
   const record = buildRecord(fields);
   if (!record) {
-    log("Nijedna metrika u podacima — ništa za upis. Ključevi:", Object.keys(fields).join(", ") || "(prazno)");
-    await notify("⌚ Prečica je stigla, ali bez brojeva. Proveri da „Get Contents of URL“ šalje move/steps/sleep.");
+    // Nule su normalne (posle ponoći, ujutru pre hodanja): tada se samo ćuti.
+    // Upozorenje ide samo kad nijedno poznato polje nije ni stiglo, jer je to
+    // greška u Prečici.
+    const known = ["move", "kcal", "active", "steps", "koraci", "sleep", "san", "weight", "tezina", "ex", "stand", "dist"];
+    const anyKnown = Object.keys(fields).some((key) => known.includes(key));
+    log(anyKnown ? "Stigle su samo nule — ništa za upis." : "Nijedno poznato polje. Ključevi:", Object.keys(fields).join(", ") || "(prazno)");
+    if (!anyKnown) {
+      await notify("⌚ Prečica je stigla, ali bez polja steps/move/sleep/weight. Proveri client_payload u „Get Contents of URL“.");
+    }
     return;
   }
   if (!String(env.FIREBASE_SERVICE_ACCOUNT || "").trim() || !String(env.FIREBASE_UID || "").trim()) {
