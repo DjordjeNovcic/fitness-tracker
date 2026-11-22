@@ -292,7 +292,9 @@ async function main() {
   // 🏋️ Trening danas.
   if (notify.training?.on) {
     const key = `${now.dateKey}|training`;
-    if (!sent[key] && isDue(toMinutes(notify.training.time))) {
+    const trainingMinutes = toMinutes(notify.training.time);
+    const trainingLead = Number(notify.training.leadMinutes) || 0;
+    if (!sent[key] && trainingMinutes !== null && isDue(trainingMinutes - trainingLead)) {
       const templates = (appState.trainingTemplates || []).filter(
         (template) => template.weekday === now.weekday && normalizeWeekTrack(template.weekTrack) === now.weekTrack
       );
@@ -301,7 +303,8 @@ async function main() {
           const count = Array.isArray(template.exercises) ? template.exercises.length : 0;
           return `• ${escapeHtml(template.name || "Trening")}${count ? ` — ${count} ${count === 1 ? "vežba" : count < 5 ? "vežbe" : "vežbi"}` : ""}`;
         });
-        await send(key, `🏋️ <b>Danas imaš trening</b>\n${lines.join("\n")}\nAjde, odradi ga! 💪`);
+        const when = `u ${notify.training.time}${trainingLead ? ` (za ${trainingLead >= 60 ? `${trainingLead / 60} h` : `${trainingLead} min`})` : ""}`;
+        await send(key, `🏋️ <b>Danas imaš trening</b> ${when}\n${lines.join("\n")}\nAjde, odradi ga! 💪`);
       } else {
         newlySent[key] = "rest-day";
       }

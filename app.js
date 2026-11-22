@@ -8657,7 +8657,12 @@ function normalizeNotifications(raw, legacySchedule) {
       to: pick(water.to, "21:00"),
       everyMinutes: [60, 90, 120, 180].includes(Number(water.everyMinutes)) ? Number(water.everyMinutes) : 120,
     },
-    training: { on: Boolean(training.on), time: pick(training.time, "08:00") },
+    // time = kad je trening; podsetnik stiže leadMinutes ranije.
+    training: {
+      on: Boolean(training.on),
+      time: pick(training.time, "18:00"),
+      leadMinutes: [0, 15, 30, 60, 120, 180].includes(Number(training.leadMinutes)) ? Number(training.leadMinutes) : 60,
+    },
     summary: { on: Boolean(summary.on), time: pick(summary.time, "21:30") },
   };
 }
@@ -8739,10 +8744,12 @@ function renderNotificationsSection() {
         <article class="status-summary-card notify-card">
           <div class="status-summary-copy">
             <strong>🏋️ Trening</strong>
-            <div class="footer-note">Ujutru stiže „danas imaš trening“ sa nazivom i brojem vežbi, samo za dane kad je trening u planu.</div>
+            <div class="footer-note">Stiže „danas imaš trening“ sa nazivom i brojem vežbi, samo za dane kad je trening u planu.</div>
           </div>
           ${renderNotifyToggle("training.on", n.training.on, "Podseti me za trening")}
-          <div class="notify-time-row">${renderNotifyTime("training.time", n.training.time, "U koliko sati")}</div>
+          <div class="notify-time-row">${renderNotifyTime("training.time", n.training.time, "Vreme treninga")}</div>
+          <div class="notify-label">Koliko pre treninga</div>
+          ${renderNotifyChips("training.leadMinutes", n.training.leadMinutes, [[0, "U minut"], [15, "15 min"], [30, "30 min"], [60, "1 h"], [120, "2 h"], [180, "3 h"]])}
         </article>
 
         <article class="status-summary-card notify-card">
