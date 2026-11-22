@@ -9155,7 +9155,11 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
           <${tag} class="hero-title">${isToday && headingLevel === 1 ? "Danas" : weekdayLabel(state.selectedWeekday)}</${tag}>
           ${
             isToday
-              ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "").replace(/(\d+\.) /, "$1\u00a0")}</span>`
+              ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "").replace(/(\d+\.) /, "$1\u00a0")}${
+                  // U nedelju je dana\u0161nji dan isti \u0161ablon kao nedelja \u201eSlede\u0107e\u201c
+                  // (dve nedelje se ponavljaju), pa pi\u0161e i taj datum.
+                  new Date().getDay() === 0 ? ` \u00b7 i ${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}` : ""
+                }</span>`
               : `<span class="hero-date">${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}</span>`
           }
         </div>
