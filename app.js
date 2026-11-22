@@ -5136,7 +5136,11 @@ const AMOUNT_UNIT_FORMS = {
   piece: ["kom", "kom", "kom"],
   head: ["glavica", "glavice", "glavica"],
   clove: ["čen", "čena", "čenova"],
+  ml: ["ml", "ml", "ml"],
+  dl: ["dl", "dl", "dl"],
 };
+// Zapremina za tečnosti: ml i dl se nude samo njima (gustina ispod).
+const FOOD_VOLUME_UNITS = ["ml", "dl"];
 // Mere čija težina zavisi od namirnice (jaje, glavica luka, čen belog luka).
 const FOOD_COUNT_UNITS = ["piece", "head", "clove"];
 
@@ -5168,7 +5172,23 @@ function pluralizeSpoonUnit(unit, count) {
 }
 
 function amountUnitCountLabel(unit) {
-  return unit === "piece" ? "Broj komada" : unit === "g" ? "Količina" : `Broj ${AMOUNT_UNIT_FORMS[unit]?.[2] || ""}`.trim();
+  if (unit === "piece") {
+    return "Broj komada";
+  }
+  if (unit === "g" || FOOD_VOLUME_UNITS.includes(unit)) {
+    return "Količina";
+  }
+  return `Broj ${AMOUNT_UNIT_FORMS[unit]?.[2] || ""}`.trim();
+}
+
+// „½ kašičice“, „1½ kašike“ umesto „0,5“ / „1,5“ — tako se piše u receptima.
+function formatAmountCount(count) {
+  const value = roundValue(toNumber(count), 2);
+  const whole = Math.floor(value);
+  if (Math.abs(value - whole - 0.5) < 0.001) {
+    return whole ? `${whole}½` : "½";
+  }
+  return formatDecimal(value, 1);
 }
 
 // Težina jednog komada za namirnicu koja se vodi na 100 g, da sastojak recepta
@@ -5199,9 +5219,18 @@ const FOOD_HEAD_GRAMS = [
   [/kupus|kelj/, 800],
   [/karfiol/, 600],
   [/brokol/, 400],
-  [/zelena salata|ajsberg|puter salata|rimska salata/, 300],
+  [/zelena salata|ajsberg|iceberg|puter salata|rimska salata/, 300],
   [/\bluk\b/, 120],
 ];
+// Gustina tečnosti (g po ml). Prvo poklapanje važi; 0 = nije tečnost (grčki
+// jogurt, kisela pavlaka, mleko u prahu, puding).
+const FOOD_LIQUID_DENSITY = [
+  [/prah|grcki|skyr|puding|namaz|kisela pavlaka|mleven|sir\b/, 0],
+  [/\bulje\b/, 0.92],
+  [/mleko|mleka|mlijek|kefir|jogurt|surutka|pavlaka/, 1.03],
+  [/\bsok\b|sokovi|\bvoda\b|mineraln|kafa|espreso|\bcaj\b|sirce|soja sos|soy|\bpivo\b|\bvino\b|smoothie|\bsupa\b|corba|sirup|napitak|limunada|kombuha/, 1],
+];
+
 const FOOD_CLOVE_GRAMS = [
   [/prah|granul|susen/, 0],
   [GARLIC_NAME_PATTERN, 5],
@@ -5230,13 +5259,18 @@ function getFoodUnitGrams(food, unit) {
   if (unit === "clove") {
     return matchFoodUnitGrams(food, FOOD_CLOVE_GRAMS);
   }
+  if (FOOD_VOLUME_UNITS.includes(unit)) {
+    const density = matchFoodUnitGrams(food, FOOD_LIQUID_DENSITY);
+    return density ? density * (unit === "dl" ? 100 : 1) : 0;
+  }
   return 0;
 }
 
 // Mere koje recept nudi za namirnicu: g, pa kom/glavica/čen ako im je težina
 // poznata, pa kašičica i kašika.
 function getRecipeUnitsForFood(food) {
-  return ["g", ...FOOD_COUNT_UNITS.filter((unit) => getFoodUnitGrams(food, unit) > 0), "tsp", "tbsp"];
+  const extra = [...FOOD_VOLUME_UNITS, ...FOOD_COUNT_UNITS].filter((unit) => getFoodUnitGrams(food, unit) > 0);
+  return ["g", ...extra, "tsp", "tbsp"];
 }
 
 function getAmountUnitFactor(unit, food) {
@@ -5249,7 +5283,7 @@ function convertAmountUnitToGrams(amount, unit, food = null) {
 
 function convertGramsToAmountUnit(grams, unit, food = null) {
   const factor = getAmountUnitFactor(unit, food);
-  return roundValue(toNumber(grams) / factor, unit === "g" ? 0 : 2);
+  return roundValue(toNumber(grams) / factor, unit === "g" || unit === "ml" ? 0 : 2);
 }
 
 // Sastojak recepta pamti jedinicu kojom je unet (kom/kašičica/kašika) i tako
@@ -5269,8 +5303,10 @@ function formatRecipeItemAmount(item, food) {
     return formatFoodAmount(food, item?.grams);
   }
   const count = convertGramsToAmountUnit(item.grams, unit, food);
-  const label = pluralizeAmountUnit(unit, count);
-  return `${formatDecimal(count, 1)} ${label}`;
+  if (FOOD_VOLUME_UNITS.includes(unit)) {
+    return `${formatDecimal(count, unit === "ml" ? 0 : 1)} ${unit}`;
+  }
+  return `${formatAmountCount(count)} ${pluralizeAmountUnit(unit, count)}`;
 }
 
 // Grami sastojka sa jedinicom čuvaju se na jednu decimalu — ½ kašičice je
@@ -10506,6 +10542,16 @@ function renderFavoriteAmountFieldInner(food) {
       <input id="favorite-amount-input" type="number" inputmode="decimal" min="0" step="any" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit, food) : ""}" required />
       <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
       ${unitGrams ? `<div class="footer-note">1 ${amountUnitLabel(unit)} ≈ ${roundValue(unitGrams, 0)} g (recept računa u gramima).</div>` : ""}
+      ${
+        unit === "tsp" || unit === "tbsp"
+          ? `<div class="amount-presets">${[0.5, 1, 1.5, 2]
+              .map(
+                (count) =>
+                  `<button type="button" class="amount-preset-chip" data-action="set-favorite-amount-count" data-count="${count}">${formatAmountCount(count)} ${pluralizeAmountUnit(unit, count)}</button>`
+              )
+              .join("")}</div>`
+          : ""
+      }
     `;
 
   return `
@@ -20585,6 +20631,22 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "set-favorite-amount-count") {
+    const food = getFoodById(state.favoriteDraft.foodId);
+    const unit = state.favoriteDraft.amountUnit || "g";
+    const count = toNumber(actionTarget.dataset.count);
+    if (!food || !count || unit === "g") {
+      return;
+    }
+    state.favoriteDraft.grams = String(roundRecipeItemGrams(convertAmountUnitToGrams(count, unit, food)));
+    const amountField = document.querySelector("#favorite-amount-field");
+    if (amountField) {
+      amountField.innerHTML = renderFavoriteAmountFieldInner(food);
+    }
+    syncRecipeDraftPreview({ items: true });
+    return;
+  }
+
   if (action === "set-favorite-amount-unit") {
     const unit = String(actionTarget.dataset.unit || "g");
     const food = getFoodById(state.favoriteDraft.foodId);
@@ -20598,7 +20660,11 @@ async function handleDocumentClick(event) {
     // pola kašike/kašičice (najmanje ½).
     if (unit !== "g") {
       const raw = toNumber(state.favoriteDraft.grams) / unitGrams;
-      const count = FOOD_COUNT_UNITS.includes(unit) ? Math.max(1, Math.round(raw)) : Math.max(0.5, Math.round(raw * 2) / 2);
+      const count = FOOD_COUNT_UNITS.includes(unit)
+        ? Math.max(1, Math.round(raw))
+        : unit === "ml"
+          ? Math.max(10, Math.round(raw / 10) * 10)
+          : Math.max(0.5, Math.round(raw * 2) / 2);
       state.favoriteDraft.grams = String(roundValue(count * unitGrams, 1));
       syncRecipeDraftPreview({ items: true });
     }

@@ -892,6 +892,16 @@ window.SEED_DATA = {
       "carbs": 2.0,
       "fat": 0.3,
       "category": "Ugljeni hidrati"
+    },
+    {
+      "id": "food-87",
+      "name": "Prašak za pecivo",
+      "servingBaseGrams": 100.0,
+      "kcal": 51.0,
+      "protein": 0.0,
+      "carbs": 24.1,
+      "fat": 0.0,
+      "category": "Ostalo"
     }
   ],
   "weeklyPlanEntries": [
