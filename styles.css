@@ -18656,3 +18656,20 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   display: flex;
   gap: 8px;
 }
+
+/* Zamena („1 Tonus = 20 g“): naziv + grami jednog komada, jedno do drugog. */
+.swap-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+.meal-entry-swap {
+  color: var(--muted);
+  font-weight: 500;
+}
+.meal-composer-swap {
+  flex-basis: 100%;
+  color: var(--accent);
+  font-weight: 600;
+}

@@ -751,6 +751,8 @@ const state = {
     servings: "1",
     prepTimeMinutes: "",
     cookedWeightGrams: "",
+    swapName: "",
+    swapGrams: "",
     instructions: "",
     items: [],
     foodId: "",
@@ -2385,7 +2387,32 @@ function normalizeFavoriteMealRecord(favorite = {}) {
     servings,
     prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
     cookedWeightGrams: toNumber(favorite.cookedWeightGrams) > 0 ? roundValue(toNumber(favorite.cookedWeightGrams), 0) : null,
+    swap: normalizeSwap(favorite.swap),
   };
+}
+
+// Zamena: „1 Tonus = 20 g ovog hleba“. Uz grame namirnice (ili gotovog
+// recepta) aplikacija odmah kaže koliko je to komada zamene.
+function normalizeSwap(raw) {
+  const name = String(raw?.name || "").trim().slice(0, 40);
+  const grams = toNumber(raw?.grams);
+  return name && grams > 0 ? { name, grams: roundValue(grams, 1) } : null;
+}
+
+function getFoodSwap(food) {
+  if (!food || getFoodServingUnit(food) === "piece") {
+    return null;
+  }
+  return normalizeSwap(food.swap);
+}
+
+// „ili 6 Tonus“ — broj zaokružen na pola komada; ispod pola se ne piše.
+function formatSwapEquivalent(swap, grams) {
+  if (!swap || !(toNumber(grams) > 0)) {
+    return "";
+  }
+  const count = Math.round((toNumber(grams) / swap.grams) * 2) / 2;
+  return count >= 0.5 ? `ili ${formatAmountCount(count)} ${swap.name}` : "";
 }
 
 // Težina gotovog jela (npr. ispečen hleb 550 g): tada se recept u plan dodaje
@@ -7165,6 +7192,8 @@ function resetFavoriteDraft(options = {}) {
         servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
         cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
+        swapName: state.favoriteDraft.swapName,
+        swapGrams: state.favoriteDraft.swapGrams,
         instructions: state.favoriteDraft.instructions,
         items: [...(state.favoriteDraft.items || [])],
       }
@@ -7183,6 +7212,8 @@ function resetFavoriteDraft(options = {}) {
     servings: preservedDraft?.servings || "1",
     prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
     cookedWeightGrams: preservedDraft?.cookedWeightGrams || "",
+    swapName: preservedDraft?.swapName || "",
+    swapGrams: preservedDraft?.swapGrams || "",
     instructions: preservedDraft?.instructions || "",
     items: preservedDraft?.items || [],
     foodId: "",
@@ -7200,7 +7231,7 @@ function hasFavoriteDraftContent() {
   if (draft.foodId || String(draft.grams || "").trim()) {
     return true;
   }
-  return ["favoriteName", "mealLabel", "description", "imageUrl", "instructions", "prepTimeMinutes", "cookedWeightGrams"].some(
+  return ["favoriteName", "mealLabel", "description", "imageUrl", "instructions", "prepTimeMinutes", "cookedWeightGrams", "swapName"].some(
     (key) => String(draft[key] || "").trim()
   );
 }
@@ -7231,6 +7262,8 @@ function setFavoriteDraftFromItem(favorite, item) {
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
+    swapName: normalizedFavorite.swap?.name || "",
+    swapGrams: normalizedFavorite.swap ? String(normalizedFavorite.swap.grams) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
@@ -7250,6 +7283,8 @@ function setFavoriteDraftFromRecipe(favorite) {
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
     cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
+    swapName: normalizedFavorite.swap?.name || "",
+    swapGrams: normalizedFavorite.swap ? String(normalizedFavorite.swap.grams) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: "",
@@ -7583,6 +7618,7 @@ function saveFavoriteMealMetadata(payload = {}) {
     servings: normalizedServings,
     prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
     cookedWeightGrams: normalizedCookedWeight > 0 ? roundValue(normalizedCookedWeight, 0) : null,
+    swap: normalizedCookedWeight > 0 ? normalizeSwap({ name: payload.swapName, grams: payload.swapGrams }) : null,
     updatedAt: new Date().toISOString(),
   };
 
@@ -7908,7 +7944,7 @@ function renderRecipeApplyDialog() {
                   return `
                     <div class="stack" style="gap:6px;">
                       ${renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required />`)}
-                      <div class="footer-note"><strong id="recipe-apply-grams-kcal">≈ ${roundValue((totalKcal * defaultGrams) / cooked, 0)} kcal</strong> · ceo recept ${roundValue(cooked, 0)} g, ${roundValue((totalKcal * 100) / cooked, 0)} kcal na 100 g</div>
+                      <div class="footer-note"><strong id="recipe-apply-grams-kcal">≈ ${roundValue((totalKcal * defaultGrams) / cooked, 0)} kcal</strong><span id="recipe-apply-grams-swap">${formatSwapEquivalent(normalizeSwap(favorite.swap), defaultGrams) ? ` · ${escapeHtml(formatSwapEquivalent(normalizeSwap(favorite.swap), defaultGrams))}` : ""}</span> · ceo recept ${roundValue(cooked, 0)} g, ${roundValue((totalKcal * 100) / cooked, 0)} kcal na 100 g</div>
                     </div>`;
                 })()
               : ""
@@ -8301,6 +8337,17 @@ function renderBarcodeScanner() {
   `;
 }
 
+function renderSwapFields(idPrefix, name, grams) {
+  return `
+    <div class="swap-fields">
+      <div class="field">
+        <label for="${idPrefix}-name">Zamena (opciono)</label>
+        <input id="${idPrefix}-name" name="swapName" placeholder="npr. Tonus" maxlength="40" autocomplete="off" value="${escapeHtml(name || "")}" />
+      </div>
+      ${renderUnitField(`${idPrefix}-grams`, "1 komad zamene =", "g", `<input id="${idPrefix}-grams" name="swapGrams" type="number" inputmode="decimal" min="0" step="any" placeholder="npr. 20" value="${escapeHtml(String(grams || ""))}" />`)}
+    </div>`;
+}
+
 function renderFoodEditorDialog() {
   if (!state.foodEditorOpen) {
     return "";
@@ -8355,6 +8402,10 @@ function renderFoodEditorDialog() {
               ${renderUnitField("food-carbs", "Ugljeni hidrati", "g", `<input id="food-carbs" name="carbs" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.carbs != null ? roundValue(prefill.carbs, 1) : ""}" required />`)}
               ${renderUnitField("food-fat", "Masti", "g", `<input id="food-fat" name="fat" type="number" inputmode="decimal" step="0.1" min="0" value="${prefill && prefill.fat != null ? roundValue(prefill.fat, 1) : ""}" required />`)}
             </div>
+          </section>
+          <section class="food-form-section">
+            ${renderSwapFields("food-swap", editingFood?.swap?.name, editingFood?.swap?.grams)}
+            <p class="footer-note">Npr. 1 Tonus = 20 g ovog hleba: uz 120 g u planu piše „ili 6 Tonus“. Važi za namirnice na 100 g.</p>
           </section>
           <div class="food-form-actions">
             <button class="solid-button button-with-icon" type="submit">${renderButtonContent(editingFood ? "Sačuvaj izmenu" : "Sačuvaj namirnicu", "save")}</button>
@@ -10476,6 +10527,7 @@ function renderEntryPreviewInner(food, grams) {
     <div class="meal-composer-preview-line">
       <strong>${roundValue(totals.kcal, 0)} kcal</strong>
       <span>P ${formatDecimal(totals.protein, 1)} · UH ${formatDecimal(totals.carbs, 1)} · M ${formatDecimal(totals.fat, 1)} g</span>
+      ${formatSwapEquivalent(getFoodSwap(food), grams) ? `<span class="meal-composer-swap">${escapeHtml(formatSwapEquivalent(getFoodSwap(food), grams))}</span>` : ""}
     </div>`;
 }
 
@@ -11940,7 +11992,7 @@ function renderPlanTab(entries) {
                                           </div>
                                         </div>
                                         <div class="meal-entry-stats">
-                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}</span>
+                                          <span class="meal-entry-grams">${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
                                           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
                                           <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
                                         </div>
@@ -12467,6 +12519,10 @@ function renderRecipesTab() {
             ${renderUnitField("favorite-cooked-weight", "Težina gotovog jela (opciono)", "g", `<input id="favorite-cooked-weight" name="cookedWeightGrams" type="number" inputmode="decimal" min="0" step="any" placeholder="npr. 550" value="${state.favoriteDraft.cookedWeightGrams || ""}" />`)}
             <div class="footer-note">Izmeri ceo hleb ili jelo posle pečenja/kuvanja. Onda u plan dodaješ koliko si pojeo, npr. 120 g, a ne celu porciju.</div>
           </div>
+          <div class="recipe-builder-field-wide stack" style="gap:6px;">
+            ${renderSwapFields("favorite-swap", state.favoriteDraft.swapName, state.favoriteDraft.swapGrams)}
+            <div class="footer-note">Radi uz težinu gotovog jela. Npr. 1 Tonus = 20 g ovog hleba, pa uz 120 g piše „ili 6 Tonus“.</div>
+          </div>
           <div class="field recipe-builder-field-wide">
             <label for="favorite-instructions">Priprema</label>
             <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${escapeHtml(state.favoriteDraft.instructions)}</textarea>
@@ -12635,6 +12691,9 @@ function renderRecipesTab() {
                               favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
                               getRecipeCookedWeight(favorite)
                                 ? `gotovo ${roundValue(getRecipeCookedWeight(favorite), 0)} g · ${roundValue((favorite.totals.kcal * 100) / getRecipeCookedWeight(favorite), 0)} kcal/100 g`
+                                : null,
+                              getRecipeCookedWeight(favorite) && normalizeSwap(favorite.swap)
+                                ? `1 ${escapeHtml(favorite.swap.name)} = ${formatDecimal(favorite.swap.grams, 1)} g`
                                 : null,
                             ]
                               .filter(Boolean)
@@ -21134,6 +21193,8 @@ async function handleDocumentClick(event) {
       servings: state.favoriteDraft.servings,
       prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
       cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
+      swapName: state.favoriteDraft.swapName,
+      swapGrams: state.favoriteDraft.swapGrams,
       instructions: state.favoriteDraft.instructions,
       items: nextItems,
     });
@@ -23113,6 +23174,7 @@ async function handleSubmit(event) {
     };
     const nextFood = {
       ...nextFoodBase,
+      swap: servingUnit === "grams" ? normalizeSwap({ name: formData.get("swapName"), grams: formData.get("swapGrams") }) : null,
       category: getRecommendedFoodCategory(nextFoodBase),
       ...(scannedBarcode ? { barcode: String(scannedBarcode) } : {}),
     };
@@ -24151,6 +24213,11 @@ function handleInput(event) {
     return;
   }
 
+  if (target instanceof HTMLInputElement && (target.id === "favorite-swap-name" || target.id === "favorite-swap-grams")) {
+    state.favoriteDraft[target.id === "favorite-swap-name" ? "swapName" : "swapGrams"] = target.value;
+    return;
+  }
+
   // Dijalog „Dodaj u plan“ za recept sa težinom gotovog jela: kcal prati grame.
   if (target instanceof HTMLInputElement && target.id === "recipe-apply-grams") {
     const favorite = getFavoriteMealsDetailed().find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
@@ -24158,6 +24225,11 @@ function handleInput(event) {
     const cooked = getRecipeCookedWeight(favorite);
     if (favorite && summary && cooked) {
       summary.textContent = `≈ ${roundValue((favorite.totals.kcal * toNumber(target.value)) / cooked, 0)} kcal`;
+      const swapNode = document.querySelector("#recipe-apply-grams-swap");
+      const swapText = formatSwapEquivalent(normalizeSwap(favorite.swap), target.value);
+      if (swapNode) {
+        swapNode.textContent = swapText ? ` · ${swapText}` : "";
+      }
     }
     return;
   }
