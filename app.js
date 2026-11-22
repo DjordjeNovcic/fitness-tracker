@@ -2399,11 +2399,20 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Srpska ćirilica → latinica bez kvačica, da „грчки“ nađe „Grčki jogurt“
+// isto kao „grcki“ (đ → dj, ž → z... kao i latinica ispod).
+const CYRILLIC_TO_LATIN = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", ђ: "dj", е: "e", ж: "z", з: "z", и: "i",
+  ј: "j", к: "k", л: "l", љ: "lj", м: "m", н: "n", њ: "nj", о: "o", п: "p", р: "r",
+  с: "s", т: "t", ћ: "c", у: "u", ф: "f", х: "h", ц: "c", ч: "c", џ: "dz", ш: "s",
+};
+
 function normalizeLookupValue(value) {
   return String(value || "")
     .replace(/đ/g, "dj")
     .replace(/Đ/g, "Dj")
     .toLowerCase()
+    .replace(/[а-шђјљњћџ]/g, (ch) => CYRILLIC_TO_LATIN[ch] || ch)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
@@ -5476,6 +5485,44 @@ function updateFoodSuggestions(query, selectedFood = null) {
   const tokens = normalizedQuery.split(" ").filter(Boolean);
   list.innerHTML = ranked
     .map((entry) => row(entry.food, tokens, `${getFoodNutritionBasisLabel(entry.food)} · ${roundValue(entry.food.kcal, 0)} kcal${entry.recent ? ` · <em>nedavno</em>` : ""}`))
+    .join("");
+  list.hidden = false;
+  markActiveSuggestion(list, 0);
+}
+
+// Predlozi ispod polja „Sastojak“ u receptu. Ranije je to bio <datalist>, a
+// pregledač njega filtrira doslovno — „grcki“ nije nalazio „Grčki jogurt“, a
+// ćirilica ništa. Ista rangirana pretraga kao u planu.
+function updateRecipeFoodSuggestions(query, selectedFood = null) {
+  const list = document.querySelector("#recipe-food-suggest");
+  if (!list) {
+    return;
+  }
+  const normalizedQuery = normalizeLookupValue(query || "");
+  if (normalizedQuery.length < 2 || (selectedFood && normalizeLookupValue(selectedFood.name) === normalizedQuery)) {
+    list.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  const ranked = rankFoodsForQuery(query, getSelectableFoods(), 6);
+  if (!ranked.length) {
+    list.setAttribute("role", "status");
+    list.innerHTML = `<div class="food-suggest-empty"><span>Nema „${escapeHtml(String(query || "").trim())}“ u bazi.</span></div>`;
+    list.hidden = false;
+    return;
+  }
+  list.setAttribute("role", "listbox");
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  list.innerHTML = ranked
+    .map(
+      ({ food }) => `
+      <div class="food-suggest-row" role="none">
+        <button type="button" class="food-suggest-item" role="option" aria-selected="false" data-action="pick-recipe-food" data-food-id="${food.id}">
+          <span class="food-suggest-name">${highlightMatch(food.name, tokens)}</span>
+          <span class="food-suggest-meta">${getFoodNutritionBasisLabel(food)} · ${roundValue(food.kcal, 0)} kcal</span>
+        </button>
+      </div>`
+    )
     .join("");
   list.hidden = false;
   markActiveSuggestion(list, 0);
@@ -10036,6 +10083,8 @@ function quickEntryAmountFor(food, item) {
 // Kad namirnica nije ovde, red traži grame i ne može da se doda bez njih.
 const QUICK_ENTRY_PIECE_GRAMS = [
   [/^jaj|^jaje/, 60],
+  // Belance velikog jajeta ≈ 33 g, 17 kcal (USDA FoodData Central 172183).
+  [/^belan(?:ce|ca|aca|ac)$/, 33],
   [/^banan/, 120],
   [/^jabuk/, 180],
   [/^krušk|^krusk/, 170],
@@ -12271,11 +12320,9 @@ function renderRecipesTab() {
           </div>
           <div class="field">
             <label for="favorite-food-search">Sastojak</label>
-            <input id="favorite-food-search" name="foodSearch" list="recipe-food-options" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(favoriteFoodSearchValue)}" autocomplete="off" required />
+            <input id="favorite-food-search" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(favoriteFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="recipe-food-suggest" required />
             <input id="favorite-food-id" name="foodId" type="hidden" value="${state.favoriteDraft.foodId}" />
-            <datalist id="recipe-food-options">
-              ${selectableFoods.map((food) => `<option value="${escapeHtml(food.name)}"></option>`).join("")}
-            </datalist>
+            <div class="food-suggest" id="recipe-food-suggest" role="listbox" aria-label="Predlozi namirnica" hidden></div>
           </div>
           <div class="field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
@@ -22465,6 +22512,28 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "pick-recipe-food") {
+    const food = getFoodById(String(actionTarget.dataset.foodId || ""));
+    const input = document.querySelector("#favorite-food-search");
+    if (!food || !(input instanceof HTMLInputElement)) {
+      return;
+    }
+    input.value = food.name;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const list = document.querySelector("#recipe-food-suggest");
+    if (list) {
+      list.hidden = true;
+    }
+    window.requestAnimationFrame(() => {
+      const amount = document.querySelector("#favorite-amount-input") || document.querySelector("#favorite-grams");
+      if (amount instanceof HTMLInputElement && amount.type !== "hidden") {
+        amount.focus();
+        amount.select();
+      }
+    });
+    return;
+  }
+
   if (action === "pick-plan-food") {
     const food = getFoodById(String(actionTarget.dataset.foodId || ""));
     const input = document.querySelector("#food-search-input");
@@ -23901,6 +23970,7 @@ function handleInput(event) {
     if (amountField) {
       amountField.innerHTML = renderFavoriteAmountFieldInner(selectedFood);
     }
+    updateRecipeFoodSuggestions(target.value, selectedFood);
     syncRecipeDraftPreview({ items: true });
     return;
   }
@@ -24295,12 +24365,15 @@ window.addEventListener("resize", () => window.requestAnimationFrame(syncFloatin
 
 // Plan composer suggestions: arrows move, Enter picks, Escape closes; the list
 // hides when focus leaves the field (a tap on an item keeps the field focused).
+// Polja sa listom predloga: plan (Danas) i sastojak recepta.
+const FOOD_SUGGEST_LISTS = { "food-search-input": "#food-suggest", "favorite-food-search": "#recipe-food-suggest" };
+
 document.addEventListener("keydown", (event) => {
   const input = event.target;
-  if (!(input instanceof HTMLInputElement) || input.id !== "food-search-input") {
+  if (!(input instanceof HTMLInputElement) || !FOOD_SUGGEST_LISTS[input.id]) {
     return;
   }
-  const list = document.querySelector("#food-suggest");
+  const list = document.querySelector(FOOD_SUGGEST_LISTS[input.id]);
   if (!list || list.hidden) {
     return;
   }
@@ -24338,14 +24411,17 @@ document.addEventListener("focusin", (event) => {
   if (input instanceof HTMLInputElement && input.id === "food-search-input") {
     updateFoodSuggestions(input.value, input.value ? resolveFoodFromQuery(input.value) : null);
   }
+  if (input instanceof HTMLInputElement && input.id === "favorite-food-search") {
+    updateRecipeFoodSuggestions(input.value, input.value ? resolveFoodFromQuery(input.value) : null);
+  }
 });
 document.addEventListener("focusout", (event) => {
   const input = event.target;
-  if (!(input instanceof HTMLInputElement) || input.id !== "food-search-input") {
+  if (!(input instanceof HTMLInputElement) || !FOOD_SUGGEST_LISTS[input.id]) {
     return;
   }
   window.setTimeout(() => {
-    const list = document.querySelector("#food-suggest");
+    const list = document.querySelector(FOOD_SUGGEST_LISTS[input.id]);
     if (list && !list.contains(document.activeElement) && document.activeElement !== input) {
       list.hidden = true;
     }
