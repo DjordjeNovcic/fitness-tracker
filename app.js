@@ -8927,7 +8927,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
         ${WEEKDAYS.map((weekday) => {
           const hint = dayHint ? dayHint(weekday) : null;
           return `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${hint?.planned ? "has-plan" : ""} ${state.activeTab === "plan" && isPlanDayLocked(weekday, state.selectedWeekTrack) ? "is-locked" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}"${hint?.title ? ` title="${escapeHtml(hint.title)}"` : ""}>
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${hint?.planned ? "has-plan" : ""} ${hint?.partial ? "is-partial-plan" : ""} ${state.activeTab === "plan" && isPlanDayLocked(weekday, state.selectedWeekTrack) ? "is-locked" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}"${hint?.title ? ` title="${escapeHtml(hint.title)}"` : ""}>
               ${weekdayLabel(weekday).slice(0, 3)}${dayHint ? `<span class="day-bar-dot" aria-hidden="true"></span>` : ""}
             </button>
           `;
@@ -12088,6 +12088,25 @@ function renderMealRecipeGroup(group, isReadOnly) {
     </div>`;
 }
 
+// Tačkica ispod dana na Danas: puna kad svaki obrok dana ima bar jednu
+// stavku, prsten kad je dan delimično popunjen, ništa kad je prazan.
+function getPlanDayFillHint(weekday) {
+  const dayEntries = (store.weeklyPlanEntries || []).filter(
+    (entry) => entry.weekday === weekday && normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack
+  );
+  const filledMeals = new Set(dayEntries.map((entry) => normalizeMealLabel(entry.mealLabel)));
+  const filledDefault = defaultMeals.filter((meal) => filledMeals.has(normalizeMealLabel(meal))).length;
+  const full = dayEntries.length > 0 && filledDefault >= defaultMeals.length;
+  const kcal = dayEntries.length ? roundValue(getDayTotals(getPlanEntriesForDay(weekday, state.selectedWeekTrack)).kcal, 0) : 0;
+  return {
+    planned: dayEntries.length > 0,
+    partial: dayEntries.length > 0 && !full,
+    title: `${weekdayLabel(weekday)} · ${
+      dayEntries.length ? `${filledDefault}/${defaultMeals.length} obroka · ${kcal} kcal` : "prazno"
+    }${isPlanDayLocked(weekday, state.selectedWeekTrack) ? " · zaključan" : ""}`,
+  };
+}
+
 // --- Jelovnici -------------------------------------------------------------
 // Sačuvan jelovnik = obe nedelje plana + svi recepti + namirnice koje oni
 // koriste + beleške uz obroke, pod jednim imenom („Nevenin jelovnik“).
@@ -12278,7 +12297,7 @@ function renderPlanTab(entries) {
   // negativnom marginom (razmak između sekcija zavisi od širine).
   return `
     <div class="day-block">
-    ${renderDayBar()}
+    ${renderDayBar({ dayHint: getPlanDayFillHint })}
     <section class="section plan-summary-section ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
