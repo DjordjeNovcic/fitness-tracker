@@ -954,6 +954,16 @@ window.SEED_DATA = {
       "carbs": 80.6,
       "fat": 1.2,
       "category": "Ostalo"
+    },
+    {
+      "id": "food-93",
+      "name": "Kivi",
+      "servingBaseGrams": 100.0,
+      "kcal": 61.0,
+      "protein": 1.1,
+      "carbs": 14.7,
+      "fat": 0.5,
+      "category": "Ugljeni hidrati"
     }
   ],
   "weeklyPlanEntries": [
