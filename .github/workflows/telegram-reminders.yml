@@ -1,0 +1,40 @@
+name: Telegram podsetnici
+
+  on:
+    schedule:
+      - cron: "*/10 * * * *"
+    workflow_dispatch:
+      inputs:
+        test:
+          description: "Pošalji test poruku odmah"
+          type: boolean
+          default: true
+
+  permissions:
+    contents: read
+
+  concurrency:
+    group: telegram-reminders
+    cancel-in-progress: false
+
+  jobs:
+    remind:
+      runs-on: ubuntu-latest
+      timeout-minutes: 5
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            sparse-checkout: scripts
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 20
+        - run: npm install --no-save --no-audit --no-fund firebase-admin@12.7.0
+        - name: Send reminders
+          env:
+            TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+            FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+            FIREBASE_UID: ${{ secrets.FIREBASE_UID }}
+            REMINDER_TEST: ${{ github.event_name == 'workflow_dispatch' &&
+  inputs.test && 'true' || 'false' }}
+          run: node scripts/telegram-reminders.mjs
