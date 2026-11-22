@@ -11365,10 +11365,15 @@ function isSelectedDayToday() {
 // stvarne (resetuju se tek u ponedeljak), pa se tu broji pojedeno. Ostali dani
 // (kasnije ove nedelje, sledeća nedelja) su samo plan.
 function isSelectedDayLoggable() {
-  return (
-    state.selectedWeekTrack === getCurrentWeekTrack() &&
-    WEEKDAYS.indexOf(state.selectedWeekday) <= WEEKDAYS.indexOf(getTodayWeekday())
-  );
+  if (state.selectedWeekTrack !== getCurrentWeekTrack()) {
+    return false;
+  }
+  // U nedelju su pon–sub istog šablona već prošli, a „Sledeća“ ih planira za
+  // narednu nedelju: tada su plan (računaljka pokazuje plan), ne dnevnik.
+  if (new Date().getDay() === 0) {
+    return state.selectedWeekday === getTodayWeekday();
+  }
+  return WEEKDAYS.indexOf(state.selectedWeekday) <= WEEKDAYS.indexOf(getTodayWeekday());
 }
 
 function getSelectedDayCoffeeTotals() {
@@ -12274,6 +12279,17 @@ function renderPlanSummaryCompact(ring) {
     </div>`;
 }
 
+// Planirana nedelja: prosek po danu (samo dani koji imaju nešto u planu).
+function renderPlanWeekAverage(weekTrack) {
+  const days = WEEKDAYS.map((weekday) => getPlanEntriesForDay(weekday, weekTrack)).filter((dayEntries) => dayEntries.length);
+  if (!days.length) {
+    return "";
+  }
+  const sum = days.reduce((acc, dayEntries) => addTotals(acc, getDayTotals(dayEntries)), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  const avg = (value) => roundValue(value / days.length, 0);
+  return `<div class="footer-note plan-week-average"><strong>${getWeekTrackLabel(weekTrack)}, prosek po danu</strong> (${days.length} ${srPlural(days.length, "dan", "dana", "dana")} sa planom): ${avg(sum.kcal)} kcal · P ${avg(sum.protein)} g · UH ${avg(sum.carbs)} g · M ${avg(sum.fat)} g</div>`;
+}
+
 // Recept dodat kao jedna stavka: „4 kom“ uz grame.
 function getEntryRecipeShareText(entry) {
   const recipeId = entry?.food?.sourceRecipeId;
@@ -12683,6 +12699,7 @@ function renderPlanTab(entries) {
       <div class="plan-summary-layout">
         ${renderMacroCards(intake, { excludeCalories: true })}
       </div>
+      ${isSelectedDayLoggable() ? "" : renderPlanWeekAverage(state.selectedWeekTrack)}
       </div>
     </section>
     </div>

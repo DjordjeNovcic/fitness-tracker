@@ -19136,3 +19136,8 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   color: var(--ink);
   font-weight: 700;
 }
+
+/* Prosek planirane nedelje ispod makroa u računaljci. */
+.plan-week-average {
+  margin-top: 10px;
+}
