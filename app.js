@@ -5119,22 +5119,47 @@ function formatFoodAmount(food, amount) {
 // so a spoon means the same thing everywhere in the app.
 const AMOUNT_UNIT_FACTORS = { g: 1, tsp: 5, tbsp: 15 };
 
+// Oblici mere po broju: [1, 2-4, 5+]. Komad je uvek „kom“.
+const AMOUNT_UNIT_FORMS = {
+  g: ["g", "g", "g"],
+  tsp: ["kašičica", "kašičice", "kašičica"],
+  tbsp: ["kašika", "kašike", "kašika"],
+  piece: ["kom", "kom", "kom"],
+  head: ["glavica", "glavice", "glavica"],
+  clove: ["čen", "čena", "čenova"],
+};
+// Mere čija težina zavisi od namirnice (jaje, glavica luka, čen belog luka).
+const FOOD_COUNT_UNITS = ["piece", "head", "clove"];
+
 function amountUnitLabel(unit) {
-  return unit === "tsp" ? "kašičica" : unit === "tbsp" ? "kašika" : unit === "piece" ? "kom" : "g";
+  return (AMOUNT_UNIT_FORMS[unit] || AMOUNT_UNIT_FORMS.g)[0];
 }
 
-// Serbian plural: 1 = singular, 2-4 = "few" form, 5+ reverts to the
-// singular spelling (genitive plural) — the range recipes actually use.
+// Srpska množina: 1/21/31 jednina, 2-4 (osim 12-14) „few“, ostalo genitiv
+// množine. Decimalni broj ide uz genitiv jednine: „0,5 kašičice“, „1,5 čena“.
+function pluralizeAmountUnit(unit, count) {
+  const forms = AMOUNT_UNIT_FORMS[unit] || AMOUNT_UNIT_FORMS.g;
+  const value = Math.abs(toNumber(count));
+  if (!Number.isInteger(value)) {
+    return forms[1];
+  }
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return forms[0];
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return forms[1];
+  }
+  return forms[2];
+}
+
 function pluralizeSpoonUnit(unit, count) {
-  // Decimalni broj ide uz genitiv jednine: „0,5 kašičice“, „1,5 kašike“.
-  const n = Number.isInteger(toNumber(count)) ? Math.abs(toNumber(count)) : 2;
-  if (unit === "tbsp") {
-    return n === 1 ? "kašika" : n >= 2 && n <= 4 ? "kašike" : "kašika";
-  }
-  if (unit === "tsp") {
-    return n === 1 ? "kašičica" : n >= 2 && n <= 4 ? "kašičice" : "kašičica";
-  }
-  return "g";
+  return pluralizeAmountUnit(unit, count);
+}
+
+function amountUnitCountLabel(unit) {
+  return unit === "piece" ? "Broj komada" : unit === "g" ? "Količina" : `Broj ${AMOUNT_UNIT_FORMS[unit]?.[2] || ""}`.trim();
 }
 
 // Težina jednog komada za namirnicu koja se vodi na 100 g, da sastojak recepta
@@ -5155,12 +5180,58 @@ function getFoodPieceGrams(food) {
   return getQuickEntryPieceGrams(food);
 }
 
-// "piece" nema fiksan faktor — zavisi od namirnice, pa ga daje food.
-function getAmountUnitFactor(unit, food) {
-  if (unit === "piece") {
-    return getFoodPieceGrams(food) || 1;
+// Glavica i čen: tipične težine po nazivu namirnice (posle normalizeLookupValue,
+// bez dijakritika). Prvo poklapanje važi; 0 znači da se mera ne nudi
+// (mladi luk, luk u prahu, praziluk nemaju „glavicu“).
+const GARLIC_NAME_PATTERN = /\b(?:beli|bijeli|belog|bijelog) luk|\bluk beli\b|cesnjak|garlic/;
+const FOOD_HEAD_GRAMS = [
+  [/mladi luk|praziluk|poriluk|vlasac|prah|przen|susen|granul|pire/, 0],
+  [GARLIC_NAME_PATTERN, 50],
+  [/kupus|kelj/, 800],
+  [/karfiol/, 600],
+  [/brokol/, 400],
+  [/zelena salata|ajsberg|puter salata|rimska salata/, 300],
+  [/\bluk\b/, 120],
+];
+const FOOD_CLOVE_GRAMS = [
+  [/prah|granul|susen/, 0],
+  [GARLIC_NAME_PATTERN, 5],
+];
+
+function matchFoodUnitGrams(food, table) {
+  const name = normalizeLookupValue(food?.name);
+  const hit = table.find(([pattern]) => pattern.test(name));
+  return hit ? hit[1] : 0;
+}
+
+// Grami jedne mere za datu namirnicu; 0 = mera nije dostupna za nju.
+function getFoodUnitGrams(food, unit) {
+  if (AMOUNT_UNIT_FACTORS[unit]) {
+    return AMOUNT_UNIT_FACTORS[unit];
   }
-  return AMOUNT_UNIT_FACTORS[unit] || 1;
+  if (!food || getFoodServingUnit(food) === "piece") {
+    return 0;
+  }
+  if (unit === "piece") {
+    return getFoodPieceGrams(food);
+  }
+  if (unit === "head") {
+    return matchFoodUnitGrams(food, FOOD_HEAD_GRAMS);
+  }
+  if (unit === "clove") {
+    return matchFoodUnitGrams(food, FOOD_CLOVE_GRAMS);
+  }
+  return 0;
+}
+
+// Mere koje recept nudi za namirnicu: g, pa kom/glavica/čen ako im je težina
+// poznata, pa kašičica i kašika.
+function getRecipeUnitsForFood(food) {
+  return ["g", ...FOOD_COUNT_UNITS.filter((unit) => getFoodUnitGrams(food, unit) > 0), "tsp", "tbsp"];
+}
+
+function getAmountUnitFactor(unit, food) {
+  return getFoodUnitGrams(food, unit) || 1;
 }
 
 function convertAmountUnitToGrams(amount, unit, food = null) {
@@ -5180,10 +5251,7 @@ function getRecipeItemUnit(item, food) {
   if (!food || getFoodServingUnit(food) === "piece" || unit === "g") {
     return "g";
   }
-  if (unit === "piece") {
-    return getFoodPieceGrams(food) ? "piece" : "g";
-  }
-  return AMOUNT_UNIT_FACTORS[unit] ? unit : "g";
+  return getFoodUnitGrams(food, unit) > 0 ? unit : "g";
 }
 
 function formatRecipeItemAmount(item, food) {
@@ -5192,7 +5260,7 @@ function formatRecipeItemAmount(item, food) {
     return formatFoodAmount(food, item?.grams);
   }
   const count = convertGramsToAmountUnit(item.grams, unit, food);
-  const label = unit === "piece" ? "kom" : pluralizeSpoonUnit(unit, count);
+  const label = pluralizeAmountUnit(unit, count);
   return `${formatDecimal(count, 1)} ${label}`;
 }
 
@@ -7138,7 +7206,7 @@ function renderRecipeDraftItemsInner(draftPreview) {
         const suggestedFood = !item.isPending ? getRecipeDraftItemSuggestedFood(item) : null;
         const itemFood = getFoodById(item.foodId);
         const itemUnit = getRecipeItemUnit(item, itemFood);
-        const unitLabel = getFoodServingUnit(itemFood) === "piece" || itemUnit === "piece" ? "kom" : amountUnitLabel(itemUnit);
+        const unitLabel = getFoodServingUnit(itemFood) === "piece" ? "kom" : amountUnitLabel(itemUnit);
         const amountValue = !item.grams
           ? ""
           : itemUnit === "g"
@@ -10363,18 +10431,12 @@ function renderAmountFieldInner(food) {
 function renderFavoriteAmountFieldInner(food) {
   const isPiece = getFoodServingUnit(food) === "piece";
   const grams = toNumber(state.favoriteDraft.grams);
-  const pieceGrams = isPiece ? 0 : getFoodPieceGrams(food);
-  const units = pieceGrams ? ["g", "piece", "tsp", "tbsp"] : ["g", "tsp", "tbsp"];
+  const units = getRecipeUnitsForFood(food);
   const draftUnit = state.favoriteDraft.amountUnit || "g";
   const unit = isPiece || !units.includes(draftUnit) ? "g" : draftUnit;
+  const unitGrams = FOOD_COUNT_UNITS.includes(unit) ? getFoodUnitGrams(food, unit) : 0;
   const visibleInputId = isPiece ? "favorite-grams" : "favorite-amount-input";
-  const labelText = isPiece || unit === "piece"
-    ? "Broj komada"
-    : unit === "tsp"
-      ? "Broj kašičica"
-      : unit === "tbsp"
-        ? "Broj kašika"
-        : "Količina";
+  const labelText = isPiece ? "Broj komada" : amountUnitCountLabel(unit);
 
   const unitToggleMarkup = isPiece
     ? ""
@@ -10394,7 +10456,7 @@ function renderFavoriteAmountFieldInner(food) {
     : `
       <input id="favorite-amount-input" type="number" inputmode="decimal" min="0" step="${unit === "g" ? "1" : "0.5"}" placeholder="${unit === "g" ? getFoodQuantityPlaceholder(food) : "1"}" value="${grams ? convertGramsToAmountUnit(grams, unit, food) : ""}" required />
       <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
-      ${unit === "piece" ? `<div class="footer-note">1 kom ≈ ${roundValue(pieceGrams, 0)} g (recept računa u gramima).</div>` : ""}
+      ${unitGrams ? `<div class="footer-note">1 ${amountUnitLabel(unit)} ≈ ${roundValue(unitGrams, 0)} g (recept računa u gramima).</div>` : ""}
     `;
 
   return `
@@ -20479,16 +20541,16 @@ async function handleDocumentClick(event) {
   if (action === "set-favorite-amount-unit") {
     const unit = String(actionTarget.dataset.unit || "g");
     const food = getFoodById(state.favoriteDraft.foodId);
-    const pieceGrams = unit === "piece" ? getFoodPieceGrams(food) : 0;
-    if ((!AMOUNT_UNIT_FACTORS[unit] && !pieceGrams) || unit === state.favoriteDraft.amountUnit) {
+    const unitGrams = getFoodUnitGrams(food, unit);
+    if (!unitGrams || unit === state.favoriteDraft.amountUnit) {
       return;
     }
     state.favoriteDraft.amountUnit = unit;
-    // 100 g jaja bi pisalo „1,72 kom“ — prelaz na komade kreće od celog
-    // broja komada najbližeg dosadašnjoj kilaži (najmanje 1).
-    if (pieceGrams) {
-      const pieces = Math.max(1, Math.round(toNumber(state.favoriteDraft.grams) / pieceGrams));
-      state.favoriteDraft.grams = String(roundValue(pieces * pieceGrams, 0));
+    // 100 g jaja bi pisalo „1,72 kom“ — prelaz na kom/glavicu/čen kreće od
+    // celog broja najbližeg dosadašnjoj kilaži (najmanje 1).
+    if (FOOD_COUNT_UNITS.includes(unit)) {
+      const count = Math.max(1, Math.round(toNumber(state.favoriteDraft.grams) / unitGrams));
+      state.favoriteDraft.grams = String(roundValue(count * unitGrams, 1));
       syncRecipeDraftPreview({ items: true });
     }
     const amountField = document.querySelector("#favorite-amount-field");

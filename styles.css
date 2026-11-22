@@ -7369,6 +7369,7 @@ body.app-header-hidden .workspace-header {
    piece-counted foods, where it wouldn't make sense. */
 .amount-unit-toggle {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
 }
