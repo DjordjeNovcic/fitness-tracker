@@ -724,6 +724,8 @@ const state = {
   editingMealNoteKey: "",
   // „Dodaj obrok“: za koji obrok (ključ dana kao kod beleške) je otvoren izbor recepta.
   recipePickKey: "",
+  // „Više“ u otvorenom obroku (Pripremi / Sačuvaj kao recept / Obriši / Beleška).
+  mealMoreKey: "",
   // Otvoreni recepti u obroku (prikaz sastojaka), samo za ovu sesiju.
   expandedRecipeGroups: [],
   mealNoteDraft: "",
@@ -12714,12 +12716,16 @@ function renderPlanTab(entries) {
                                   <span>Kopiraj od juče (${copyFromPreviousCount})</span>
                                 </button>`
                                     : ""
+                                }${
+                                  mealEntries.length
+                                    ? `<button class="meal-more-toggle ${state.mealMoreKey === getMealNoteKey(mealLabel) ? "is-open" : ""}" type="button" data-action="toggle-meal-more" data-meal-label="${escapeHtml(mealLabel)}" aria-expanded="${state.mealMoreKey === getMealNoteKey(mealLabel)}">Više<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`
+                                    : ""
                                 }</div>`
                             : ""
                         }
                         ${renderMealNoteBlock(mealLabel, { readOnly: isDayLocked })}
                         ${
-                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel) && !isDayLocked
+                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel) && !isDayLocked && (isMealReadOnly || state.mealMoreKey === getMealNoteKey(mealLabel))
                             ? `<div class="meal-secondary-actions">
                                 ${
                                   !isMealReadOnly && mealEntries.length
@@ -21155,6 +21161,13 @@ async function handleDocumentClick(event) {
       input.value = String(toNumber(actionTarget.dataset.grams) || "");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
+    return;
+  }
+
+  if (action === "toggle-meal-more") {
+    const key = getMealNoteKey(String(actionTarget.dataset.mealLabel || ""));
+    state.mealMoreKey = state.mealMoreKey === key ? "" : key;
+    render();
     return;
   }
 

@@ -18988,3 +18988,72 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   width: 100%;
   font-variant-numeric: tabular-nums;
 }
+
+/* Danas, otvoren obrok, utegnuto (2026-11-22): svaka stavka u jednom redu
+   (naziv … makroi · grami · kcal · kanta), dodavanje i „Više“ u jednom redu,
+   oznaka „priprema“ uz naziv obroka. */
+:root[data-theme] .plan-meals-section .meal-entry { padding-top: 4px; padding-bottom: 4px; }
+:root[data-theme] .plan-meals-section .meal-entry-row { align-items: center; }
+:root[data-theme] .plan-meals-section .meal-entry-body {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  min-height: 0;
+}
+:root[data-theme] .plan-meals-section .meal-entry-main { flex: 1 1 auto; min-width: 0; }
+:root[data-theme] .plan-meals-section .meal-entry > .meal-entry-row .meal-entry-title-group strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root[data-theme] .plan-meals-section .meal-entry-group > .meal-entry-row .meal-entry-title-group strong {
+  display: inline;
+}
+:root[data-theme] .plan-meals-section .meal-entry-stats {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 0;
+}
+:root[data-theme] .plan-meals-section .meal-entry-macros { order: -1; font-size: var(--fs-12); }
+:root[data-theme] .plan-meals-section .meal-entry-grams { min-width: 52px; text-align: right; }
+:root[data-theme] .plan-meals-section .meal-entry-kcal { min-width: 62px; text-align: right; }
+@media (max-width: 760px) {
+  :root[data-theme] .plan-meals-section .meal-entry-macros { display: none; }
+  :root[data-theme] .plan-meals-section .meal-entry-grams { min-width: 0; }
+  :root[data-theme] .plan-meals-section .meal-entry-kcal { min-width: 54px; }
+}
+@media (pointer: fine) {
+  :root[data-theme] .plan-meals-section .meal-entry { padding-top: 1px; padding-bottom: 1px; }
+  :root[data-theme] .plan-meals-section .meal-entry-action { width: 32px; height: 32px; min-width: 32px; min-height: 32px; }
+}
+:root[data-theme] .plan-meals-section .meal-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+:root[data-theme] .plan-meals-section .meal-prep-badge { font-size: var(--fs-12); padding: 1px 8px; margin: 0; }
+.plan-meals-section .meal-card-content:has(.meal-entry) .meal-add-rows { width: 100%; }
+.meal-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  cursor: pointer;
+}
+.meal-more-toggle svg { width: 14px; height: 14px; transition: transform 0.2s ease; }
+.meal-more-toggle.is-open svg { transform: rotate(180deg); }
+.meal-more-toggle:hover { color: var(--accent); }
