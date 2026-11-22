@@ -18673,3 +18673,63 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Danas: „Dodaj namirnicu“ i „Dodaj obrok“ (recept) u istom redu. */
+.meal-add-rows {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 18px;
+}
+.meal-add-rows .meal-add-row,
+:root[data-theme="dark"] .meal-add-rows .meal-add-row {
+  width: auto;
+}
+.plan-meals-section .meal-card:not(.is-editing):not(:has(.meal-entry, .meal-empty)) .meal-add-rows {
+  justify-content: flex-end;
+  column-gap: 14px;
+}
+.meal-recipe-picker {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.meal-recipe-list {
+  display: grid;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.meal-recipe-option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--r-12);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.meal-recipe-option[hidden] {
+  display: none;
+}
+.meal-recipe-option:hover {
+  border-color: var(--accent);
+}
+.meal-recipe-option-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.meal-recipe-option-meta {
+  flex-shrink: 0;
+  font-size: var(--fs-13);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

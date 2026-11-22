@@ -722,6 +722,8 @@ const state = {
   // Beleška uz obrok (kako se priprema i sl.): koji obrok je otvoren za
   // pisanje i nesačuvan tekst, da ga render usred kucanja ne obriše.
   editingMealNoteKey: "",
+  // „Dodaj obrok“: za koji obrok (ključ dana kao kod beleške) je otvoren izbor recepta.
+  recipePickKey: "",
   mealNoteDraft: "",
   // Meal prep ("kuvaj unapred"): which meal's prep panel is open + chosen days.
   prepMealLabel: "",
@@ -7956,12 +7958,22 @@ function getRecipeApplyMealOptions(favorite) {
   return mergeUniqueStrings([...defaultMeals, ...(recipeMealLabel ? [recipeMealLabel] : [])]);
 }
 
-function openRecipeApplyDialog(favorite) {
+function openRecipeApplyDialog(favorite, options = {}) {
   if (!favorite) {
     return;
   }
 
   const mealOptions = getRecipeApplyMealOptions(favorite);
+  // Iz obroka na Danas („Dodaj obrok“) obrok je već poznat.
+  if (options.mealLabel) {
+    state.recipeApplyDialog = {
+      favoriteId: favorite.id,
+      weekday: state.selectedWeekday,
+      weekTrack: state.selectedWeekTrack,
+      mealLabel: normalizeMealLabel(options.mealLabel),
+    };
+    return;
+  }
   const suggestedMeal = normalizeMealLabel(favorite.mealLabel || favorite.name || "");
   state.recipeApplyDialog = {
     favoriteId: favorite.id,
@@ -7992,7 +8004,7 @@ function renderRecipeApplyDialog() {
   }
   const favoriteDetailed = getFavoriteMealsDetailed().find((entry) => entry.id === favoriteId) || favorite;
 
-  const mealOptions = getRecipeApplyMealOptions(favorite);
+  const mealOptions = mergeUniqueStrings([...getRecipeApplyMealOptions(favorite), ...(state.recipeApplyDialog.mealLabel ? [normalizeMealLabel(state.recipeApplyDialog.mealLabel)] : [])]);
   const selectedWeekday = state.recipeApplyDialog.weekday || state.selectedWeekday;
   const selectedWeekTrack = normalizeWeekTrack(
     state.recipeApplyDialog.weekTrack === "" || state.recipeApplyDialog.weekTrack == null
@@ -11595,6 +11607,39 @@ function getMealNote(mealLabel) {
   return String((store.mealNotes || {})[getMealNoteKey(mealLabel)] || "");
 }
 
+function isPickingRecipeForMeal(mealLabel) {
+  return Boolean(state.recipePickKey) && state.recipePickKey === getMealNoteKey(mealLabel);
+}
+
+function renderMealRecipePicker(mealLabel) {
+  const recipes = getFavoriteMealsDetailed().sort((a, b) => String(a.name).localeCompare(String(b.name), "sr-Latn"));
+  return `
+    <div class="meal-recipe-picker">
+      <div class="food-search-control">
+        <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
+        <input id="meal-recipe-search" type="search" placeholder="Koji obrok? Pretraži recepte" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Pretraga recepata" />
+      </div>
+      <div class="meal-recipe-list" role="list">
+        ${recipes
+          .map((recipe) => {
+            const cooked = getRecipeCookedWeight(recipe);
+            const kcal = cooked
+              ? `${roundValue(((recipe.totals?.kcal || 0) * 100) / cooked, 0)} kcal/100 g`
+              : `${roundValue((recipe.perServingTotals || recipe.totals || {}).kcal || 0, 0)} kcal${recipe.servings > 1 ? " po porciji" : ""}`;
+            return `<button class="meal-recipe-option" type="button" role="listitem" data-action="pick-recipe-for-meal" data-favorite-id="${escapeHtml(recipe.id)}" data-meal-label="${escapeHtml(mealLabel)}" data-search="${escapeHtml(normalizeLookupValue(recipe.name))}">
+              <span class="meal-recipe-option-name">${escapeHtml(recipe.name)}</span>
+              <span class="meal-recipe-option-meta">${kcal}</span>
+            </button>`;
+          })
+          .join("")}
+      </div>
+      <p class="footer-note meal-recipe-empty" hidden>Nema takvog recepta.</p>
+      <div class="meal-note-actions">
+        <button class="ghost-button" type="button" data-action="close-meal-recipe-picker">Zatvori</button>
+      </div>
+    </div>`;
+}
+
 function isEditingMealNote(mealLabel) {
   return Boolean(state.editingMealNoteKey) && state.editingMealNoteKey === getMealNoteKey(mealLabel);
 }
@@ -12007,7 +12052,7 @@ function renderPlanTab(entries) {
                   const eatenMealKcal = isMealPartial ? roundValue(getDayTotals(doneEntries).kcal, 0) : 0;
                   const prepBadgeCount = getMealPrepBadgeCount(mealLabel, mealEntries);
                   return `
-                    <article class="meal-card ${isEditingMeal ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
+                    <article class="meal-card ${isEditingMeal || isPickingRecipeForMeal(mealLabel) ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
                       <div class="meal-card-header">
                         <div class="meal-card-topline">
@@ -12147,10 +12192,19 @@ function renderPlanTab(entries) {
                           !isMealDone
                             ? isEditingMeal
                               ? renderPlanEntryComposer(meals, companionSuggestions, draftFood)
-                              : `<button class="meal-add-row" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}">
+                              : isPickingRecipeForMeal(mealLabel)
+                                ? renderMealRecipePicker(mealLabel)
+                                : `<div class="meal-add-rows"><button class="meal-add-row" type="button" data-action="start-add-to-meal" data-meal-label="${escapeHtml(mealLabel)}">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                                   <span>Dodaj namirnicu</span>
+                                </button>${
+                                  (store.favoriteMeals || []).length
+                                    ? `<button class="meal-add-row" type="button" data-action="open-meal-recipe-picker" data-meal-label="${escapeHtml(mealLabel)}">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                  <span>Dodaj obrok</span>
                                 </button>`
+                                    : ""
+                                }</div>`
                             : ""
                         }
                         ${renderMealNoteBlock(mealLabel)}
@@ -20454,6 +20508,7 @@ async function handleDocumentClick(event) {
     schedulePreloadBarcodeReader();
     resetPlanDraft();
     state.editingMealLabel = mealLabel || "";
+    state.recipePickKey = "";
     state.prepMealLabel = "";
     expandMealForWeekday(state.selectedWeekday, mealLabel);
     state.planDraft.mealLabel = mealLabel || defaultMeals[0];
@@ -20490,6 +20545,37 @@ async function handleDocumentClick(event) {
   if (action === "finish-edit-meal") {
     state.editingMealLabel = "";
     resetPlanDraft();
+    render();
+    return;
+  }
+
+  if (action === "open-meal-recipe-picker") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    state.recipePickKey = getMealNoteKey(mealLabel);
+    state.editingMealLabel = "";
+    state.prepMealLabel = "";
+    render();
+    requestAnimationFrame(() => document.getElementById("meal-recipe-search")?.focus());
+    return;
+  }
+
+  if (action === "close-meal-recipe-picker") {
+    state.recipePickKey = "";
+    render();
+    return;
+  }
+
+  if (action === "pick-recipe-for-meal") {
+    const favorite = store.favoriteMeals.find((entry) => entry.id === actionTarget.dataset.favoriteId);
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!favorite || !mealLabel) {
+      return;
+    }
+    state.recipePickKey = "";
+    openRecipeApplyDialog(favorite, { mealLabel });
     render();
     return;
   }
@@ -24120,6 +24206,24 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // „Dodaj obrok“: pretraga recepata sakriva redove na licu mesta.
+  if (target instanceof HTMLInputElement && target.id === "meal-recipe-search") {
+    const tokens = normalizeLookupValue(target.value).split(" ").filter(Boolean);
+    const picker = target.closest(".meal-recipe-picker");
+    let visible = 0;
+    picker?.querySelectorAll(".meal-recipe-option").forEach((option) => {
+      const haystack = option.dataset.search || "";
+      const show = tokens.every((token) => haystack.includes(token));
+      option.hidden = !show;
+      visible += show ? 1 : 0;
+    });
+    const empty = picker?.querySelector(".meal-recipe-empty");
+    if (empty) {
+      empty.hidden = visible > 0;
+    }
+    return;
+  }
 
   // Beleška uz obrok: kucanje ide u nacrt, bez render().
   if (target instanceof HTMLTextAreaElement && target.id === "meal-note-input") {
