@@ -2641,6 +2641,9 @@ function formatFoodDisplayName(name) {
   return capitalizeFirstLetter(replaced);
 }
 
+// Mora pre hydrateStore(): normalizeNotifications() je zove pri učitavanju, a
+// const ispod tog reda još ne postoji (aplikacija je stajala na učitavanju).
+const NOTIFY_TIME = /^\d{2}:\d{2}$/;
 const store = hydrateStore();
 ensureStoreCollections(store);
 
@@ -8639,7 +8642,6 @@ function normalizeMealSchedule(raw) {
 
 // Obaveštenja (Ciljevi → Obaveštenja). Čita ih Telegram skripta
 // (scripts/telegram-reminders.mjs); ovde su samo podešavanja.
-const NOTIFY_TIME = /^\d{2}:\d{2}$/;
 function normalizeNotifications(raw, legacySchedule) {
   const pick = (value, fallback) => (NOTIFY_TIME.test(String(value || "")) ? String(value) : fallback);
   const meals = raw?.meals || {};
