@@ -18941,3 +18941,23 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 .hero-day-chips .chip.is-partial-plan .day-bar-dot {
   box-shadow: inset 0 0 0 1.6px currentColor;
 }
+
+/* Satnica obroka (Ciljevi) i vreme uz naziv obroka na Danas. */
+.meal-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 12px;
+  margin: 4px 0 10px;
+}
+.meal-schedule-field input[type="time"] {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.meal-time {
+  margin-left: 6px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}

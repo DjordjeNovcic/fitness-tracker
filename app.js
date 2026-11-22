@@ -1015,6 +1015,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     lockedPlanDays:
       rawStore.lockedPlanDays && typeof rawStore.lockedPlanDays === "object" && !Array.isArray(rawStore.lockedPlanDays) ? rawStore.lockedPlanDays : {},
     menuPresets: Array.isArray(rawStore.menuPresets) ? rawStore.menuPresets : [],
+    mealSchedule: normalizeMealSchedule(rawStore.mealSchedule),
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
@@ -1138,6 +1139,7 @@ function ensureStoreCollections(targetStore) {
       ? targetStore.lockedPlanDays
       : {};
   targetStore.menuPresets = Array.isArray(targetStore.menuPresets) ? targetStore.menuPresets : [];
+  targetStore.mealSchedule = normalizeMealSchedule(targetStore.mealSchedule);
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.sleepByDate =
@@ -8620,6 +8622,27 @@ function renderFoodEditorDialog() {
   `;
 }
 
+// Satnica obroka: vreme za svaki obrok („08:00“), vidi se uz obrok na Danas.
+// Isti podaci idu u oblak, odakle ih čita Telegram podsetnik
+// (scripts/telegram-reminders.mjs, GitHub Actions na 10 min).
+function normalizeMealSchedule(raw) {
+  const times = {};
+  Object.entries(raw?.times && typeof raw.times === "object" ? raw.times : {}).forEach(([meal, time]) => {
+    if (/^\d{2}:\d{2}$/.test(String(time || ""))) {
+      times[normalizeMealLabel(meal)] = String(time);
+    }
+  });
+  return { times, remindersOn: raw?.remindersOn !== false };
+}
+
+function getMealTime(mealLabel) {
+  return (store.mealSchedule?.times || {})[normalizeMealLabel(mealLabel)] || "";
+}
+
+function getScheduleMealLabels() {
+  return mergeUniqueStrings([...defaultMeals, ...(store.weeklyPlanEntries || []).map((entry) => normalizeMealLabel(entry.mealLabel))]);
+}
+
 // Zaključan dan („sve je kako treba“): stavke se ne mogu dodavati, menjati
 // ni brisati, samo čekirati kao pojedene. Vezano za dan šablona, pa važi
 // svaki put kad se ta nedelja vrati, dok ga ne otključaš.
@@ -12450,7 +12473,7 @@ function renderPlanTab(entries) {
                       <div class="meal-card-header">
                         <div class="meal-card-topline">
                           <div class="meal-card-heading">
-                            <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}</h3>
+                            <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}${getMealTime(mealLabel) ? ` <span class="meal-time">${escapeHtml(getMealTime(mealLabel))}</span>` : ""}</h3>
                             ${mealEntries.length || isEditingMeal ? "" : `<span class="meal-empty-tag">prazno</span>`}
                             ${
                               prepBadgeCount >= 2
@@ -16959,6 +16982,31 @@ function renderAccountSection() {
             <button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
             <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
           </div>
+        </article>
+
+        <article class="status-summary-card meal-schedule-card">
+          <div class="status-summary-top">
+            <div class="status-summary-copy">
+              <strong>Satnica obroka</strong>
+              <div class="footer-note">Vreme za svaki obrok. Vidi se uz obrok na Danas, a u to vreme stiže podsetnik na Telegram (ako je bot povezan; vidi docs/telegram-bot.md).</div>
+            </div>
+          </div>
+          <div class="meal-schedule-grid">
+            ${getScheduleMealLabels()
+              .map((meal) => {
+                const id = `meal-time-${normalizeLookupValue(meal).replace(/[^a-z0-9]+/g, "-")}`;
+                return `<div class="field meal-schedule-field">
+                  <label for="${id}">${escapeHtml(getMealDisplayParts(meal).title || meal)}</label>
+                  <input id="${id}" type="time" step="300" value="${escapeHtml(getMealTime(meal))}" data-meal-time="${escapeHtml(meal)}" />
+                </div>`;
+              })
+              .join("")}
+          </div>
+          <label class="settings-toggle">
+            <input type="checkbox" class="routine-checkbox" data-action="toggle-meal-reminders" ${store.mealSchedule?.remindersOn !== false ? "checked" : ""} />
+            <span class="routine-check-ui" aria-hidden="true"></span>
+            <span class="settings-toggle-label">Šalji podsetnike za obroke</span>
+          </label>
         </article>
 
         <article class="status-summary-card">
@@ -23668,6 +23716,13 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "toggle-meal-reminders") {
+    store.mealSchedule = normalizeMealSchedule(store.mealSchedule);
+    store.mealSchedule.remindersOn = actionTarget instanceof HTMLInputElement ? actionTarget.checked : !store.mealSchedule.remindersOn;
+    persist();
+    return;
+  }
+
   if (action === "toggle-shared-foods") {
     store.preferences = store.preferences && typeof store.preferences === "object" ? store.preferences : {};
     store.preferences.sharedFoods = actionTarget instanceof HTMLInputElement ? actionTarget.checked : !store.preferences.sharedFoods;
@@ -24822,6 +24877,19 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // Satnica obroka: vreme se čuva odmah, bez render() (polje ostaje u fokusu).
+  if (target instanceof HTMLInputElement && target.dataset.mealTime) {
+    store.mealSchedule = normalizeMealSchedule(store.mealSchedule);
+    const meal = normalizeMealLabel(target.dataset.mealTime);
+    if (/^\d{2}:\d{2}$/.test(target.value)) {
+      store.mealSchedule.times[meal] = target.value;
+    } else {
+      delete store.mealSchedule.times[meal];
+    }
+    persist();
+    return;
+  }
 
   // „Dodaj obrok“: pretraga recepata sakriva redove na licu mesta.
   if (target instanceof HTMLInputElement && target.id === "meal-recipe-search") {
