@@ -12214,7 +12214,8 @@ function renderPlanTab(entries) {
                                 ${
                                   !isMealDone && mealEntries.length
                                     ? `<button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
-                                <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>`
+                                <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>
+                                <button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-plan-meal" data-meal-label="${escapeHtml(mealLabel)}">Obriši obrok</button>`
                                     : ""
                                 }
                                 ${
@@ -12233,6 +12234,14 @@ function renderPlanTab(entries) {
             : `<div class="empty">Dodaj prvi obrok za ${weekdayAccusative(state.selectedWeekday)} i aplikacija će odmah sabirati makroe.</div>`
         }
       </div>
+      ${
+        (store.weeklyPlanEntries || []).some((entry) => normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
+          ? `<div class="meal-secondary-actions plan-delete-actions">
+              ${entries.length ? `<button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-day-plan">Obriši ceo dan</button>` : ""}
+              <button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-week-plan">Obriši celu ${getWeekTrackAccusative(state.selectedWeekTrack)}</button>
+            </div>`
+          : ""
+      }
     </section>
 
     ${
@@ -21604,6 +21613,61 @@ async function handleDocumentClick(event) {
     persist();
     queuePendingUndo(
       `Obrisano ${removedCount} ${srPlural(removedCount, "stavka", "stavke", "stavki")} za ${weekdayAccusative(weekday)}.${
+        lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
+      }`,
+      () => {
+        store.weeklyPlanEntries = previousEntries;
+        persist();
+      }
+    );
+    render();
+    return;
+  }
+
+  if (action === "delete-plan-meal" || action === "delete-week-plan") {
+    const weekday = state.selectedWeekday;
+    const weekTrack = state.selectedWeekTrack;
+    const mealLabel = normalizeMealLabel(String(actionTarget.dataset.mealLabel || ""));
+    const isMeal = action === "delete-plan-meal";
+    if (isMeal && !mealLabel) {
+      return;
+    }
+    const targetEntries = store.weeklyPlanEntries.filter(
+      (entry) =>
+        normalizeWeekTrack(entry.weekTrack) === weekTrack &&
+        (!isMeal || (entry.weekday === weekday && normalizeMealLabel(entry.mealLabel) === mealLabel))
+    );
+    if (!targetEntries.length) {
+      return;
+    }
+    if (!isMeal) {
+      const confirmed = await confirmAction({
+        title: `Obrisati celu nedelju (${getWeekTrackLabel(weekTrack).toLowerCase()})?`,
+        message: `Brišu se svi obroci od ponedeljka do nedelje za ${getWeekTrackAccusative(weekTrack)} (${getWeekTrackDateRange(weekTrack).replace(/\u00a0/g, " ")}). Druga nedelja ostaje. Čekirani (pojedeni) obroci ostaju.`,
+        confirmLabel: "Obriši nedelju",
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+    const removableIds = new Set(
+      targetEntries.filter((entry) => !isMealCompletedForWeekday(entry.weekday, entry.mealLabel, weekTrack)).map((entry) => entry.id)
+    );
+    if (!removableIds.size) {
+      showFeedbackToast({ title: "Ništa nije obrisano", detail: "Obroci su zaključani (čekirani). Skini čekiranje pa obriši.", tone: "warning" });
+      return;
+    }
+    const previousEntries = store.weeklyPlanEntries;
+    const removedCount = removableIds.size;
+    const lockedCount = targetEntries.length - removedCount;
+    store.weeklyPlanEntries = store.weeklyPlanEntries.filter((entry) => !removableIds.has(entry.id));
+    if (isMeal && state.editingMealLabel === mealLabel) {
+      state.editingMealLabel = "";
+      resetPlanDraft();
+    }
+    persist();
+    queuePendingUndo(
+      `${isMeal ? `Obrok „${getMealDisplayParts(mealLabel).title || mealLabel}“ obrisan` : `Nedelja obrisana`}: ${removedCount} ${srPlural(removedCount, "stavka", "stavke", "stavki")}.${
         lockedCount ? ` ${lockedCount} zaključanih preskočeno.` : ""
       }`,
       () => {

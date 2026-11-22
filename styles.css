@@ -18733,3 +18733,12 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Brisanje obroka / dana / nedelje: tihi linkovi, crveni tek na hover. */
+.meal-secondary-action--danger:hover,
+:root[data-theme="dark"] .meal-secondary-action--danger:hover {
+  color: var(--status-error-text, #b42318);
+}
+.plan-delete-actions {
+  margin-top: 12px;
+}
