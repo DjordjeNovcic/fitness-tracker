@@ -922,6 +922,28 @@ window.SEED_DATA = {
       "carbs": 13.3,
       "fat": 1.5,
       "category": "Ugljeni hidrati"
+    },
+    {
+      "id": "food-90",
+      "name": "Imlek slana karamela puding, 1 pakovanje (200 g)",
+      "servingUnit": "piece",
+      "servingBaseGrams": 1,
+      "kcal": 160.0,
+      "protein": 20.0,
+      "carbs": 14.0,
+      "fat": 8.0,
+      "category": "Proteini"
+    },
+    {
+      "id": "food-91",
+      "name": "Tunjevina u sopstvenom soku, 1 pakovanje (160 g)",
+      "servingUnit": "piece",
+      "servingBaseGrams": 1,
+      "kcal": 145.6,
+      "protein": 35.2,
+      "carbs": 0.0,
+      "fat": 0.3,
+      "category": "Proteini"
     }
   ],
   "weeklyPlanEntries": [
