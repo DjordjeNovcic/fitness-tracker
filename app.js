@@ -719,6 +719,10 @@ const state = {
   recipeNutritionFilter: "Sve",
   editingEntryId: "",
   editingMealLabel: "",
+  // Beleška uz obrok (kako se priprema i sl.): koji obrok je otvoren za
+  // pisanje i nesačuvan tekst, da ga render usred kucanja ne obriše.
+  editingMealNoteKey: "",
+  mealNoteDraft: "",
   // Meal prep ("kuvaj unapred"): which meal's prep panel is open + chosen days.
   prepMealLabel: "",
   prepMode: "next",
@@ -1001,6 +1005,7 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
       rawStore.shoppingChecked && typeof rawStore.shoppingChecked === "object" ? rawStore.shoppingChecked : {},
     shoppingStaples:
       rawStore.shoppingStaples && typeof rawStore.shoppingStaples === "object" ? rawStore.shoppingStaples : {},
+    mealNotes: rawStore.mealNotes && typeof rawStore.mealNotes === "object" && !Array.isArray(rawStore.mealNotes) ? rawStore.mealNotes : {},
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
@@ -1117,6 +1122,8 @@ function ensureStoreCollections(targetStore) {
     targetStore.shoppingChecked && typeof targetStore.shoppingChecked === "object" ? targetStore.shoppingChecked : {};
   targetStore.shoppingStaples =
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
+  targetStore.mealNotes =
+    targetStore.mealNotes && typeof targetStore.mealNotes === "object" && !Array.isArray(targetStore.mealNotes) ? targetStore.mealNotes : {};
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.sleepByDate =
@@ -11413,6 +11420,40 @@ function formatWeekTrackDayLabel(day, referenceWeekTrack) {
 
 // Inline "kuvaj unapred" panel under a meal: pick how many days (or exact days)
 // and see the total to cook in one batch before confirming.
+// Beleška uz obrok u planu dana: slobodan tekst (npr. kako se priprema), nije
+// recept. Vezana je za dan i nedelju kao i stavke plana.
+function getMealNoteKey(mealLabel, weekday = state.selectedWeekday, weekTrack = state.selectedWeekTrack) {
+  return `${normalizeWeekTrack(weekTrack)}|${weekday}|${normalizeMealLabel(mealLabel)}`;
+}
+
+function getMealNote(mealLabel) {
+  return String((store.mealNotes || {})[getMealNoteKey(mealLabel)] || "");
+}
+
+function isEditingMealNote(mealLabel) {
+  return Boolean(state.editingMealNoteKey) && state.editingMealNoteKey === getMealNoteKey(mealLabel);
+}
+
+function renderMealNoteBlock(mealLabel) {
+  if (isEditingMealNote(mealLabel)) {
+    return `
+      <div class="meal-note-editor">
+        <label class="sr-only" for="meal-note-input">Beleška uz obrok</label>
+        <textarea id="meal-note-input" class="meal-note-input" rows="3" maxlength="2000" placeholder="Npr. kako se priprema, šta zameniti, gde je recept…" data-meal-label="${escapeHtml(mealLabel)}">${escapeHtml(state.mealNoteDraft)}</textarea>
+        <div class="meal-note-actions">
+          <button class="solid-button" type="button" data-action="save-meal-note" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj</button>
+          <button class="ghost-button" type="button" data-action="cancel-meal-note">Otkaži</button>
+        </div>
+      </div>
+    `;
+  }
+  const note = getMealNote(mealLabel);
+  if (!note) {
+    return "";
+  }
+  return `<button class="meal-note" type="button" data-action="edit-meal-note" data-meal-label="${escapeHtml(mealLabel)}" aria-label="Beleška uz obrok, izmeni"><span class="meal-note-label">Beleška</span><span class="meal-note-text">${escapeHtml(note)}</span></button>`;
+}
+
 function renderMealPrepPanel(mealLabel) {
   const plan = getMealPrepPlan(mealLabel);
   const mealTitle = getMealDisplayParts(mealLabel).title || mealLabel;
@@ -11947,11 +11988,21 @@ function renderPlanTab(entries) {
                                 </button>`
                             : ""
                         }
+                        ${renderMealNoteBlock(mealLabel)}
                         ${
-                          !isMealDone && mealEntries.length && !isEditingMeal
+                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel)
                             ? `<div class="meal-secondary-actions">
-                                <button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
-                                <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>
+                                ${
+                                  !isMealDone && mealEntries.length
+                                    ? `<button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
+                                <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>`
+                                    : ""
+                                }
+                                ${
+                                  getMealNote(mealLabel)
+                                    ? ""
+                                    : `<button class="meal-secondary-action" type="button" data-action="edit-meal-note" data-meal-label="${escapeHtml(mealLabel)}">Dodaj belešku</button>`
+                                }
                               </div>`
                             : ""
                         }
@@ -20265,6 +20316,53 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "edit-meal-note") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    state.editingMealNoteKey = getMealNoteKey(mealLabel);
+    state.mealNoteDraft = getMealNote(mealLabel);
+    render();
+    requestAnimationFrame(() => {
+      const input = document.getElementById("meal-note-input");
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    });
+    return;
+  }
+
+  if (action === "cancel-meal-note") {
+    state.editingMealNoteKey = "";
+    state.mealNoteDraft = "";
+    render();
+    return;
+  }
+
+  if (action === "save-meal-note") {
+    const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
+    if (!mealLabel) {
+      return;
+    }
+    const input = document.getElementById("meal-note-input");
+    const text = String(input ? input.value : state.mealNoteDraft).trim().slice(0, 2000);
+    store.mealNotes = store.mealNotes || {};
+    const key = getMealNoteKey(mealLabel);
+    if (text) {
+      store.mealNotes[key] = text;
+    } else {
+      delete store.mealNotes[key];
+    }
+    state.editingMealNoteKey = "";
+    state.mealNoteDraft = "";
+    persist();
+    render();
+    showFeedbackToast({ title: text ? "Beleška sačuvana" : "Beleška obrisana", tone: "success" });
+    return;
+  }
+
   if (action === "open-meal-prep") {
     const mealLabel = String(actionTarget.dataset.mealLabel || "").trim();
     if (!mealLabel) {
@@ -23841,6 +23939,12 @@ async function handleSubmit(event) {
 
 function handleInput(event) {
   const target = event.target;
+
+  // Beleška uz obrok: kucanje ide u nacrt, bez render().
+  if (target instanceof HTMLTextAreaElement && target.id === "meal-note-input") {
+    state.mealNoteDraft = target.value;
+    return;
+  }
 
   // Serije ispod vežbe: kucanje samo upisuje u nacrt, bez render().
   if (target instanceof HTMLInputElement && target.dataset.setField && state.setLogger) {

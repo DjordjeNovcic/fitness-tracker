@@ -912,6 +912,16 @@ window.SEED_DATA = {
       "carbs": 0.0,
       "fat": 0.0,
       "category": "Ostalo"
+    },
+    {
+      "id": "food-89",
+      "name": "Kukuruz šećerac (konzerva)",
+      "servingBaseGrams": 100.0,
+      "kcal": 79.0,
+      "protein": 2.9,
+      "carbs": 13.3,
+      "fat": 1.5,
+      "category": "Ugljeni hidrati"
     }
   ],
   "weeklyPlanEntries": [
