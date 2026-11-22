@@ -746,6 +746,7 @@ const state = {
     imageUrl: "",
     servings: "1",
     prepTimeMinutes: "",
+    cookedWeightGrams: "",
     instructions: "",
     items: [],
     foodId: "",
@@ -2376,7 +2377,15 @@ function normalizeFavoriteMealRecord(favorite = {}) {
     imageUrl: String(favorite.imageUrl || "").trim(),
     servings,
     prepTimeMinutes: prepTimeMinutes > 0 ? roundValue(prepTimeMinutes, 0) : null,
+    cookedWeightGrams: toNumber(favorite.cookedWeightGrams) > 0 ? roundValue(toNumber(favorite.cookedWeightGrams), 0) : null,
   };
+}
+
+// Težina gotovog jela (npr. ispečen hleb 550 g): tada se recept u plan dodaje
+// po gramima koje si pojeo, a ne kao porcija.
+function getRecipeCookedWeight(recipe = {}) {
+  const grams = toNumber(recipe.cookedWeightGrams);
+  return grams > 0 ? grams : 0;
 }
 
 function seedDemoFavoriteMeals(targetStore) {
@@ -5136,13 +5145,14 @@ const AMOUNT_UNIT_FORMS = {
   piece: ["kom", "kom", "kom"],
   head: ["glavica", "glavice", "glavica"],
   clove: ["čen", "čena", "čenova"],
+  sachet: ["kesica", "kesice", "kesica"],
   ml: ["ml", "ml", "ml"],
   dl: ["dl", "dl", "dl"],
 };
 // Zapremina za tečnosti: ml i dl se nude samo njima (gustina ispod).
 const FOOD_VOLUME_UNITS = ["ml", "dl"];
 // Mere čija težina zavisi od namirnice (jaje, glavica luka, čen belog luka).
-const FOOD_COUNT_UNITS = ["piece", "head", "clove"];
+const FOOD_COUNT_UNITS = ["piece", "head", "clove", "sachet"];
 
 function amountUnitLabel(unit) {
   return (AMOUNT_UNIT_FORMS[unit] || AMOUNT_UNIT_FORMS.g)[0];
@@ -5231,6 +5241,13 @@ const FOOD_LIQUID_DENSITY = [
   [/\bsok\b|sokovi|\bvoda\b|mineraln|kafa|espreso|\bcaj\b|sirce|soja sos|soy|\bpivo\b|\bvino\b|smoothie|\bsupa\b|corba|sirup|napitak|limunada|kombuha/, 1],
 ];
 
+// Kesica: standardna pakovanja u prodavnici (Dr. Oetker i sl.).
+const FOOD_SACHET_GRAMS = [
+  [/prasak za pecivo|prasak za kolace/, 12],
+  [/vanil(?:in|la) secer|vanilin/, 10],
+  [/kvasac/, 7],
+];
+
 const FOOD_CLOVE_GRAMS = [
   [/prah|granul|susen/, 0],
   [GARLIC_NAME_PATTERN, 5],
@@ -5258,6 +5275,9 @@ function getFoodUnitGrams(food, unit) {
   }
   if (unit === "clove") {
     return matchFoodUnitGrams(food, FOOD_CLOVE_GRAMS);
+  }
+  if (unit === "sachet") {
+    return matchFoodUnitGrams(food, FOOD_SACHET_GRAMS);
   }
   if (FOOD_VOLUME_UNITS.includes(unit)) {
     const density = matchFoodUnitGrams(food, FOOD_LIQUID_DENSITY);
@@ -7127,6 +7147,7 @@ function resetFavoriteDraft(options = {}) {
         imageUrl: state.favoriteDraft.imageUrl,
         servings: state.favoriteDraft.servings,
         prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+        cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
         instructions: state.favoriteDraft.instructions,
         items: [...(state.favoriteDraft.items || [])],
       }
@@ -7144,6 +7165,7 @@ function resetFavoriteDraft(options = {}) {
     imageUrl: preservedDraft?.imageUrl || "",
     servings: preservedDraft?.servings || "1",
     prepTimeMinutes: preservedDraft?.prepTimeMinutes || "",
+    cookedWeightGrams: preservedDraft?.cookedWeightGrams || "",
     instructions: preservedDraft?.instructions || "",
     items: preservedDraft?.items || [],
     foodId: "",
@@ -7161,7 +7183,7 @@ function hasFavoriteDraftContent() {
   if (draft.foodId || String(draft.grams || "").trim()) {
     return true;
   }
-  return ["favoriteName", "mealLabel", "description", "imageUrl", "instructions", "prepTimeMinutes"].some(
+  return ["favoriteName", "mealLabel", "description", "imageUrl", "instructions", "prepTimeMinutes", "cookedWeightGrams"].some(
     (key) => String(draft[key] || "").trim()
   );
 }
@@ -7191,6 +7213,7 @@ function setFavoriteDraftFromItem(favorite, item) {
     imageUrl: normalizedFavorite.imageUrl || "",
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
+    cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: item.foodId || "",
@@ -7209,6 +7232,7 @@ function setFavoriteDraftFromRecipe(favorite) {
     imageUrl: normalizedFavorite.imageUrl || "",
     servings: String(normalizedFavorite.servings || 1),
     prepTimeMinutes: normalizedFavorite.prepTimeMinutes ? String(normalizedFavorite.prepTimeMinutes) : "",
+    cookedWeightGrams: normalizedFavorite.cookedWeightGrams ? String(normalizedFavorite.cookedWeightGrams) : "",
     instructions: normalizedFavorite.instructions || "",
     items: buildFavoriteDraftItems(normalizedFavorite.items),
     foodId: "",
@@ -7511,6 +7535,7 @@ function saveFavoriteMealMetadata(payload = {}) {
   const normalizedInstructions = String(payload.instructions || "").trim();
   const normalizedServings = Math.max(1, roundValue(toNumber(payload.servings || 1), 0)) || 1;
   const normalizedPrepTimeMinutes = toNumber(payload.prepTimeMinutes);
+  const normalizedCookedWeight = toNumber(payload.cookedWeightGrams);
 
   if (!normalizedFavoriteName || !normalizedMealLabel) {
     return null;
@@ -7540,6 +7565,7 @@ function saveFavoriteMealMetadata(payload = {}) {
     instructions: normalizedInstructions,
     servings: normalizedServings,
     prepTimeMinutes: normalizedPrepTimeMinutes > 0 ? roundValue(normalizedPrepTimeMinutes, 0) : null,
+    cookedWeightGrams: normalizedCookedWeight > 0 ? roundValue(normalizedCookedWeight, 0) : null,
     updatedAt: new Date().toISOString(),
   };
 
@@ -7728,6 +7754,10 @@ async function applyFavoriteMealToDay(favorite, options = {}) {
   const targetMealLabel = normalizeMealLabel(options.mealLabel || favorite.mealLabel || favorite.name);
   const mode = options.mode || "append";
   const servings = getRecipeServingCount(favorite);
+  const cookedWeight = getRecipeCookedWeight(favorite);
+  const eatenGrams = toNumber(options.eatenGrams);
+  // Sa težinom gotovog jela: pojedeni grami / ceo recept; inače jedna porcija.
+  const ratio = cookedWeight && eatenGrams > 0 ? eatenGrams / cookedWeight : 1 / servings;
   const existingEntries = getMealEntriesForWeekday(weekday, targetMealLabel, weekTrack);
 
   if (isMealCompletedForWeekday(weekday, targetMealLabel, weekTrack)) {
@@ -7758,7 +7788,7 @@ async function applyFavoriteMealToDay(favorite, options = {}) {
       mealLabel: targetMealLabel,
       foodId: item.foodId,
       foodName: item.foodName,
-      grams: Math.max(0.1, roundValue(toNumber(item.grams) / servings, 1)),
+      grams: Math.max(0.1, roundValue(toNumber(item.grams) * ratio, 1)),
       done: false,
     });
   });
@@ -7852,6 +7882,20 @@ function renderRecipeApplyDialog() {
               mealOptions.map((mealLabel) => ({ id: mealLabel, label: getMealDisplayParts(mealLabel).title }))
             )}
           </div>
+          ${
+            getRecipeCookedWeight(favorite)
+              ? (() => {
+                  const cooked = getRecipeCookedWeight(favorite);
+                  const defaultGrams = roundValue(cooked / getRecipeServingCount(favorite), 0);
+                  const totalKcal = toNumber((favoriteDetailed.totals || {}).kcal);
+                  return `
+                    <div class="stack" style="gap:6px;">
+                      ${renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required />`)}
+                      <div class="footer-note"><strong id="recipe-apply-grams-kcal">≈ ${roundValue((totalKcal * defaultGrams) / cooked, 0)} kcal</strong> · ceo recept ${roundValue(cooked, 0)} g, ${roundValue((totalKcal * 100) / cooked, 0)} kcal na 100 g</div>
+                    </div>`;
+                })()
+              : ""
+          }
           <p class="footer-note recipe-apply-summary">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")} ${favorite.servings > 1 ? ` · ${favorite.servings} ${srPlural(favorite.servings, "porcija", "porcije", "porcija")}` : ""} · ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal${favorite.servings > 1 ? " po porciji" : ""}</p>
           <div class="entry-actions recipe-apply-actions">
             <button class="ghost-button" type="button" data-action="close-recipe-apply-dialog">Odustani</button>
@@ -12360,6 +12404,10 @@ function renderRecipesTab() {
             <input id="favorite-servings" name="servings" type="number" inputmode="decimal" min="1" step="1" placeholder="1" value="${state.favoriteDraft.servings}" />
           </div>
           ${renderUnitField("favorite-prep-time", "Vreme pripreme", "min", `<input id="favorite-prep-time" name="prepTimeMinutes" type="number" inputmode="decimal" min="1" step="1" value="${state.favoriteDraft.prepTimeMinutes}" />`)}
+          <div class="recipe-builder-field-wide stack" style="gap:6px;">
+            ${renderUnitField("favorite-cooked-weight", "Težina gotovog jela (opciono)", "g", `<input id="favorite-cooked-weight" name="cookedWeightGrams" type="number" inputmode="decimal" min="0" step="any" placeholder="npr. 550" value="${state.favoriteDraft.cookedWeightGrams || ""}" />`)}
+            <div class="footer-note">Izmeri ceo hleb ili jelo posle pečenja/kuvanja. Onda u plan dodaješ koliko si pojeo, npr. 120 g, a ne celu porciju.</div>
+          </div>
           <div class="field recipe-builder-field-wide">
             <label for="favorite-instructions">Priprema</label>
             <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${escapeHtml(state.favoriteDraft.instructions)}</textarea>
@@ -12523,6 +12571,9 @@ function renderRecipesTab() {
                               // Jedna porcija je podrazumevana, pa se piše samo kad ih je više.
                               favorite.servings > 1 ? `${favorite.servings} ${srPlural(favorite.servings, "porcija", "porcije", "porcija")}` : null,
                               favorite.prepTimeMinutes ? `${favorite.prepTimeMinutes} min` : null,
+                              getRecipeCookedWeight(favorite)
+                                ? `gotovo ${roundValue(getRecipeCookedWeight(favorite), 0)} g · ${roundValue((favorite.totals.kcal * 100) / getRecipeCookedWeight(favorite), 0)} kcal/100 g`
+                                : null,
                             ]
                               .filter(Boolean)
                               .map((part) => `<span>${escapeHtml(part)}</span>`)
@@ -20973,6 +21024,7 @@ async function handleDocumentClick(event) {
       imageUrl: state.favoriteDraft.imageUrl,
       servings: state.favoriteDraft.servings,
       prepTimeMinutes: state.favoriteDraft.prepTimeMinutes,
+      cookedWeightGrams: state.favoriteDraft.cookedWeightGrams,
       instructions: state.favoriteDraft.instructions,
       items: nextItems,
     });
@@ -23297,7 +23349,8 @@ async function handleSubmit(event) {
       return;
     }
 
-    if (!(await applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel }))) {
+    const eatenGrams = getRecipeCookedWeight(favorite) ? toNumber(formData.get("eatenGrams")) : 0;
+    if (!(await applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel, eatenGrams }))) {
       return;
     }
 
@@ -23306,8 +23359,9 @@ async function handleSubmit(event) {
     render();
     showFeedbackToast({
       title: "Recept je dodat u plan",
-      detail:
-        favorite.servings > 1
+      detail: eatenGrams
+        ? `"${favorite.name}" je dodat u ${weekday} pod ${mealLabel}: ${roundValue(eatenGrams, 0)} g.`
+        : favorite.servings > 1
           ? `"${favorite.name}" je dodat u ${weekday} pod ${mealLabel} kao 1 porcija.`
           : `"${favorite.name}" je dodat u ${weekday} pod ${mealLabel}.`,
     });
@@ -23974,6 +24028,22 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "favorite-prep-time") {
     state.favoriteDraft.prepTimeMinutes = target.value;
     syncRecipeDraftPreview();
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.id === "favorite-cooked-weight") {
+    state.favoriteDraft.cookedWeightGrams = target.value;
+    return;
+  }
+
+  // Dijalog „Dodaj u plan“ za recept sa težinom gotovog jela: kcal prati grame.
+  if (target instanceof HTMLInputElement && target.id === "recipe-apply-grams") {
+    const favorite = getFavoriteMealsDetailed().find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
+    const summary = document.querySelector("#recipe-apply-grams-kcal");
+    const cooked = getRecipeCookedWeight(favorite);
+    if (favorite && summary && cooked) {
+      summary.textContent = `≈ ${roundValue((favorite.totals.kcal * toNumber(target.value)) / cooked, 0)} kcal`;
+    }
     return;
   }
 
