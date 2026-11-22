@@ -2652,6 +2652,12 @@ label.is-invalid textarea:focus {
   grid-column: 1 / -1;
 }
 
+/* Polja u formi recepta ne rastežu se u visinu do suseda u redu (polje
+   „Sastojak“ je bilo visoko koliko i izbor mera pored njega). */
+.recipe-builder-form .field {
+  align-content: start;
+}
+
 .recipe-builder-actions {
   margin-top: 2px;
 }

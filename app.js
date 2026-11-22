@@ -5146,13 +5146,14 @@ const AMOUNT_UNIT_FORMS = {
   head: ["glavica", "glavice", "glavica"],
   clove: ["čen", "čena", "čenova"],
   sachet: ["kesica", "kesice", "kesica"],
+  pinch: ["prstohvat", "prstohvata", "prstohvata"],
   ml: ["ml", "ml", "ml"],
   dl: ["dl", "dl", "dl"],
 };
 // Zapremina za tečnosti: ml i dl se nude samo njima (gustina ispod).
 const FOOD_VOLUME_UNITS = ["ml", "dl"];
 // Mere čija težina zavisi od namirnice (jaje, glavica luka, čen belog luka).
-const FOOD_COUNT_UNITS = ["piece", "head", "clove", "sachet"];
+const FOOD_COUNT_UNITS = ["piece", "head", "clove", "sachet", "pinch"];
 
 function amountUnitLabel(unit) {
   return (AMOUNT_UNIT_FORMS[unit] || AMOUNT_UNIT_FORMS.g)[0];
@@ -5248,6 +5249,11 @@ const FOOD_SACHET_GRAMS = [
   [/kvasac/, 7],
 ];
 
+// Prstohvat ≈ 0,5 g — so i začini („so po ukusu“).
+const FOOD_PINCH_GRAMS = [
+  [/\bso\b|biber|cimet|zacin|vegeta|aleva paprika|mlevena paprika|origano|bosiljak|\bkim\b|muskatn|kurkuma|curry|kari\b/, 0.5],
+];
+
 const FOOD_CLOVE_GRAMS = [
   [/prah|granul|susen/, 0],
   [GARLIC_NAME_PATTERN, 5],
@@ -5278,6 +5284,9 @@ function getFoodUnitGrams(food, unit) {
   }
   if (unit === "sachet") {
     return matchFoodUnitGrams(food, FOOD_SACHET_GRAMS);
+  }
+  if (unit === "pinch") {
+    return matchFoodUnitGrams(food, FOOD_PINCH_GRAMS);
   }
   if (FOOD_VOLUME_UNITS.includes(unit)) {
     const density = matchFoodUnitGrams(food, FOOD_LIQUID_DENSITY);
@@ -5332,7 +5341,8 @@ function formatRecipeItemAmount(item, food) {
 // Grami sastojka sa jedinicom čuvaju se na jednu decimalu — ½ kašičice je
 // 2,5 g, a zaokruženo na 3 g bi se prikazivalo kao 0,6 kašičice.
 function roundRecipeItemGrams(grams) {
-  return roundValue(toNumber(grams), 1);
+  // Dve decimale: ½ prstohvata soli je 0,25 g.
+  return roundValue(toNumber(grams), 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -10587,7 +10597,8 @@ function renderFavoriteAmountFieldInner(food) {
       <input id="favorite-grams" name="grams" type="hidden" value="${state.favoriteDraft.grams}" />
       ${unitGrams ? `<div class="footer-note">1 ${amountUnitLabel(unit)} ≈ ${roundValue(unitGrams, 0)} g (recept računa u gramima).</div>` : ""}
       ${
-        unit === "tsp" || unit === "tbsp"
+        // ½ · 1 · 1½ · 2 za kašike i za kom/glavicu/čen/kesicu („½ glavice luka“).
+        unit === "tsp" || unit === "tbsp" || FOOD_COUNT_UNITS.includes(unit)
           ? `<div class="amount-presets">${[0.5, 1, 1.5, 2]
               .map(
                 (count) =>
@@ -12352,10 +12363,7 @@ function renderRecipesTab() {
         <form id="favorite-meal-form" class="form-grid split recipe-builder-form">
           <div class="field">
             <label for="favorite-name">Naziv recepta</label>
-            <input id="favorite-name" name="favoriteName" placeholder="npr. Tortilja sa jajima i piletinom" list="favorite-meal-options" value="${escapeHtml(state.favoriteDraft.favoriteName)}" required />
-            <datalist id="favorite-meal-options">
-              ${favorites.map((favorite) => `<option value="${escapeHtml(favorite.name)}"></option>`).join("")}
-            </datalist>
+            <input id="favorite-name" name="favoriteName" placeholder="npr. Tortilja sa jajima i piletinom" value="${escapeHtml(state.favoriteDraft.favoriteName)}" autocomplete="off" required />
           </div>
           ${
             // Isti obroci kao u planu, kao čipovi, umesto slobodnog teksta
@@ -12412,13 +12420,16 @@ function renderRecipesTab() {
             <label for="favorite-instructions">Priprema</label>
             <textarea id="favorite-instructions" name="instructions" placeholder="npr. Ispeci jaja, zagrej tortilju, dodaj piletinu i sve urolaj.">${escapeHtml(state.favoriteDraft.instructions)}</textarea>
           </div>
-          <div class="field">
+          <div class="field recipe-builder-field-wide recipe-ingredient-field">
             <label for="favorite-food-search">Sastojak</label>
-            <input id="favorite-food-search" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(favoriteFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="recipe-food-suggest" required />
+            <div class="food-search-control">
+              <span class="food-search-control-icon" aria-hidden="true">${renderSearchIcon()}</span>
+              <input id="favorite-food-search" name="foodSearch" placeholder="Počni da kucaš namirnicu" value="${escapeHtml(favoriteFoodSearchValue)}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-controls="recipe-food-suggest" required />
+            </div>
             <input id="favorite-food-id" name="foodId" type="hidden" value="${state.favoriteDraft.foodId}" />
             <div class="food-suggest" id="recipe-food-suggest" role="listbox" aria-label="Predlozi namirnica" hidden></div>
           </div>
-          <div class="field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
+          <div class="field recipe-builder-field-wide recipe-amount-field" id="favorite-amount-field">${renderFavoriteAmountFieldInner(favoriteDraftFood)}</div>
           <div class="entry-actions entry-actions--start recipe-builder-actions">
             <button class="solid-button button-with-icon" type="submit">
               ${renderButtonContent(state.editingFavoriteItem.itemId ? "Sačuvaj sastojak" : "Dodaj sastojak", state.editingFavoriteItem.itemId ? "save" : "add")}

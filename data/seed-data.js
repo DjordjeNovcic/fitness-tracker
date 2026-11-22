@@ -902,6 +902,16 @@ window.SEED_DATA = {
       "carbs": 24.1,
       "fat": 0.0,
       "category": "Ostalo"
+    },
+    {
+      "id": "food-88",
+      "name": "So",
+      "servingBaseGrams": 100.0,
+      "kcal": 0.0,
+      "protein": 0.0,
+      "carbs": 0.0,
+      "fat": 0.0,
+      "category": "Ostalo"
     }
   ],
   "weeklyPlanEntries": [
