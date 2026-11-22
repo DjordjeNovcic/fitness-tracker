@@ -6561,20 +6561,50 @@ function normalizeWeekTrack(value) {
 // nedelja" never appears after "Sledeća nedelja" just because the physical
 // track index happens to be 1 this real week.
 function getWeekTrackDisplayOrder() {
+  const planning = getPlanningWeekTrack();
+  return [planning, 1 - planning];
+}
+
+// Plan se pravi unapred: u nedelju je tekuća nedelja praktično gotova, pa
+// „Ova nedelja“ znači onu koja počinje sutra, a „Sledeća“ onu posle nje.
+// Današnji dan (nedelja) i dalje čita getCurrentWeekTrack(): dnevnik, „Danas“
+// i čekiranje se ne pomeraju, menjaju se samo oznake i redosled.
+function getPlanningWeekTrack() {
   const current = getCurrentWeekTrack();
-  return [current, 1 - current];
+  return new Date().getDay() === 0 ? 1 - current : current;
+}
+
+// Datum dana iz šablona, gledano unapred: šablon „Ova nedelja“ pada na
+// tekuću nedelju (u nedelju: na onu od sutra), „Sledeća“ sedam dana kasnije.
+function getPlanDayDate(weekday, weekTrack) {
+  const now = new Date();
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const planningMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset + (now.getDay() === 0 ? 7 : 0));
+  const weekShift = normalizeWeekTrack(weekTrack) === getPlanningWeekTrack() ? 0 : 7;
+  const index = Math.max(0, WEEKDAYS.indexOf(weekday));
+  return new Date(planningMonday.getFullYear(), planningMonday.getMonth(), planningMonday.getDate() + weekShift + index);
+}
+
+function formatShortDate(date) {
+  return `${date.getDate()}.\u00a0${SR_MONTHS_LATIN_GEN[date.getMonth()]}`;
+}
+
+function getWeekTrackDateRange(weekTrack) {
+  const monday = getPlanDayDate(WEEKDAYS[0], weekTrack);
+  const sunday = getPlanDayDate(WEEKDAYS[6], weekTrack);
+  return `${formatShortDate(monday)} – ${formatShortDate(sunday)}`;
 }
 
 // "Ova nedelja" / "Sledeća nedelja" — never hardcode which physical track this
 // means; it's whichever equals getCurrentWeekTrack() right now, and that
 // mapping flips every real week (intentional).
 function getWeekTrackLabel(weekTrack) {
-  return weekTrack === getCurrentWeekTrack() ? "Ova nedelja" : "Sledeća nedelja";
+  return weekTrack === getPlanningWeekTrack() ? "Ova nedelja" : "Sledeća nedelja";
 }
 
 // Za rečenice („iz plana za ovu nedelju“); naziv iznad je nominativ za oznake.
 function getWeekTrackAccusative(weekTrack) {
-  return weekTrack === getCurrentWeekTrack() ? "ovu nedelju" : "sledeću nedelju";
+  return weekTrack === getPlanningWeekTrack() ? "ovu nedelju" : "sledeću nedelju";
 }
 
 // When a new week starts, clear this-week's completion marks so the new week
@@ -8787,7 +8817,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
           ${
             isToday
               ? `<span class="hero-date">${headingLevel === 1 ? weekdayLabel(getTodayWeekday()).toLowerCase() : "danas"}, ${formatDateValueLabel(getTodayDateValue()).replace(/ \d{4}\.$/, "").replace(/(\d+\.) /, "$1\u00a0")}</span>`
-              : ""
+              : `<span class="hero-date">${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}</span>`
           }
         </div>
         ${renderWeekTrackToggle()}
@@ -11729,7 +11759,7 @@ function renderWeekTrackToggle() {
         ${getWeekTrackDisplayOrder()
           .map(
             (track) => `
-              <button class="chip hero-week-chip ${track === state.selectedWeekTrack ? "is-active" : ""}" type="button" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}" title="${getWeekTrackLabel(track)}">
+              <button class="chip hero-week-chip ${track === state.selectedWeekTrack ? "is-active" : ""}" type="button" data-action="select-week-track" data-week-track="${track}" aria-pressed="${track === state.selectedWeekTrack}" title="${getWeekTrackLabel(track)}: ${getWeekTrackDateRange(track)}">
                 ${getWeekTrackLabel(track).replace(" nedelja", "")}
               </button>
             `
