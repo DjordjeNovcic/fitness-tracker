@@ -1010,6 +1010,9 @@ function normalizeStoreSnapshot(rawStore = {}, fallback = cloneSeed()) {
     shoppingStaples:
       rawStore.shoppingStaples && typeof rawStore.shoppingStaples === "object" ? rawStore.shoppingStaples : {},
     mealNotes: rawStore.mealNotes && typeof rawStore.mealNotes === "object" && !Array.isArray(rawStore.mealNotes) ? rawStore.mealNotes : {},
+    lockedPlanDays:
+      rawStore.lockedPlanDays && typeof rawStore.lockedPlanDays === "object" && !Array.isArray(rawStore.lockedPlanDays) ? rawStore.lockedPlanDays : {},
+    menuPresets: Array.isArray(rawStore.menuPresets) ? rawStore.menuPresets : [],
     favoriteMeals: Array.isArray(rawStore.favoriteMeals) ? rawStore.favoriteMeals : fallback.favoriteMeals || [],
     favoriteFoods: Array.isArray(rawStore.favoriteFoods) ? rawStore.favoriteFoods : [],
     supplements: Array.isArray(rawStore.supplements) ? rawStore.supplements : [],
@@ -1128,6 +1131,11 @@ function ensureStoreCollections(targetStore) {
     targetStore.shoppingStaples && typeof targetStore.shoppingStaples === "object" ? targetStore.shoppingStaples : {};
   targetStore.mealNotes =
     targetStore.mealNotes && typeof targetStore.mealNotes === "object" && !Array.isArray(targetStore.mealNotes) ? targetStore.mealNotes : {};
+  targetStore.lockedPlanDays =
+    targetStore.lockedPlanDays && typeof targetStore.lockedPlanDays === "object" && !Array.isArray(targetStore.lockedPlanDays)
+      ? targetStore.lockedPlanDays
+      : {};
+  targetStore.menuPresets = Array.isArray(targetStore.menuPresets) ? targetStore.menuPresets : [];
   targetStore.waterByDate = targetStore.waterByDate && typeof targetStore.waterByDate === "object" ? targetStore.waterByDate : {};
   targetStore.stepsByDate = targetStore.stepsByDate && typeof targetStore.stepsByDate === "object" ? targetStore.stepsByDate : {};
   targetStore.sleepByDate =
@@ -8589,7 +8597,23 @@ function renderFoodEditorDialog() {
   `;
 }
 
+// Zaključan dan („sve je kako treba“): stavke se ne mogu dodavati, menjati
+// ni brisati, samo čekirati kao pojedene. Vezano za dan šablona, pa važi
+// svaki put kad se ta nedelja vrati, dok ga ne otključaš.
+function getPlanDayKey(weekday, weekTrack) {
+  return `${normalizeWeekTrack(weekTrack)}|${weekday}`;
+}
+
+function isPlanDayLocked(weekday = state.selectedWeekday, weekTrack = state.selectedWeekTrack) {
+  return Boolean((store.lockedPlanDays || {})[getPlanDayKey(weekday, weekTrack)]);
+}
+
+// Svaka izmena obroka već pita ovu funkciju („obrok je čekiran“), pa
+// zaključan dan ovde važi kao zaključan svaki njegov obrok.
 function isMealCompletedForWeekday(weekday, mealLabel, weekTrack = state.selectedWeekTrack) {
+  if (isPlanDayLocked(weekday, weekTrack)) {
+    return true;
+  }
   const mealEntries = getMealEntriesForWeekday(weekday, mealLabel, weekTrack);
   return mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
 }
@@ -8893,7 +8917,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
         ${WEEKDAYS.map((weekday) => {
           const hint = dayHint ? dayHint(weekday) : null;
           return `
-            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${hint?.planned ? "has-plan" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}"${hint?.title ? ` title="${escapeHtml(hint.title)}"` : ""}>
+            <button class="chip ${weekday === state.selectedWeekday ? "is-active" : ""} ${weekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack() ? "is-today" : ""} ${hint?.planned ? "has-plan" : ""} ${state.activeTab === "plan" && isPlanDayLocked(weekday, state.selectedWeekTrack) ? "is-locked" : ""}" data-action="select-weekday" data-weekday="${weekday}" aria-pressed="${weekday === state.selectedWeekday}"${hint?.title ? ` title="${escapeHtml(hint.title)}"` : ""}>
               ${weekdayLabel(weekday).slice(0, 3)}${dayHint ? `<span class="day-bar-dot" aria-hidden="true"></span>` : ""}
             </button>
           `;
@@ -10104,7 +10128,7 @@ function recordFoodUsage(foodId, grams) {
 function commitPlanDraftEntry(food, grams, mealLabelOverride, options = {}) {
   const mealLabel = normalizeMealLabel(mealLabelOverride || state.planDraft.mealLabel || defaultMeals[0]);
   const done = Boolean(options.done);
-  if (!food || !grams || !mealLabel || (!done && isMealCompletedForWeekday(state.selectedWeekday, mealLabel))) {
+  if (!food || !grams || !mealLabel || isPlanDayLocked() || (!done && isMealCompletedForWeekday(state.selectedWeekday, mealLabel))) {
     return false;
   }
   const newEntryId = uid("plan");
@@ -11710,7 +11734,13 @@ function isEditingMealNote(mealLabel) {
   return Boolean(state.editingMealNoteKey) && state.editingMealNoteKey === getMealNoteKey(mealLabel);
 }
 
-function renderMealNoteBlock(mealLabel) {
+function renderMealNoteBlock(mealLabel, { readOnly = false } = {}) {
+  if (readOnly) {
+    const lockedNote = getMealNote(mealLabel);
+    return lockedNote
+      ? `<div class="meal-note is-readonly"><span class="meal-note-label">Beleška</span><span class="meal-note-text">${escapeHtml(lockedNote)}</span></div>`
+      : "";
+  }
   if (isEditingMealNote(mealLabel)) {
     return `
       <div class="meal-note-editor">
@@ -11963,6 +11993,159 @@ function renderPlanSummaryCompact(ring) {
     </div>`;
 }
 
+// --- Jelovnici -------------------------------------------------------------
+// Sačuvan jelovnik = obe nedelje plana + svi recepti + namirnice koje oni
+// koriste + beleške uz obroke, pod jednim imenom („Nevenin jelovnik“).
+// Nedelje se pamte relativno: prva = „Ova nedelja“ u trenutku čuvanja, pa se
+// pri primeni prva nedelja jelovnika opet spušta u „Ovu nedelju“, kad god da
+// se primeni. Slike recepata se ne kopiraju (veličina u oblaku).
+const MENU_EXPORT_TYPE = "fit-tracker-jelovnik";
+
+function buildMenuPreset(name, id = uid("menu")) {
+  const planning = getPlanningWeekTrack();
+  const relWeek = (track) => (normalizeWeekTrack(track) === planning ? 0 : 1);
+  const entries = (store.weeklyPlanEntries || []).map(({ id: _id, done: _done, weekTrack, ...rest }) => ({
+    ...JSON.parse(JSON.stringify(rest)),
+    week: relWeek(weekTrack),
+  }));
+  const recipes = (store.favoriteMeals || []).map((recipe) => ({ ...JSON.parse(JSON.stringify(recipe)), imageUrl: "", imageSig: "" }));
+  const foodIds = new Set([
+    ...entries.map((entry) => entry.foodId),
+    ...recipes.flatMap((recipe) => (recipe.items || []).map((item) => item.foodId)),
+    ...recipes.map((recipe) => getRecipeFoodId(recipe)),
+  ]);
+  const foods = (store.foods || []).filter((food) => foodIds.has(food.id)).map((food) => JSON.parse(JSON.stringify(food)));
+  const notes = Object.entries(store.mealNotes || {}).map(([key, text]) => {
+    const [track, weekday, ...meal] = key.split("|");
+    return { week: relWeek(track), weekday, mealLabel: meal.join("|"), text };
+  });
+  return { id, name, savedAt: new Date().toISOString(), entries, recipes, foods, notes };
+}
+
+function isValidMenuPreset(preset) {
+  return Boolean(preset) && typeof preset === "object" && Array.isArray(preset.entries) && Array.isArray(preset.recipes) && Array.isArray(preset.foods);
+}
+
+function getMenuPresetSummary(preset) {
+  const entries = preset.entries.length;
+  const recipes = preset.recipes.length;
+  const saved = preset.savedAt ? formatShortDate(new Date(preset.savedAt)) : "";
+  return `${entries} ${srPlural(entries, "stavka", "stavke", "stavki")} u planu · ${recipes} ${srPlural(recipes, "recept", "recepta", "recepata")}${saved ? ` · sačuvano ${saved}` : ""}`;
+}
+
+// Primena: obe nedelje plana se zamenjuju jelovnikom (zaključani dani ostaju
+// kakvi jesu). Recepti iz jelovnika se vraćaju/prepisuju, tvoji ostali recepti
+// ostaju. Namirnice koje nedostaju se dodaju, postojeće se ne diraju.
+function applyMenuPreset(preset) {
+  const planning = getPlanningWeekTrack();
+  const trackOf = (week) => (toNumber(week) === 1 ? 1 - planning : planning);
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  preset.foods.forEach((food) => {
+    if (food?.id && !store.foods.some((entry) => entry.id === food.id)) {
+      store.foods.push(clone(food));
+      if (Array.isArray(store.hiddenCatalogIds)) {
+        store.hiddenCatalogIds = store.hiddenCatalogIds.filter((id) => id !== food.id);
+      }
+    }
+  });
+
+  preset.recipes.forEach((recipe) => {
+    if (!recipe?.id) {
+      return;
+    }
+    const index = store.favoriteMeals.findIndex((entry) => entry.id === recipe.id);
+    const existing = index >= 0 ? store.favoriteMeals[index] : null;
+    const next = normalizeFavoriteMealRecord({
+      ...clone(recipe),
+      imageUrl: existing?.imageUrl || "",
+      imageSig: existing?.imageSig || "",
+    });
+    if (index >= 0) {
+      store.favoriteMeals[index] = next;
+    } else {
+      store.favoriteMeals.unshift(next);
+    }
+  });
+
+  const keptEntries = store.weeklyPlanEntries.filter((entry) => isPlanDayLocked(entry.weekday, entry.weekTrack));
+  const addedEntries = preset.entries
+    .filter((entry) => entry?.foodId && WEEKDAYS.includes(entry.weekday) && !isPlanDayLocked(entry.weekday, trackOf(entry.week)))
+    .map(({ week, ...rest }) => ({ ...clone(rest), id: uid("plan"), weekTrack: trackOf(week), mealLabel: normalizeMealLabel(rest.mealLabel), done: false }));
+  store.weeklyPlanEntries = [...keptEntries, ...addedEntries];
+
+  const notes = {};
+  Object.entries(store.mealNotes || {}).forEach(([key, text]) => {
+    const [track, weekday] = key.split("|");
+    if (isPlanDayLocked(weekday, track)) {
+      notes[key] = text;
+    }
+  });
+  (preset.notes || []).forEach((note) => {
+    if (note?.text && !isPlanDayLocked(note.weekday, trackOf(note.week))) {
+      notes[getMealNoteKey(note.mealLabel, note.weekday, trackOf(note.week))] = String(note.text);
+    }
+  });
+  store.mealNotes = notes;
+  (store.favoriteMeals || []).forEach((recipe) => syncRecipeFood(store, recipe));
+  return { added: addedEntries.length, kept: keptEntries.length };
+}
+
+function exportMenuPreset(preset) {
+  const payload = { type: MENU_EXPORT_TYPE, version: 1, ...preset };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const slug = normalizeLookupValue(preset.name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "jelovnik";
+  link.href = url;
+  link.download = `${slug}-${getLocalDateInputValue()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderMenuPresetsTool() {
+  const presets = store.menuPresets || [];
+  return `
+        <div class="plan-tool menu-presets-tool">
+          <div class="plan-tool-head">
+            <h3>Jelovnici</h3>
+          </div>
+          <p class="footer-note plan-tool-note">Sačuvaj obe nedelje plana i sve recepte pod jednim imenom. Kasnije ih vratiš jednim tapom („Primeni“) ili ih izvezeš u fajl, za svaki slučaj.</p>
+          <form id="menu-preset-form" class="plan-tool-form plan-tool-form--inline">
+            <div class="field">
+              <label for="menu-preset-name">Naziv</label>
+              <input id="menu-preset-name" name="menuName" placeholder="npr. Nevenin jelovnik" maxlength="60" autocomplete="off" required />
+            </div>
+            <button class="solid-button button-with-icon plan-tool-submit" type="submit">${renderButtonContent("Sačuvaj", "save")}</button>
+          </form>
+          ${
+            presets.length
+              ? `<div class="menu-preset-list">${presets
+                  .map(
+                    (preset) => `
+                <div class="menu-preset-row">
+                  <div class="menu-preset-copy">
+                    <strong>${escapeHtml(preset.name)}</strong>
+                    <span class="footer-note">${escapeHtml(getMenuPresetSummary(preset))}</span>
+                  </div>
+                  <div class="menu-preset-actions">
+                    <button class="solid-button secondary-button" type="button" data-action="apply-menu-preset" data-menu-id="${escapeHtml(preset.id)}">Primeni</button>
+                    <button class="ghost-button" type="button" data-action="update-menu-preset" data-menu-id="${escapeHtml(preset.id)}" title="Zameni sačuvano trenutnim planom i receptima">Ažuriraj</button>
+                    <button class="ghost-button" type="button" data-action="export-menu-preset" data-menu-id="${escapeHtml(preset.id)}">Izvezi</button>
+                    <button class="ghost-button icon-only-action" type="button" data-action="delete-menu-preset" data-menu-id="${escapeHtml(preset.id)}" aria-label="Obriši jelovnik ${escapeHtml(preset.name)}" title="Obriši">${renderActionIcon("delete")}</button>
+                  </div>
+                </div>`
+                  )
+                  .join("")}</div>`
+              : ""
+          }
+          <div class="plan-tool-actions">
+            <label class="ghost-button button-with-icon" for="import-menu-json">${renderButtonContent("Uvezi jelovnik iz fajla", "open")}</label>
+            <input id="import-menu-json" type="file" accept="application/json,.json" hidden />
+          </div>
+        </div>`;
+}
+
 function renderPlanTab(entries) {
   const groupedEntries = groupEntriesByMeal(entries);
   // Kafa se beleži po datumu, ne kao stavka nedeljnog šablona, pa se sabira
@@ -11988,6 +12171,7 @@ function renderPlanTab(entries) {
     ]),
   ];
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
+  const isDayLocked = isPlanDayLocked();
   const autoOpenMeal = getAutoOpenMealLabel(planMeals);
   const favoriteFoods = getFavoriteFoodsDetailed();
   const mealPreviewRows = getMealPreviewRows(groupedEntries);
@@ -12095,6 +12279,11 @@ function renderPlanTab(entries) {
         </div>
         <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
+      ${
+        isDayLocked
+          ? `<div class="plan-day-locked-note" role="status"><span aria-hidden="true">🔒</span><span>Dan je zaključan: obroci se ne mogu menjati, samo čekirati kao pojedeni.</span><button class="meal-secondary-action" type="button" data-action="toggle-plan-day-lock">Otključaj</button></div>`
+          : ""
+      }
       ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu; kanta pored je briše. Kad pojedeš obrok, <strong>čekiraj „Pojedeno“</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Pripremi za više dana</strong> (u otvorenom obroku) kopira obrok na više dana odjednom, a <strong>Alati za plan</strong> ispod prebacuju ceo dan na drugi. P, UH i M su proteini, ugljeni hidrati i masti. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
@@ -12104,6 +12293,8 @@ function renderPlanTab(entries) {
                   const mealParts = getMealDisplayParts(mealLabel);
                   const isEditingMeal = state.editingMealLabel === mealLabel;
                   const isMealDone = mealEntries.length > 0 && mealEntries.every((entry) => entry.done);
+                  // Zaključan dan: kao pojeden obrok, bez izmena (čekiranje i dalje radi).
+                  const isMealReadOnly = isMealDone || isDayLocked;
                   // Empty meals have no checkbox/chevron to expand them (those only render
                   // once there are entries), so never collapse an empty meal - otherwise
                   // "Dodaj namirnicu" is stuck hidden with no way to reveal it.
@@ -12201,7 +12392,7 @@ function renderPlanTab(entries) {
                             `
                             : ""
                         }
-                        ${state.prepMealLabel === mealLabel && !isMealDone ? renderMealPrepPanel(mealLabel) : ""}
+                        ${state.prepMealLabel === mealLabel && !isMealReadOnly ? renderMealPrepPanel(mealLabel) : ""}
                         ${
                           mealEntries.length
                             ? mealEntries
@@ -12209,7 +12400,7 @@ function renderPlanTab(entries) {
                                   (entry) => `
                                     <div class="meal-entry ${entry.done ? "is-done" : ""} ${entry.id === state.lastAddedEntryId ? "is-new" : ""} ${entry.id === state.editingEntryId ? "is-editing" : ""}">
                                       <div class="meal-entry-row">
-                                      ${isMealDone ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
+                                      ${isMealReadOnly ? `<div class="meal-entry-body">` : `<button class="meal-entry-body" type="button" data-action="edit-entry" data-entry-id="${entry.id}" aria-label="${escapeHtml(entry.foodName)}, ${escapeHtml(formatFoodAmount(entry.food, entry.grams))}, izmeni količinu">`}
                                         <div class="meal-entry-main">
                                           <div class="meal-entry-title-group">
                                             <strong>${escapeHtml(entry.foodName)}</strong>
@@ -12220,14 +12411,14 @@ function renderPlanTab(entries) {
                                           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
                                           <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
                                         </div>
-                                      ${isMealDone ? `</div>` : `</button>`}
+                                      ${isMealReadOnly ? `</div>` : `</button>`}
                                       ${
                                         // Brisanje direktno u redu: ranije se do brisanja stizalo tek
                                         // kroz kompozitor, dva tapa za nešto što se najčešće radi odmah
                                         // po unosu. Izmena je tap na sam red (ceo red je dugme), pa
                                         // olovka tik uz kantu nije dodavala ništa osim šanse za
                                         // pogrešan tap. Sakriveno kad je obrok čekiran.
-                                        isMealDone
+                                        isMealReadOnly
                                           ? ""
                                           : `<div class="meal-entry-actions">
                                               <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Obriši iz obroka: ${escapeHtml(entry.foodName)}" title="Obriši iz obroka">${renderActionIcon("delete")}</button>
@@ -12241,7 +12432,7 @@ function renderPlanTab(entries) {
                             : (() => {
                                 const previous = getPreviousPlanDay(state.selectedWeekday, state.selectedWeekTrack);
                                 const previousEntries = getPlanEntriesForDay(previous.weekday, previous.weekTrack).filter((entry) => normalizeMealLabel(entry.mealLabel) === mealLabel);
-                                const canCopy = previousEntries.length > 0 && !isMealDone;
+                                const canCopy = previousEntries.length > 0 && !isMealReadOnly;
                                 // The "Dodaj namirnicu" row renders right below and already says
                                 // the meal is empty. Repeating it in five stacked cards is what
                                 // made a new user's first screen 600px of the same sentence — so
@@ -12255,7 +12446,7 @@ function renderPlanTab(entries) {
                               })()
                         }
                         ${
-                          !isMealDone
+                          !isMealReadOnly
                             ? isEditingMeal
                               ? renderPlanEntryComposer(meals, companionSuggestions, draftFood)
                               : isPickingRecipeForMeal(mealLabel)
@@ -12273,12 +12464,12 @@ function renderPlanTab(entries) {
                                 }</div>`
                             : ""
                         }
-                        ${renderMealNoteBlock(mealLabel)}
+                        ${renderMealNoteBlock(mealLabel, { readOnly: isDayLocked })}
                         ${
-                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel)
+                          !isEditingMeal && mealEntries.length && !isEditingMealNote(mealLabel) && !isDayLocked
                             ? `<div class="meal-secondary-actions">
                                 ${
-                                  !isMealDone && mealEntries.length
+                                  !isMealReadOnly && mealEntries.length
                                     ? `<button class="meal-secondary-action" type="button" data-action="open-meal-prep" data-meal-label="${escapeHtml(mealLabel)}">Pripremi za više dana</button>
                                 <button class="meal-secondary-action" type="button" data-action="save-meal-as-favorite" data-meal-label="${escapeHtml(mealLabel)}">Sačuvaj kao recept</button>
                                 <button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-plan-meal" data-meal-label="${escapeHtml(mealLabel)}">Obriši obrok</button>`
@@ -12303,7 +12494,8 @@ function renderPlanTab(entries) {
       ${
         (store.weeklyPlanEntries || []).some((entry) => normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
           ? `<div class="meal-secondary-actions plan-delete-actions">
-              ${entries.length ? `<button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-day-plan">Obriši ceo dan</button>` : ""}
+              ${entries.length || isDayLocked ? `<button class="meal-secondary-action" type="button" data-action="toggle-plan-day-lock">${isDayLocked ? "Otključaj dan" : "Zaključaj dan"}</button>` : ""}
+              ${entries.length && !isDayLocked ? `<button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-day-plan">Obriši ceo dan</button>` : ""}
               <button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-week-plan">Obriši celu ${getWeekTrackAccusative(state.selectedWeekTrack)}</button>
             </div>`
           : ""
@@ -12328,13 +12520,14 @@ function renderPlanTab(entries) {
       >
         <div class="section-disclosure-copy">
           <h2>Alati za plan</h2>
-          <p>Kopiraj dan na drugi dan ili očisti plan.</p>
+          <p>Jelovnici (sačuvaj, primeni, izvezi), kopiranje dana i brisanje.</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
         </div>
       </button>
       <div class="plan-tools ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
+        ${renderMenuPresetsTool()}
         <div class="plan-tool">
           <div class="plan-tool-head">
             <h3>Kopiraj ${weekdayAccusative(state.selectedWeekday)} na drugi dan</h3>
@@ -20222,6 +20415,10 @@ async function handleDocumentClick(event) {
     if (!plan) {
       return;
     }
+    if (isPlanDayLocked()) {
+      showFeedbackToast({ title: "Dan je zaključan", detail: "Otključaj ga pa onda ubaci plan.", tone: "warning" });
+      return;
+    }
 
     if (mode === "replace") {
       const confirmed = await confirmAction({ title: `Zameniti ceo ${weekdayLabel(state.selectedWeekday).toLowerCase()}?`, message: `Sve stavke tog dana zameniće dnevni plan „${plan.title}“.`, confirmLabel: "Zameni" });
@@ -20621,6 +20818,94 @@ async function handleDocumentClick(event) {
     state.editingMealLabel = "";
     resetPlanDraft();
     render();
+    return;
+  }
+
+  if (["apply-menu-preset", "update-menu-preset", "export-menu-preset", "delete-menu-preset"].includes(action)) {
+    const preset = (store.menuPresets || []).find((entry) => entry.id === actionTarget.dataset.menuId);
+    if (!preset) {
+      return;
+    }
+    if (action === "export-menu-preset") {
+      exportMenuPreset(preset);
+      return;
+    }
+    if (action === "delete-menu-preset") {
+      const previous = store.menuPresets;
+      store.menuPresets = store.menuPresets.filter((entry) => entry.id !== preset.id);
+      persist();
+      queuePendingUndo(`Jelovnik „${preset.name}“ obrisan.`, () => {
+        store.menuPresets = previous;
+        persist();
+      });
+      render();
+      return;
+    }
+    if (action === "update-menu-preset") {
+      const confirmed = await confirmAction({ title: `Ažurirati „${preset.name}“?`, message: "Sačuvani jelovnik zamenjuje se trenutnim planom (obe nedelje) i receptima.", confirmLabel: "Ažuriraj" });
+      if (!confirmed) {
+        return;
+      }
+      Object.assign(preset, buildMenuPreset(preset.name, preset.id));
+      persist();
+      render();
+      showFeedbackToast({ title: "Jelovnik je ažuriran", detail: `„${preset.name}“ sada ima trenutni plan i recepte.`, tone: "success" });
+      return;
+    }
+    const lockedCount = Object.keys(store.lockedPlanDays || {}).length;
+    const confirmed = await confirmAction({
+      title: `Primeniti „${preset.name}“?`,
+      message: `Obe nedelje plana zamenjuju se ovim jelovnikom; prva nedelja jelovnika ide u „Ovu nedelju“ (${getWeekTrackDateRange(getPlanningWeekTrack()).replace(/\u00a0/g, " ")}). Recepti iz jelovnika se vraćaju, tvoji ostali recepti ostaju.${lockedCount ? " Zaključani dani se ne menjaju." : ""} Posle stiže dugme za poništavanje.`,
+      confirmLabel: "Primeni",
+    });
+    if (!confirmed) {
+      return;
+    }
+    const before = {
+      weeklyPlanEntries: JSON.parse(JSON.stringify(store.weeklyPlanEntries)),
+      favoriteMeals: store.favoriteMeals.map((recipe) => ({ ...recipe })),
+      foods: JSON.parse(JSON.stringify(store.foods)),
+      mealNotes: { ...(store.mealNotes || {}) },
+      hiddenCatalogIds: [...(store.hiddenCatalogIds || [])],
+    };
+    const result = applyMenuPreset(preset);
+    state.editingMealLabel = "";
+    state.recipePickKey = "";
+    state.editingMealNoteKey = "";
+    resetPlanDraft();
+    persist();
+    queuePendingUndo(`Primenjen „${preset.name}“: ${result.added} ${srPlural(result.added, "stavka", "stavke", "stavki")}.`, () => {
+      Object.assign(store, before);
+      persist();
+    });
+    render();
+    return;
+  }
+
+  if (action === "toggle-plan-day-lock") {
+    const key = getPlanDayKey(state.selectedWeekday, state.selectedWeekTrack);
+    store.lockedPlanDays = store.lockedPlanDays || {};
+    const locking = !store.lockedPlanDays[key];
+    if (locking) {
+      store.lockedPlanDays[key] = true;
+      // Otvoren unos/izbor na tom danu se zatvara, da ne ostane polu-izmena.
+      state.editingMealLabel = "";
+      state.recipePickKey = "";
+      state.editingMealNoteKey = "";
+      state.prepMealLabel = "";
+      resetPlanDraft();
+    } else {
+      delete store.lockedPlanDays[key];
+    }
+    persist();
+    render();
+    showFeedbackToast({
+      title: locking ? "Dan je zaključan" : "Dan je otključan",
+      detail: locking
+        ? `${weekdayLabel(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}) više ne može da se menja, samo čekira kao pojedeno.`
+        : "Obroci tog dana ponovo mogu da se menjaju.",
+      tone: "success",
+    });
     return;
   }
 
@@ -23017,7 +23302,7 @@ async function handleDocumentClick(event) {
     let blockedMeals = 0;
     const done = state.quickEntryEaten && isSelectedDayLoggable();
     rows.forEach((row) => {
-      if (!done && isMealCompletedForWeekday(state.selectedWeekday, row.mealLabel)) {
+      if (isPlanDayLocked() || (!done && isMealCompletedForWeekday(state.selectedWeekday, row.mealLabel))) {
         blockedMeals += 1;
         return;
       }
@@ -23473,11 +23758,41 @@ async function handleSubmit(event) {
     return;
   }
 
+  if (event.target.id === "menu-preset-form") {
+    const name = String(formData.get("menuName") || "").trim().slice(0, 60);
+    if (!name) {
+      return;
+    }
+    if (!(store.weeklyPlanEntries || []).length && !(store.favoriteMeals || []).length) {
+      showFeedbackToast({ title: "Nema šta da se sačuva", detail: "Plan i recepti su prazni.", tone: "warning" });
+      return;
+    }
+    store.menuPresets = store.menuPresets || [];
+    const existing = store.menuPresets.find((preset) => normalizeLookupValue(preset.name) === normalizeLookupValue(name));
+    if (existing) {
+      const confirmed = await confirmAction({ title: `Zameniti „${existing.name}“?`, message: "Već postoji jelovnik sa tim imenom. Sačuvani sadržaj zamenjuje se trenutnim planom i receptima.", confirmLabel: "Zameni" });
+      if (!confirmed) {
+        return;
+      }
+      Object.assign(existing, buildMenuPreset(existing.name, existing.id));
+    } else {
+      store.menuPresets.unshift(buildMenuPreset(name));
+    }
+    persist();
+    render();
+    showFeedbackToast({ title: "Jelovnik je sačuvan", detail: `„${name}“: obe nedelje plana i svi recepti. Izvezi ga u fajl za svaki slučaj.`, tone: "success" });
+    return;
+  }
+
   if (event.target.id === "duplicate-day-form") {
     const targetWeekday = String(formData.get("targetWeekday") || "").trim();
     const targetWeekTrack = normalizeWeekTrack(formData.get("targetWeekTrack"));
     const mode = String(formData.get("mode") || "append").trim();
     if (!targetWeekday || (targetWeekday === state.selectedWeekday && targetWeekTrack === state.selectedWeekTrack)) {
+      return;
+    }
+    if (isPlanDayLocked(targetWeekday, targetWeekTrack)) {
+      showFeedbackToast({ title: "Taj dan je zaključan", detail: "Otključaj ga pa onda kopiraj na njega.", tone: "warning" });
       return;
     }
 
@@ -24823,6 +25138,36 @@ async function handleImport(event) {
   }
 
   if (!(target instanceof HTMLInputElement) || !target.files?.length) {
+    return;
+  }
+
+  if (target.id === "import-menu-json") {
+    const file = target.files[0];
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (parsed?.type !== MENU_EXPORT_TYPE || !isValidMenuPreset(parsed)) {
+        showFeedbackToast({ title: "Ovo nije Fit Tracker jelovnik", detail: "Izaberi fajl koji si dobio sa „Izvezi“ kod jelovnika. Ništa nije promenjeno.", tone: "error", duration: 4200 });
+        target.value = "";
+        return;
+      }
+      const { type: _type, version: _version, ...rest } = parsed;
+      const name = String(rest.name || "Jelovnik").trim().slice(0, 60) || "Jelovnik";
+      store.menuPresets = store.menuPresets || [];
+      const existing = store.menuPresets.find((preset) => normalizeLookupValue(preset.name) === normalizeLookupValue(name));
+      const imported = { ...rest, name, id: existing?.id || uid("menu") };
+      if (existing) {
+        Object.assign(existing, imported);
+      } else {
+        store.menuPresets.unshift(imported);
+      }
+      state.planQuickExpanded = true;
+      persist();
+      render();
+      showFeedbackToast({ title: "Jelovnik je uvezen", detail: `„${name}“ je na spisku jelovnika. Tapni „Primeni“ da ga ubaciš u plan.`, tone: "success", duration: 4200 });
+    } catch (error) {
+      showFeedbackToast({ title: "Fajl nije ispravan", detail: "Izabrani fajl nije Fit Tracker jelovnik (JSON).", tone: "error" });
+    }
+    target.value = "";
     return;
   }
 

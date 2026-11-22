@@ -18769,3 +18769,60 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .plan-meals-section .meal-entry-stats {
   margin-top: 1px;
 }
+
+/* Zaključan dan: traka iznad obroka i katanac na danu. */
+.plan-day-locked-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-12);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-14);
+}
+.plan-day-locked-note > span:nth-child(2) {
+  flex: 1 1 200px;
+}
+.hero-day-chips .chip.is-locked::after {
+  content: "🔒";
+  margin-left: 3px;
+  font-size: 9px;
+}
+.meal-note.is-readonly {
+  cursor: default;
+}
+.meal-note.is-readonly:hover {
+  border-color: var(--line);
+}
+
+/* Jelovnici u „Alati za plan“. */
+.menu-preset-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.menu-preset-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-12);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.menu-preset-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.menu-preset-copy strong {
+  overflow-wrap: anywhere;
+}
+.menu-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
