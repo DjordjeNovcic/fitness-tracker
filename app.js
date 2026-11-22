@@ -10352,6 +10352,13 @@ function getQuickEntryDefaultMeal() {
 
 // Rows are derived from the text on every render; per-row edits live in
 // state.quickEntryOverrides keyed by position, so retyping resets cleanly.
+// Zbir reda u Brzom unosu, uz zamenu ako je namirnica ima („ili 6 Tonus“).
+function getQuickEntryRowTotalsText(row) {
+  const totals = `${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g`;
+  const swapText = formatSwapEquivalent(getFoodSwap(row.food), row.amount);
+  return swapText ? `${totals} · ${swapText}` : totals;
+}
+
 function getQuickEntryRows() {
   const parsed = parseQuickEntryText(state.quickEntryText);
   const fallbackMeal = parsed.mealLabel || getQuickEntryDefaultMeal();
@@ -10495,7 +10502,7 @@ function renderQuickEntryDialog() {
                           </select>
                         </label>`}
                       </div>
-                      <div class="quick-entry-row-totals">${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g</div>
+                      <div class="quick-entry-row-totals">${escapeHtml(getQuickEntryRowTotalsText(row))}</div>
                       ${
                         row.needsGrams
                           ? `<div class="quick-entry-warn">Koliko je to grama? „${escapeHtml(row.food.name)}“ se vodi na ${escapeHtml(getFoodNutritionBasisLabel(row.food))}, pa „${escapeHtml(String(row.item.amount))}“ ne može da se preračuna. Upiši grame.</div>`
@@ -24229,7 +24236,7 @@ function handleInput(event) {
     const row = rows[index];
     const totalsEl = target.closest(".quick-entry-row")?.querySelector(".quick-entry-row-totals");
     if (row && totalsEl) {
-      totalsEl.textContent = `${roundValue(row.totals.kcal, 0)} kcal · P ${roundValue(row.totals.protein, 0)} · UH ${roundValue(row.totals.carbs, 0)} · M ${roundValue(row.totals.fat, 0)} g`;
+      totalsEl.textContent = getQuickEntryRowTotalsText(row);
     }
     return;
   }
