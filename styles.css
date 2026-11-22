@@ -18742,3 +18742,30 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 .plan-delete-actions {
   margin-top: 12px;
 }
+
+/* Danas, otvoren obrok: obrok je naslov, a njegove stavke su uvučene ispod
+   njega uz tanku liniju sa leve strane, sitnije i tiše od naslova, da se na
+   prvi pogled vidi šta je obrok, a šta su njegovi sastojci. */
+:root[data-theme] .plan-meals-section .meal-card:not(.is-collapsed) .meal-title {
+  font-size: var(--fs-20, 1.25rem);
+  font-weight: 800;
+}
+:root[data-theme] .plan-meals-section .meal-card-content:not(.is-hidden):has(.meal-entry) {
+  margin-left: 2px;
+  padding-left: 14px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+:root[data-theme] .plan-meals-section .meal-entry {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+:root[data-theme] .plan-meals-section .meal-entry:not(:has(~ .meal-entry)) {
+  border-bottom: 0;
+}
+:root[data-theme] .plan-meals-section .meal-entry-title-group strong {
+  font-size: var(--fs-14);
+  font-weight: 500;
+}
+:root[data-theme] .plan-meals-section .meal-entry-stats {
+  margin-top: 1px;
+}

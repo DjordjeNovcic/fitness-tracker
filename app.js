@@ -1198,18 +1198,42 @@ function ensureStoreCollections(targetStore) {
 // recepta. ID je izveden iz recepta, da dva uređaja ne naprave duplikat.
 // Vrednosti prate sastojke: osvežavaju se pri svakom čuvanju recepta i
 // učitavanju. Namirnicu koju si obrisao ne vraća sve do sledećeg čuvanja recepta.
+// Težina recepta za račun po gramima: izmerena težina gotovog jela, a bez
+// nje zbir sirovih sastojaka (komadne namirnice samo ako im naziv kaže
+// težinu, npr. „Jaje, malo (48 g)“).
+function getRecipeRawWeight(favorite, foods = store.foods || []) {
+  return (favorite?.items || []).reduce((sum, item) => {
+    const food = foods.find((entry) => entry.id === item.foodId);
+    if (!food) {
+      return sum;
+    }
+    if (getFoodServingUnit(food) === "piece") {
+      const match = String(food.name || "").match(/\((\d+(?:[.,]\d+)?)\s*g\)/i);
+      return sum + (match ? toNumber(match[1].replace(",", ".")) * toNumber(item.grams) : 0);
+    }
+    return sum + toNumber(item.grams);
+  }, 0);
+}
+
+function getRecipeBasisWeight(favorite, foods) {
+  return getRecipeCookedWeight(favorite) || roundValue(getRecipeRawWeight(favorite, foods), 0);
+}
+
 function getRecipeFoodId(favorite) {
   return `food-recipe-${favorite.id}`;
 }
 
-function syncRecipeFood(targetStore, favorite, { force = false } = {}) {
+function syncRecipeFood(targetStore, favorite, { force = false, allowRaw = false } = {}) {
   if (!favorite?.id) {
     return null;
   }
   const foodId = getRecipeFoodId(favorite);
   const foods = targetStore.foods || (targetStore.foods = []);
   const existing = foods.find((food) => food.id === foodId);
-  const cooked = getRecipeCookedWeight(favorite);
+  // Bez težine gotovog jela namirnica nastaje samo na zahtev (recept dodat
+  // kao jedna stavka); kad jednom postoji, prati sirovu težinu sastojaka.
+  const cooked =
+    getRecipeCookedWeight(favorite) || (existing || allowRaw ? roundValue(getRecipeRawWeight(favorite, foods), 0) : 0);
   if (!cooked || !(favorite.items || []).length || (favorite.recipeFoodHidden && !force)) {
     return existing || null;
   }
@@ -7936,6 +7960,27 @@ async function applyFavoriteMealToDay(favorite, options = {}) {
     );
   }
 
+  // Jedna stavka: recept ulazi kao njegova namirnica („Integralni hleb 20 g“),
+  // a ne kao spisak sastojaka.
+  const recipeFood = options.asSingleItem ? syncRecipeFood(store, favorite, { force: true, allowRaw: true }) : null;
+  if (recipeFood) {
+    delete favorite.recipeFoodHidden;
+    syncFoodNameAcrossStore(recipeFood.id, recipeFood.name);
+    const basis = getRecipeBasisWeight(favorite);
+    store.weeklyPlanEntries.push({
+      id: uid("plan"),
+      weekday,
+      weekTrack,
+      mealLabel: targetMealLabel,
+      foodId: recipeFood.id,
+      foodName: recipeFood.name,
+      grams: Math.max(0.1, roundValue(eatenGrams > 0 ? eatenGrams : basis / servings, 1)),
+      done: false,
+    });
+    expandMealForWeekday(weekday, targetMealLabel);
+    return true;
+  }
+
   favorite.items.forEach((item) => {
     store.weeklyPlanEntries.push({
       id: uid("plan"),
@@ -8048,20 +8093,29 @@ function renderRecipeApplyDialog() {
               mealOptions.map((mealLabel) => ({ id: mealLabel, label: getMealDisplayParts(mealLabel).title }))
             )}
           </div>
-          ${
-            getRecipeCookedWeight(favorite)
-              ? (() => {
-                  const cooked = getRecipeCookedWeight(favorite);
-                  const defaultGrams = roundValue(cooked / getRecipeServingCount(favorite), 0);
-                  const totalKcal = toNumber((favoriteDetailed.totals || {}).kcal);
-                  return `
-                    <div class="stack" style="gap:6px;">
-                      ${renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required />`)}
-                      <div class="footer-note"><strong id="recipe-apply-grams-kcal">≈ ${roundValue((totalKcal * defaultGrams) / cooked, 0)} kcal</strong><span id="recipe-apply-grams-swap">${formatSwapEquivalent(normalizeSwap(favorite.swap), defaultGrams) ? ` · ${escapeHtml(formatSwapEquivalent(normalizeSwap(favorite.swap), defaultGrams))}` : ""}</span> · ceo recept ${roundValue(cooked, 0)} g, ${roundValue((totalKcal * 100) / cooked, 0)} kcal na 100 g</div>
-                    </div>`;
-                })()
-              : ""
-          }
+          ${(() => {
+            const cooked = getRecipeCookedWeight(favorite);
+            const basis = getRecipeBasisWeight(favorite);
+            if (!basis) {
+              return "";
+            }
+            // Podrazumevano jedna stavka: hleb, kolač i slično se jedu po
+            // gramima. „Svi sastojci“ ostaje za jelo čije stavke hoćeš da vidiš.
+            const mode = state.recipeApplyDialog.applyMode || favorite.lastApplyMode || "single";
+            const showGrams = mode === "single" || Boolean(cooked);
+            const defaultGrams = roundValue(basis / getRecipeServingCount(favorite), 0);
+            const totalKcal = toNumber((favoriteDetailed.totals || {}).kcal);
+            const swapText = formatSwapEquivalent(normalizeSwap(favorite.swap), defaultGrams);
+            return `
+              ${renderChoiceField("Dodaj kao", "applyMode", mode, [
+                { id: "single", label: "Jedna stavka", hint: "po gramima" },
+                { id: "items", label: "Svi sastojci" },
+              ])}
+              <div class="stack" id="recipe-apply-grams-block" style="gap:6px;" ${showGrams ? "" : "hidden"}>
+                ${renderUnitField("recipe-apply-grams", "Koliko jedeš", "g", `<input id="recipe-apply-grams" name="eatenGrams" type="number" inputmode="decimal" min="1" step="any" value="${defaultGrams}" required ${showGrams ? "" : "disabled"} />`)}
+                <div class="footer-note"><strong id="recipe-apply-grams-kcal">≈ ${roundValue((totalKcal * defaultGrams) / basis, 0)} kcal</strong><span id="recipe-apply-grams-swap">${swapText ? ` · ${escapeHtml(swapText)}` : ""}</span> · ceo recept ${roundValue(basis, 0)} g${cooked ? "" : " (sirovi sastojci)"}, ${roundValue((totalKcal * 100) / basis, 0)} kcal na 100 g</div>
+              </div>`;
+          })()}
           <p class="footer-note recipe-apply-summary">${favorite.items.length} ${srPlural(favorite.items.length, "sastojak", "sastojka", "sastojaka")} ${favorite.servings > 1 ? ` · ${favorite.servings} ${srPlural(favorite.servings, "porcija", "porcije", "porcija")}` : ""} · ${roundValue((favoriteDetailed.perServingTotals || favoriteDetailed.totals || {}).kcal || 0, 0)} kcal${favorite.servings > 1 ? " po porciji" : ""}</p>
           <div class="entry-actions recipe-apply-actions">
             <button class="ghost-button" type="button" data-action="close-recipe-apply-dialog">Odustani</button>
@@ -23003,6 +23057,22 @@ async function handleDocumentClick(event) {
     if (["sex", "activityLevel", "targetMode", "paceLevel"].includes(name)) {
       syncGoalsLivePreview();
     }
+    // „Dodaj kao“ u dijalogu recepta: grami trebaju za jednu stavku, a za
+    // sastojke samo kad recept ima težinu gotovog jela.
+    if (name === "applyMode" && actionTarget.closest("#recipe-apply-form")) {
+      state.recipeApplyDialog.applyMode = value;
+      const favorite = store.favoriteMeals.find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
+      const show = value === "single" || Boolean(getRecipeCookedWeight(favorite));
+
+      const block = document.getElementById("recipe-apply-grams-block");
+      const input = document.getElementById("recipe-apply-grams");
+      if (block) {
+        block.hidden = !show;
+      }
+      if (input) {
+        input.disabled = !show;
+      }
+    }
     // The pace chips state kg/week, which depends on whether you are cutting
     // or bulking — so they have to follow a change of goal.
     if (name === "targetMode") {
@@ -23789,9 +23859,14 @@ async function handleSubmit(event) {
       return;
     }
 
-    const eatenGrams = getRecipeCookedWeight(favorite) ? toNumber(formData.get("eatenGrams")) : 0;
-    if (!(await applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel, eatenGrams }))) {
+    const asSingleItem = String(formData.get("applyMode") || "") === "single";
+    const eatenGrams = asSingleItem || getRecipeCookedWeight(favorite) ? toNumber(formData.get("eatenGrams")) : 0;
+    if (!(await applyFavoriteMealToDay(favorite, { weekday, weekTrack, mealLabel, eatenGrams, asSingleItem }))) {
       return;
+    }
+    // Sledeći put dijalog kreće od istog izbora za ovaj recept.
+    if (formData.has("applyMode")) {
+      favorite.lastApplyMode = asSingleItem ? "single" : "items";
     }
 
     closeRecipeApplyDialog();
@@ -24509,7 +24584,7 @@ function handleInput(event) {
   if (target instanceof HTMLInputElement && target.id === "recipe-apply-grams") {
     const favorite = getFavoriteMealsDetailed().find((entry) => entry.id === state.recipeApplyDialog.favoriteId);
     const summary = document.querySelector("#recipe-apply-grams-kcal");
-    const cooked = getRecipeCookedWeight(favorite);
+    const cooked = favorite ? getRecipeBasisWeight(favorite) : 0;
     if (favorite && summary && cooked) {
       summary.textContent = `≈ ${roundValue((favorite.totals.kcal * toNumber(target.value)) / cooked, 0)} kcal`;
       const swapNode = document.querySelector("#recipe-apply-grams-swap");
