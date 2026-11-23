@@ -21020,3 +21020,168 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     column-gap: 20px;
   }
 }
+
+/* ============================================================
+   Vežba disanja 4-7-8
+   ============================================================ */
+.breath-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-space-3, 12px);
+}
+.breath-card-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.breath-card-copy h2 {
+  margin: 0 0 2px;
+}
+.breath-card-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  line-height: 1.4;
+}
+.breath-card .solid-button {
+  flex: 0 0 auto;
+}
+.breath-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  justify-items: center;
+  gap: 8px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+}
+.breath-top {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+}
+.breath-heading {
+  text-align: center;
+}
+.breath-heading h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.breath-heading p {
+  margin: 2px 0 0;
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.breath-sound.is-off {
+  color: var(--muted);
+}
+.breath-figure {
+  width: min(100%, 440px, 62vh);
+  height: auto;
+  align-self: center;
+  overflow: visible;
+}
+.breath-track {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.breath-edge {
+  fill: var(--muted);
+  font-family: var(--ft-font, inherit);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.breath-lung,
+.breath-trachea {
+  fill: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.breath-lung-fill {
+  fill: var(--accent);
+  opacity: 0.78;
+}
+.breath-dot {
+  fill: var(--surface-strong, #fff);
+  stroke: var(--accent);
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+.breath-status {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-height: 132px;
+  text-align: center;
+}
+.breath-phase {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--accent-strong);
+}
+:root[data-theme="dark"] .breath-phase {
+  color: var(--accent);
+}
+.breath-count {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.breath-hint {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--fs-14);
+}
+.breath-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+}
+.breath-rounds {
+  display: flex;
+  gap: 6px;
+}
+.breath-overlay.is-running .breath-rounds {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.breath-start {
+  min-width: 140px;
+}
+/* Figura i natpis zajedno, centrirano po visini. */
+.breath-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.breath-figure {
+  margin-top: auto;
+  width: min(100%, 460px, 52vh);
+}
+.breath-status {
+  margin-bottom: auto;
+  min-height: 0;
+  padding-top: 6px;
+}
+.breath-overlay.is-running .breath-rounds {
+  opacity: 1;
+  visibility: hidden;
+}

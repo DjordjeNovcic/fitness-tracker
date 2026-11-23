@@ -11554,6 +11554,271 @@ function renderPlanCoffeeTile() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Vežba disanja 4-7-8. Tačka putuje po obrnutom trouglu (udah uz levu ivicu,
+// zadržavanje po vrhu, izdah niz desnu), pluća se pune i prazne. Animacija
+// piše direktno u DOM preko requestAnimationFrame (bez render() po kadru), a
+// elemente traži svaki kadar, pa preživi i ako se ekran u međuvremenu iscrta.
+// Zvuk udaha i izdaha se sintetiše (šum kroz filter), bez audio fajlova.
+// ---------------------------------------------------------------------------
+const BREATH_PHASES = [
+  { id: "inhale", label: "Udah", hint: "polako, kroz nos", seconds: 4 },
+  { id: "hold", label: "Zadrži", hint: "mirno", seconds: 7 },
+  { id: "exhale", label: "Izdah", hint: "lagano, kroz usta", seconds: 8 },
+];
+const BREATH_CYCLE = BREATH_PHASES.reduce((sum, phase) => sum + phase.seconds, 0);
+// Trougao u viewBox 0 0 300 270: gore levo, gore desno, dole.
+const BREATH_TL = [24, 34];
+const BREATH_TR = [276, 34];
+const BREATH_B = [150, 252];
+const breath = { running: false, startedAt: 0, pausedAt: 0, rounds: 4, frame: 0, lastPhase: "", audio: null, wakeLock: null, sound: true };
+
+function renderBreathDialog() {
+  if (!state.breathOpen) {
+    return "";
+  }
+  const rounds = breath.rounds;
+  return `
+    <div class="breath-overlay" role="dialog" aria-modal="true" aria-labelledby="breath-title">
+      <div class="breath-top">
+        <button class="ghost-button icon-only-action breath-close" type="button" data-action="close-breath" aria-label="Zatvori vežbu disanja">${renderActionIcon("close")}</button>
+        <div class="breath-heading">
+          <h2 id="breath-title">Disanje 4-7-8</h2>
+          <p>udah 4 · zadrži 7 · izdah 8</p>
+        </div>
+        <button class="ghost-button icon-only-action breath-sound ${breath.sound ? "" : "is-off"}" type="button" data-action="toggle-breath-sound" aria-pressed="${breath.sound}" aria-label="${breath.sound ? "Isključi zvuk" : "Uključi zvuk"}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4Z"/>${breath.sound ? '<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>' : '<path d="m16 9.5 5 5M21 9.5l-5 5"/>'}</svg>
+        </button>
+      </div>
+      <svg class="breath-figure" viewBox="0 0 300 270" aria-hidden="true">
+        <defs>
+          <clipPath id="breath-lung-clip"><rect id="breath-lung-level" x="0" y="190" width="300" height="200"></rect></clipPath>
+        </defs>
+        <polygon class="breath-track" points="${BREATH_TL.join(",")} ${BREATH_TR.join(",")} ${BREATH_B.join(",")}"></polygon>
+        <text class="breath-edge" x="150" y="22" text-anchor="middle">zadrži · 7 s</text>
+        <text class="breath-edge" transform="translate(66 150) rotate(60)" text-anchor="middle">udah · 4 s</text>
+        <text class="breath-edge" transform="translate(234 150) rotate(-60)" text-anchor="middle">izdah · 8 s</text>
+        <g class="breath-lungs">
+          <path class="breath-trachea" d="M146 64h8v40h-8z"></path>
+          <path class="breath-lung" d="M143 98c-6-6-20-6-28 6-10 15-12 44-8 62 3 12 15 14 26 8 9-5 10-14 10-26Z"></path>
+          <path class="breath-lung" d="M157 98c6-6 20-6 28 6 10 15 12 44 8 62-3 12-15 14-26 8-9-5-10-14-10-26Z"></path>
+          <g clip-path="url(#breath-lung-clip)">
+            <path class="breath-lung-fill" d="M143 98c-6-6-20-6-28 6-10 15-12 44-8 62 3 12 15 14 26 8 9-5 10-14 10-26Z"></path>
+            <path class="breath-lung-fill" d="M157 98c6-6 20-6 28 6 10 15 12 44 8 62-3 12-15 14-26 8-9-5-10-14-10-26Z"></path>
+          </g>
+        </g>
+        <circle id="breath-dot" class="breath-dot" cx="${BREATH_B[0]}" cy="${BREATH_B[1]}" r="7"></circle>
+      </svg>
+      <div class="breath-status" aria-live="polite">
+        <strong id="breath-phase" class="breath-phase">Spreman?</strong>
+        <span id="breath-count" class="breath-count">${rounds} ${srPlural(rounds, "krug", "kruga", "krugova")}</span>
+        <span id="breath-hint" class="breath-hint">Udobno sedi, ramena opuštena.</span>
+      </div>
+      <div class="breath-controls">
+        <div class="breath-rounds" role="radiogroup" aria-label="Broj krugova">
+          ${[4, 8]
+            .map(
+              (n) =>
+                `<button type="button" class="food-suggest-tab ${rounds === n ? "is-active" : ""}" role="radio" aria-checked="${rounds === n}" data-action="set-breath-rounds" data-rounds="${n}">${n} kruga</button>`
+            )
+            .join("")}
+        </div>
+        <button id="breath-toggle" class="solid-button breath-start" type="button" data-action="toggle-breath">${breath.running ? "Pauza" : "Počni"}</button>
+      </div>
+    </div>`;
+}
+
+function getBreathAudio() {
+  if (!breath.audio) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    const ctx = new AudioCtx();
+    // 2 s belog šuma, ponavlja se.
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+    breath.audio = { ctx, buffer };
+  }
+  if (breath.audio.ctx.state === "suspended") breath.audio.ctx.resume();
+  return breath.audio;
+}
+
+// Udah kroz nos: uži, viši šum koji raste. Izdah kroz usta: dublji, širi,
+// polako se gasi. Plus tih zvončić na početku svake faze.
+function playBreathSound(phaseId, seconds) {
+  if (!breath.sound) return;
+  const audio = getBreathAudio();
+  if (!audio) return;
+  const { ctx, buffer } = audio;
+  const now = ctx.currentTime;
+  const chime = ctx.createOscillator();
+  const chimeGain = ctx.createGain();
+  chime.type = "sine";
+  chime.frequency.value = phaseId === "inhale" ? 528 : phaseId === "hold" ? 440 : 396;
+  chimeGain.gain.setValueAtTime(0.0001, now);
+  chimeGain.gain.exponentialRampToValueAtTime(0.05, now + 0.03);
+  chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+  chime.connect(chimeGain).connect(ctx.destination);
+  chime.start(now);
+  chime.stop(now + 1.3);
+  if (phaseId === "hold") return;
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  if (phaseId === "inhale") {
+    filter.type = "bandpass";
+    filter.Q.value = 1.1;
+    filter.frequency.setValueAtTime(1100, now);
+    filter.frequency.linearRampToValueAtTime(1800, now + seconds);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.8);
+    gain.gain.linearRampToValueAtTime(0.28, now + seconds - 0.6);
+    gain.gain.linearRampToValueAtTime(0.0001, now + seconds);
+  } else {
+    filter.type = "lowpass";
+    filter.Q.value = 0.6;
+    filter.frequency.setValueAtTime(1300, now);
+    filter.frequency.linearRampToValueAtTime(450, now + seconds);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.34, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0.0001, now + seconds);
+  }
+  source.connect(filter).connect(gain).connect(ctx.destination);
+  source.start(now);
+  source.stop(now + seconds + 0.05);
+  breath.currentSource = source;
+}
+
+function stopBreathSound() {
+  try {
+    breath.currentSource?.stop();
+  } catch (error) {
+    /* već stao */
+  }
+  breath.currentSource = null;
+}
+
+async function setBreathWakeLock(on) {
+  try {
+    if (on && "wakeLock" in navigator && !breath.wakeLock) {
+      breath.wakeLock = await navigator.wakeLock.request("screen");
+    } else if (!on && breath.wakeLock) {
+      await breath.wakeLock.release();
+      breath.wakeLock = null;
+    }
+  } catch (error) {
+    breath.wakeLock = null;
+  }
+}
+
+function breathPoint(from, to, t) {
+  return [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+}
+
+function paintBreath(elapsed) {
+  const total = breath.rounds * BREATH_CYCLE;
+  const dot = document.querySelector("#breath-dot");
+  const level = document.querySelector("#breath-lung-level");
+  const phaseEl = document.querySelector("#breath-phase");
+  const countEl = document.querySelector("#breath-count");
+  const hintEl = document.querySelector("#breath-hint");
+  if (elapsed >= total) {
+    finishBreath();
+    return;
+  }
+  const round = Math.floor(elapsed / BREATH_CYCLE);
+  let t = elapsed - round * BREATH_CYCLE;
+  let phase = BREATH_PHASES[0];
+  for (const candidate of BREATH_PHASES) {
+    if (t < candidate.seconds) {
+      phase = candidate;
+      break;
+    }
+    t -= candidate.seconds;
+  }
+  const progress = t / phase.seconds;
+  const point =
+    phase.id === "inhale" ? breathPoint(BREATH_B, BREATH_TL, progress) : phase.id === "hold" ? breathPoint(BREATH_TL, BREATH_TR, progress) : breathPoint(BREATH_TR, BREATH_B, progress);
+  // Ispunjenost pluća: udah 0→1 (ease), zadržavanje 1, izdah 1→0.
+  const ease = (x) => 0.5 - Math.cos(Math.PI * x) / 2;
+  const fill = phase.id === "inhale" ? ease(progress) : phase.id === "hold" ? 1 : 1 - ease(progress);
+  if (dot) {
+    dot.setAttribute("cx", point[0].toFixed(1));
+    dot.setAttribute("cy", point[1].toFixed(1));
+  }
+  if (level) level.setAttribute("y", String(186 - fill * 96));
+  if (phaseEl) phaseEl.textContent = phase.label;
+  if (countEl) countEl.textContent = String(Math.max(1, Math.ceil(phase.seconds - t)));
+  if (hintEl) hintEl.textContent = `${phase.hint} · krug ${round + 1} od ${breath.rounds}`;
+  const phaseKey = `${round}:${phase.id}`;
+  if (phaseKey !== breath.lastPhase) {
+    breath.lastPhase = phaseKey;
+    playBreathSound(phase.id, phase.seconds - t);
+  }
+}
+
+function breathTick() {
+  if (!breath.running) return;
+  paintBreath((performance.now() - breath.startedAt) / 1000);
+  breath.frame = window.requestAnimationFrame(breathTick);
+}
+
+function startBreath() {
+  getBreathAudio();
+  const resumeFrom = breath.pausedAt || 0;
+  breath.startedAt = performance.now() - resumeFrom * 1000;
+  breath.pausedAt = 0;
+  breath.lastPhase = "";
+  breath.running = true;
+  setBreathWakeLock(true);
+  const toggle = document.querySelector("#breath-toggle");
+  if (toggle) toggle.textContent = "Pauza";
+  document.querySelector(".breath-overlay")?.classList.add("is-running");
+  breathTick();
+}
+
+function pauseBreath() {
+  if (!breath.running) return;
+  breath.pausedAt = (performance.now() - breath.startedAt) / 1000;
+  breath.running = false;
+  window.cancelAnimationFrame(breath.frame);
+  stopBreathSound();
+  setBreathWakeLock(false);
+  const toggle = document.querySelector("#breath-toggle");
+  if (toggle) toggle.textContent = "Nastavi";
+}
+
+function finishBreath() {
+  breath.running = false;
+  breath.pausedAt = 0;
+  window.cancelAnimationFrame(breath.frame);
+  stopBreathSound();
+  setBreathWakeLock(false);
+  const phaseEl = document.querySelector("#breath-phase");
+  const countEl = document.querySelector("#breath-count");
+  const hintEl = document.querySelector("#breath-hint");
+  const toggle = document.querySelector("#breath-toggle");
+  const dot = document.querySelector("#breath-dot");
+  if (phaseEl) phaseEl.textContent = "Gotovo";
+  if (countEl) countEl.textContent = "✓";
+  if (hintEl) hintEl.textContent = `${breath.rounds} ${srPlural(breath.rounds, "krug", "kruga", "krugova")}. Diši normalno još koji trenutak.`;
+  if (toggle) toggle.textContent = "Ponovo";
+  if (dot) {
+    dot.setAttribute("cx", String(BREATH_B[0]));
+    dot.setAttribute("cy", String(BREATH_B[1]));
+  }
+  document.querySelector(".breath-overlay")?.classList.remove("is-running");
+}
+
+function closeBreath() {
+  pauseBreath();
+  breath.pausedAt = 0;
+  state.breathOpen = false;
+}
+
 function renderPlanGlanceRows() {
   const water = getTodayWaterMl();
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
@@ -15928,6 +16193,13 @@ function renderRoutineTab() {
             `<p class="day-summary-line day-summary-line--empty">Navike, dnevni zadaci i nizovi dana na jednom mestu. Počni od jedne navike ispod.</p>`
       }
     </section>
+    <section class="section breath-card">
+      <div class="breath-card-copy">
+        <h2>Vežba disanja</h2>
+        <p>4-7-8: udah kroz nos 4 s, zadrži 7 s, izdah kroz usta 8 s. Smiruje za par minuta.</p>
+      </div>
+      <button class="solid-button button-with-icon" type="button" data-action="open-breath">${renderButtonContent("Počni", "go")}</button>
+    </section>
 
     <section class="section routine-habits-section">
       <div class="section-header">
@@ -19907,6 +20179,7 @@ function renderApp() {
       ${renderTrainingPlanDialog()}
       ${renderMuscleSheetDialog()}
       ${renderExerciseSwapDialog()}
+      ${renderBreathDialog()}
       ${renderDeleteAccountDialog()}
       ${renderBarcodeScanner()}
     </div>
@@ -21114,6 +21387,57 @@ async function handleDocumentClick(event) {
       state.planDraft.mealLabel = defaultMeals[0];
     }
     render();
+    return;
+  }
+
+  if (action === "open-breath") {
+    rememberDialogTrigger(actionTarget);
+    breath.pausedAt = 0;
+    state.breathOpen = true;
+    render();
+    document.querySelector("#breath-toggle")?.focus();
+    return;
+  }
+
+  if (action === "close-breath") {
+    closeBreath();
+    render();
+    restoreFocusAfterDialog();
+    return;
+  }
+
+  if (action === "toggle-breath") {
+    if (breath.running) {
+      pauseBreath();
+    } else {
+      startBreath();
+    }
+    return;
+  }
+
+  if (action === "toggle-breath-sound") {
+    breath.sound = !breath.sound;
+    if (!breath.sound) stopBreathSound();
+    actionTarget.classList.toggle("is-off", !breath.sound);
+    actionTarget.setAttribute("aria-pressed", String(breath.sound));
+    actionTarget.setAttribute("aria-label", breath.sound ? "Isključi zvuk" : "Uključi zvuk");
+    actionTarget.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4Z"/>${
+      breath.sound ? '<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>' : '<path d="m16 9.5 5 5M21 9.5l-5 5"/>'
+    }</svg>`;
+    return;
+  }
+
+  if (action === "set-breath-rounds") {
+    if (breath.running) return;
+    breath.rounds = toNumber(actionTarget.dataset.rounds) === 8 ? 8 : 4;
+    breath.pausedAt = 0;
+    document.querySelectorAll(".breath-rounds [data-rounds]").forEach((button) => {
+      const on = toNumber(button.dataset.rounds) === breath.rounds;
+      button.classList.toggle("is-active", on);
+      button.setAttribute("aria-checked", String(on));
+    });
+    const countEl = document.querySelector("#breath-count");
+    if (countEl) countEl.textContent = `${breath.rounds} ${srPlural(breath.rounds, "krug", "kruga", "krugova")}`;
     return;
   }
 
@@ -26404,7 +26728,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") {
     return;
   }
-  const closeSelector = state.scannerOpen
+  const closeSelector = state.breathOpen
+    ? '[data-action="close-breath"]'
+    : state.scannerOpen
     ? '[data-action="close-scanner"]'
     : state.quickEntryOpen
       ? '[data-action="close-quick-entry"]'
