@@ -220,7 +220,7 @@ textarea::placeholder {
 .hero h1 {
   margin: 0;
   min-width: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-24);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -491,7 +491,7 @@ textarea::placeholder {
 }
 
 .plan-summary-headline-value {
-  font-family: "Fraunces", "Georgia", serif;
+  font-family: var(--ft-font);
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--accent);
@@ -2332,7 +2332,7 @@ label.is-invalid textarea:focus {
 }
 
 .stat-hero-value strong {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-30);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -3504,7 +3504,7 @@ label.is-invalid textarea:focus {
 }
 
 .workspace-header h1 {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-24);
   line-height: 0.98;
   letter-spacing: -0.03em;
@@ -6251,7 +6251,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .cal-ring-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-48);
   font-weight: 600;
   line-height: 1;
@@ -6490,7 +6490,7 @@ body.app-header-hidden .workspace-header {
 
 .auth-brand h1 {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-30);
   letter-spacing: -0.025em;
   color: var(--ink);
@@ -7169,7 +7169,7 @@ body.app-header-hidden .workspace-header {
 }
 
 .onboarding-preview-kcal {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-36);
   line-height: 1;
 }
@@ -8630,7 +8630,7 @@ body.app-header-hidden .workspace-header {
   justify-content: center;
   background: var(--accent);
   color: var(--button-primary-text);
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-weight: 600;
   font-size: var(--fs-28);
 }
@@ -8647,7 +8647,7 @@ body.app-header-hidden .workspace-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-24);
   letter-spacing: -0.025em;
   line-height: 1.05;
@@ -10664,7 +10664,7 @@ button.meal-entry-body:focus-visible {
   color: var(--muted);
 }
 .calibration-to {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-36);
   font-weight: 600;
   letter-spacing: -0.03em;
@@ -12404,7 +12404,7 @@ button.meal-entry-body:focus-visible {
   white-space: nowrap;
 }
 .insights-hero-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-48);
   font-weight: 600;
   line-height: 1;
@@ -12891,7 +12891,7 @@ button.meal-entry-body:focus-visible {
   padding: 0 18px;
 }
 .day-ring-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-36);
   font-weight: 600;
   line-height: 1;
@@ -13482,7 +13482,7 @@ button.meal-entry-body:focus-visible {
    gradijenta i senke, a pregled cilja je hairline okvir sa brojem u boji
    mastila (kao svaki glavni broj); dok nema podataka, to je samo tih red. */
 .onboarding-head h1 {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-weight: 700;
   line-height: 1.15;
   text-wrap: balance;
@@ -13880,7 +13880,7 @@ button.meal-entry-body:focus-visible {
   text-align: left;
 }
 .day-block-empty-value {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--ft-font);
   font-size: var(--fs-48);
   font-weight: 600;
   line-height: 0.95;
@@ -19958,4 +19958,238 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 /* Predlozi bez ikonice: naziv od leve ivice. */
 :root[data-theme] .food-suggest-row {
   padding-left: 4px;
+}
+
+/* ============================================================
+   Fit Tracker 2.0 — Faza 1: zajednički dizajn sistem.
+   Tokeni (--ft-*) su jedino mesto za boje, razmake, radijuse i visine
+   kontrola; komponente ispod ih koriste. Boje su za sada mapirane na
+   postojeću paletu — nova paleta se menja samo u ova dva bloka.
+   ============================================================ */
+:root {
+  --ft-font: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+
+  /* boje (svetla) */
+  --ft-bg: #f4efe6;
+  --ft-surface: #fffaf5;
+  --ft-surface-raised: #ffffff;
+  --ft-surface-sunken: color-mix(in srgb, #17201d 5%, transparent);
+  --ft-text: #17201d;
+  --ft-text-muted: #586460;
+  --ft-border: rgba(24, 33, 30, 0.085);
+  --ft-border-strong: rgba(24, 33, 30, 0.16);
+  --ft-accent: #1f5f75;
+  --ft-accent-strong: #164757;
+  --ft-accent-soft: #dbe9ef;
+  --ft-on-accent: #fbf8ef;
+  --ft-focus-ring: color-mix(in srgb, #1f5f75 28%, transparent);
+  --ft-danger: #9c3d1f;
+
+  /* razmaci */
+  --ft-space-1: 4px;
+  --ft-space-2: 8px;
+  --ft-space-3: 12px;
+  --ft-space-4: 16px;
+  --ft-space-5: 20px;
+  --ft-space-6: 24px;
+
+  /* radijusi */
+  --ft-radius-sm: 10px;
+  --ft-radius-md: 14px;
+  --ft-radius-lg: 20px;
+  --ft-radius-xl: 26px;
+  --ft-radius-pill: 999px;
+
+  /* površine kartica */
+  --ft-card-bg: var(--ft-surface);
+  --ft-card-border: 1px solid var(--ft-border);
+  --ft-card-shadow: 0 1px 2px rgba(25, 34, 31, 0.04), 0 8px 24px -18px rgba(25, 34, 31, 0.18);
+
+  /* visine kontrola */
+  --ft-h-control: 44px;
+  --ft-h-control-sm: 36px;
+  --ft-h-row: 48px;
+  --ft-h-tabbar: 64px;
+}
+:root[data-theme="dark"] {
+  --ft-bg: #0c0d0b;
+  --ft-surface: #20201b;
+  --ft-surface-raised: #262620;
+  --ft-surface-sunken: rgba(255, 255, 255, 0.06);
+  --ft-text: #f2ede5;
+  --ft-text-muted: #b0aca3;
+  --ft-border: rgba(255, 255, 255, 0.08);
+  --ft-border-strong: rgba(255, 255, 255, 0.16);
+  --ft-accent: oklch(0.7 0.085 225);
+  --ft-accent-strong: oklch(0.78 0.085 225);
+  --ft-accent-soft: oklch(0.26 0.04 225);
+  --ft-on-accent: #0c1417;
+  --ft-focus-ring: oklch(0.7 0.085 225 / 0.35);
+  --ft-danger: oklch(0.78 0.15 30);
+  --ft-card-shadow: none;
+}
+
+/* --- tipografija: samo Manrope --- */
+:root[data-theme] body,
+:root[data-theme] button,
+:root[data-theme] input,
+:root[data-theme] select,
+:root[data-theme] textarea {
+  font-family: var(--ft-font);
+}
+
+/* --- dugmad (primarno / sekundarno / opasno) --- */
+:root[data-theme] :is(.solid-button, .ghost-button, .secondary-button, .danger-button):not(.icon-only-action):not(.meal-collapse-toggle):not(.password-toggle):not(.plan-glance-btn):not(.quick-entry-remove):not(.text-link-button) {
+  min-height: var(--ft-h-control);
+  padding-inline: var(--ft-space-4);
+  border-radius: var(--ft-radius-md);
+  font-family: var(--ft-font);
+  font-size: var(--fs-15, 0.9375rem);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+:root[data-theme] .solid-button:not(.icon-only-action) {
+  border: 1px solid var(--ft-accent);
+  background: var(--ft-accent);
+  color: var(--ft-on-accent);
+}
+:root[data-theme] .solid-button:not(.icon-only-action):hover {
+  border-color: var(--ft-accent-strong);
+  background: var(--ft-accent-strong);
+}
+:root[data-theme="dark"] .solid-button:not(.icon-only-action):hover {
+  border-color: var(--ft-accent);
+  background: var(--ft-accent);
+  filter: brightness(1.08);
+}
+:root[data-theme] .ghost-button:not(.icon-only-action):not(.meal-collapse-toggle):not(.password-toggle) {
+  border: 1px solid var(--ft-border-strong);
+  background: var(--ft-surface-raised);
+  color: var(--ft-text);
+}
+:root[data-theme="dark"] .ghost-button:not(.icon-only-action):not(.meal-collapse-toggle):not(.password-toggle) {
+  background: var(--ft-surface-sunken);
+}
+:root[data-theme] .ghost-button:not(.icon-only-action):not(.meal-collapse-toggle):not(.password-toggle):hover {
+  border-color: color-mix(in srgb, var(--ft-text) 26%, transparent);
+}
+:root[data-theme] :is(.solid-button, .ghost-button, .secondary-button, .danger-button):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ft-focus-ring);
+}
+:root[data-theme] :is(.solid-button, .ghost-button, .secondary-button, .danger-button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* ikonica-dugmad (olovka, kanta…) iste veličine svuda */
+:root[data-theme] .icon-only-action {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: var(--ft-radius-sm);
+}
+
+/* --- polja za unos --- */
+:root[data-theme] .field :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), select, textarea) {
+  min-height: var(--ft-h-control);
+  padding-inline: 14px;
+  border: 1px solid var(--ft-border-strong);
+  border-radius: var(--ft-radius-md);
+  background-color: var(--ft-surface-raised);
+  color: var(--ft-text);
+  font-family: var(--ft-font);
+}
+:root[data-theme="dark"] .field :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), select, textarea) {
+  background-color: var(--ft-surface-sunken);
+}
+:root[data-theme] .field :is(input, select, textarea):focus {
+  outline: none;
+  border-color: var(--ft-accent);
+  box-shadow: 0 0 0 3px var(--ft-focus-ring);
+}
+:root[data-theme] .field :is(input, select, textarea)::placeholder {
+  color: color-mix(in srgb, var(--ft-text-muted) 80%, transparent);
+}
+/* polja za pretragu (Hrana, obrok, recepti) */
+:root[data-theme] :is(.foods-search, .food-search-control) {
+  min-height: var(--ft-h-control);
+  border-radius: var(--ft-radius-md);
+}
+
+/* --- filter čipovi --- */
+:root[data-theme] :is(.foods-chip, .food-suggest-tab) {
+  min-height: var(--ft-h-control-sm);
+  padding-inline: 14px;
+  border: 1px solid var(--ft-border-strong);
+  border-radius: var(--ft-radius-pill);
+  background: var(--ft-surface-raised);
+  color: var(--ft-text);
+  font-size: var(--fs-14, 0.875rem);
+  font-weight: 600;
+}
+:root[data-theme="dark"] :is(.foods-chip, .food-suggest-tab) {
+  background: var(--ft-surface-sunken);
+}
+:root[data-theme] :is(.foods-chip, .food-suggest-tab).is-active {
+  border-color: var(--ft-accent);
+  background: var(--ft-accent);
+  color: var(--ft-on-accent);
+}
+:root[data-theme] .foods-chip.is-active .foods-chip-count {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--ft-on-accent);
+}
+:root[data-theme="dark"] .foods-chip.is-active .foods-chip-count {
+  background: rgba(0, 0, 0, 0.14);
+}
+/* izbor-čipovi u formama (pol, aktivnost, tip…) */
+:root[data-theme] .choice-chip {
+  min-height: var(--ft-h-control);
+  border-radius: var(--ft-radius-md);
+  border-color: var(--ft-border-strong);
+}
+:root[data-theme] .choice-chip.is-active {
+  border-color: var(--ft-accent);
+  background: var(--ft-accent-soft);
+}
+
+/* --- segmentirane kontrole (podtabovi) --- */
+:root[data-theme] .seg-nav .seg-nav-btn {
+  min-height: var(--ft-h-control-sm);
+  padding-inline: 14px;
+  border-radius: var(--ft-radius-pill);
+  font-size: var(--fs-14, 0.875rem);
+  font-weight: 700;
+}
+:root[data-theme] .seg-nav .seg-nav-btn.is-active {
+  border-color: var(--ft-accent);
+  background: var(--ft-accent);
+  color: var(--ft-on-accent);
+}
+
+/* --- redovi liste --- */
+:root[data-theme] :is(.food-row, .stat-row) {
+  border-color: var(--ft-border);
+}
+:root[data-theme] .food-row {
+  min-height: var(--ft-h-row);
+}
+
+/* --- kartice (sekcije) --- */
+:root[data-theme] .app-main .section:not(.workspace-header):not(.hero) {
+  border-radius: var(--ft-radius-lg);
+}
+
+/* --- navigacija --- */
+:root[data-theme] .tab-bar-item {
+  min-height: 48px;
+  font-family: var(--ft-font);
+}
+:root[data-theme] .tab-bar-item.is-active {
+  color: var(--ft-accent);
+}
+:root[data-theme] :is(.app-sidebar-item, .more-sheet-item) {
+  border-radius: var(--ft-radius-md);
 }
