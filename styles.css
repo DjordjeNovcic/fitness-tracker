@@ -19289,3 +19289,254 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     padding-top: 4px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   2026-11-23 — Obroci kao dnevnik sa statusom (izbor korisnika).
+   Red obroka: status levo (pojedeno ✓ / sledeće / kasnije), naziv i sastojci,
+   kcal desno sa tankom trakom udela u danu, strelica. Makroi bez decimala
+   samo u otvorenom obroku. Kanta pored stavke samo na uređajima sa mišem
+   (na telefonu: tap na stavku → „Obriši stavku“).
+   --------------------------------------------------------------------------- */
+:root[data-theme] .plan-meals-section .meal-head {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto 28px;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 44px;
+}
+:root[data-theme] .plan-meals-section .meal-card:not(:has(.meal-entry)) .meal-head {
+  grid-template-columns: 26px minmax(0, 1fr);
+}
+/* Status: ceo krug je dugme (checkbox preko njega). */
+:root[data-theme] .plan-meals-section .meal-status {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+}
+:root[data-theme] .plan-meals-section .meal-status .meal-toggle-checkbox {
+  position: absolute;
+  inset: -9px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+:root[data-theme] .plan-meals-section .meal-status-ui {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+:root[data-theme] .plan-meals-section .meal-status-ui svg {
+  width: 13px;
+  height: 13px;
+}
+:root[data-theme] .plan-meals-section .meal-status:hover .meal-status-ui {
+  border-color: var(--accent);
+}
+:root[data-theme] .plan-meals-section .meal-status .meal-toggle-checkbox:focus-visible + .meal-status-ui {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+:root[data-theme] .plan-meals-section .meal-status.is-next .meal-status-ui {
+  border-color: var(--accent);
+}
+:root[data-theme] .plan-meals-section .meal-status.is-next .meal-status-ui::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+:root[data-theme] .plan-meals-section .meal-status.is-partial .meal-status-ui {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 45%, transparent) 50%, transparent 50%);
+}
+:root[data-theme] .plan-meals-section .meal-status.is-done .meal-status-ui {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface-strong);
+}
+:root[data-theme] .plan-meals-section .meal-status.is-done .meal-status-ui::after {
+  content: none;
+}
+:root[data-theme] .plan-meals-section .meal-status--empty {
+  cursor: default;
+}
+:root[data-theme] .plan-meals-section .meal-status--empty .meal-status-ui {
+  border-style: dashed;
+}
+/* Naziv i sastojci. */
+:root[data-theme] .plan-meals-section .meal-head-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+:root[data-theme] .plan-meals-section .meal-head-titleline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+:root[data-theme] .plan-meals-section .meal-head .meal-title {
+  margin: 0;
+  font-size: var(--fs-17, 1.0625rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+}
+:root[data-theme] .plan-meals-section .meal-card.is-done .meal-head .meal-title {
+  color: var(--muted);
+}
+:root[data-theme] .plan-meals-section .meal-next-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+:root[data-theme="dark"] .plan-meals-section .meal-next-tag {
+  color: var(--accent-strong);
+}
+:root[data-theme] .plan-meals-section .meal-head-titleline .meal-empty-tag,
+:root[data-theme] .plan-meals-section .meal-head-titleline .meal-prep-badge {
+  margin: 0;
+}
+:root[data-theme] .plan-meals-section .meal-head-items {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-13, 0.8125rem);
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* kcal + udeo u danu. */
+:root[data-theme] .plan-meals-section .meal-head-kcal {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+:root[data-theme] .plan-meals-section .meal-head-kcal strong {
+  color: var(--ink);
+  font-size: var(--fs-16, 1rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+:root[data-theme] .plan-meals-section .meal-head-unit {
+  color: var(--muted);
+  font-size: var(--fs-12, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+:root[data-theme] .plan-meals-section .meal-share {
+  display: block;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+:root[data-theme] .plan-meals-section .meal-share > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+:root[data-theme] .plan-meals-section .meal-card.is-done .meal-share > span {
+  background: var(--accent);
+}
+/* Strelica. */
+:root[data-theme] .plan-meals-section .meal-head .meal-collapse-toggle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+:root[data-theme] .plan-meals-section .meal-head .meal-collapse-chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+:root[data-theme] .plan-meals-section .meal-card:not(.is-collapsed) .meal-head .meal-collapse-chevron {
+  transform: rotate(180deg);
+}
+/* Makroi otvorenog obroka, poravnati sa nazivom. */
+:root[data-theme] .plan-meals-section .meal-head-macros {
+  margin-top: 6px;
+  padding-left: 38px;
+  color: var(--muted);
+  font-size: var(--fs-13, 0.8125rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme] .plan-meals-section .meal-head-share {
+  font-weight: 500;
+}
+/* Zaglavlje sekcije: „2 od 5 pojedeno · 1819 kcal u planu“. */
+:root[data-theme] .plan-meals-section .plan-meals-meta {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-13, 0.8125rem);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme] .plan-meals-section .plan-meals-meta:empty {
+  display: none;
+}
+/* Kanta: samo kad ima miša (hover), na dodir je u izmeni stavke. */
+@media (hover: none) {
+  :root[data-theme] .plan-meals-section .meal-entry-actions {
+    display: none;
+  }
+}
+@media (hover: hover) {
+  :root[data-theme] .plan-meals-section .meal-entry .meal-entry-actions {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry:hover .meal-entry-actions,
+  :root[data-theme] .plan-meals-section .meal-entry:focus-within .meal-entry-actions {
+    opacity: 1;
+  }
+}
+/* Otvoren obrok: sastojci su već nabrojani ispod, pa linija sa nazivima
+   otpada; stavke su poravnate sa nazivom obroka, bez bočne linije. */
+:root[data-theme] .plan-meals-section .meal-card:not(.is-collapsed) .meal-head-items {
+  display: none;
+}
+:root[data-theme] .plan-meals-section .meal-card:not(.is-collapsed) .meal-head .meal-title {
+  font-size: var(--fs-17, 1.0625rem);
+}
+:root[data-theme] .plan-meals-section .meal-card-content:not(.is-hidden):has(.meal-entry) {
+  margin-left: 38px;
+  padding-left: 0;
+  border-left: 0;
+}
+:root[data-theme] .plan-meals-section .section-header > div > p.plan-meals-meta {
+  display: block;
+  max-width: none;
+}

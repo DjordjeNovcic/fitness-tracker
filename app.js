@@ -12442,7 +12442,7 @@ function renderMealEntryRow(entry, isReadOnly, { selecting = false } = {}) {
         <div class="meal-entry-stats">
           <span class="meal-entry-grams">${getEntryRecipeShareText(entry) ? `<span class="meal-entry-share">${escapeHtml(getEntryRecipeShareText(entry))}</span> · ` : ""}${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
           <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
-          <span class="meal-entry-macros">P ${formatDecimal(entry.totals.protein, 1)} · UH ${formatDecimal(entry.totals.carbs, 1)} · M ${formatDecimal(entry.totals.fat, 1)} g</span>
+          <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 0)} · UH ${roundValue(entry.totals.carbs, 0)} · M ${roundValue(entry.totals.fat, 0)} g</span>
         </div>
       ${isReadOnly && !selecting ? `</div>` : `</button>`}
       ${
@@ -12727,6 +12727,12 @@ function renderPlanTab(entries) {
   const planMeals = meals.map((mealLabel) => [mealLabel, entries.filter((entry) => entry.mealLabel === mealLabel)]);
   const isDayLocked = isPlanDayLocked();
   const autoOpenMeal = getAutoOpenMealLabel(planMeals);
+  // „Sledeće“: prvi obrok sa stavkama koji nije pojeden, samo za danas.
+  const nextMealLabel = isSelectedDayToday()
+    ? (planMeals.find(([, mealEntries]) => mealEntries.length && !mealEntries.every((entry) => entry.done)) || [""])[0]
+    : "";
+  const mealsWithEntries = planMeals.filter(([, mealEntries]) => mealEntries.length);
+  const mealsDoneCount = mealsWithEntries.filter(([, mealEntries]) => mealEntries.every((entry) => entry.done)).length;
   const favoriteFoods = getFavoriteFoodsDetailed();
   const mealPreviewRows = getMealPreviewRows(groupedEntries);
   const companionSuggestions = generateCompanionSuggestions();
@@ -12830,7 +12836,11 @@ function renderPlanTab(entries) {
           <h2>Obroci${
             state.selectedWeekTrack === getCurrentWeekTrack() ? "" : ` · ${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}`
           }</h2>
-          <p>${entries.length ? "" : "Još nema stavki za ovaj dan."}</p>
+          <p class="plan-meals-meta">${
+            entries.length
+              ? `${isSelectedDayToday() ? `${mealsDoneCount}/${mealsWithEntries.length} pojedeno · ` : ""}${roundValue(getDayTotals(entries).kcal, 0)} kcal${isSelectedDayToday() ? "" : " u planu"}`
+              : "Još nema stavki za ovaj dan."
+          }</p>
         </div>
         <button class="ghost-button button-with-icon plan-quick-entry-button" type="button" data-action="open-quick-entry">${renderButtonContent("Brzi unos", "edit")}</button>
       </div>
@@ -12839,7 +12849,7 @@ function renderPlanTab(entries) {
           ? `<div class="plan-day-locked-note" role="status"><span aria-hidden="true">🔒</span><span>Dan je zaključan: obroci se ne mogu menjati, samo čekirati kao pojedeni.</span><button class="meal-secondary-action" type="button" data-action="toggle-plan-day-lock">Otključaj</button></div>`
           : ""
       }
-      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu; kanta pored je briše. Kad pojedeš obrok, <strong>čekiraj „Pojedeno“</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Pripremi za više dana</strong> (u otvorenom obroku) kopira obrok na više dana odjednom, a <strong>Alati za plan</strong> ispod prebacuju ceo dan na drugi. P, UH i M su proteini, ugljeni hidrati i masti. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
+      ${renderHelpNote("<strong>„Brzi unos“</strong> gore desno primi ceo obrok u jednoj rečenici („200 g piletine, 150 pirinča i 2 jajeta u ručak“), prepozna namirnice iz tvoje baze, a ti potvrdiš. Ili otvori obrok pa <strong>„Dodaj namirnicu“</strong> jednu po jednu. <strong>Tapni namirnicu</strong> u obroku da joj promeniš količinu ili je obrišeš. Kad pojedeš obrok, <strong>tapni krug levo od naziva</strong>: tek tad se računa u preostale kalorije i u dnevnik. <strong>Pripremi za više dana</strong> (u otvorenom obroku) kopira obrok na više dana odjednom, a <strong>Alati za plan</strong> ispod prebacuju ceo dan na drugi. P, UH i M su proteini, ugljeni hidrati i masti. Plan je nedeljni šablon, isti je svake nedelje dok ga ne promeniš.")}
       <div class="stack">
         ${
           planMeals.length
@@ -12876,27 +12886,45 @@ function renderPlanTab(entries) {
                     <article class="meal-card ${isEditingMeal || isPickingRecipeForMeal(mealLabel) ? "is-editing" : ""} ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${isMealCollapsed ? "is-collapsed" : ""}">
                       <div class="meal-swipe-reveal" aria-hidden="true">Pojedeno</div>
                       <div class="meal-card-header">
-                        <div class="meal-card-topline">
-                          <div class="meal-card-heading">
-                            <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}${getMealTime(mealLabel) ? ` <span class="meal-time">${escapeHtml(getMealTime(mealLabel))}</span>` : ""}</h3>
-                            ${mealEntries.length || isEditingMeal ? "" : `<span class="meal-empty-tag">prazno</span>`}
+                        <div class="meal-head">
+                          ${
+                            mealEntries.length
+                              ? `<label class="meal-status ${isMealDone ? "is-done" : ""} ${isMealPartial ? "is-partial" : ""} ${mealLabel === nextMealLabel ? "is-next" : ""}" title="${isMealDone ? "Pojedeno — tapni da skineš oznaku" : "Označi kao pojedeno"}">
+                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${escapeHtml(mealLabel)}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
+                                  <span class="meal-status-ui" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                                </label>`
+                              : `<span class="meal-status meal-status--empty" aria-hidden="true"><span class="meal-status-ui"></span></span>`
+                          }
+                          <div class="meal-head-main">
+                            <div class="meal-head-titleline">
+                              <h3 class="meal-title">${escapeHtml(mealParts.title || mealLabel)}${getMealTime(mealLabel) ? ` <span class="meal-time">${escapeHtml(getMealTime(mealLabel))}</span>` : ""}</h3>
+                              ${mealLabel === nextMealLabel && !isEditingMeal ? `<span class="meal-next-tag">Sledeće</span>` : ""}
+                              ${mealEntries.length || isEditingMeal ? "" : `<span class="meal-empty-tag">prazno</span>`}
+                              ${prepBadgeCount >= 2 ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">priprema za ${prepBadgeCount} dana</span>` : ""}
+                            </div>
                             ${
-                              prepBadgeCount >= 2
-                                ? `<span class="meal-prep-badge" title="Isti obrok je u planu ${prepBadgeCount} dana">🍲 priprema za ${prepBadgeCount} dana</span>`
-                                : ""
+                              mealEntries.length
+                                ? `<div class="meal-head-items">${escapeHtml(
+                                    getMealEntryBlocks(mealEntries)
+                                      .map((block) => (block.group ? block.group.name : String(block.entry.displayName || block.entry.foodName || "").replace(/\s*\([^)]*\)/g, "").trim()))
+                                      .filter(Boolean)
+                                      .join(" · ")
+                                  )}</div>`
+                                : isEditingMeal
+                                  ? `<div class="meal-head-items">Uređuješ ovaj obrok</div>`
+                                  : ""
                             }
-                            ${isEditingMeal ? `<div class="footer-note">Uređuješ ovaj obrok</div>` : ""}
                           </div>
                           ${
                             mealEntries.length
-                              ? `
-                                <label class="meal-toggle ${isMealDone ? "is-done" : ""}" title="${isMealDone ? "Obrok je pojeden, klikni da skineš oznaku" : "Označi obrok kao pojeden"}">
-                                  <input class="meal-toggle-checkbox" type="checkbox" data-action="toggle-plan-meal-done" data-meal-label="${escapeHtml(mealLabel)}" ${isMealDone ? "checked" : ""} aria-label="${isMealDone ? "Skini oznaku da je obrok pojeden" : "Označi obrok kao pojeden"}" />
-                                  <span class="meal-toggle-ui" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-                                  </span>
-                                  <span class="meal-toggle-text" aria-hidden="true">Pojedeno</span>
-                                </label>
+                              ? `<div class="meal-head-kcal">
+                                  <strong>${isMealPartial ? `<span class="meal-kcal-eaten">${eatenMealKcal}</span> / ` : ""}${roundValue(mealTotals.kcal, 0)}<span class="meal-head-unit"> kcal</span></strong>
+                                  ${
+                                    calorieGoal > 0
+                                      ? `<span class="meal-share" aria-hidden="true"><span style="width:${Math.min(100, Math.max(3, Math.round((mealTotals.kcal / calorieGoal) * 100)))}%"></span></span>`
+                                      : ""
+                                  }
+                                </div>
                                 <button
                                   class="ghost-button meal-collapse-toggle"
                                   type="button"
@@ -12906,44 +12934,13 @@ function renderPlanTab(entries) {
                                   aria-label="${isMealCollapsed ? "Raširi obrok" : "Skupi obrok"}"
                                 >
                                   <svg class="meal-collapse-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                                </button>
-                              `
+                                </button>`
                               : ""
                           }
                         </div>
                         ${
-                          mealEntries.length
-                            ? `
-                              <div class="meal-card-summary">
-                                <div class="meal-card-summary-kcal">
-                                  ${
-                                    isMealPartial
-                                      ? `<strong><span class="meal-kcal-eaten">${eatenMealKcal}</span> / ${roundValue(mealTotals.kcal, 0)} kcal</strong>`
-                                      : `<strong>${roundValue(mealTotals.kcal, 0)} kcal</strong>`
-                                  }
-                                </div>
-                                <div class="meal-card-summary-items">${escapeHtml(
-                                  getMealEntryBlocks(mealEntries)
-                                    .map((block) => (block.group ? block.group.name : String(block.entry.displayName || block.entry.foodName || "").replace(/\s*\([^)]*\)/g, "").trim()))
-                                    .filter(Boolean)
-                                    .join(", ")
-                                )}</div>
-                                <div class="meal-card-summary-macros" aria-label="Makroi obroka">
-                                  <div class="meal-summary-macro">
-                                    <span class="meal-summary-label">Protein</span>
-                                    <strong>P ${formatDecimal(mealTotals.protein, 1)} g</strong>
-                                  </div>
-                                  <div class="meal-summary-macro">
-                                    <span class="meal-summary-label">Ugljeni hidrati</span>
-                                    <strong>UH ${formatDecimal(mealTotals.carbs, 1)} g</strong>
-                                  </div>
-                                  <div class="meal-summary-macro">
-                                    <span class="meal-summary-label">Masti</span>
-                                    <strong>M ${formatDecimal(mealTotals.fat, 1)} g</strong>
-                                  </div>
-                                </div>
-                              </div>
-                            `
+                          mealEntries.length && !isMealCollapsed
+                            ? `<div class="meal-head-macros" aria-label="Makroi obroka">P ${roundValue(mealTotals.protein, 0)} · UH ${roundValue(mealTotals.carbs, 0)} · M ${roundValue(mealTotals.fat, 0)} g${calorieGoal > 0 ? ` <span class="meal-head-share">· ${Math.round((mealTotals.kcal / calorieGoal) * 100)} % dana</span>` : ""}</div>`
                             : ""
                         }
                       </div>
