@@ -19928,3 +19928,13 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   width: 18px;
   height: 18px;
 }
+/* Glavni brojevi (prsten, Uvidi, cilj) u istom fontu kao naslovi. */
+:root[data-theme] .cal-ring-value,
+:root[data-theme] .day-ring-value,
+:root[data-theme] .insights-hero-value,
+:root[data-theme] .goals-hero-value,
+:root[data-theme] .stat-hero-value {
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
