@@ -11843,7 +11843,8 @@ function renderTodayRemindersBanner() {
 function formatShoppingAmount(unit, amount) {
   const value = toNumber(amount);
   if (unit === "piece") {
-    return `${formatDecimal(value, Number.isInteger(value) ? 0 : 1)} kom`;
+    // Kupuje se ceo komad: 2,5 jajeta iz recepata → 3 kom.
+    return `${Math.ceil(roundValue(value, 2))} kom`;
   }
   if (value >= 1000) {
     return `${formatDecimal(value / 1000, value % 1000 === 0 ? 0 : 1)} kg`;
@@ -11856,16 +11857,22 @@ function formatShoppingAmount(unit, amount) {
 // category. Pure client-side (no backend).
 function getShoppingList(weekTrack = state.selectedWeekTrack) {
   const totals = new Map();
-  (store.weeklyPlanEntries || []).forEach((entry) => {
-    if (normalizeWeekTrack(entry.weekTrack) !== weekTrack) {
+  // Recept dodat u plan kao jedna stavka (namirnica „food-recipe-…“) se u
+  // kupovini razloži na sastojke, srazmerno pojedenim gramima — kupuju se
+  // namirnice, ne gotovo jelo. Recept u receptu ide do 3 nivoa dubine.
+  const addItem = (foodId, foodName, grams, depth) => {
+    if (!(grams > 0)) {
       return;
     }
-    const grams = toNumber(entry.grams);
-    if (!grams) {
+    const food = getFoodById(foodId) || store.foods.find((item) => item.name === foodName);
+    const recipe = food?.sourceRecipeId && depth < 3 ? (store.favoriteMeals || []).find((meal) => meal.id === food.sourceRecipeId) : null;
+    const basis = recipe ? getRecipeBasisWeight(recipe, store.foods) : 0;
+    if (recipe && basis > 0 && (recipe.items || []).length) {
+      const factor = grams / basis;
+      recipe.items.forEach((item) => addItem(item.foodId, item.foodName, toNumber(item.grams) * factor, depth + 1));
       return;
     }
-    const food = getFoodById(entry.foodId) || store.foods.find((item) => item.name === entry.foodName);
-    const key = entry.foodId || entry.foodName || (food && food.id);
+    const key = foodId || foodName || (food && food.id);
     if (!key) {
       return;
     }
@@ -11875,12 +11882,18 @@ function getShoppingList(weekTrack = state.selectedWeekTrack) {
     } else {
       totals.set(key, {
         id: String(key),
-        name: (food && food.name) || entry.foodName || "Nepoznata namirnica",
+        name: (food && food.name) || foodName || "Nepoznata namirnica",
         grams,
         unit: food ? getFoodServingUnit(food) : "grams",
         category: (food && String(food.category || "").trim()) || "Ostalo",
       });
     }
+  };
+  (store.weeklyPlanEntries || []).forEach((entry) => {
+    if (normalizeWeekTrack(entry.weekTrack) !== weekTrack) {
+      return;
+    }
+    addItem(entry.foodId, entry.foodName, toNumber(entry.grams), 0);
   });
   return [...totals.values()].sort((a, b) =>
     a.category === b.category ? a.name.localeCompare(b.name, "sr-Latn") : a.category.localeCompare(b.category, "sr-Latn")
