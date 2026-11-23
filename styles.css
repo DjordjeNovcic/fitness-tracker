@@ -19939,3 +19939,19 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   font-weight: 800;
   letter-spacing: -0.04em;
 }
+/* Otvoren obrok: namirnice su uvučene 38px (poravnate sa nazivom pored
+   kruga), ali pretraga i lista predloga idu preko cele širine kartice —
+   uvučene su izgledale pomereno udesno. */
+:root[data-theme] .plan-meals-section .meal-card-content:not(.is-hidden):has(.meal-entry) > .meal-composer {
+  margin-left: -38px;
+}
+/* Istaknut predlog: boji se ceo red (ikonica, naziv i „+“), ne samo sredina. */
+:root[data-theme] .food-suggest-row .food-suggest-item,
+:root[data-theme] .food-suggest-row .food-suggest-item.is-active,
+:root[data-theme] .food-suggest-row .food-suggest-item:hover {
+  background: transparent;
+}
+:root[data-theme] .food-suggest-row:has(.food-suggest-item.is-active),
+:root[data-theme] .food-suggest-row:hover {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
