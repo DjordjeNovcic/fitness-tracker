@@ -19695,3 +19695,141 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     box-shadow: 0 1px 0 var(--line);
   }
 }
+
+/* ============================================================
+   Redizajn, faza 2: obroci na Danas.
+   ============================================================ */
+.meal-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.meal-icon svg {
+  width: 22px;
+  height: 22px;
+}
+:root[data-theme="dark"] .meal-icon {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+:root[data-theme] .meal-card-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+:root[data-theme] .meal-card-topline > .meal-card-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  /* Sažetak (makroi, kcal, namirnice) poravnat sa nazivom, ne sa ikonicom. */
+  :root[data-theme] .plan-meals-section .meal-card-summary {
+    padding-left: 50px;
+  }
+  /* Namirnice kao tabela: naziv | grami | kcal (makroi po namirnici su
+     već zbirno u zaglavlju obroka). */
+  :root[data-theme] .plan-meals-section .meal-entry {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-row {
+    align-items: center;
+    min-height: 44px;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding-left: 50px;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-title-group strong {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: var(--fs-15);
+    font-weight: 500;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-grams {
+    min-width: 44px;
+    text-align: right;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-kcal {
+    min-width: 64px;
+    text-align: right;
+    font-weight: 800;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-macros {
+    display: none;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-action {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+  :root[data-theme] .plan-meals-section .meal-add-row,
+  :root[data-theme] .plan-meals-section .meal-secondary-actions {
+    padding-left: 50px;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] .plan-meals-section .meal-entry-body {
+    padding-left: 4px;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-stats {
+    gap: 8px;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-kcal {
+    min-width: 58px;
+  }
+  :root[data-theme] .plan-meals-section .meal-add-row,
+  :root[data-theme] .plan-meals-section .meal-secondary-actions {
+    padding-left: 4px;
+  }
+  :root[data-theme] .plan-meals-section .meal-icon {
+    width: 36px;
+    height: 36px;
+  }
+  :root[data-theme] .plan-meals-section .meal-card-summary {
+    padding-left: 46px;
+  }
+}
+
+/* Redizajn, faza 3: donja traka — aktivni tab bez pozadinske pilule,
+   ikonica deblja i u boji, natpis podebljan. */
+:root[data-theme] .tab-bar-item.is-active .tab-bar-icon {
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .tab-bar-item .tab-bar-icon svg {
+  transition: stroke-width 0.15s ease, transform 0.15s ease;
+}
+:root[data-theme] .tab-bar-item.is-active .tab-bar-icon svg,
+:root[data-theme] .tab-bar-item.is-active .tab-bar-icon svg * {
+  stroke-width: 2.3;
+}
+:root[data-theme] .tab-bar-item.is-active .tab-bar-icon svg {
+  transform: translateY(-1px) scale(1.06);
+}
+:root[data-theme] .tab-bar-item.is-active .tab-bar-label {
+  font-weight: 800;
+}
