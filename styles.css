@@ -19539,4 +19539,159 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .plan-meals-section .section-header > div > p.plan-meals-meta {
   display: block;
   max-width: none;
+/* ============================================================
+   2026-11-23 — Redizajn, faza 1: vrh ekrana Danas (telefon).
+   Naslov i dani na papiru; petrol ostaje samo na zaobljenoj kartici sa
+   prstenom i makroima u tri kolone. Naslovi stranica i glavni broj Manrope.
+   ============================================================ */
+:root {
+  --rd-card-a: oklch(0.44 0.07 200);
+  --rd-card-b: oklch(0.33 0.06 210);
+  --rd-mint: oklch(0.82 0.11 175);
+  --rd-sky: oklch(0.8 0.07 220);
+  --rd-sand: oklch(0.88 0.05 80);
+}
+:root[data-theme] .hero-title,
+:root[data-theme] .workspace-header h1,
+:root[data-theme] .app-main h1 {
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+@media (max-width: 720px) {
+  /* --- naslov + dani na papiru --- */
+  :root[data-theme] .app-main .day-block > .hero--plan {
+    background: var(--bg);
+    color: var(--ink);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 6px 16px 8px;
+  }
+  :root[data-theme] .day-block > .hero--plan .workspace-header-icon {
+    display: none;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-title {
+    color: var(--ink);
+    font-size: 1.875rem;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-date {
+    color: var(--muted);
+    font-size: var(--fs-14);
+    font-weight: 500;
+  }
+  /* Ova / Sledeća: tiha pločica na papiru */
+  :root[data-theme] .day-block > .hero--plan .hero-week-toggle {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    border: 0;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-week-chip {
+    color: var(--muted);
+    background: transparent;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-week-chip.is-active {
+    background: var(--surface-elevated);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(20, 30, 28, 0.12);
+  }
+  :root[data-theme="dark"] .day-block > .hero--plan .hero-week-toggle {
+    background: rgba(255, 255, 255, 0.07);
+  }
+  :root[data-theme="dark"] .day-block > .hero--plan .hero-week-chip.is-active {
+    background: rgba(255, 255, 255, 0.16);
+    color: var(--ink);
+  }
+  /* dani: aktivni = petrol pilula */
+  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip {
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+    font-weight: 600;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-active {
+    background: var(--accent);
+    color: #fbf8ef;
+    box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+  }
+  :root[data-theme="dark"] .day-block > .hero--plan .hero-day-chips .chip.is-active {
+    color: #0c1417;
+  }
+  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-today:not(.is-active) {
+    color: var(--accent);
+  }
+
+  /* --- kartica sa prstenom --- */
+  :root[data-theme] .app-main .day-block > .plan-summary-section {
+    margin: 4px 0 0;
+    padding: 16px 16px 16px 14px;
+    border-radius: 26px;
+    background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
+    box-shadow: 0 18px 30px -22px oklch(0.3 0.06 210 / 0.9);
+  }
+  :root[data-theme] .day-block .day-ring {
+    grid-template-columns: 132px minmax(0, 1fr);
+    column-gap: 16px;
+  }
+  :root[data-theme] .day-block .day-ring-dial,
+  :root[data-theme] .day-block .day-ring-svg {
+    width: 132px;
+    height: 132px;
+  }
+  :root[data-theme] .day-block .day-ring-track {
+    stroke: oklch(1 0 0 / 0.16);
+  }
+  :root[data-theme] .day-block .day-ring-fill {
+    stroke: var(--rd-mint);
+  }
+  :root[data-theme] .day-block .day-ring-value {
+    font-family: "Manrope", -apple-system, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 2.25rem;
+    letter-spacing: -0.04em;
+  }
+  :root[data-theme] .day-block .day-ring-meta {
+    padding-bottom: 10px;
+    border-bottom: 1px solid oklch(1 0 0 / 0.16);
+  }
+  /* makroi u tri kolone: oznaka, vrednost, traka */
+  :root[data-theme] .day-block .day-ring-macros {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 10px;
+  }
+  :root[data-theme] .day-block .day-ring-macro {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+  }
+  :root[data-theme] .day-block .day-ring-macro-label {
+    font-size: var(--fs-12);
+  }
+  :root[data-theme] .day-block .day-ring-macro-value {
+    font-size: var(--fs-15);
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  :root[data-theme] .day-block .day-ring-macro-value span {
+    font-size: var(--fs-12);
+    font-weight: 600;
+  }
+  :root[data-theme] .day-block .day-ring-macro .progress {
+    height: 6px;
+    margin-top: 4px;
+    border-radius: 99px;
+    background: oklch(1 0 0 / 0.18);
+  }
+  :root[data-theme] .day-block .day-ring-macro:nth-child(1) .progress > span { background: var(--rd-mint); }
+  :root[data-theme] .day-block .day-ring-macro:nth-child(2) .progress > span { background: var(--rd-sky); }
+  :root[data-theme] .day-block .day-ring-macro:nth-child(3) .progress > span { background: var(--rd-sand); }
+  :root[data-theme] .day-block .day-ring-macro .progress[data-state="over"] > span { background: var(--block-over); }
+}
+@media (max-width: 720px) {
+  /* Ista nijansa kao vrh pozadine stranice (bez vidljivog pojasa). */
+  :root[data-theme="light"] .app-main .day-block > .hero--plan {
+    background: #f4efe6;
+  }
+}
+@media (max-width: 720px) {
+  :root[data-theme] body.plan-scrolled .app-main .day-block > .hero--plan {
+    box-shadow: 0 1px 0 var(--line);
+  }
 }

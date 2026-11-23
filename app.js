@@ -859,7 +859,9 @@ function syncThemeColor() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) return;
   const dark = document.documentElement.dataset.theme === "dark";
-  const onPlanBlock = Boolean(state.authUser) && state.authReady && !shouldShowOnboarding() && state.activeTab === "plan";
+  // Na telefonu je vrh Danas sada papir (petrol je samo kartica ispod).
+  const onPlanBlock =
+    Boolean(state.authUser) && state.authReady && !shouldShowOnboarding() && state.activeTab === "plan" && window.innerWidth > 720;
   const color = onPlanBlock ? (dark ? "#042933" : "#05313d") : dark ? "#0c0d0b" : "#f4efe6";
   if (meta.getAttribute("content") !== color) meta.setAttribute("content", color);
 }
