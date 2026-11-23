@@ -5775,7 +5775,6 @@ function updateFoodSuggestions(query, selectedFood = null) {
     const kcal = roundValue(calculateEntry(food, grams).kcal, 0);
     return `
       <div class="food-suggest-row" role="none">
-        <span class="food-suggest-icon" aria-hidden="true">${renderFoodIcon(food)}</span>
         <button type="button" class="food-suggest-item" role="option" aria-selected="false" data-action="pick-plan-food" data-food-id="${food.id}">
           <span class="food-suggest-name">${tokens ? highlightMatch(food.name, tokens) : escapeHtml(food.name)}</span>
           <span class="food-suggest-meta">${meta}</span>
@@ -11555,32 +11554,6 @@ function renderPlanCoffeeRow() {
 
 // Water, coffee and steps live in the daily overview as rows (they used to be
 // cards of their own, two screens below the glance they belong to).
-// Ikonica namirnice po kategoriji: protein, žitarice/UH, masti, voće, povrće, piće.
-function renderFoodIcon(food) {
-  const cat = normalizeLookupValue(food?.category || getRecommendedFoodCategory(food) || "");
-  const name = normalizeLookupValue(food?.name || "");
-  const a = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
-  if (/jogurt|mleko|kefir|skyr|\bsir\b|namaz|pavlak|kajmak/.test(name)) {
-    return `<svg ${a}><path d="M8 3h8v3l2 3v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9l2-3Z"/><path d="M6 12h12"/></svg>`;
-  }
-  if (/pice|napit|sok|kafa/.test(cat + " " + name)) {
-    return `<svg ${a}><path d="M8 3h8l-1 3H9Z"/><path d="M9 6v13a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V6"/><path d="M9 11h6"/></svg>`;
-  }
-  if (/voce|banan|jabuk|malin|jagod|borovn/.test(cat + " " + name)) {
-    return `<svg ${a}><path d="M12 7c-1.5-1.2-5-1.4-6.4 1.3C4.2 11 5.6 16 8 18.6c1.3 1.4 2.6 1.4 4 .6 1.4.8 2.7.8 4-.6C18.4 16 19.8 11 18.4 8.3 17 5.6 13.5 5.8 12 7Z"/><path d="M12 7c0-1.6.6-3 2-4"/></svg>`;
-  }
-  if (/vlakn|povrc|salat|brokol|spanac|tikvic|krastav|paradajz|mesavina/.test(cat + " " + name)) {
-    return `<svg ${a}><path d="M5 19C5 11 10 5 19 5c0 9-6 14-14 14Z"/><path d="M5 19 13 11"/></svg>`;
-  }
-  if (/mast|ulje|puter|badem|orah|lesnik|avokad|sir/.test(cat + " " + name)) {
-    return `<svg ${a}><path d="M12 3.5c3 4 6 7.2 6 10.5a6 6 0 0 1-12 0c0-3.3 3-6.5 6-10.5Z"/></svg>`;
-  }
-  if (/protein|meso|piletin|jaj|tunjev|losos|jogurt|sunk/.test(cat + " " + name)) {
-    return `<svg ${a}><path d="M14.5 4.5a5 5 0 0 1 0 7.1L10 16l-2 .5-.5 2a2 2 0 1 1-2.6-2.6l2-.5.6-2 4.4-4.4"/><path d="M14.5 4.5a5 5 0 0 0-7.1 0"/></svg>`;
-  }
-  return `<svg ${a}><path d="M12 20V9"/><path d="M12 12c-2.5 0-4-1.6-4-4 2.5 0 4 1.6 4 4Zm0 0c2.5 0 4-1.6 4-4-2.5 0-4 1.6-4 4Zm0 4c-2.5 0-4-1.6-4-4 2.5 0 4 1.6 4 4Zm0 0c2.5 0 4-1.6 4-4-2.5 0-4 1.6-4 4Z"/></svg>`;
-}
-
 function renderPlanGlanceRows() {
   const water = getTodayWaterMl();
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));

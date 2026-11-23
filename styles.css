@@ -19955,3 +19955,7 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .food-suggest-row:hover {
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
+/* Predlozi bez ikonice: naziv od leve ivice. */
+:root[data-theme] .food-suggest-row {
+  padding-left: 4px;
+}
