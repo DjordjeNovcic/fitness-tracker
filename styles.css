@@ -19277,3 +19277,15 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .notify-card-title .line-icon {
   color: var(--accent);
 }
+
+/* Obaveštenja: dve kolone kartica imaju razmak (gap: 0 iz Naloga je ostavio
+   polja leve kolone da dodiruju desnu). */
+@media (min-width: 721px) {
+  :root[data-theme] .settings-grid:has(> .notify-card) {
+    column-gap: 40px;
+  }
+  :root[data-theme] .settings-grid > .notify-card:nth-child(-n + 2) {
+    border-top: 0;
+    padding-top: 4px;
+  }
+}
