@@ -5775,6 +5775,7 @@ function updateFoodSuggestions(query, selectedFood = null) {
     const kcal = roundValue(calculateEntry(food, grams).kcal, 0);
     return `
       <div class="food-suggest-row" role="none">
+        <span class="food-suggest-icon" aria-hidden="true">${renderFoodIcon(food)}</span>
         <button type="button" class="food-suggest-item" role="option" aria-selected="false" data-action="pick-plan-food" data-food-id="${food.id}">
           <span class="food-suggest-name">${tokens ? highlightMatch(food.name, tokens) : escapeHtml(food.name)}</span>
           <span class="food-suggest-meta">${meta}</span>
@@ -5786,21 +5787,47 @@ function updateFoodSuggestions(query, selectedFood = null) {
   };
   // Empty field: what you logged recently, at the amount you used last time —
   // the common case ("same breakfast as yesterday") is one tap on "+".
+  // Prazno polje: Nedavno / Favoriti (najčešće) / Sve, sa „+“ za količinu
+  // koja je korišćena prošli put.
   if (!normalizedQuery && !selectedFood && !state.editingEntryId) {
     const recent = getQuickAddFoods(6);
-    if (!recent.length) {
-      list.hidden = true;
-      list.innerHTML = "";
-      return;
-    }
+    const favorites = Object.keys(usage)
+      .map((foodId) => ({ food: getFoodById(foodId), usage: usage[foodId] || {} }))
+      .filter((entry) => entry.food && toNumber(entry.usage.count) >= 2)
+      .sort((a, b) => toNumber(b.usage.count) - toNumber(a.usage.count))
+      .slice(0, 6);
+    let tab = state.suggestTab || (recent.length ? "recent" : "all");
+    if (tab === "recent" && !recent.length) tab = "all";
+    const entries =
+      tab === "favorites"
+        ? favorites
+        : tab === "all"
+          ? [...getSelectableFoods()]
+              .sort((a, b) => String(a.name).localeCompare(String(b.name), "sr-Latn"))
+              .slice(0, 60)
+              .map((food) => ({ food, usage: usage[food.id] || {} }))
+          : recent;
+    const tabs = [
+      ["recent", "Nedavno", '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'],
+      ["favorites", "Favoriti", '<path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z"/>'],
+      ["all", "Sve", '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>'],
+    ];
+    list.setAttribute("role", "listbox");
     list.innerHTML =
-      `<div class="food-suggest-heading">Nedavno</div>` +
-      recent
-        .map(({ food, usage: foodUsage }) => {
-          const grams = quickAddGramsFor(food, foodUsage);
-          return row(food, null, `${formatFoodAmount(food, grams)} · ${roundValue(calculateEntry(food, grams).kcal, 0)} kcal`);
-        })
-        .join("");
+      `<div class="food-suggest-tabs" role="none">${tabs
+        .map(
+          ([id, label, icon]) =>
+            `<button type="button" class="food-suggest-tab ${tab === id ? "is-active" : ""}" tabindex="-1" aria-hidden="true" data-action="set-suggest-tab" data-tab-id="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${label}</button>`
+        )
+        .join("")}</div>` +
+      (entries.length
+        ? `<div class="food-suggest-scroll ${tab === "all" ? "is-long" : ""}" role="none">${entries
+            .map(({ food, usage: foodUsage }) => {
+              const grams = quickAddGramsFor(food, foodUsage);
+              return row(food, null, `${formatFoodAmount(food, grams)} · ${roundValue(calculateEntry(food, grams).kcal, 0)} kcal`);
+            })
+            .join("")}</div>`
+        : `<div class="food-suggest-heading" role="none">${tab === "favorites" ? "Namirnice koje dodaješ češće pojaviće se ovde." : "Još ništa."}</div>`);
     list.hidden = false;
     markActiveSuggestion(list, 0);
     return;
@@ -11528,6 +11555,32 @@ function renderPlanCoffeeRow() {
 
 // Water, coffee and steps live in the daily overview as rows (they used to be
 // cards of their own, two screens below the glance they belong to).
+// Ikonica namirnice po kategoriji: protein, žitarice/UH, masti, voće, povrće, piće.
+function renderFoodIcon(food) {
+  const cat = normalizeLookupValue(food?.category || getRecommendedFoodCategory(food) || "");
+  const name = normalizeLookupValue(food?.name || "");
+  const a = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  if (/jogurt|mleko|kefir|skyr|\bsir\b|namaz|pavlak|kajmak/.test(name)) {
+    return `<svg ${a}><path d="M8 3h8v3l2 3v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9l2-3Z"/><path d="M6 12h12"/></svg>`;
+  }
+  if (/pice|napit|sok|kafa/.test(cat + " " + name)) {
+    return `<svg ${a}><path d="M8 3h8l-1 3H9Z"/><path d="M9 6v13a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V6"/><path d="M9 11h6"/></svg>`;
+  }
+  if (/voce|banan|jabuk|malin|jagod|borovn/.test(cat + " " + name)) {
+    return `<svg ${a}><path d="M12 7c-1.5-1.2-5-1.4-6.4 1.3C4.2 11 5.6 16 8 18.6c1.3 1.4 2.6 1.4 4 .6 1.4.8 2.7.8 4-.6C18.4 16 19.8 11 18.4 8.3 17 5.6 13.5 5.8 12 7Z"/><path d="M12 7c0-1.6.6-3 2-4"/></svg>`;
+  }
+  if (/vlakn|povrc|salat|brokol|spanac|tikvic|krastav|paradajz|mesavina/.test(cat + " " + name)) {
+    return `<svg ${a}><path d="M5 19C5 11 10 5 19 5c0 9-6 14-14 14Z"/><path d="M5 19 13 11"/></svg>`;
+  }
+  if (/mast|ulje|puter|badem|orah|lesnik|avokad|sir/.test(cat + " " + name)) {
+    return `<svg ${a}><path d="M12 3.5c3 4 6 7.2 6 10.5a6 6 0 0 1-12 0c0-3.3 3-6.5 6-10.5Z"/></svg>`;
+  }
+  if (/protein|meso|piletin|jaj|tunjev|losos|jogurt|sunk/.test(cat + " " + name)) {
+    return `<svg ${a}><path d="M14.5 4.5a5 5 0 0 1 0 7.1L10 16l-2 .5-.5 2a2 2 0 1 1-2.6-2.6l2-.5.6-2 4.4-4.4"/><path d="M14.5 4.5a5 5 0 0 0-7.1 0"/></svg>`;
+  }
+  return `<svg ${a}><path d="M12 20V9"/><path d="M12 12c-2.5 0-4-1.6-4-4 2.5 0 4 1.6 4 4Zm0 0c2.5 0 4-1.6 4-4-2.5 0-4 1.6-4 4Zm0 4c-2.5 0-4-1.6-4-4 2.5 0 4 1.6 4 4Zm0 0c2.5 0 4-1.6 4-4-2.5 0-4 1.6-4 4Z"/></svg>`;
+}
+
 function renderPlanGlanceRows() {
   const water = getTodayWaterMl();
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
@@ -21162,6 +21215,13 @@ async function handleDocumentClick(event) {
     return;
   }
 
+  if (action === "set-suggest-tab") {
+    state.suggestTab = String(actionTarget.dataset.tabId || "recent");
+    updateFoodSuggestions("", null);
+    document.querySelector("#food-search-input")?.focus({ preventScroll: true });
+    return;
+  }
+
   if (action === "toggle-sleep-edit") {
     state.sleepEditOpen = !state.sleepEditOpen;
     state.sleepDraftEnergy = null;
@@ -26277,7 +26337,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 document.addEventListener("mousedown", (event) => {
-  if (event.target instanceof Element && event.target.closest(".food-suggest-item, .food-suggest-add")) {
+  if (event.target instanceof Element && event.target.closest(".food-suggest-item, .food-suggest-add, .food-suggest-tab")) {
     event.preventDefault();
   }
 });
@@ -26288,6 +26348,14 @@ document.addEventListener("focusin", (event) => {
   }
   if (input instanceof HTMLInputElement && input.id === "favorite-food-search") {
     updateRecipeFoodSuggestions(input.value, input.value ? resolveFoodFromQuery(input.value) : null);
+  }
+});
+// Dodir na polje koje već ima fokus (npr. posle „+“) ne šalje focusin, a lista
+// je posle dodavanja skrivena: otvori je i na dodir.
+document.addEventListener("click", (event) => {
+  const input = event.target;
+  if (input instanceof HTMLInputElement && input.id === "food-search-input" && document.querySelector("#food-suggest")?.hidden) {
+    updateFoodSuggestions(input.value, input.value ? resolveFoodFromQuery(input.value) : null);
   }
 });
 document.addEventListener("focusout", (event) => {
