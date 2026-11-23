@@ -16874,6 +16874,11 @@ button.training-week-volume-name {
     padding-top: 4px;
     padding-bottom: 4px;
   }
+  /* Gornji razmak isti i kad je sekcija otvorena: inače naslov sa strelicom
+     skoči 9px nadole čim se tapne (4px zatvoreno → 13px otvoreno). */
+  :root[data-theme] main .plan-utilities > .section.section.is-expanded:not(.workspace-header):not(.hero) {
+    padding-top: 4px;
+  }
   :root[data-theme] .plan-glance-rows > .plan-glance-row:last-child:nth-child(odd) {
     grid-template-areas:
       "icon label btn"
