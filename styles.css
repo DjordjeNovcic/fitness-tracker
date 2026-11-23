@@ -19539,6 +19539,7 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .plan-meals-section .section-header > div > p.plan-meals-meta {
   display: block;
   max-width: none;
+}
 /* ============================================================
    2026-11-23 — Redizajn, faza 1: vrh ekrana Danas (telefon).
    Naslov i dani na papiru; petrol ostaje samo na zaobljenoj kartici sa
