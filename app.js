@@ -8858,11 +8858,11 @@ function renderNotificationsSection() {
   return `
     <section class="section notifications-section">
       ${renderSectionLead("Obaveštenja", "")}
-      <p class="footer-note notifications-lead">Podsetnici stižu na Telegram preko tvog bota (podešava se jednom, vidi docs/telegram-bot.md). GitHub ih pokreće na 10 minuta, pa ponekad stignu i do ~15 min kasnije.</p>
+      <p class="footer-note notifications-lead">Podsetnici stižu na Telegram. Proveravaju se na svakih 10 minuta, pa poruka ume da kasni do 15 minuta.</p>
       <div class="settings-grid">
         <article class="status-summary-card notify-card">
           <div class="status-summary-copy">
-            <strong>🍽 Obroci</strong>
+            <strong class="notify-card-title">${renderLineIcon("plan")}Obroci</strong>
             <div class="footer-note">U vreme obroka stiže šta je u planu (stavke, kcal, beleška). Ne stiže za prazan ili već pojeden obrok.</div>
           </div>
           ${renderNotifyToggle("meals.on", n.meals.on, "Podseti me za obroke")}
@@ -8884,7 +8884,7 @@ function renderNotificationsSection() {
 
         <article class="status-summary-card notify-card">
           <div class="status-summary-copy">
-            <strong>💧 Voda</strong>
+            <strong class="notify-card-title">${renderLineIcon("water")}Voda</strong>
             <div class="footer-note">U zadatim razmacima proveri koliko si popio. Ako kasniš za ciljem (${formatDecimal(waterGoal / 1000, 1)} L, raspoređeno kroz dan), stiže „popij vode“. Ako si u planu, ćuti.</div>
           </div>
           ${renderNotifyToggle("water.on", n.water.on, "Podseti me da pijem vodu")}
@@ -8898,7 +8898,7 @@ function renderNotificationsSection() {
 
         <article class="status-summary-card notify-card">
           <div class="status-summary-copy">
-            <strong>🏋️ Trening</strong>
+            <strong class="notify-card-title">${renderLineIcon("training")}Trening</strong>
             <div class="footer-note">Stiže „danas imaš trening“ sa nazivom i brojem vežbi, samo za dane kad je trening u planu.</div>
           </div>
           ${renderNotifyToggle("training.on", n.training.on, "Podseti me za trening")}
@@ -8909,7 +8909,7 @@ function renderNotificationsSection() {
 
         <article class="status-summary-card notify-card">
           <div class="status-summary-copy">
-            <strong>📊 Rezime dana</strong>
+            <strong class="notify-card-title">${renderLineIcon("summary")}Rezime dana</strong>
             <div class="footer-note">Uveče: koliko si pojeo u odnosu na cilj, makroi, voda i koraci.</div>
           </div>
           ${renderNotifyToggle("summary.on", n.summary.on, "Pošalji mi rezime dana")}
@@ -10192,6 +10192,23 @@ function renderInfoIcon() {
 
 function renderRestIcon() {
   return '<svg class="training-rest-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></svg>';
+}
+
+// Linijske ikonice za redove na Danas i naslove u Obaveštenjima (umesto
+// emodžija, koji se razlikuju od uređaja do uređaja i ne prate temu).
+const LINE_ICON_PATHS = {
+  water: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  coffee: '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>',
+  steps: '<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/>',
+  sleep: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  burn: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  weight: '<circle cx="12" cy="5" r="3"/><path d="M6.5 8a2 2 0 0 0-1.9 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.93-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"/>',
+  summary: '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+};
+
+function renderLineIcon(name) {
+  const paths = LINE_ICON_PATHS[name] || TAB_ICON_PATHS[name] || "";
+  return `<svg class="line-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 }
 
 function renderChevronIcon(isOpen) {
@@ -11493,7 +11510,7 @@ function renderPlanCoffeeRow() {
     : "0 šoljica";
   return `
       <div class="plan-glance-row">
-        <span class="plan-glance-icon" aria-hidden="true">☕</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("coffee")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Kafa</span><span class="plan-glance-value">${escapeHtml(value)}</span></div>
           ${cupKcal ? `<div class="plan-glance-sub">${cupKcal} kcal po šoljici</div>` : ""}
@@ -11523,7 +11540,7 @@ function renderPlanGlanceRows() {
   return `
     <div class="plan-glance-rows">
       <div class="plan-glance-row ${waterDone ? "is-done" : ""}">
-        <span class="plan-glance-icon" aria-hidden="true">💧</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("water")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Voda</span><span class="plan-glance-value">${toL(water)} / ${toL(waterTarget)} L</span></div>
           <div class="plan-glance-bar"><span style="width:${waterPct}%"></span></div>
@@ -11533,7 +11550,7 @@ function renderPlanGlanceRows() {
       </div>
       ${renderPlanCoffeeRow()}
       <div class="plan-glance-row ${stepsDone ? "is-done" : ""}">
-        <span class="plan-glance-icon" aria-hidden="true">👟</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("steps")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Koraci</span><span class="plan-glance-value">${fmt(steps)} / ${fmt(stepsGoal)}</span></div>
           ${
@@ -11572,7 +11589,7 @@ function renderPlanSleepRow() {
   const sub = energy ? `energija ${energy}/5 · ${ENERGY_LABELS[energy]}` : hours > 0 ? "energija nije upisana" : "sati sna i energija 1–5";
   return `
       <div class="plan-glance-row plan-glance-row--sleep">
-        <span class="plan-glance-icon" aria-hidden="true">😴</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("sleep")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">San</span><span class="plan-glance-value">${value}</span></div>
           ${
@@ -11620,7 +11637,7 @@ function renderPlanTrainingBurnRow() {
   const open = state.planBurnEditOpen;
   return `
       <div class="plan-glance-row plan-glance-row--burn">
-        <span class="plan-glance-icon" aria-hidden="true">🏋️</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("burn")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Kalorije treninga</span><span class="plan-glance-value">${
             resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "0 kcal"
@@ -11660,7 +11677,7 @@ function renderPlanWeightRow() {
   const open = state.quickWeightOpen;
   return `
       <div class="plan-glance-row">
-        <span class="plan-glance-icon" aria-hidden="true">⚖️</span>
+        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("weight")}</span>
         <div class="plan-glance-copy">
           <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
             days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "nema unosa"
@@ -17386,6 +17403,18 @@ function renderNutritionTab() {
   `;
 }
 
+// Jedan red podešavanja: naslov + opis levo, radnje desno (na telefonu ispod).
+function renderSettingsRow({ title, text = "", badge = "", actions = "" }) {
+  return `
+        <div class="settings-row">
+          <div class="settings-row-copy">
+            <strong class="settings-row-title">${escapeHtml(title)}${badge ? `<span class="settings-row-badge">${escapeHtml(badge)}</span>` : ""}</strong>
+            ${text ? `<p class="settings-row-text">${escapeHtml(text)}</p>` : ""}
+          </div>
+          ${actions ? `<div class="settings-row-actions">${actions}</div>` : ""}
+        </div>`;
+}
+
 function renderAccountSection() {
   const syncStatusTone = getSyncStatusTone();
 
@@ -17420,111 +17449,63 @@ function renderAccountSection() {
               : ""
           }`;
       })()}
-      <div class="settings-grid">
-        <article class="status-summary-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Nalog</strong>
-              <div class="footer-note">Plan, obroci, trening, rutina, merenja, ciljevi i slike su isti na telefonu i računaru.</div>
-            </div>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
-            <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>
-          </div>
-        </article>
-
-        <article class="status-summary-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Obaveštenja</strong>
-              <div class="footer-note">Satnica obroka i podsetnici (obroci, voda, trening, rezime dana) na Telegram.</div>
-            </div>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="ghost-button button-with-icon" type="button" data-action="set-goals-view" data-view="obavestenja">${renderButtonContent("Otvori obaveštenja", "go")}</button>
-          </div>
-        </article>
-
-        <article class="status-summary-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Deljeni proizvodi</strong>
-              <div class="footer-note">Skenirani proizvodi (barkod, naziv, vrednosti na 100 g) idu u zajednički spisak i pojavljuju se drugima u pretrazi. Ostale namirnice ostaju samo tvoje.</div>
-            </div>
-          </div>
-          <label class="settings-toggle">
-            <input type="checkbox" class="routine-checkbox" data-action="toggle-shared-foods" ${isSharedFoodsEnabled() ? "checked" : ""} />
-            <span class="routine-check-ui" aria-hidden="true"></span>
-            <span class="settings-toggle-label">Deli skenirane proizvode i prikaži tuđe</span>
-          </label>
-        </article>
-
-        <article class="status-summary-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Rezervna kopija</strong>
-              <div class="footer-note">Rezervna kopija (JSON fajl) je dodatna sigurnost. Uvezena sa prijavljenim nalogom, upisuje se i na nalog.</div>
-            </div>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="solid-button secondary-button button-with-icon" data-action="export-data">${renderButtonContent("Izvezi kopiju", "save")}</button>
+      <div class="settings-list">
+        ${renderSettingsRow({
+          title: "Nalog",
+          text: "Plan, obroci, trening, rutina, merenja, ciljevi i slike su isti na telefonu i računaru.",
+          actions: `<button class="ghost-button button-with-icon" type="button" data-action="force-refresh" title="Povuci najnoviju verziju aplikacije">${renderButtonContent("Osveži aplikaciju", "refresh")}</button>
+            <button class="ghost-button signout-button button-with-icon" type="button" data-action="sign-out">${renderButtonContent("Odjavi se", "signout")}</button>`,
+        })}
+        ${renderSettingsRow({
+          title: "Obaveštenja",
+          text: "Satnica obroka i podsetnici (obroci, voda, trening, rezime dana) na Telegram.",
+          actions: `<button class="ghost-button button-with-icon" type="button" data-action="set-goals-view" data-view="obavestenja">${renderButtonContent("Otvori obaveštenja", "go")}</button>`,
+        })}
+        ${renderSettingsRow({
+          title: "Deljeni proizvodi",
+          text: "Skenirani proizvodi (barkod, naziv, vrednosti na 100 g) idu u zajednički spisak i pojavljuju se drugima u pretrazi. Ostale namirnice ostaju samo tvoje.",
+          actions: `<label class="settings-toggle">
+              <input type="checkbox" class="routine-checkbox" data-action="toggle-shared-foods" ${isSharedFoodsEnabled() ? "checked" : ""} />
+              <span class="routine-check-ui" aria-hidden="true"></span>
+              <span class="settings-toggle-label">Deli i prikaži tuđe</span>
+            </label>`,
+        })}
+        ${renderSettingsRow({
+          title: "Rezervna kopija",
+          text: "JSON fajl kao dodatna sigurnost. Uvezena sa prijavljenim nalogom, upisuje se i na nalog.",
+          actions: `<button class="ghost-button button-with-icon" type="button" data-action="export-data">${renderButtonContent("Izvezi kopiju", "save")}</button>
             <label class="ghost-button button-with-icon" for="import-json">${renderButtonContent("Uvezi kopiju", "open")}</label>
-            <input id="import-json" type="file" accept="application/json" hidden />
-          </div>
-        </article>
-        <article class="status-summary-card settings-danger-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Isprazni plan obroka</strong>
-              <div class="footer-note">Briše sve obroke iz obe nedelje plana. Čekirani (pojedeni) obroci ostaju, namirnice i recepti se ne diraju. Može da se poništi odmah posle brisanja.</div>
-            </div>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${store.weeklyPlanEntries.length ? "" : "disabled"}>${renderButtonContent("Obriši sve obroke", "delete")}</button>
-          </div>
-        </article>
-        ${renderPrivacyCard()}
-${
+            <input id="import-json" type="file" accept="application/json" hidden />`,
+        })}
+        <div class="settings-row settings-row--privacy">${renderPrivacyCard()}</div>
+      </div>
+
+      <h3 class="settings-group-title">Brisanje</h3>
+      <div class="settings-list settings-list--danger">
+        ${renderSettingsRow({
+          title: "Isprazni plan obroka",
+          text: "Briše sve obroke iz obe nedelje plana. Čekirani (pojedeni) obroci ostaju, namirnice i recepti se ne diraju. Može da se poništi odmah posle brisanja.",
+          actions: `<button class="danger-button button-with-icon" type="button" data-action="delete-all-plan-meals" ${store.weeklyPlanEntries.length ? "" : "disabled"}>${renderButtonContent("Obriši sve obroke", "delete")}</button>`,
+        })}
+        ${
           isDemoAccount()
-            ? `
-        <article class="status-summary-card settings-danger-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Demo nalog</strong>
-              <div class="footer-note">Vrati ovaj nalog na početni plan, namirnice i trening. Briše sve izmene na demo nalogu (i lokalne slike na ovom uređaju). Tvoji lični nalozi se ne diraju.</div>
-            </div>
-            <span class="pill strong pill--warning">Demo</span>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati demo na početak", "refresh")}</button>
-          </div>
-        </article>`
-            : `
-        <article class="status-summary-card settings-danger-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Obriši sve podatke</strong>
-              <div class="footer-note">Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju netaknuti. Ne može da se poništi; izvezi rezervnu kopiju gore ako želiš da nešto sačuvaš.</div>
-            </div>
-            <span class="pill strong pill--warning">Trajno</span>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="danger-button button-with-icon" type="button" data-action="delete-all-data">${renderButtonContent("Obriši sve podatke", "delete")}</button>
-          </div>
-        </article>
-        <article class="status-summary-card settings-danger-card">
-          <div class="status-summary-top">
-            <div class="status-summary-copy">
-              <strong>Obriši nalog</strong>
-              <div class="footer-note">Trajno briše nalog i sve što je na njemu: profil, ciljeve, plan, namirnice, recepte, trening, rutinu, merenja i slike, sa servera i sa ovog uređaja. Ne može da se poništi.</div>
-            </div>
-            <span class="pill strong pill--warning">Trajno</span>
-          </div>
-          <div class="meta-row meta-row--compact status-summary-actions">
-            <button class="danger-button button-with-icon" type="button" data-action="open-delete-account">${renderButtonContent("Obriši nalog", "delete")}</button>
-          </div>
-        </article>`
+            ? renderSettingsRow({
+                title: "Demo nalog",
+                text: "Vrati ovaj nalog na početni plan, namirnice i trening. Briše sve izmene na demo nalogu (i lokalne slike na ovom uređaju). Tvoji lični nalozi se ne diraju.",
+                actions: `<button class="danger-button button-with-icon" type="button" data-action="reset-demo-data">${renderButtonContent("Vrati demo na početak", "refresh")}</button>`,
+              })
+            : `${renderSettingsRow({
+                title: "Obriši sve podatke",
+                badge: "Trajno",
+                text: "Briše plan, trening, rutinu, dnevnik, merenja i slike. Namirnice, recepti, profil i ciljevi (kalorije/makroi) ostaju. Ne može da se poništi; pre toga izvezi rezervnu kopiju ako želiš nešto da sačuvaš.",
+                actions: `<button class="danger-button button-with-icon" type="button" data-action="delete-all-data">${renderButtonContent("Obriši sve podatke", "delete")}</button>`,
+              })}
+        ${renderSettingsRow({
+                title: "Obriši nalog",
+                badge: "Trajno",
+                text: "Trajno briše nalog i sve na njemu: profil, ciljeve, plan, namirnice, recepte, trening, rutinu, merenja i slike, sa servera i sa ovog uređaja. Ne može da se poništi.",
+                actions: `<button class="danger-button button-with-icon" type="button" data-action="open-delete-account">${renderButtonContent("Obriši nalog", "delete")}</button>`,
+              })}`
         }
       </div>
     </section>

@@ -17276,22 +17276,10 @@ button.training-week-volume-name {
   }
 }
 @media (min-width: 360px) and (max-width: 720px) {
-  /* Ciljevi: Cilj / Nedeljno / Nalog u redu sa naslovom. */
+  /* Ciljevi: četiri dugmeta (Cilj / Nedeljno / Nalog / Obaveštenja) ne
+     staju pored naslova — idu u red ispod, kao na Napretku. */
   :root[data-theme] .app-main .workspace-header + .seg-nav:has([data-action="set-goals-view"]) {
-    margin-top: -50px;
-    margin-left: auto;
-    margin-bottom: 0;
-    width: max-content;
-    position: relative;
-    z-index: 1;
-    transform: translateY(-5px);
     gap: 4px;
-  }
-  :root[data-theme] .seg-nav:has([data-action="set-goals-view"]) .seg-nav-btn {
-    padding-inline: 10px;
-    min-height: 34px;
-    font-size: var(--fs-14);
-    flex: 0 0 auto;
   }
 }
 @media (max-width: 720px) {
@@ -19149,4 +19137,143 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 /* Prosek planirane nedelje ispod makroa u računaljci. */
 .plan-week-average {
   margin-top: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+   2026-11-23 — Ciljevi → Nalog kao lista podešavanja. Svaki red: naslov i
+   opis levo, radnje desno (≥720px) ili ispod (telefon). Jedna kolona, jedan
+   ritam, hairline između redova; opasne radnje u svojoj grupi na dnu.
+   --------------------------------------------------------------------------- */
+:root[data-theme] .settings-account-section .settings-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+:root[data-theme] .settings-account-section .settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+:root[data-theme] .settings-account-section .settings-row-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+:root[data-theme] .settings-account-section .settings-row-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--fs-15, 0.9375rem);
+  font-weight: 700;
+  color: var(--ink);
+}
+:root[data-theme] .settings-account-section .settings-row-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--status-warning-border);
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  font-size: var(--fs-12, 0.75rem);
+  font-weight: 700;
+  line-height: 1.5;
+}
+:root[data-theme] .settings-account-section .settings-row-text {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: var(--fs-13, 0.8125rem);
+  line-height: 1.5;
+}
+:root[data-theme] .settings-account-section .settings-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+:root[data-theme] .settings-account-section .settings-row-actions > .ghost-button,
+:root[data-theme] .settings-account-section .settings-row-actions > .danger-button {
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+:root[data-theme] .settings-account-section .settings-row-actions > .settings-toggle {
+  margin: 0;
+}
+:root[data-theme] .settings-account-section .settings-group-title {
+  margin: 28px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-12, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Privatnost: ceo red je sklopivi, bez sopstvene kartice. */
+:root[data-theme] .settings-account-section .settings-row--privacy {
+  display: block;
+  padding: 6px 0;
+}
+:root[data-theme] .settings-account-section .settings-row--privacy > .privacy-card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .settings-account-section .settings-row--privacy > .privacy-card[open] > .status-summary-copy {
+  padding: 4px 0 12px;
+}
+@media (max-width: 719px) {
+  /* Telefon: dugmad u redu ispod opisa dele širinu. */
+  :root[data-theme] .settings-account-section .settings-row-actions > .ghost-button,
+  :root[data-theme] .settings-account-section .settings-row-actions > .danger-button {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+@media (min-width: 720px) {
+  :root[data-theme] .settings-account-section .settings-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 32px;
+  }
+  :root[data-theme] .settings-account-section .settings-row-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+}
+
+/* 2026-11-23 — linijske ikonice umesto emodžija (Danas redovi, Obaveštenja). */
+.line-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+:root[data-theme] .plan-glance-icon {
+  color: var(--accent);
+}
+:root[data-theme] .plan-glance-icon .line-icon {
+  width: 17px;
+  height: 17px;
+}
+@media (max-width: 720px) {
+  :root[data-theme] .plan-glance-row .plan-glance-icon .line-icon {
+    width: 15px;
+    height: 15px;
+  }
+}
+:root[data-theme] .notify-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+:root[data-theme] .notify-card-title .line-icon {
+  color: var(--accent);
 }
