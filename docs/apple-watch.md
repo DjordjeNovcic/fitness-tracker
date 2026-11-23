@@ -71,8 +71,13 @@ Personal access tokens → Fine-grained tokens → Generate new token**:
    Vrednosti biraš tapom na polje → **Select Variable**. Polja koja nemaš
    samo izostavi.
 
-Pokreni prečicu jednom ručno (▶). Za minut-dva stiže poruka na Telegram.
-Ako ne stigne, pogledaj **Actions → Sat (Apple Health)** na GitHub-u: tamo
+Pokreni prečicu jednom ručno (▶). Za minut-dva u **Actions → Sat (Apple
+Health)** na GitHub-u stoji novo pokretanje, a podaci su u aplikaciji pod
+Danas → Aktivnost sa sata (tamo ih možeš i obrisati dok testiraš). Telegram
+javlja tek uveče, posle 21h. Ako pokretanja nema, dodaj **Show Content**
+(Contents of URL) iza Get Contents of URL: prazno znači da je GitHub primio
+zahtev, inače piše greška. Česta greška: promenljive upadnu u ime polja
+`client_payload` umesto u polja unutar njega. U samom pokretanju na GitHub-u
 piše šta je stiglo i šta fali.
 
 ## 4. Neka radi sama (npr. na svakih pola sata)

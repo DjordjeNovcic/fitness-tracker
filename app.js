@@ -11731,6 +11731,8 @@ function renderPlanActivitySection() {
     if (activity.standHours != null) tiles.push({ text: `${activity.standHours} h stajanja` });
     if (activity.steps != null) tiles.push({ text: `${activity.steps.toLocaleString("sr-RS")} koraka` });
     if (activity.distanceKm != null) tiles.push({ text: `${formatDecimal(activity.distanceKm, 2)} km` });
+    if (activity.sleepHours != null) tiles.push({ text: `${formatDecimal(activity.sleepHours, 1)} h sna` });
+    if (activity.weightKg != null) tiles.push({ text: `${formatDecimal(activity.weightKg, 1)} kg` });
   }
 
   return `
@@ -11782,7 +11784,10 @@ function renderPlanActivitySection() {
                     )
                     .join("")}</div>`
                 : ""
-            }`
+            }
+            <div class="plan-activity-reset">
+              <button type="button" class="text-link-button" data-action="clear-activity-today">Obriši današnje podatke sa sata</button>
+            </div>`
           : `<div class="empty">Još nema podataka za danas. Tapni „Sa sata” da pokreneš prečicu, ili „Iz clipboard-a” ako si već kopirao/la podatke.</div>`
       }
     </details>
@@ -15517,6 +15522,50 @@ function applyActivityImport(record) {
     const isLatest = !store.measurements.some((entry) => normalizeDateValue(entry.date) > record.date && toNumber(entry.weightKg) > 0);
     if (isLatest) {
       store.profile.weightKg = record.weightKg;
+    }
+  }
+  persist();
+  return true;
+}
+
+// Poništi ono što je sat (ili Prečica) upisao za taj dan: zapis aktivnosti,
+// Move kcal u „Potrošnja sa sata“, korake, sate sna i merenje težine iz uvoza.
+// Dira samo vrednosti koje su i dalje iste kao uvezene — ručno promenjene
+// ostaju. healthAppliedAt se ne briše, pa isti paket ne upadne ponovo; sledeće
+// slanje sa sata (novi receivedAt) upiše dan iznova.
+function clearActivityForDate(dateValue) {
+  const record = getActivityForDate(dateValue);
+  if (!record) {
+    return false;
+  }
+  delete store.activityByDate[dateValue];
+
+  const weekday = weekdayFromDateValue(dateValue);
+  if (weekday && record.moveKcal != null && toNumber(store.trainingBurnByWeekday?.[weekday]) === record.moveKcal) {
+    delete store.trainingBurnByWeekday[weekday];
+  }
+  if (record.steps != null && toNumber(store.stepsByDate?.[dateValue]) === record.steps) {
+    delete store.stepsByDate[dateValue];
+  }
+  const sleep = store.sleepByDate?.[dateValue];
+  if (record.sleepHours != null && sleep && toNumber(sleep.hours) === record.sleepHours) {
+    const { hours, ...rest } = sleep;
+    if (Object.keys(rest).length) {
+      store.sleepByDate[dateValue] = rest;
+    } else {
+      delete store.sleepByDate[dateValue];
+    }
+  }
+  if (Array.isArray(store.measurements)) {
+    const before = store.measurements.length;
+    store.measurements = store.measurements.filter((entry) => !(normalizeDateValue(entry.date) === dateValue && entry.source === "health"));
+    if (store.measurements.length !== before && record.weightKg != null && toNumber(store.profile.weightKg) === record.weightKg) {
+      const latest = store.measurements
+        .filter((entry) => toNumber(entry.weightKg) > 0)
+        .sort((a, b) => normalizeDateValue(b.date).localeCompare(normalizeDateValue(a.date)))[0];
+      if (latest) {
+        store.profile.weightKg = toNumber(latest.weightKg);
+      }
     }
   }
   persist();
@@ -22917,6 +22966,22 @@ async function handleDocumentClick(event) {
         tone: "error",
         duration: 3400,
       });
+    }
+    return;
+  }
+
+  if (action === "clear-activity-today") {
+    const confirmed = await confirmAction({
+      title: "Obrisati današnje podatke sa sata?",
+      message: "Brišu se Move kcal, koraci, san i težina koje je sat upisao za danas. Ono što si ručno promenio ostaje. Sledeće slanje sa sata ih upiše ponovo.",
+      confirmLabel: "Obriši",
+    });
+    if (!confirmed) {
+      return;
+    }
+    if (clearActivityForDate(getTodayDateValue())) {
+      render();
+      showFeedbackToast({ title: "Obrisano", detail: "Današnji podaci sa sata su uklonjeni.", tone: "success", duration: 2600 });
     }
     return;
   }

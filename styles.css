@@ -2347,6 +2347,10 @@ label.is-invalid textarea:focus {
   margin-top: 12px;
 }
 
+.plan-activity-reset {
+  margin-top: 12px;
+}
+
 .help-note-body code {
   display: inline-block;
   margin: 3px 0;

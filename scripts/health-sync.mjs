@@ -26,22 +26,23 @@ function log(...args) {
   console.log("[health]", ...args);
 }
 
-// Isto kao parseRunNumber u app.js: „8.432“ su hiljade, „7,25“ decimale.
+// „8.432“ i „1.234.567“ su hiljade, sve ostalo posle poslednjeg separatora je
+// decimalni deo. Zbir iz Prečice stiže neokrugljen („97,860526442568“,
+// „26442,568“ sekundi sna), pa se hiljade prepoznaju samo po grupama od 3.
 function parseNumber(value) {
   const cleaned = String(value ?? "").replace(/[^0-9.,\-]/g, "");
   if (!cleaned) {
     return 0;
   }
+  if (/^-?\d{1,3}([.,]\d{3})+$/.test(cleaned)) {
+    return Number(cleaned.replace(/[.,]/g, "")) || 0;
+  }
   const lastSep = Math.max(cleaned.lastIndexOf(","), cleaned.lastIndexOf("."));
   if (lastSep === -1) {
     return Number(cleaned) || 0;
   }
-  const decimalsAfter = cleaned.length - lastSep - 1;
-  if (decimalsAfter >= 1 && decimalsAfter <= 2) {
-    const intPart = cleaned.slice(0, lastSep).replace(/[.,]/g, "");
-    return Number(`${intPart}.${cleaned.slice(lastSep + 1)}`) || 0;
-  }
-  return Number(cleaned.replace(/[.,]/g, "")) || 0;
+  const intPart = cleaned.slice(0, lastSep).replace(/[.,]/g, "");
+  return Number(`${intPart}.${cleaned.slice(lastSep + 1)}`) || 0;
 }
 
 const round = (value, digits = 0) => Math.round(value * 10 ** digits) / 10 ** digits;
