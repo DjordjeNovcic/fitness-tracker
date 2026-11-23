@@ -683,7 +683,6 @@ const state = {
   trainingBuilder: null,
   selectedWeekday: getTodayWeekday(),
   selectedWeekTrack: getCurrentWeekTrack(),
-  planSummaryExpanded: getInitialPlanSummaryExpanded(),
   planSupplementsExpanded: getInitialPlanSupplementsExpanded(),
   planQuickExpanded: getInitialPlanQuickExpanded(),
   shoppingExpanded: false,
@@ -9215,13 +9214,6 @@ function getInitialPlanQuickExpanded() {
   return false;
 }
 
-function getInitialPlanSummaryExpanded() {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  return window.innerWidth >= 720;
-}
-
 function getInitialPlanSupplementsExpanded() {
   if (typeof window === "undefined") {
     return true;
@@ -9232,11 +9224,6 @@ function getInitialPlanSupplementsExpanded() {
 // Pregled i suplementi pamte tvoj poslednji izbor (store.ui, putuje sa nalogom).
 // Širina ekrana je samo podrazumevana vrednost dok ih jednom ne otvoriš ili
 // zatvoriš — ranije su se na telefonu sklapali pri svakom otvaranju app-a.
-function isPlanSummaryExpanded() {
-  const saved = store.ui?.plan?.summaryExpanded;
-  return typeof saved === "boolean" ? saved : state.planSummaryExpanded;
-}
-
 function isPlanSupplementsExpanded() {
   const saved = store.ui?.plan?.supplementsExpanded;
   return typeof saved === "boolean" ? saved : state.planSupplementsExpanded;
@@ -10469,20 +10456,6 @@ function filterFoodsListInline(query) {
   }
 }
 
-function renderMacroCards(totals, options = {}) {
-  const metrics = [
-    { label: "Kalorije", value: roundValue(totals.kcal, 0), goal: roundValue(store.goals.calories, 0), unit: "kcal", kind: "limit" },
-    { label: "Proteini", value: roundValue(totals.protein, 1), goal: store.goals.protein, unit: "g", kind: "target" },
-    { label: "Ugljeni hidrati", value: roundValue(totals.carbs, 1), goal: store.goals.carbs, unit: "g", kind: "limit" },
-    { label: "Masti", value: roundValue(totals.fat, 1), goal: store.goals.fat, unit: "g", kind: "limit" },
-  ];
-
-  // The plan summary already shows calories as the big headline, so the
-  // calorie card is redundant noise there.
-  const visible = options.excludeCalories ? metrics.filter((metric) => metric.label !== "Kalorije") : metrics;
-  return renderMetricsGrid(visible);
-}
-
 // Track which foods get logged so the composer can offer one-tap re-adds of the
 // ones you actually use. Keyed by foodId; remembers count, last amount and when.
 function recordFoodUsage(foodId, grams) {
@@ -11522,7 +11495,45 @@ function coffeeCupsLabel(cups) {
   return "šoljica";
 }
 
-function renderPlanCoffeeRow() {
+// Danas, dnevne metrike (Fit Tracker 2.0, faza 2): voda, koraci, kafa i san
+// su pločice u dve kolone (vrednost i jedna radnja na dohvat palca), a
+// kalorije treninga i težina manji redovi ispod. Pločica koja ima otvoren
+// unos zauzme obe kolone, da polja ne budu zgnječena.
+function renderTodayTile({ key, icon, label, value, meta = "", action = "", undo = "", editor = "", done = false }) {
+  return `
+      <div class="today-tile today-tile--${key}${done ? " is-done" : ""}${editor ? " is-editing" : ""}">
+        <div class="today-tile-head">
+          <span class="today-tile-icon" aria-hidden="true">${renderLineIcon(icon)}</span>
+          <span class="today-tile-label">${label}</span>
+          ${undo}
+        </div>
+        <div class="today-tile-main">
+          <span class="today-tile-value">${value}</span>
+          ${action}
+        </div>
+        ${editor || (meta ? `<div class="today-tile-meta">${meta}</div>` : "")}
+      </div>`;
+}
+
+function renderTodayTileBar(pct, goalText) {
+  return `<span class="today-tile-bar" aria-hidden="true"><span style="width:${pct}%"></span></span><span class="today-tile-goal">${goalText}</span>`;
+}
+
+function renderTodayRow({ key, icon, label, value, sub = "", action = "", editor = "" }) {
+  return `
+      <div class="today-row today-row--${key}${editor ? " is-editing" : ""}">
+        <span class="today-row-icon" aria-hidden="true">${renderLineIcon(icon)}</span>
+        <div class="today-row-copy">
+          <span class="today-row-label">${label}</span>
+          ${editor ? "" : sub ? `<span class="today-row-sub">${sub}</span>` : ""}
+        </div>
+        <span class="today-row-value">${value}</span>
+        ${action}
+        ${editor ? `<div class="today-row-editor">${editor}</div>` : ""}
+      </div>`;
+}
+
+function renderPlanCoffeeTile() {
   // Samo na današnjem danu. Kafa se beleži po datumu i ulazi u zbir samo danas
   // (getSelectedDayCoffeeTotals), pa bi na utorku pisalo „1 šoljica · 10 kcal“
   // pored prstena koji tih 10 kcal ne broji — kontradikcija na istom ekranu.
@@ -11531,29 +11542,18 @@ function renderPlanCoffeeRow() {
   }
   const cups = getTodayCoffeeCups();
   const cupKcal = getCoffeeCupKcal();
-  // Bez kcal po šoljici red je samo brojač — tada ni ne piše kalorije, umesto
-  // da svuda kači „· 0 kcal“.
-  const value = cups
-    ? `${cups} ${coffeeCupsLabel(cups)}${cupKcal ? ` · ${cups * cupKcal} kcal` : ""}`
-    : "0 šoljica";
-  return `
-      <div class="plan-glance-row">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("coffee")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Kafa</span><span class="plan-glance-value">${escapeHtml(value)}</span></div>
-          ${cupKcal ? `<div class="plan-glance-sub">${cupKcal} kcal po šoljici</div>` : ""}
-        </div>
-        ${
-          cups > 0
-            ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-coffee" data-cups="-1" aria-label="Skini jednu šoljicu kafe">−</button>`
-            : ""
-        }
-        <button class="plan-glance-btn" type="button" data-action="add-coffee" data-cups="1" aria-label="Dodaj šoljicu kafe${cupKcal ? `, ${cupKcal} kcal` : ""}">+1</button>
-      </div>`;
+  // Bez kcal po šoljici pločica je samo brojač — tada ni ne piše kalorije.
+  return renderTodayTile({
+    key: "coffee",
+    icon: "coffee",
+    label: "Kafa",
+    value: `${cups}<span class="today-tile-unit"> ${coffeeCupsLabel(cups)}</span>`,
+    meta: cupKcal ? `<span class="today-tile-sub">${cups ? `${cups * cupKcal} kcal · ` : ""}${cupKcal} kcal po šoljici</span>` : "",
+    undo: cups > 0 ? `<button class="today-undo" type="button" data-action="add-coffee" data-cups="-1" aria-label="Skini jednu šoljicu kafe">−</button>` : "",
+    action: `<button class="today-btn" type="button" data-action="add-coffee" data-cups="1" aria-label="Dodaj šoljicu kafe${cupKcal ? `, ${cupKcal} kcal` : ""}">+1</button>`,
+  });
 }
 
-// Water, coffee and steps live in the daily overview as rows (they used to be
-// cards of their own, two screens below the glance they belong to).
 function renderPlanGlanceRows() {
   const water = getTodayWaterMl();
   const waterTarget = Math.max(0, Math.round(toNumber(store.goals?.waterMl) || 2500));
@@ -11565,34 +11565,38 @@ function renderPlanGlanceRows() {
   const stepsPct = stepsGoal ? Math.min(100, Math.round((steps / stepsGoal) * 100)) : 0;
   const stepsDone = stepsGoal > 0 && steps >= stepsGoal;
   const fmt = (n) => Math.round(n).toLocaleString("sr-RS");
+  const tiles = [
+    renderTodayTile({
+      key: "water",
+      icon: "water",
+      label: "Voda",
+      value: `${toL(water)}<span class="today-tile-unit"> L</span>`,
+      done: waterDone,
+      meta: renderTodayTileBar(waterPct, `od ${toL(waterTarget)} L`),
+      undo: water > 0 ? `<button class="today-undo" type="button" data-action="add-water" data-ml="-250" aria-label="Skini 250 ml vode">−</button>` : "",
+      action: `<button class="today-btn" type="button" data-action="add-water" data-ml="250" aria-label="Dodaj čašu vode, 250 ml">+250</button>`,
+    }),
+    renderTodayTile({
+      key: "steps",
+      icon: "steps",
+      label: "Koraci",
+      value: fmt(steps),
+      done: stepsDone,
+      meta: renderTodayTileBar(stepsPct, `od ${fmt(stepsGoal)}`),
+      editor: state.stepsEditOpen
+        ? `<div class="plan-glance-edit today-editor">
+            <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${steps || ""}" aria-label="Koraci danas" />
+            <button class="solid-button" type="button" data-action="set-steps">Sačuvaj</button>
+          </div>`
+        : "",
+      action: `<button class="today-btn ${state.stepsEditOpen ? "is-active" : ""}" type="button" data-action="toggle-steps-edit" aria-label="${state.stepsEditOpen ? "Zatvori unos koraka" : "Unesi korake"}">${state.stepsEditOpen ? "Zatvori" : "Unesi"}</button>`,
+    }),
+    renderPlanCoffeeTile(),
+    renderPlanSleepTile(),
+  ].filter(Boolean);
   return `
-    <div class="plan-glance-rows">
-      <div class="plan-glance-row ${waterDone ? "is-done" : ""}">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("water")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Voda</span><span class="plan-glance-value">${toL(water)} / ${toL(waterTarget)} L</span></div>
-          <div class="plan-glance-bar"><span style="width:${waterPct}%"></span></div>
-        </div>
-        ${water > 0 ? `<button class="plan-glance-btn plan-glance-btn--quiet" type="button" data-action="add-water" data-ml="-250" aria-label="Skini 250 ml vode">−</button>` : ""}
-        <button class="plan-glance-btn" type="button" data-action="add-water" data-ml="250" aria-label="Dodaj čašu vode, 250 ml">+250</button>
-      </div>
-      ${renderPlanCoffeeRow()}
-      <div class="plan-glance-row ${stepsDone ? "is-done" : ""}">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("steps")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Koraci</span><span class="plan-glance-value">${fmt(steps)} / ${fmt(stepsGoal)}</span></div>
-          ${
-            state.stepsEditOpen
-              ? `<div class="plan-glance-edit">
-                  <input class="steps-input" id="steps-input" type="number" inputmode="numeric" min="0" step="100" placeholder="npr. 8432 sa sata" value="${steps || ""}" aria-label="Koraci danas" />
-                  <button class="solid-button" type="button" data-action="set-steps">Sačuvaj</button>
-                </div>`
-              : `<div class="plan-glance-bar"><span style="width:${stepsPct}%"></span></div>`
-          }
-        </div>
-        <button class="plan-glance-btn ${state.stepsEditOpen ? "is-active" : ""}" type="button" data-action="toggle-steps-edit" aria-label="${state.stepsEditOpen ? "Zatvori unos koraka" : "Unesi korake"}">${state.stepsEditOpen ? "Zatvori" : "Unesi"}</button>
-      </div>
-      ${renderPlanSleepRow()}
+    <div class="today-tiles">${tiles.join("")}</div>
+    <div class="today-rows">
       ${renderPlanTrainingBurnRow()}
       ${renderPlanWeightRow()}
     </div>`;
@@ -11607,41 +11611,39 @@ function getSleepEntry(dateValue = getTodayDateValue()) {
   return entry && typeof entry === "object" ? entry : null;
 }
 
-function renderPlanSleepRow() {
+function renderPlanSleepTile() {
   const entry = getSleepEntry();
   const open = state.sleepEditOpen;
   const hours = toNumber(entry?.hours);
   const energy = Math.round(toNumber(entry?.energy));
   const draftEnergy = Math.round(toNumber(state.sleepDraftEnergy ?? energy));
-  const value = hours > 0 ? `${formatDecimal(hours, 1)} h${energy ? ` · ${energy}/5` : ""}` : energy ? `energija ${energy}/5` : "—";
+  const value = hours > 0 ? `${formatDecimal(hours, 1)}<span class="today-tile-unit"> h</span>` : "—";
   const sub = energy ? `energija ${energy}/5 · ${ENERGY_LABELS[energy]}` : hours > 0 ? "energija nije upisana" : "sati sna i energija 1–5";
-  return `
-      <div class="plan-glance-row plan-glance-row--sleep">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("sleep")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">San</span><span class="plan-glance-value">${value}</span></div>
-          ${
-            open
-              ? `<div class="plan-sleep-edit">
-                  <label class="plan-sleep-hours">
-                    <input id="sleep-hours-input" type="number" inputmode="decimal" min="0" max="16" step="0.5" placeholder="7,5" value="${hours || ""}" aria-label="Sati sna" />
-                    <span aria-hidden="true">h</span>
-                  </label>
-                  <div class="plan-sleep-energy" role="radiogroup" aria-label="Energija danas">
-                    ${[1, 2, 3, 4, 5]
-                      .map(
-                        (level) =>
-                          `<button type="button" class="plan-sleep-energy-btn ${draftEnergy === level ? "is-active" : ""}" role="radio" aria-checked="${draftEnergy === level}" data-action="pick-sleep-energy" data-energy="${level}" aria-label="Energija ${level}: ${ENERGY_LABELS[level]}">${level}</button>`
-                      )
-                      .join("")}
-                  </div>
-                  <button class="solid-button" type="button" data-action="save-sleep">Sačuvaj</button>
-                </div>`
-              : `<div class="plan-glance-sub">${sub}</div>`
-          }
-        </div>
-        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-sleep-edit" aria-label="${open ? "Zatvori unos sna" : "Unesi san i energiju"}">${open ? "Zatvori" : "Unesi"}</button>
-      </div>`;
+  return renderTodayTile({
+    key: "sleep",
+    icon: "sleep",
+    label: "San",
+    value,
+    meta: `<span class="today-tile-sub">${sub}</span>`,
+    editor: open
+      ? `<div class="plan-sleep-edit today-editor">
+          <label class="plan-sleep-hours">
+            <input id="sleep-hours-input" type="number" inputmode="decimal" min="0" max="16" step="0.5" placeholder="7,5" value="${hours || ""}" aria-label="Sati sna" />
+            <span aria-hidden="true">h</span>
+          </label>
+          <div class="plan-sleep-energy" role="radiogroup" aria-label="Energija danas">
+            ${[1, 2, 3, 4, 5]
+              .map(
+                (level) =>
+                  `<button type="button" class="plan-sleep-energy-btn ${draftEnergy === level ? "is-active" : ""}" role="radio" aria-checked="${draftEnergy === level}" data-action="pick-sleep-energy" data-energy="${level}" aria-label="Energija ${level}: ${ENERGY_LABELS[level]}">${level}</button>`
+              )
+              .join("")}
+          </div>
+          <button class="solid-button" type="button" data-action="save-sleep">Sačuvaj</button>
+        </div>`
+      : "",
+    action: `<button class="today-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-sleep-edit" aria-label="${open ? "Zatvori unos sna" : "Unesi san i energiju"}">${open ? "Zatvori" : "Unesi"}</button>`,
+  });
 }
 
 // Kalorije treninga (trening, stomak, kardio) za dan na ekranu — isti podaci
@@ -11663,37 +11665,33 @@ function renderPlanTrainingBurnRow() {
       ? "sa sata"
       : "upiši potrošene kalorije";
   const open = state.planBurnEditOpen;
-  return `
-      <div class="plan-glance-row plan-glance-row--burn">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("burn")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Kalorije treninga</span><span class="plan-glance-value">${
-            resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "0 kcal"
-          }</span></div>
+  return renderTodayRow({
+    key: "burn",
+    icon: "burn",
+    label: "Kalorije treninga",
+    value: resolved > 0 ? `${roundValue(resolved, 0)} kcal` : "0 kcal",
+    sub: escapeHtml(sub),
+    editor: open
+      ? `<form id="plan-burn-form" class="plan-burn-form">
+          ${sections
+            .map(
+              (section) => `
+          <label class="plan-burn-field">
+            <span>${escapeHtml(section.label)}</span>
+            <input name="section-${section.id}" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="kcal" value="${section.kcal || ""}" />
+          </label>`
+            )
+            .join("")}
+          <button class="solid-button" type="submit">Sačuvaj</button>
           ${
-            open
-              ? `<form id="plan-burn-form" class="plan-burn-form">
-                  ${sections
-                    .map(
-                      (section) => `
-                  <label class="plan-burn-field">
-                    <span>${escapeHtml(section.label)}</span>
-                    <input name="section-${section.id}" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="kcal" value="${section.kcal || ""}" />
-                  </label>`
-                    )
-                    .join("")}
-                  <button class="solid-button" type="submit">Sačuvaj</button>
-                  ${
-                    watchBurn > 0 && sectionTotal === 0
-                      ? `<p class="plan-glance-sub plan-burn-note">Zbir zamenjuje ${roundValue(watchBurn, 0)} kcal sa sata.</p>`
-                      : ""
-                  }
-                </form>`
-              : `<div class="plan-glance-sub">${escapeHtml(sub)}</div>`
+            watchBurn > 0 && sectionTotal === 0
+              ? `<p class="plan-glance-sub plan-burn-note">Zbir zamenjuje ${roundValue(watchBurn, 0)} kcal sa sata.</p>`
+              : ""
           }
-        </div>
-        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-plan-burn-edit" aria-label="${open ? "Zatvori unos kalorija treninga" : "Unesi kalorije treninga"}">${open ? "Zatvori" : "Unesi"}</button>
-      </div>`;
+        </form>`
+      : "",
+    action: `<button class="today-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-plan-burn-edit" aria-label="${open ? "Zatvori unos kalorija treninga" : "Unesi kalorije treninga"}">${open ? "Zatvori" : "Unesi"}</button>`,
+  });
 }
 
 // Težina danas — stalno na „Danas“, a ne samo kad podsetnik iskoči posle
@@ -11703,25 +11701,21 @@ function renderPlanWeightRow() {
   const days = latest && toNumber(latest.weightKg) > 0 ? daysBetweenDateValues(latest.date, getTodayDateValue()) : null;
   const when = days == null ? "" : formatRelativeDayLabel(latest.date);
   const open = state.quickWeightOpen;
-  return `
-      <div class="plan-glance-row">
-        <span class="plan-glance-icon" aria-hidden="true">${renderLineIcon("weight")}</span>
-        <div class="plan-glance-copy">
-          <div class="plan-glance-line"><span class="plan-glance-label">Težina</span><span class="plan-glance-value">${
-            days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "nema unosa"
-          }</span></div>
-          ${
-            open
-              ? `<form id="quick-weight-form" class="plan-glance-edit">
-                  <input class="steps-input" id="quick-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="npr. 84,5" aria-label="Težina danas u kilogramima" required />
-                  <span class="quick-weight-unit">kg</span>
-                  <button class="solid-button" type="submit">Sačuvaj</button>
-                </form>`
-              : `<div class="plan-glance-sub">${days != null ? `merenje ${when}` : "upiši današnju težinu"} · <button type="button" class="text-link-button" data-action="jump-measurement">više mera</button></div>`
-          }
-        </div>
-        <button class="plan-glance-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-quick-weight" aria-label="${open ? "Zatvori unos težine" : "Unesi težinu danas"}">${open ? "Zatvori" : "Unesi"}</button>
-      </div>`;
+  return renderTodayRow({
+    key: "weight",
+    icon: "weight",
+    label: "Težina",
+    value: days != null ? `${formatDecimal(latest.weightKg, 1)} kg` : "—",
+    sub: `${days != null ? `merenje ${when}` : "upiši današnju težinu"} · <button type="button" class="text-link-button" data-action="jump-measurement">više mera</button>`,
+    editor: open
+      ? `<form id="quick-weight-form" class="plan-glance-edit today-editor">
+          <input class="steps-input" id="quick-weight" name="weightKg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="npr. 84,5" aria-label="Težina danas u kilogramima" required />
+          <span class="quick-weight-unit">kg</span>
+          <button class="solid-button" type="submit">Sačuvaj</button>
+        </form>`
+      : "",
+    action: `<button class="today-btn ${open ? "is-active" : ""}" type="button" data-action="toggle-quick-weight" aria-label="${open ? "Zatvori unos težine" : "Unesi težinu danas"}">${open ? "Zatvori" : "Unesi"}</button>`,
+  });
 }
 
 function getTodaySteps() {
@@ -12377,50 +12371,77 @@ function getDayRingFacts(entries, totals, calorieGoal, extraEaten = null, diary 
   };
 }
 
-// Sklopljen „Dnevni pregled“ (podrazumevano na telefonu): pravi prsten sa
-// brojem unutra, isti kao raširen, samo manji, a desno pojedeno/plan i tri
-// makroa. Ranije je ovde stajao prsten od 40 px pored broja, pa je potpis
-// aplikacije na telefonu bio ukras.
-function renderPlanSummaryCompact(ring) {
-  const totals = ring.intake;
+// Dnevni pregled (Fit Tracker 2.0, faza 2): prsten od 110 px sa preostalim
+// kcal, desno pojedeno i u planu, ispod tri makroa. Na telefonu je to jedna
+// petrol kartica; na desktopu dve kartice jedna pored druge (kalorije |
+// makroi). Pregled je dovoljno nizak da više nema sklapanja.
+function renderTodaySummary({ calorieGoal, ringFacts, plannedKcal, trainingBurn, netCalories }) {
+  const diary = isSelectedDayLoggable();
+  const intake = ringFacts.intake;
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - ring.fillFraction);
-  const ghostOffset = circumference * (1 - ring.ghostFraction);
+  const dash = (fraction) => `stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${(circumference * (1 - fraction)).toFixed(1)};`;
+  const stat = (label, value, extraClass = "") =>
+    `<div class="today-stat${extraClass}"><span class="today-stat-label">${label}</span><span class="today-stat-value">${value}<span class="today-stat-unit"> kcal</span></span></div>`;
   const macros = [
-    { short: "P", label: "Proteini", value: totals.protein, goal: store.goals.protein, kind: "target" },
-    { short: "UH", label: "Ugljeni hidrati", value: totals.carbs, goal: store.goals.carbs, kind: "limit" },
-    { short: "M", label: "Masti", value: totals.fat, goal: store.goals.fat, kind: "limit" },
+    { short: "P", label: "Proteini", key: "protein", goal: store.goals.protein, kind: "target" },
+    { short: "UH", label: "Ugljeni hidrati", key: "carbs", goal: store.goals.carbs, kind: "limit" },
+    { short: "M", label: "Masti", key: "fat", goal: store.goals.fat, kind: "limit" },
   ];
+  // Na danu-dnevniku: pojedeno i u planu (cilj samo na desktopu, na telefonu
+  // ga već kaže prsten). Budući dan nema „pojedeno“: u planu i cilj.
+  const stats = calorieGoal
+    ? diary
+      ? stat("Pojedeno", roundValue(intake.kcal, 0)) + stat("U planu", plannedKcal) + stat("Cilj", calorieGoal, " today-stat--wide")
+      : stat("U planu", plannedKcal) + stat("Cilj", calorieGoal)
+    : stat(diary ? "Pojedeno" : "U planu", roundValue(intake.kcal, 0));
+  const notes = [
+    trainingBurn > 0
+      ? `<p class="today-cal-note">Neto: ${roundValue(intake.kcal, 0)} uneto − ${roundValue(trainingBurn, 0)} trening = <strong>${netCalories} kcal</strong></p>`
+      : "",
+    diary ? "" : renderPlanWeekAverage(state.selectedWeekTrack),
+  ].join("");
   return `
-    <div class="day-ring" data-state="${ring.state}">
-      <div class="day-ring-dial">
-        <svg class="day-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="day-ring-track" cx="60" cy="60" r="${radius}"></circle>
-          ${ring.ghostFraction > 0 ? `<circle class="day-ring-ghost" cx="60" cy="60" r="${radius}" style="stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${ghostOffset.toFixed(1)};"></circle>` : ""}
-          <circle class="day-ring-fill" cx="60" cy="60" r="${radius}" style="stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${offset.toFixed(1)};"></circle>
-        </svg>
-        <div class="day-ring-center">
-          <strong class="day-ring-value">${Math.abs(ring.remaining)}</strong>
-          <span class="day-ring-label">kcal ${ring.label}</span>
-        </div>
+    <section class="today-summary${calorieGoal ? "" : " is-empty"}" aria-labelledby="today-summary-title">
+      <h2 class="sr-only" id="today-summary-title">Dnevni pregled</h2>
+      <div class="today-cal-card">
+        ${
+          calorieGoal
+            ? `<div class="today-ring" data-state="${ringFacts.state}">
+          <svg class="today-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="today-ring-track" cx="60" cy="60" r="${radius}"></circle>
+            ${ringFacts.ghostFraction > 0 ? `<circle class="today-ring-ghost" cx="60" cy="60" r="${radius}" style="${dash(ringFacts.ghostFraction)}"></circle>` : ""}
+            <circle class="today-ring-fill" cx="60" cy="60" r="${radius}" style="${dash(ringFacts.fillFraction)}"></circle>
+          </svg>
+          <div class="today-ring-center">
+            <strong class="today-ring-value">${Math.abs(ringFacts.remaining)}</strong>
+            <span class="today-ring-label">kcal ${ringFacts.label}</span>
+          </div>
+        </div>`
+            : ""
+        }
+        <div class="today-cal-stats">${stats}</div>
+        ${
+          calorieGoal
+            ? ""
+            : `<div class="today-cal-empty"><span>Postavi kalorijski cilj da pratiš koliko ti je ostalo.</span><button class="today-goal-button" type="button" data-action="switch-tab" data-tab="goals">Postavi cilj</button></div>`
+        }
+        ${notes ? `<div class="today-cal-notes">${notes}</div>` : ""}
       </div>
-      <div class="day-ring-side">
-        <div class="day-ring-meta">${ring.metaParts.map((part) => `<span>${part}</span>`).join("")}</div>
-        <div class="day-ring-macros" aria-label="Makroi">
-          ${macros
-            .map(
-              (macro) => `
-            <div class="day-ring-macro" title="${macro.label}">
-              <span class="day-ring-macro-label">${macro.short}</span>
-              <span class="day-ring-macro-value">${roundValue(macro.value, 0)}${macro.goal ? `<span> / ${roundValue(macro.goal, 0)} g</span>` : " g"}</span>
-              ${renderProgress(toNumber(macro.value), toNumber(macro.goal), macro.kind)}
-            </div>`
-            )
-            .join("")}
-        </div>
+      <div class="today-macro-card" role="group" aria-label="Makroi">
+        ${macros
+          .map(({ short, label, key, goal, kind }) => {
+            const value = toNumber(intake[key]);
+            return `
+        <div class="today-macro today-macro--${key}">
+          <span class="today-macro-label"><span class="today-macro-short" aria-hidden="true">${short}</span><span class="today-macro-long">${label}</span></span>
+          <span class="today-macro-value">${roundValue(value, 0)}<span class="today-macro-goal">${goal ? ` / ${roundValue(goal, 0)}` : ""} g</span></span>
+          ${renderProgress(value, toNumber(goal), kind)}
+        </div>`;
+          })
+          .join("")}
       </div>
-    </div>`;
+    </section>`;
 }
 
 // Planirana nedelja: prosek po danu (samo dani koji imaju nešto u planu).
@@ -12738,13 +12759,10 @@ function renderPlanTab(entries) {
   // so the other track has nothing to show — don't mirror this week's numbers.
   const trainingBurn = state.selectedWeekTrack === getCurrentWeekTrack() ? getTrainingBurnForDay(state.selectedWeekday) : 0;
   const calorieGoal = roundValue(store.goals.calories, 0);
-  const ringCircumference = 326.7; // 2π·52
   const ringFacts = getDayRingFacts(entries, totals, calorieGoal, coffeeTotals, isSelectedDayLoggable());
   // Makroi, „Uneto“ i neto prate isto što i prsten: na danu-dnevniku pojedeno.
   const intake = ringFacts.intake;
   const netCalories = roundValue(intake.kcal - trainingBurn, 0);
-  const ringOffset = roundValue(ringCircumference * (1 - ringFacts.fillFraction), 1);
-  const ringPlannedOffset = roundValue(ringCircumference * (1 - ringFacts.ghostFraction), 1);
   const favorites = getFavoriteMealsDetailed();
   const meals = [
     ...new Set([
@@ -12772,92 +12790,16 @@ function renderPlanTab(entries) {
   return `
     <div class="day-block">
     ${renderDayBar({ dayHint: getPlanDayFillHint })}
-    <section class="section plan-summary-section ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
-      <button
-        class="section-disclosure"
-        type="button"
-        data-action="toggle-plan-summary"
-        aria-expanded="${isPlanSummaryExpanded()}"
-      >
-        <div class="section-disclosure-copy">
-          <h2>Dnevni pregled</h2>
-          ${
-            !isPlanSummaryExpanded() && calorieGoal
-              ? renderPlanSummaryCompact(ringFacts)
-              : !calorieGoal
-                ? `<div class="day-block-empty"><strong class="day-block-empty-value">${roundValue(intake.kcal, 0)}</strong><span class="day-block-empty-label">kcal danas</span><span class="day-block-empty-hint">Postavi dnevni cilj da vidiš koliko ti ostaje.</span></div>`
-                : `<p>${roundValue(intake.kcal, 0)} kcal · P ${roundValue(intake.protein, 0)} · UH ${roundValue(intake.carbs, 0)} · M ${roundValue(intake.fat, 0)} g</p>`
-          }
-        </div>
-        <div class="section-disclosure-meta">
-          <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(isPlanSummaryExpanded())}</span>
-        </div>
-      </button>
-      <div class="plan-section-body ${isPlanSummaryExpanded() ? "is-expanded" : "is-collapsed"}">
-      ${
-        calorieGoal
-          ? `
-      <div class="cal-ring" data-state="${ringFacts.state}">
-        <div class="cal-ring-dial">
-          <svg class="cal-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="cal-ring-track" cx="60" cy="60" r="52"></circle>
-            <circle class="cal-ring-planned" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringPlannedOffset};"></circle>
-            <circle class="cal-ring-fill" cx="60" cy="60" r="52" style="stroke-dasharray:${ringCircumference};stroke-dashoffset:${ringOffset};"></circle>
-          </svg>
-          <div class="cal-ring-center">
-            <strong class="cal-ring-value">${Math.abs(ringFacts.remaining)}</strong>
-            <span class="cal-ring-unit">kcal ${ringFacts.label}</span>
-          </div>
-        </div>
-        <div class="cal-ring-meta">${ringFacts.metaLabel}</div>
-      </div>
-      `
-          : `
-      <div class="plan-summary-headline is-empty">
-        <div class="plan-summary-headline-main">
-          <span class="plan-summary-headline-label">${isSelectedDayLoggable() ? "Pojedeno" : "U planu"}</span>
-          <strong class="plan-summary-headline-value plan-summary-headline-value--prompt">${roundValue(intake.kcal, 0)}<span class="plan-summary-headline-unit">kcal</span></strong>
-          <span class="footer-note">Postavi kalorijski cilj da pratiš koliko ti je ostalo.</span>
-        </div>
-        <button class="solid-button secondary-button button-with-icon" type="button" data-action="switch-tab" data-tab="goals">${renderButtonContent("Postavi cilj", "go")}</button>
-      </div>
-      `
-      }
-      ${
-        trainingBurn > 0
-          ? `
-      <div class="plan-net-row">
-        <div class="plan-net-item">
-          <span class="plan-net-label">Uneto</span>
-          <strong>${roundValue(intake.kcal, 0)}</strong>
-        </div>
-        <span class="plan-net-op" aria-hidden="true">−</span>
-        <div class="plan-net-item">
-          <span class="plan-net-label">Trening</span>
-          <strong>${roundValue(trainingBurn, 0)}</strong>
-        </div>
-        <span class="plan-net-op" aria-hidden="true">=</span>
-        <div class="plan-net-item plan-net-item--total">
-          <span class="plan-net-label">Neto</span>
-          <strong>${netCalories}</strong>
-        </div>
-      </div>
-      <div class="footer-note plan-net-note">Neto je unos umanjen za kalorije treninga.</div>
-      `
-          : ""
-      }
-      <div class="plan-summary-layout">
-        ${renderMacroCards(intake, { excludeCalories: true })}
-      </div>
-      ${isSelectedDayLoggable() ? "" : renderPlanWeekAverage(state.selectedWeekTrack)}
-      </div>
-    </section>
     </div>
+
+    <div class="today-body">
+    ${renderTodaySummary({ calorieGoal, ringFacts, plannedKcal: roundValue(totals.kcal, 0), trainingBurn, netCalories })}
 
     ${(store.weeklyPlanEntries || []).length === 0 ? renderPlanWelcomeGuide(calorieGoal) : ""}
 
     ${renderTodayRemindersBanner()}
 
+    <div class="today-layout">
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
@@ -13069,15 +13011,11 @@ function renderPlanTab(entries) {
       }
     </section>
 
-    ${
-      // Voda, kafa, koraci, trening i težina idu odmah ispod obroka: Danas je
-      // pre svega unos hrane, a ovo su brzi tapovi koji ne moraju prvi na ekran.
-      // Nikad iza sklopljenog pregleda.
-      `<div class="plan-side">
-      <section class="section plan-glance-section" aria-label="Voda, koraci, trening i težina">${renderPlanGlanceRows()}</section>`
-    }
+    <section class="today-metrics" aria-labelledby="today-metrics-title">
+      <h2 class="sr-only" id="today-metrics-title">Dnevne metrike</h2>
+      ${renderPlanGlanceRows()}
+    </section>
 
-    <div class="plan-utilities">
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
         class="section-disclosure"
@@ -13158,13 +13096,11 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
+    <div class="today-extras">
     ${renderPlanSupplementsSection()}
-
-
-
     ${renderPlanActivitySection()}
-
     ${renderPlanShoppingSection()}
+    </div>
     </div>
     </div>
   `;
@@ -20325,13 +20261,6 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-recipes-builder") {
     state.recipesBuilderExpanded = !state.recipesBuilderExpanded;
-    render();
-    return;
-  }
-
-  if (action === "toggle-plan-summary") {
-    rememberPlanSectionExpanded("summaryExpanded", !isPlanSummaryExpanded());
-    persist();
     render();
     return;
   }

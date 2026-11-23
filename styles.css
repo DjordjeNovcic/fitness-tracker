@@ -19559,131 +19559,64 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   font-weight: 800;
   letter-spacing: -0.025em;
 }
-@media (max-width: 720px) {
-  /* --- naslov + dani na papiru --- */
-  :root[data-theme] .app-main .day-block > .hero--plan {
-    background: var(--bg);
-    color: var(--ink);
-    border-radius: 0;
-    box-shadow: none;
-    padding: 6px 16px 8px;
-  }
-  :root[data-theme] .day-block > .hero--plan .workspace-header-icon {
-    display: none;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-title {
-    color: var(--ink);
-    font-size: 1.875rem;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-date {
-    color: var(--muted);
-    font-size: var(--fs-14);
-    font-weight: 500;
-  }
-  /* Ova / Sledeća: tiha pločica na papiru */
-  :root[data-theme] .day-block > .hero--plan .hero-week-toggle {
-    background: color-mix(in srgb, var(--ink) 6%, transparent);
-    border: 0;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-week-chip {
-    color: var(--muted);
-    background: transparent;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-week-chip.is-active {
-    background: var(--surface-elevated);
-    color: var(--ink);
-    box-shadow: 0 1px 3px rgba(20, 30, 28, 0.12);
-  }
-  :root[data-theme="dark"] .day-block > .hero--plan .hero-week-toggle {
-    background: rgba(255, 255, 255, 0.07);
-  }
-  :root[data-theme="dark"] .day-block > .hero--plan .hero-week-chip.is-active {
-    background: rgba(255, 255, 255, 0.16);
-    color: var(--ink);
-  }
-  /* dani: aktivni = petrol pilula */
-  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip {
-    color: var(--muted);
-    background: transparent;
-    border-color: transparent;
-    font-weight: 600;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-active {
-    background: var(--accent);
-    color: #fbf8ef;
-    box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--accent) 80%, transparent);
-  }
-  :root[data-theme="dark"] .day-block > .hero--plan .hero-day-chips .chip.is-active {
-    color: #0c1417;
-  }
-  :root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-today:not(.is-active) {
-    color: var(--accent);
-  }
-
-  /* --- kartica sa prstenom --- */
-  :root[data-theme] .app-main .day-block > .plan-summary-section {
-    margin: 4px 0 0;
-    padding: 16px 16px 16px 14px;
-    border-radius: 26px;
-    background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
-    box-shadow: 0 18px 30px -22px oklch(0.3 0.06 210 / 0.9);
-  }
-  :root[data-theme] .day-block .day-ring {
-    grid-template-columns: 132px minmax(0, 1fr);
-    column-gap: 16px;
-  }
-  :root[data-theme] .day-block .day-ring-dial,
-  :root[data-theme] .day-block .day-ring-svg {
-    width: 132px;
-    height: 132px;
-  }
-  :root[data-theme] .day-block .day-ring-track {
-    stroke: oklch(1 0 0 / 0.16);
-  }
-  :root[data-theme] .day-block .day-ring-fill {
-    stroke: var(--rd-mint);
-  }
-  :root[data-theme] .day-block .day-ring-value {
-    font-family: "Manrope", -apple-system, system-ui, sans-serif;
-    font-weight: 800;
-    font-size: 2.25rem;
-    letter-spacing: -0.04em;
-  }
-  :root[data-theme] .day-block .day-ring-meta {
-    padding-bottom: 10px;
-    border-bottom: 1px solid oklch(1 0 0 / 0.16);
-  }
-  /* makroi u tri kolone: oznaka, vrednost, traka */
-  :root[data-theme] .day-block .day-ring-macros {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 10px;
-  }
-  :root[data-theme] .day-block .day-ring-macro {
-    grid-template-columns: minmax(0, 1fr);
-    row-gap: 2px;
-  }
-  :root[data-theme] .day-block .day-ring-macro-label {
-    font-size: var(--fs-12);
-  }
-  :root[data-theme] .day-block .day-ring-macro-value {
-    font-size: var(--fs-15);
-    font-weight: 800;
-    white-space: nowrap;
-  }
-  :root[data-theme] .day-block .day-ring-macro-value span {
-    font-size: var(--fs-12);
-    font-weight: 600;
-  }
-  :root[data-theme] .day-block .day-ring-macro .progress {
-    height: 6px;
-    margin-top: 4px;
-    border-radius: 99px;
-    background: oklch(1 0 0 / 0.18);
-  }
-  :root[data-theme] .day-block .day-ring-macro:nth-child(1) .progress > span { background: var(--rd-mint); }
-  :root[data-theme] .day-block .day-ring-macro:nth-child(2) .progress > span { background: var(--rd-sky); }
-  :root[data-theme] .day-block .day-ring-macro:nth-child(3) .progress > span { background: var(--rd-sand); }
-  :root[data-theme] .day-block .day-ring-macro .progress[data-state="over"] > span { background: var(--block-over); }
+/* --- naslov + dani na papiru (od faze 2 na svim širinama) --- */
+:root[data-theme] .app-main .day-block > .hero--plan {
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 6px 16px 8px;
+}
+:root[data-theme] .day-block > .hero--plan .workspace-header-icon {
+  display: none;
+}
+:root[data-theme] .day-block > .hero--plan .hero-title {
+  color: var(--ink);
+  font-size: 1.875rem;
+}
+:root[data-theme] .day-block > .hero--plan .hero-date {
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-weight: 500;
+}
+/* Ova / Sledeća: tiha pločica na papiru */
+:root[data-theme] .day-block > .hero--plan .hero-week-toggle {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border: 0;
+}
+:root[data-theme] .day-block > .hero--plan .hero-week-chip {
+  color: var(--muted);
+  background: transparent;
+}
+:root[data-theme] .day-block > .hero--plan .hero-week-chip.is-active {
+  background: var(--surface-elevated);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(20, 30, 28, 0.12);
+}
+:root[data-theme="dark"] .day-block > .hero--plan .hero-week-toggle {
+  background: rgba(255, 255, 255, 0.07);
+}
+:root[data-theme="dark"] .day-block > .hero--plan .hero-week-chip.is-active {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+}
+/* dani: aktivni = petrol pilula */
+:root[data-theme] .day-block > .hero--plan .hero-day-chips .chip {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-weight: 600;
+}
+:root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-active {
+  background: var(--accent);
+  color: #fbf8ef;
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+:root[data-theme="dark"] .day-block > .hero--plan .hero-day-chips .chip.is-active {
+  color: #0c1417;
+}
+:root[data-theme] .day-block > .hero--plan .hero-day-chips .chip.is-today:not(.is-active) {
+  color: var(--accent);
 }
 @media (max-width: 720px) {
   /* Ista nijansa kao vrh pozadine stranice (bez vidljivog pojasa). */
@@ -20359,4 +20292,731 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 }
 :root[data-theme="light"] .routine-check-ui {
   background: #FFFFFF;
+}
+
+/* ============================================================
+   Fit Tracker 2.0 — Faza 2: Danas (telefon i desktop).
+   Zaglavlje sa danima → dnevni pregled → obroci → metrike →
+   suplementi i lista za kupovinu. Samo tokeni iz faze 1.
+   Telefon (< 768): jedna kolona, 16px sa strane, razmak 16px.
+   Desktop (≥ 1024): pregled u dve kartice, ispod mreža
+   1,55fr | 1fr (obroci i alati levo, metrike desno), suplementi
+   i lista ispod obe kolone.
+   ============================================================ */
+.app-main.is-plan-shell {
+  --main-gap: var(--ft-space-4);
+}
+@media (max-width: 1023px) {
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    --main-pad-x: var(--ft-space-4);
+    padding-left: var(--ft-space-4);
+    padding-right: var(--ft-space-4);
+  }
+}
+/* sve ispod zaglavlja; na desktopu je to kontejner po čijoj se širini
+   bira raspored (bočna traka raširena ili skupljena) */
+:root[data-theme] .app-main.is-plan-shell > .today-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ft-space-4);
+  margin: 0;
+}
+:root[data-theme] .today-body > * {
+  min-width: 0;
+  margin: 0;
+}
+
+/* ---- zaglavlje: naslov, datum, Ova/Sledeća, sedam dana ---- */
+:root[data-theme] .app-main .day-block > .hero--plan {
+  padding: 4px var(--ft-space-4) var(--ft-space-2);
+}
+@media (min-width: 721px) {
+  :root[data-theme] .app-main .day-block > .hero--plan {
+    margin: 0;
+    padding: 0 0 var(--ft-space-2);
+    background: var(--ft-bg);
+  }
+  :root[data-theme] body.plan-scrolled .app-main .day-block > .hero--plan,
+  :root[data-theme] body.plan-compact .app-main .day-block > .hero--plan {
+    border-radius: 0;
+    box-shadow: 0 1px 0 var(--ft-border);
+  }
+}
+:root[data-theme] .day-block > .hero--plan .hero-day-chips .chip {
+  min-height: var(--ft-h-control);
+}
+
+/* ---- dnevni pregled ---- */
+:root[data-theme] .today-summary {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-areas:
+    "ring stats"
+    "ring macros"
+    "notes notes";
+  align-items: center;
+  column-gap: var(--ft-space-4);
+  row-gap: var(--ft-space-3);
+  min-height: 156px;
+  padding: var(--ft-space-4);
+  border-radius: var(--ft-radius-lg);
+  background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
+  color: var(--block-ink);
+  box-shadow: 0 18px 30px -22px rgba(7, 60, 73, 0.9);
+}
+.today-cal-card {
+  display: contents;
+}
+.today-ring {
+  grid-area: ring;
+  position: relative;
+  width: 110px;
+  height: 110px;
+}
+.today-ring-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.today-ring-svg circle {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.today-ring-track { stroke: rgba(255, 255, 255, 0.16); }
+.today-ring-ghost { stroke: rgba(255, 255, 255, 0.34); }
+.today-ring-fill {
+  stroke: var(--rd-mint);
+  transition: stroke-dashoffset 0.5s ease;
+}
+.today-ring[data-state="over"] .today-ring-fill { stroke: var(--rd-sand); }
+.today-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 0 14px;
+  text-align: center;
+}
+.today-ring-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.today-ring-label {
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--block-muted);
+}
+.today-cal-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ft-space-3);
+  align-self: end;
+}
+.today-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.today-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--block-muted);
+}
+.today-stat-value {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.today-stat-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--block-muted);
+}
+.today-stat--wide { display: none; }
+:root[data-theme] .today-macro-card {
+  grid-area: macros;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-self: start;
+  padding-top: var(--ft-space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+.today-macro {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.today-macro-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--block-muted);
+}
+.today-macro-long {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.today-macro-value {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.today-macro-goal {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--block-muted);
+}
+:root[data-theme] .today-macro .progress {
+  height: 6px;
+  margin-top: 4px;
+  border-radius: var(--ft-radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+:root[data-theme] .today-macro .progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+:root[data-theme] .today-macro--protein .progress > span { background: var(--rd-mint); }
+:root[data-theme] .today-macro--carbs .progress > span { background: var(--rd-sky); }
+:root[data-theme] .today-macro--fat .progress > span { background: var(--rd-sand); }
+:root[data-theme] .today-macro .progress[data-state="over"] > span { background: var(--block-over); }
+.today-cal-notes {
+  grid-area: notes;
+  display: grid;
+  gap: var(--ft-space-1);
+}
+:root[data-theme] .today-cal-notes :is(.today-cal-note, .footer-note) {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--block-muted);
+}
+:root[data-theme] .today-cal-notes strong { color: var(--block-ink); }
+/* bez kalorijskog cilja: unos, poziv da se postavi cilj, makroi */
+:root[data-theme] .today-summary.is-empty {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "stats"
+    "empty"
+    "macros"
+    "notes";
+}
+.today-cal-empty {
+  grid-area: empty;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ft-space-3);
+  font-size: 0.875rem;
+  color: var(--block-muted);
+}
+.today-goal-button {
+  min-height: var(--ft-h-control);
+  padding: 0 var(--ft-space-4);
+  border: 0;
+  border-radius: var(--ft-radius-md);
+  background: var(--block-ink);
+  color: var(--block-bg-deep);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.today-goal-button:focus-visible {
+  outline: 3px solid var(--rd-sky);
+  outline-offset: 2px;
+}
+/* najuži telefoni: makroi u svoj red ispod prstena */
+@media (max-width: 374px) {
+  :root[data-theme] .today-summary:not(.is-empty) {
+    grid-template-areas:
+      "ring stats"
+      "macros macros"
+      "notes notes";
+  }
+  .today-cal-stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ft-space-2);
+    align-self: center;
+  }
+}
+
+/* ---- raspored ispod pregleda ---- */
+:root[data-theme] .today-layout,
+:root[data-theme] .today-extras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ft-space-4);
+  align-items: start;
+}
+:root[data-theme] .today-layout > *,
+:root[data-theme] .today-extras > * {
+  min-width: 0;
+  margin: 0;
+}
+:root[data-theme] .app-main .today-layout .section,
+:root[data-theme] .app-main .today-extras .section {
+  border-radius: var(--ft-radius-md);
+}
+:root[data-theme] .app-main .today-layout :is(.plan-quick-section, .today-extras > .section) {
+  border-radius: 16px;
+}
+
+/* ---- obroci ---- */
+:root[data-theme] .app-main .today-layout > .plan-meals-section {
+  border-radius: 16px;
+}
+:root[data-theme] .plan-meals-section > .section-header {
+  min-height: var(--ft-h-control);
+}
+:root[data-theme] .plan-meals-section .plan-quick-entry-button {
+  min-height: var(--ft-h-control);
+}
+:root[data-theme] .plan-meals-section .meal-card-header {
+  min-height: 56px;
+}
+:root[data-theme] .plan-meals-section .meal-card.is-collapsed .meal-card-header {
+  min-height: 58px;
+}
+:root[data-theme] .plan-meals-section .meal-entry {
+  min-height: 44px;
+}
+:root[data-theme] .plan-meals-section .meal-entry > :first-child {
+  min-height: 44px;
+}
+
+/* dodirne površine od najmanje 44px (krug je 26px, a ceo red zaglavlja
+   obroka je već dugme za sklapanje) */
+:root[data-theme] .plan-meals-section label.meal-status {
+  position: relative;
+}
+:root[data-theme] .plan-meals-section label.meal-status::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+:root[data-theme] .plan-meals-section .meal-collapse-toggle::before {
+  inset: -8px;
+}
+:root[data-theme] .plan-meals-section :is(.meal-add-row, .meal-more-toggle, .meal-secondary-action),
+:root[data-theme] .app-main .today-layout .section-disclosure {
+  min-height: var(--ft-h-control);
+}
+.today-row .text-link-button::after {
+  content: "";
+  position: absolute;
+  inset: -15px -4px;
+}
+
+/* ---- dnevne metrike: četiri pločice, dva reda ---- */
+:root[data-theme] .today-metrics {
+  container: metrics / inline-size;
+  display: grid;
+  gap: var(--ft-space-3);
+}
+.today-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ft-space-3);
+}
+.today-tile,
+.today-rows {
+  border: var(--ft-card-border);
+  border-radius: 16px;
+  background: var(--ft-card-bg);
+  box-shadow: var(--ft-card-shadow);
+}
+.today-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--ft-space-3);
+}
+.today-tile:last-child:nth-child(odd),
+.today-tile.is-editing,
+.today-tile:nth-child(odd):has(+ .today-tile.is-editing) {
+  grid-column: 1 / -1;
+}
+.today-tile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-space-2);
+  min-height: 24px;
+}
+.today-tile-icon,
+.today-row-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--ft-accent-soft);
+  color: var(--ft-accent);
+}
+.today-tile-icon .line-icon,
+.today-row-icon .line-icon {
+  width: 15px;
+  height: 15px;
+}
+.today-tile-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ft-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.today-undo {
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--ft-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ft-text-muted);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.today-undo::after {
+  content: "";
+  position: absolute;
+  inset: -10px -8px;
+}
+.today-tile-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ft-space-2);
+  min-height: var(--ft-h-control);
+}
+.today-tile-value {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ft-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.today-btn {
+  flex: 0 0 auto;
+  min-width: var(--ft-h-control);
+  min-height: var(--ft-h-control);
+  padding: 0 var(--ft-space-3);
+  border: 0;
+  border-radius: 12px;
+  background: var(--ft-accent-soft);
+  color: var(--ft-accent-strong);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+:root[data-theme="dark"] .today-btn { color: var(--ft-accent); }
+.today-btn:hover { background: color-mix(in srgb, var(--ft-accent) 18%, var(--ft-accent-soft)); }
+:root[data-theme] .today-btn.is-active {
+  background: var(--ft-accent);
+  color: var(--ft-on-accent);
+}
+:is(.today-btn, .today-undo):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ft-focus-ring);
+}
+.today-tile-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-space-2);
+  min-height: 16px;
+}
+.today-tile-bar {
+  flex: 1 1 auto;
+  height: 5px;
+  border-radius: var(--ft-radius-pill);
+  background: var(--progress-track);
+  overflow: hidden;
+}
+.today-tile-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ft-accent);
+  transition: width 0.3s ease;
+}
+.today-tile.is-done .today-tile-bar > span { background: var(--status-success-text); }
+.today-tile-goal,
+.today-tile-sub {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ft-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.today-tile-goal { flex: 0 0 auto; }
+.today-tile-unit {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ft-text-muted);
+}
+/* kalorije treninga i težina: niži redovi */
+.today-rows {
+  display: grid;
+  padding: 0 var(--ft-space-4);
+}
+.today-rows:empty { display: none; }
+.today-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--ft-space-3);
+  min-height: 56px;
+  padding: 6px 0;
+}
+.today-row + .today-row { border-top: 1px solid var(--ft-border); }
+.today-row-copy {
+  display: grid;
+  min-width: 0;
+}
+.today-row-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ft-text);
+}
+.today-row-sub {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--ft-text-muted);
+}
+.today-row-value {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--ft-text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.today-row-editor {
+  grid-column: 1 / -1;
+  padding: var(--ft-space-2) 0 var(--ft-space-1);
+}
+/* uska kolona metrika (telefon 320–360px, desna kolona na desktopu):
+   vrednost reda ide ispod naziva, da naziv ne pukne u dva reda */
+@container metrics (max-width: 339px) {
+  .today-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon label btn"
+      "icon value btn"
+      "icon sub btn";
+    row-gap: 0;
+  }
+  .today-row-copy { display: contents; }
+  .today-row-icon { grid-area: icon; }
+  .today-row-label { grid-area: label; }
+  .today-row-value { grid-area: value; }
+  .today-row-sub { grid-area: sub; }
+  .today-row > .today-btn { grid-area: btn; }
+}
+@media (max-width: 374px) {
+  /* stavka obroka: kcal iznad količine, naziv dobija širinu */
+  :root[data-theme] .plan-meals-section .meal-entry-stats {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-kcal {
+    order: -1;
+    min-width: 0;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-title-group strong {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    line-height: 1.25;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+/* otvoren unos: polja 44px, slova 16px (iOS ne zumira) */
+:root[data-theme] .today-metrics :is(.today-editor, .plan-burn-form) {
+  margin-top: var(--ft-space-2);
+}
+:root[data-theme] .today-metrics :is(input[type="number"], .solid-button) {
+  min-height: var(--ft-h-control);
+  font-size: 1rem;
+}
+:root[data-theme] .today-metrics .plan-glance-edit .steps-input {
+  flex: 1 1 auto;
+  width: auto;
+}
+:root[data-theme] .today-metrics .plan-sleep-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ft-space-2);
+}
+:root[data-theme] .today-metrics .plan-sleep-energy-btn {
+  min-width: var(--ft-h-control);
+  min-height: var(--ft-h-control);
+}
+
+/* ---- desktop ---- */
+@media (min-width: 1024px) {
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: calc(1320px + 2 * var(--ft-space-6));
+    padding-left: var(--ft-space-6);
+    padding-right: var(--ft-space-6);
+    padding-top: var(--ft-space-6);
+  }
+  :root[data-theme] .app-main.is-plan-shell > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .app-main.is-plan-shell > .today-body {
+    container: today / inline-size;
+  }
+}
+/* Dve kolone tek kad sadržaj ima bar 800px: na 1024px sa raširenom
+   bočnom trakom leva kolona bi imala ~320px i brojevi bi se preklapali. */
+@container today (min-width: 800px) {
+  /* pregled: kartica sa kalorijama | kartica sa makroima */
+  :root[data-theme] .today-summary,
+  :root[data-theme] .today-summary.is-empty {
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+    grid-template-areas: none;
+    align-items: stretch;
+    gap: 20px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--ft-text);
+  }
+  .today-cal-card {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-areas:
+      "ring stats"
+      "ring empty"
+      "notes notes";
+    align-content: center;
+    align-items: center;
+    column-gap: var(--ft-space-6);
+    row-gap: var(--ft-space-3);
+    min-height: 156px;
+    padding: var(--ft-space-4) var(--ft-space-6) var(--ft-space-4) var(--ft-space-4);
+    border-radius: var(--ft-radius-lg);
+    background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
+    color: var(--block-ink);
+    box-shadow: 0 18px 30px -22px rgba(7, 60, 73, 0.9);
+  }
+  .today-summary.is-empty .today-cal-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "stats" "empty" "notes";
+  }
+  .today-cal-stats {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+  .today-summary.is-empty .today-cal-stats { grid-row: auto; }
+  .today-stat--wide { display: grid; }
+  .today-stat-value { font-size: 1.375rem; }
+  .today-stat-unit { font-size: 0.8125rem; }
+  :root[data-theme] .today-macro-card {
+    grid-area: auto;
+    grid-template-columns: minmax(0, 1fr);
+    align-self: stretch;
+    align-content: center;
+    gap: var(--ft-space-3);
+    padding: var(--ft-space-4);
+    border: var(--ft-card-border);
+    border-radius: 16px;
+    background: var(--ft-card-bg);
+    box-shadow: var(--ft-card-shadow);
+    color: var(--ft-text);
+  }
+  .today-macro {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--ft-space-3);
+    row-gap: 6px;
+    align-items: baseline;
+  }
+  .today-macro .progress { grid-column: 1 / -1; }
+  .today-macro-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ft-text-muted);
+  }
+  .today-macro-short { display: none; }
+  .today-macro-long {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+  .today-macro-value { font-size: 1rem; }
+  .today-macro-goal { color: var(--ft-text-muted); }
+  :root[data-theme] .today-macro .progress {
+    margin-top: 0;
+    background: var(--progress-track);
+  }
+  :root[data-theme] .today-macro--protein .progress > span { background: var(--macro-protein); }
+  :root[data-theme] .today-macro--carbs .progress > span { background: var(--macro-carbs); }
+  :root[data-theme] .today-macro--fat .progress > span { background: var(--macro-fat); }
+  :root[data-theme] .today-macro .progress[data-state="over"] > span { background: var(--status-error-text); }
+
+  /* obroci i alati levo, metrike desno, suplementi i lista ispod */
+  :root[data-theme] .today-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "meals metrics"
+      "tools metrics"
+      "extras extras";
+    column-gap: 20px;
+    row-gap: var(--ft-space-4);
+  }
+  :root[data-theme] .today-layout > .plan-meals-section { grid-area: meals; }
+  :root[data-theme] .today-layout > .today-metrics { grid-area: metrics; }
+  :root[data-theme] .today-layout > .plan-quick-section { grid-area: tools; }
+  :root[data-theme] .today-layout > .today-extras {
+    grid-area: extras;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
 }
