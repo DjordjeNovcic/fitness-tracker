@@ -862,7 +862,7 @@ function syncThemeColor() {
   // Na telefonu je vrh Danas sada papir (petrol je samo kartica ispod).
   const onPlanBlock =
     Boolean(state.authUser) && state.authReady && !shouldShowOnboarding() && state.activeTab === "plan" && window.innerWidth > 720;
-  const color = onPlanBlock ? (dark ? "#042933" : "#05313d") : dark ? "#0c0d0b" : "#f4efe6";
+  const color = onPlanBlock ? "#073C49" : dark ? "#101719" : "#F4F5F2";
   if (meta.getAttribute("content") !== color) meta.setAttribute("content", color);
 }
 

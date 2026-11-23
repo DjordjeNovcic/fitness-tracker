@@ -20193,3 +20193,170 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] :is(.app-sidebar-item, .more-sheet-item) {
   border-radius: var(--ft-radius-md);
 }
+
+/* ============================================================
+   Fit Tracker 2.0 — paleta (petrol identitet, hladnija svetla pozadina,
+   grafitna tamna tema). Upisana u POSTOJEĆE promenljive po ulozi, kao
+   poslednji blok svake teme — nema drugog sistema tema.
+   ============================================================ */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  /* pozadine */
+  --bg: #F4F5F2;
+  --bg-strong: #EAF0EF;
+  --surface: #FFFFFF;
+  --surface-strong: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-soft: #EAF0EF;
+  --surface-panel: #F0F4F2;
+  /* tekst */
+  --ink: #182522;
+  --muted: #566762;
+  --text-tertiary: #667670;
+  /* ivice */
+  --line: #DCE3E0;
+  --line-strong: #C6D1CD;
+  /* brend */
+  --accent: #17657A;
+  --accent-strong: #10495A;
+  --accent-soft: #E1F0F4;
+  --teal: #17657A;
+  --secondary: #17657A;
+  --focus: #17657A;
+  /* status */
+  --status-success-text: #28724F;
+  --status-warning-text: #946515;
+  --status-error-text: #B4443C;
+  --status-success-bg: color-mix(in srgb, #28724F 12%, #FFFFFF);
+  --status-warning-bg: color-mix(in srgb, #946515 12%, #FFFFFF);
+  --status-error-bg: color-mix(in srgb, #B4443C 10%, #FFFFFF);
+  /* makroi i trake */
+  --macro-protein: #206448;
+  --macro-carbs: #26658F;
+  --macro-fat: #8C641B;
+  --progress-track: #DFE6E3;
+  /* hero (petrol blok i kartica na Danas) */
+  --block-bg: #0A4A59;
+  --block-bg-deep: #073C49;
+  --block-ink: #FFFFFF;
+  --block-muted: #B7D1D5;
+  --block-faint: rgba(255, 255, 255, 0.16);
+  --block-line: rgba(255, 255, 255, 0.14);
+  /* na petrol pozadini makro trake su uvek svetle varijante */
+  --rd-card-a: #0B5566;
+  --rd-card-b: #073C49;
+  --rd-mint: #7FD4A8;
+  --rd-sky: #8BC8F2;
+  --rd-sand: #EBC681;
+  /* --ft-* (faza 1) */
+  --ft-bg: #F4F5F2;
+  --ft-surface: #FFFFFF;
+  --ft-surface-raised: #FFFFFF;
+  --ft-surface-sunken: #EAF0EF;
+  --ft-text: #182522;
+  --ft-text-muted: #566762;
+  --ft-border: #DCE3E0;
+  --ft-border-strong: #C6D1CD;
+  --ft-accent: #17657A;
+  --ft-accent-strong: #10495A;
+  --ft-accent-soft: #E1F0F4;
+  --ft-on-accent: #FFFFFF;
+  --ft-focus-ring: rgba(23, 101, 122, 0.28);
+  --ft-danger: #B4443C;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101719;
+  --bg-strong: #192326;
+  --surface: #192326;
+  --surface-strong: #192326;
+  --surface-elevated: #243236;
+  --surface-soft: #243236;
+  --surface-panel: #2A3B3F;
+  --ink: #F3F7F5;
+  --muted: #B4C3BF;
+  --text-tertiary: #9BAEAA;
+  --line: #394A4D;
+  --line-strong: #4A5D60;
+  --accent: #74C7DE;
+  --accent-strong: #A5E0ED;
+  --accent-soft: #203D46;
+  --teal: #74C7DE;
+  --secondary: #74C7DE;
+  --focus: #74C7DE;
+  --status-success-text: #72CDA0;
+  --status-warning-text: #F2C47C;
+  --status-error-text: #F19A91;
+  --status-success-bg: color-mix(in srgb, #72CDA0 14%, #192326);
+  --status-warning-bg: color-mix(in srgb, #F2C47C 14%, #192326);
+  --status-error-bg: color-mix(in srgb, #F19A91 14%, #192326);
+  --macro-protein: #7FD4A8;
+  --macro-carbs: #8BC8F2;
+  --macro-fat: #EBC681;
+  --progress-track: #405155;
+  --block-bg: #0A4A59;
+  --block-bg-deep: #073C49;
+  --block-ink: #FFFFFF;
+  --block-muted: #B7D1D5;
+  --block-faint: rgba(255, 255, 255, 0.16);
+  --block-line: rgba(255, 255, 255, 0.14);
+  --rd-card-a: #0B5566;
+  --rd-card-b: #073C49;
+  --ft-bg: #101719;
+  --ft-surface: #192326;
+  --ft-surface-raised: #243236;
+  --ft-surface-sunken: #243236;
+  --ft-text: #F3F7F5;
+  --ft-text-muted: #B4C3BF;
+  --ft-border: #394A4D;
+  --ft-border-strong: #4A5D60;
+  --ft-accent: #74C7DE;
+  --ft-accent-strong: #A5E0ED;
+  --ft-accent-soft: #203D46;
+  --ft-on-accent: #102B34;
+  --ft-focus-ring: rgba(116, 199, 222, 0.35);
+  --ft-danger: #F19A91;
+}
+/* pozadina stranice (bila je ručno upisan krem gradijent) */
+:root[data-theme="light"] {
+  background: #F4F5F2;
+}
+:root[data-theme="dark"] {
+  background: #101719;
+}
+@media (max-width: 720px) {
+  :root[data-theme="light"] .app-main .day-block > .hero--plan {
+    background: #F4F5F2;
+  }
+  :root[data-theme="dark"] .app-main .day-block > .hero--plan {
+    background: #101719;
+  }
+}
+/* Ostaci stare palete koji nisu išli kroz promenljive. */
+:root[data-theme="light"] {
+  --tabbar-bg: rgba(255, 255, 255, 0.9);
+  --tabbar-border: #DCE3E0;
+  --rail-bg: #FFFFFF;
+}
+:root[data-theme="dark"] {
+  --tabbar-bg: rgba(16, 23, 25, 0.92);
+  --tabbar-border: #394A4D;
+  --rail-bg: #101719;
+}
+:root[data-theme] .menu-fab {
+  background: #073C49;
+  color: #FFFFFF;
+}
+:root[data-theme="dark"] .mobile-menu {
+  background: #192326;
+}
+:root[data-theme] .help-note-body {
+  background: var(--accent-soft);
+}
+:root[data-theme] .pill:not([class*="pill--"]) {
+  background: var(--accent-soft);
+}
+:root[data-theme="light"] .routine-check-ui {
+  background: #FFFFFF;
+}

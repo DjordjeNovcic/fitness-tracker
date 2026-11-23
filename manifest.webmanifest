@@ -13,8 +13,8 @@
     "minimal-ui"
   ],
   "orientation": "portrait",
-  "background_color": "#f4efe6",
-  "theme_color": "#f4efe6",
+  "background_color": "#F4F5F2",
+  "theme_color": "#F4F5F2",
   "categories": [
     "health",
     "fitness",
