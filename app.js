@@ -9317,6 +9317,25 @@ function renderDayCard({ id, eyebrow, title, meta = "", done = 0, total = 0, uni
     </section>`;
 }
 
+// Odnos makroa u kalorijama (P i UH 4 kcal/g, M 9 kcal/g) kao tanka traka u
+// tri boje makroa: na prvi pogled se vidi da li je namirnica proteinska,
+// ugljenohidratna ili masna. Samo dopuna brojevima koji već pišu u redu.
+function renderMacroSplitBar(protein, carbs, fat) {
+  const parts = [
+    ["protein", toNumber(protein) * 4],
+    ["carbs", toNumber(carbs) * 4],
+    ["fat", toNumber(fat) * 9],
+  ];
+  const total = parts.reduce((sum, [, kcal]) => sum + kcal, 0);
+  if (!(total > 0)) {
+    return "";
+  }
+  return `<span class="macro-split" aria-hidden="true">${parts
+    .filter(([, kcal]) => kcal > 0)
+    .map(([key, kcal]) => `<i class="macro-split-${key}" style="flex-grow:${Math.max(4, Math.round((kcal / total) * 100))}"></i>`)
+    .join("")}</span>`;
+}
+
 function getDayCardEyebrow() {
   const isToday = state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack();
   return isToday ? "Danas" : weekdayLabel(state.selectedWeekday);
@@ -13588,7 +13607,7 @@ function renderFoodsTab() {
                     <span class="food-row-name">${isFavoriteFood ? `<span class="food-row-fav" aria-hidden="true">${renderStarIcon(true)}</span>` : ""}${escapeHtml(food.name)}</span>
                     <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
                   </span>
-                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
+                  <span class="food-row-nutri"><span class="food-row-nutri-text">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}</span>
                 </button>
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
@@ -13950,7 +13969,7 @@ function renderRecipesTab() {
                               .join("")}
                           </div>
                           <div class="recipe-library-stats">
-                            <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal${favorite.servings > 1 ? ` <span class="recipe-library-stat-sub">po porciji</span>` : ""}</span>
+                            <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal${favorite.servings > 1 ? ` <span class="recipe-library-stat-sub">po porciji</span>` : ""}</span>${renderMacroSplitBar(favorite.perServingTotals.protein, favorite.perServingTotals.carbs, favorite.perServingTotals.fat)}
                             <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
                             ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>

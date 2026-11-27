@@ -21473,3 +21473,36 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   .day-card-stats { column-gap: var(--ft-space-3); }
   .day-card-stat dd { font-size: 0.9375rem; }
 }
+
+/* ---- (4) Namirnice: traka odnosa makroa ispod kcal ---- */
+:root[data-theme] .food-row-info .food-row-nutri {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-space-3);
+}
+.food-row-nutri-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.macro-split {
+  display: flex;
+  flex: 0 0 52px;
+  gap: 2px;
+  height: 5px;
+  border-radius: var(--ft-radius-pill);
+  overflow: hidden;
+}
+.macro-split > i {
+  display: block;
+  flex-basis: 0;
+  min-width: 3px;
+  border-radius: 1px;
+}
+.macro-split-protein { background: var(--macro-protein); }
+.macro-split-carbs { background: var(--macro-carbs); }
+.macro-split-fat { background: var(--macro-fat); }
+.recipe-library-stats > .macro-split {
+  flex-basis: auto;
+  width: 64px;
+  margin-top: 2px;
+}
