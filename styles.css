@@ -22068,3 +22068,25 @@ label.meal-status.is-pop {
 :root[data-theme] .today-tile .today-btn {
   padding: 0 10px;
 }
+
+/* ---- (18) Promena dana sa smerom (View Transitions) ----
+   Imena važe samo tokom prelaza (html[data-day-dir]), pa van njega nema
+   nikakvog uticaja na raspored. Hrom i navigacija stoje, sadržaj klizi. */
+html[data-day-dir] .tab-bar { view-transition-name: ft-tabbar; }
+html[data-day-dir] .app-sidebar { view-transition-name: ft-sidebar; }
+html[data-day-dir] .app-main > .workspace-header { view-transition-name: ft-header; }
+html[data-day-dir] .app-main > .group-seg-nav { view-transition-name: ft-segnav; }
+html[data-day-dir] .app-main .hero--plan { view-transition-name: ft-daybar; }
+@keyframes ft-day-out-next { to { opacity: 0; transform: translateX(-28px); } }
+@keyframes ft-day-in-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes ft-day-out-prev { to { opacity: 0; transform: translateX(28px); } }
+@keyframes ft-day-in-prev { from { opacity: 0; transform: translateX(-28px); } }
+html[data-day-dir="next"]::view-transition-old(root) { animation: ft-day-out-next 0.18s cubic-bezier(0.4, 0, 1, 1) both; }
+html[data-day-dir="next"]::view-transition-new(root) { animation: ft-day-in-next 0.26s cubic-bezier(0, 0, 0.2, 1) 0.04s both; }
+html[data-day-dir="prev"]::view-transition-old(root) { animation: ft-day-out-prev 0.18s cubic-bezier(0.4, 0, 1, 1) both; }
+html[data-day-dir="prev"]::view-transition-new(root) { animation: ft-day-in-prev 0.26s cubic-bezier(0, 0, 0.2, 1) 0.04s both; }
+html[data-day-dir]::view-transition-group(ft-daybar),
+html[data-day-dir]::view-transition-group(ft-tabbar),
+html[data-day-dir]::view-transition-group(ft-header),
+html[data-day-dir]::view-transition-group(ft-segnav),
+html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s; }

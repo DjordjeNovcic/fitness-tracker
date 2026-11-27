@@ -20212,6 +20212,27 @@ function render() {
   syncThemeColor();
 }
 
+// Promena dana / nedelje sa smerom: sadržaj klizne levo (sledeći) ili desno
+// (prethodni), a naslov, traka dana i navigacija stoje (View Transitions;
+// gde ih nema ili je uključen smanjen pokret — obična zamena).
+function renderWithDayTransition(direction) {
+  if (!direction || typeof document.startViewTransition !== "function" || prefersReducedMotion()) {
+    render();
+    return;
+  }
+  const root = document.documentElement;
+  root.dataset.dayDir = direction;
+  try {
+    const transition = document.startViewTransition(() => render());
+    transition.finished.finally(() => {
+      delete root.dataset.dayDir;
+    });
+  } catch {
+    delete root.dataset.dayDir;
+    render();
+  }
+}
+
 function renderApp() {
   if (!state.authReady) {
     document.body.classList.remove("plan-compact", "plan-scrolled");
@@ -20973,22 +20994,26 @@ async function handleDocumentClick(event) {
   }
 
   if (action === "select-weekday") {
+    const fromIndex = WEEKDAYS.indexOf(state.selectedWeekday);
     state.selectedWeekday = actionTarget.dataset.weekday;
+    const toIndex = WEEKDAYS.indexOf(state.selectedWeekday);
     state.editingMealLabel = "";
     state.navMenuOpen = false;
     resetPlanDraft();
     resetRoutineEditing();
-    render();
+    renderWithDayTransition(toIndex > fromIndex ? "next" : toIndex < fromIndex ? "prev" : "");
     window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
   }
 
   if (action === "select-week-track") {
-    state.selectedWeekTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
+    const nextTrack = normalizeWeekTrack(actionTarget.dataset.weekTrack);
+    const direction = nextTrack === state.selectedWeekTrack ? "" : nextTrack === getCurrentWeekTrack() ? "prev" : "next";
+    state.selectedWeekTrack = nextTrack;
     state.editingMealLabel = "";
     resetPlanDraft();
     resetRoutineEditing();
-    render();
+    renderWithDayTransition(direction);
     window.requestAnimationFrame(() => scrollPageTop("smooth"));
     return;
   }
