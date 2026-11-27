@@ -10118,7 +10118,7 @@ function renderGoalsLivePreview() {
     return "";
   }
   const diff = active ? rec.targetCalories - active : 0;
-  return `Sa ovim izborom cilj bi bio <strong>${rec.targetCalories} kcal</strong>${diff ? ` (${diff > 0 ? "+" : "−"}${Math.abs(diff)})` : ""}. „Izračunaj iz profila“ ga upisuje, „Sačuvaj“ ga čuva.`;
+  return `Sa ovim izborom cilj bi bio <strong>${rec.targetCalories} kcal</strong>${diff ? ` (${diff > 0 ? "+" : "−"}${Math.abs(diff)})` : ""}. „Izračunaj“ ga upisuje, „Sačuvaj“ ga čuva.`;
 }
 
 function syncGoalsLivePreview() {
@@ -17061,7 +17061,7 @@ function renderGoalsTab() {
           : showCalibrated
             ? `Kalibrisano prema stvarnoj potrošnji (${calibrated.lastTdee} kcal/dan)${paceLabel ? ` · ${paceLabel}` : ""}`
             : recDiffers
-              ? `Profil predlaže ${goalRecommendation.targetCalories} kcal. Preuzmi ga dugmetom „Izračunaj iz profila“.`
+              ? `Profil predlaže ${goalRecommendation.targetCalories} kcal. Preuzmi ga dugmetom „Izračunaj“.`
               : goalRecommendation
                 ? paceLabel
                 : "Ručno postavljen cilj · popuni pol i visinu za obračun iz profila";
@@ -17167,7 +17167,7 @@ function renderGoalsTab() {
              što je diže, pa broj ostaje na tebi. Nula = red samo broji šoljice. -->
         <p class="footer-note field--full">Kafa: crna ~10, sa šećerom ~26, sa mlekom ~50 kcal; 0 samo broji šoljice.</p>
         <div class="meta-row">
-          <button class="ghost-button" type="button" data-action="recalculate-goals">Izračunaj iz profila</button>
+          <button class="ghost-button" type="button" data-action="recalculate-goals" aria-label="Izračunaj cilj iz profila">Izračunaj</button>
           <button class="solid-button" type="submit">Sačuvaj</button>
         </div>
       </form>

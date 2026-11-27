@@ -22275,3 +22275,42 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
   color: var(--muted);
 }
 :root[data-theme] .supplement-card .pill + .pill::before { content: "\00a0·\00a0"; }
+
+/* ---- (21) Sitnice iz prolaza u WebKit-u ---- */
+/* Otvoreno ⓘ objašnjenje između naslova i „Dodaj …“: pilula je zadržavala
+   -36px i legala preko kraja objašnjenja. Tada ide ispod objašnjenja. */
+@media (max-width: 720px) {
+  :root[data-theme] main .section > .section-header + .help-note[open]:not(.help-note--inline) + details.form-collapse {
+    margin-top: var(--ft-space-3);
+  }
+}
+/* Polja za brojeve bez strelica ▲▼ (desktop Safari/Chrome): broj se kuca,
+   a strelice su na telefonu ionako nevidljive. */
+:root[data-theme] input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+:root[data-theme] input[type="number"]::-webkit-inner-spin-button,
+:root[data-theme] input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Otvorena forma „Dodaj …“: pilula (sada × Dodaj …) ostaje desno u redu sa
+   naslovom — kao inline-flex je pala ulevo, preko naslova odeljka. */
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 0 auto;
+}
+:root[data-theme] .app-main section.section > details.form-collapse[open]:not(.section):not(.training-burn-collapse) > summary + * {
+  margin-top: var(--ft-space-3);
+}
+@media (max-width: 720px) {
+  /* Zaglavlje ima 8px donje margine, pa je zatvorena pilula bila 8px ispod
+     sredine naslova; pomak ne menja raspored ispod. */
+  :root[data-theme] main .section > .section-header + details.form-collapse:not([open]):not(.section):not(.training-burn-collapse) > summary,
+  :root[data-theme] main .section > .section-header + .help-note:not([open]):not(.help-note--inline) + details.form-collapse:not([open]):not(.section) > summary {
+    transform: translateY(-8px);
+  }
+}
