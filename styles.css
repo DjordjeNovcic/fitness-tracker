@@ -22314,3 +22314,10 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
     transform: translateY(-8px);
   }
 }
+/* Proširena površina reda „Kalorije treninga / Napredak po vežbi / Beleške“
+   (−7px gore i dole) samo dok je zatvoren: otvoren, sadržaj ispod je ulazio
+   7px u naslov reda. */
+:root[data-theme] main details.form-collapse[open] > summary,
+:root[data-theme] main details.goals-days-section[open] > summary {
+  margin-bottom: 0;
+}
