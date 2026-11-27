@@ -15055,8 +15055,17 @@ function renderTrainingTab() {
         return renderDayCard({
           id: "training-day-card-title",
           eyebrow: getDayCardEyebrow(),
-          title: templates.length ? templates.map((template) => escapeHtml(template.name)).join(" + ") : "Dan odmora",
-          meta: templates.length ? "Trening još nema vežbe." : "Nema treninga u planu. Sastavi ga ispod ili uzmi gotov plan.",
+          // Novi nalog nema nijedan trening u nedelji: to nije „dan odmora“.
+          title: templates.length
+            ? templates.map((template) => escapeHtml(template.name)).join(" + ")
+            : weeklyTrainingPlan.some((day) => day.templates.length)
+              ? "Dan odmora"
+              : "Još nema plana",
+          meta: templates.length
+            ? "Trening još nema vežbe."
+            : weeklyTrainingPlan.some((day) => day.templates.length)
+              ? "Za ovaj dan nema treninga u planu."
+              : "Uzmi gotov plan ili sastavi svoj trening ispod.",
           stats: burnStat,
         });
       }
@@ -17359,6 +17368,10 @@ function renderNutritionTab() {
       ? "Import arhiva"
       : "Spremno za prvi unos";
 
+  // Prazan nalog: samo kartica za uvoz. Pet praznih sekcija (svaka sa
+  // natpisom i „još nema…“) i pet pilula sa nulama bili su zid teksta pre
+  // prvog dokumenta.
+  const isFreshImport = !hasImportArchiveContent && !state.nutritionImportPending;
   return `
     <section class="section nutrition-overview-section">
       ${renderSectionLead(
@@ -17371,28 +17384,36 @@ function renderNutritionTab() {
           title: state.nutritionImportPending ? "Obrada je u toku" : "Import centar",
           detail: state.nutritionImportPending
             ? state.nutritionImportStatus || "Sačekaj da pročitam dokumente i rasporedim ih po sekcijama."
-            : "Import ne briše postojeće recepte i namirnice. Samo dodaje ili osvežava ono što prepozna iz dokumenata.",
-          statusLabel: importStatus,
+            : isFreshImport
+              ? "PDF, DOCX, TXT, MD, CSV ili JSON, i više fajlova odjednom. Uvoz ne briše postojeće recepte i namirnice, samo dodaje nove."
+              : "Import ne briše postojeće recepte i namirnice. Samo dodaje ili osvežava ono što prepozna iz dokumenata.",
+          statusLabel: isFreshImport ? "" : importStatus,
           tone: state.nutritionImportPending ? "warning" : "info",
-          pills: [
-            { label: "PDF / DOCX / TXT / MD / CSV / JSON", strong: true, tone: "info" },
-            { label: "Više fajlova odjednom", tone: "success" },
-            ...(lastImportedAt ? [{ label: `Poslednji import ${lastImportedAt}`, tone: "warning" }] : []),
-          ],
+          pills: isFreshImport
+            ? []
+            : [
+                { label: "PDF / DOCX / TXT / MD / CSV / JSON", strong: true, tone: "info" },
+                { label: "Više fajlova odjednom", tone: "success" },
+                ...(lastImportedAt ? [{ label: `Poslednji import ${lastImportedAt}`, tone: "warning" }] : []),
+              ],
           actions: `
             <label class="solid-button secondary-button button-with-icon ${state.nutritionImportPending ? "is-disabled" : ""}" for="nutrition-import-files">
               ${renderButtonContent("Uvezi dokumente", "open")}
             </label>
-            <button class="ghost-button button-with-icon" type="button" data-action="clear-nutrition-imports" ${
-              !hasImportArchiveContent || state.nutritionImportPending ? "disabled" : ""
-            }>
+            ${
+              isFreshImport
+                ? ""
+                : `<button class="ghost-button button-with-icon" type="button" data-action="clear-nutrition-imports" ${
+                    !hasImportArchiveContent || state.nutritionImportPending ? "disabled" : ""
+                  }>
               ${renderButtonContent("Resetuj import", "delete")}
-            </button>
+            </button>`
+            }
             <input id="nutrition-import-files" type="file" accept=".pdf,.docx,.txt,.md,.csv,.json" multiple hidden />
           `,
         })}
 
-        ${renderStatusSummaryCard({
+        ${isFreshImport ? "" : renderStatusSummaryCard({
           title: `${documents.length} ${srPlural(documents.length, "dokument", "dokumenta", "dokumenata")} u arhivi`,
           detail: "Svaki import pamti izvor, kratak sažetak i koliko je recepata, namirnica i preporuka izvučeno.",
           statusLabel: documents.length ? "Arhiva živa" : "Još prazno",
@@ -17417,6 +17438,7 @@ function renderNutritionTab() {
       </div>
     </section>
 
+    ${isFreshImport ? "" : `
     ${renderNutritionPlansSection(plans)}
 
     <section class="section nutrition-recommendations-section">
@@ -17709,7 +17731,7 @@ function renderNutritionTab() {
                         <span class="pill">${doc.foodCount || 0} ${srPlural(doc.foodCount || 0, "namirnica", "namirnice", "namirnica")}</span>
                         <span class="pill">${doc.recommendationCount || 0} ${srPlural(doc.recommendationCount || 0, "preporuka", "preporuke", "preporuka")}</span>
                       </div>
-                      <div class="footer-note">Uvezeno ${new Date(doc.importedAt).toLocaleString("sr-RS")}</div>
+                      <div class="footer-note">Uvezeno ${new Date(doc.importedAt).toLocaleString("sr-Latn-RS")}</div>
                     </article>
                   `
                 )
@@ -17718,6 +17740,7 @@ function renderNutritionTab() {
         }
       </div>
     </section>
+    `}
   `;
 }
 
