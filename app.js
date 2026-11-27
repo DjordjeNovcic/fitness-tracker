@@ -17993,6 +17993,7 @@ function renderTrendCard(field) {
           <strong class="chart-card-value">${formatFieldValue(field, only.value)}</strong>
         </div>
         <p class="chart-single-note">Jedno merenje (${escapeHtml(only.label)})${target ? ` · cilj ${formatDecimal(target, 1)} kg` : ""}. Trend se pojavljuje od drugog merenja.</p>
+        ${state.activeTab === "goals" ? `<button class="ghost-button button-with-icon chart-single-cta" type="button" data-action="jump-measurement">${renderButtonContent("Unesi merenje", "add")}</button>` : ""}
       </article>
     `;
   }
@@ -20240,6 +20241,28 @@ function replayValueMotion(before) {
   }
 }
 
+// Računar: podtabovi idu odmah uz naslov stranice (CSS čita --ws-title-w),
+// a desna kolona Danas je lepljiva samo kad cela staje u prozor — inače bi
+// njen donji deo bio nedostupan do kraja stranice.
+function syncDesktopLayoutVars() {
+  const main = document.querySelector(".app-main");
+  if (!main) {
+    return;
+  }
+  const title = main.querySelector(":scope > .workspace-header h1");
+  if (title) {
+    main.style.setProperty("--ws-title-w", `${Math.ceil(title.getBoundingClientRect().width)}px`);
+  }
+  const side = main.querySelector(".today-col--side");
+  if (side) {
+    const bar = document.querySelector(".day-block > .hero--plan");
+    const top = (bar ? bar.getBoundingClientRect().height : 0) + 16;
+    main.style.setProperty("--side-sticky-top", `${Math.round(top)}px`);
+    side.classList.toggle("fits-viewport", side.getBoundingClientRect().height + top + 16 <= window.innerHeight);
+  }
+}
+window.addEventListener("resize", () => window.requestAnimationFrame(syncDesktopLayoutVars));
+
 function render() {
   renderApp();
   syncThemeColor();
@@ -20510,6 +20533,7 @@ function renderApp() {
   // the initial HTML (no flash), then the class is stripped once the
   // animation is done so its `fill: both` stops pinning `transform`
   // (which would otherwise block the scroll-to-hide header).
+  syncDesktopLayoutVars();
   const didEnter = state.tabEnter;
   state.tabEnter = false;
   if (didEnter) {

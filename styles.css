@@ -22662,3 +22662,100 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 @container meals (max-width: 639px) {
   :root[data-theme] .plan-meals-section .meal-entry-stats > .meal-entry-macros { display: none; }
 }
+
+/* ============================================================
+   (29) Široki ekran bez praznih pojaseva (prijavljeno sa 1920px)
+   ============================================================ */
+@media (min-width: 1280px) {
+  /* Okvir preko celog prozora: bočna traka uz levu ivicu, sadržaj do desne
+     (bio je okvir od 1600px na sredini, 160px praznog sa obe strane). */
+  :root[data-theme] .app-frame {
+    max-width: none;
+    margin: 0;
+  }
+  :root[data-theme] .app-main.shell,
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    max-width: 1800px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  /* Podtabovi odmah uz naslov, ne na drugom kraju sa rupom između. */
+  :root[data-theme] .app-main .workspace-header + .group-seg-nav,
+  :root[data-theme] .app-main .workspace-header + .seg-nav {
+    margin-left: calc(var(--ws-title-w, 180px) + 32px);
+  }
+  /* Danas: sedam dana popunjavaju red između naslova i Ova/Sledeća, kao
+     jedan segmentni prekidač (traka + aktivan dan). */
+  :root[data-theme] .app-main .hero--plan {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    column-gap: 32px;
+  }
+  :root[data-theme] .app-main .hero--plan .hero-day-picker { justify-self: stretch; }
+  :root[data-theme] .app-main .hero--plan .hero-day-chips {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    max-width: none;
+    padding: 4px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  :root[data-theme="dark"] .app-main .hero--plan .hero-day-chips { background: rgba(255, 255, 255, 0.05); }
+  :root[data-theme] .app-main .hero--plan .hero-day-chips .chip { min-height: 40px; border-radius: 12px; }
+  /* Danas: desna kolona ostaje u vidu dok skroluješ duge obroke (samo kad
+     cela staje u prozor). */
+  :root[data-theme] .today-col--side.fits-viewport {
+    position: sticky;
+    top: var(--side-sticky-top, 96px);
+  }
+  /* Ciljevi: desna kolona je bočni panel pune visine kartice, ne kraća
+     kolona sa praznim prostorom ispod. */
+  :root[data-theme] .goals-cilj-layout { align-items: stretch; }
+  :root[data-theme] .goals-cilj-side {
+    align-self: stretch;
+    padding: var(--ft-space-5);
+    border-radius: 16px;
+    background: var(--ft-surface-sunken);
+  }
+  :root[data-theme] .goals-cilj-side .chart-card,
+  :root[data-theme] .goals-cilj-side .calibration-section {
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+}
+/* Napredak → Pregled: kolone se završavaju u istoj liniji (poslednja kartica
+   u kraćoj koloni se izduži), bez nazubljenog dna. */
+@media (min-width: 1100px) {
+  :root[data-theme] .progress-overview-grid { align-items: stretch; }
+  :root[data-theme] .progress-overview-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap, 16px);
+  }
+  :root[data-theme] .progress-overview-col > :last-child { flex: 1 1 auto; }
+}
+@media (min-width: 1280px) {
+  :root[data-theme] .app-frame { padding-left: 0; }
+  :root[data-theme] .app-main.shell:not(.is-plan-shell),
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    max-width: 1800px;
+  }
+  :root[data-theme] .app-main .workspace-header + .group-seg-nav,
+  :root[data-theme] .app-main .workspace-header + .seg-nav {
+    margin-top: -54px;
+  }
+}
+@media (min-width: 1280px) {
+  :root[data-theme] .app-main.shell:not(.is-plan-shell),
+  :root[data-theme] .app-main.shell.is-plan-shell {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+@media (min-width: 1280px) {
+  /* Ciljevi: forma do čitljive širine (polje „Ime“ se razvuklo preko
+     1000px), ostatak širine dobija panel sa težinom i kalibracijom. */
+  :root[data-theme] .goals-cilj-layout {
+    grid-template-columns: minmax(0, 760px) minmax(340px, 1fr);
+  }
+}
+.chart-single-cta { margin-top: 12px; justify-self: start; }
