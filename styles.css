@@ -21838,3 +21838,28 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     padding: 0 6px;
   }
 }
+
+/* ---- (13) Trening i Rutina: dan u jednom redu ----
+   „Petak“ + „danas, 27. novembra“ ponavljali su izabrani dan u traci i
+   „Danas“ u kartici ispod. Vidljiv ostaje datum (levo) i Ova/Sledeća
+   (desno); naslov dana ostaje za čitače ekrana. */
+:root[data-theme] .app-main .hero--sub h2.hero-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+:root[data-theme] .app-main .hero--sub .hero-top {
+  align-items: center;
+}
+:root[data-theme] .app-main .hero--sub .hero-date {
+  display: block;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+:root[data-theme] .app-main .hero--sub .hero-date::first-letter {
+  text-transform: uppercase;
+}

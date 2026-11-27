@@ -9257,7 +9257,7 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
                   // (dve nedelje se ponavljaju), pa pi\u0161e i taj datum.
                   new Date().getDay() === 0 ? ` \u00b7 i ${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}` : ""
                 }</span>`
-              : `<span class="hero-date">${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}</span>`
+              : `<span class="hero-date">${headingLevel === 1 ? "" : `${weekdayLabel(state.selectedWeekday)}, `}${formatShortDate(getPlanDayDate(state.selectedWeekday, state.selectedWeekTrack))}</span>`
           }
         </div>
         ${renderWeekTrackToggle()}
@@ -9303,7 +9303,7 @@ function renderRowMenu(id, label, items) {
 // jezik kao dnevni pregled na Danas — prsten levo (urađeno / ukupno), naslov
 // i kratki brojevi desno. Jedini obojeni blok na tim ekranima; dan je iznad
 // na papiru, kao na Danas. Bez stavki: bez prstena, samo naslov i rečenica.
-function renderDayCard({ id, eyebrow, title, meta = "", done = 0, total = 0, unit = "", stats = [], note = "", help = "" }) {
+function renderDayCard({ id, eyebrow = "", title, meta = "", done = 0, total = 0, unit = "", stats = [], note = "", help = "" }) {
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
   const fraction = total ? Math.min(1, done / total) : 0;
@@ -9324,7 +9324,7 @@ function renderDayCard({ id, eyebrow, title, meta = "", done = 0, total = 0, uni
       ${help}
       ${ring}
       <div class="day-card-copy">
-        <span class="day-card-eyebrow">${eyebrow}</span>
+        ${eyebrow ? `<span class="day-card-eyebrow">${eyebrow}</span>` : ""}
         <h2 class="day-card-title" id="${id}">${title}</h2>
         ${meta ? `<p class="day-card-meta">${meta}</p>` : ""}
       </div>
@@ -9356,11 +9356,6 @@ function renderMacroSplitBar(protein, carbs, fat) {
     .filter(([, kcal]) => kcal > 0)
     .map(([key, kcal]) => `<i class="macro-split-${key}" style="flex-grow:${Math.max(4, Math.round((kcal / total) * 100))}"></i>`)
     .join("")}</span>`;
-}
-
-function getDayCardEyebrow() {
-  const isToday = state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack();
-  return isToday ? "Danas" : weekdayLabel(state.selectedWeekday);
 }
 
 function renderWorkspaceHeader() {
@@ -15082,7 +15077,7 @@ function renderTrainingTab() {
       if (!todayExerciseTotal) {
         return renderDayCard({
           id: "training-day-card-title",
-          eyebrow: getDayCardEyebrow(),
+          eyebrow: "",
           // Novi nalog nema nijedan trening u nedelji: to nije „dan odmora“.
           title: templates.length
             ? templates.map((template) => escapeHtml(template.name)).join(" + ")
@@ -15099,7 +15094,7 @@ function renderTrainingTab() {
       }
       return renderDayCard({
         id: "training-day-card-title",
-        eyebrow: getDayCardEyebrow(),
+        eyebrow: "",
         title: templates.map((template) => escapeHtml(template.name)).join(" + "),
         meta: groupIds.map((groupId) => getExerciseGroupLabel(groupId)).join(" · "),
         done: todayExerciseCompleted,
@@ -16297,7 +16292,7 @@ function renderRoutineTab() {
     ${renderDayBar({ headingLevel: 2 })}
     ${renderDayCard({
       id: "routine-day-card-title",
-      eyebrow: getDayCardEyebrow(),
+      eyebrow: "",
       title: summary.totalItems
         ? summary.doneItems >= summary.totalItems
           ? "Sve odrađeno"
