@@ -16968,7 +16968,7 @@ function renderGoalEtaCard() {
     const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
     body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong>, pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
   }
-  return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">🎯</span><p>${body}</p></div>`;
+  return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">${renderTabIcon("goals")}</span><p>${body}</p></div>`;
 }
 
 function renderGoalsTab() {
@@ -18041,9 +18041,9 @@ function renderTrendCard(field) {
     legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--target"></span>ciljna težina (${formatDecimal(targetWeight, 1)} kg)</span>`);
     const eta = getGoalEta();
     if (eta.status === "ok") {
-      etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
+      etaCaption = `<div class="chart-eta">Cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
     } else if (eta.status === "reached") {
-      etaCaption = `<div class="chart-eta">🎯 cilj dostignut!</div>`;
+      etaCaption = `<div class="chart-eta">Cilj dostignut!</div>`;
     } else if (eta.status === "no-profile") {
       etaCaption = `<div class="chart-eta">Popuni profil (pol, godine, visina, težina) da procenim datum.</div>`;
     } else if (eta.status === "no-rate") {
@@ -18060,6 +18060,7 @@ function renderTrendCard(field) {
         <h3>${field.label}</h3>
         <strong class="chart-card-value">${formatFieldValue(field, latest.value)}</strong>
       </div>
+      <div class="trend-chart-wrap" data-scrub="${escapeHtml(JSON.stringify(points.map((point) => [roundValue((point.x / width) * 100, 2), roundValue((point.y / height) * 100, 2), `${formatFieldValue(field, point.value)} · ${point.label}`])))}">
       <svg class="trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trend za ${field.label}">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
@@ -18074,6 +18075,8 @@ function renderTrendCard(field) {
         <path d="${linePath}" class="chart-line" fill="none"></path>
         <circle cx="${last.x}" cy="${last.y}" r="3.6" class="chart-dot is-current"></circle>
       </svg>
+      <div class="chart-scrub" aria-hidden="true"><span class="chart-scrub-line"></span><span class="chart-scrub-dot"></span><span class="chart-scrub-bubble"></span></div>
+      </div>
       <div class="chart-dates" aria-hidden="true"><span>${first.label}</span><span>${latest.label}</span></div>
       <div class="meta-row">
         ${renderMeasurementDelta(delta, field.unit)}
@@ -20056,6 +20059,55 @@ function animateRingCountUp() {
     }
   });
 }
+
+// Prevlačenje po grafikonu trenda (Napredak): vertikalna linija, tačka i
+// vrednost sa datumom najbliže tačke — kao u Health / Oura. Tačke su u
+// data-scrub kao procenti širine i visine (SVG je preserveAspectRatio=none).
+function updateChartScrub(wrap, clientX) {
+  let points;
+  try {
+    points = JSON.parse(wrap.dataset.scrub || "[]");
+  } catch {
+    return;
+  }
+  if (!points.length) {
+    return;
+  }
+  const rect = wrap.getBoundingClientRect();
+  const xPct = ((clientX - rect.left) / rect.width) * 100;
+  const nearest = points.reduce((best, point) => (Math.abs(point[0] - xPct) < Math.abs(best[0] - xPct) ? point : best), points[0]);
+  const scrub = wrap.querySelector(".chart-scrub");
+  if (!scrub) {
+    return;
+  }
+  scrub.style.setProperty("--scrub-x", `${nearest[0]}%`);
+  scrub.style.setProperty("--scrub-y", `${nearest[1]}%`);
+  scrub.querySelector(".chart-scrub-bubble").textContent = nearest[2];
+  scrub.classList.toggle("is-right", nearest[0] > 60);
+  scrub.classList.toggle("is-left", nearest[0] < 40);
+  scrub.classList.add("is-visible");
+  window.clearTimeout(wrap._scrubTimer);
+}
+function hideChartScrub(wrap, delay = 0) {
+  window.clearTimeout(wrap._scrubTimer);
+  wrap._scrubTimer = window.setTimeout(() => wrap.querySelector(".chart-scrub")?.classList.remove("is-visible"), delay);
+}
+document.addEventListener("pointerdown", (event) => {
+  const wrap = event.target.closest?.(".trend-chart-wrap");
+  if (wrap) updateChartScrub(wrap, event.clientX);
+});
+document.addEventListener("pointermove", (event) => {
+  const wrap = event.target.closest?.(".trend-chart-wrap");
+  if (wrap && (event.pointerType === "mouse" || event.buttons || event.pressure)) updateChartScrub(wrap, event.clientX);
+});
+document.addEventListener("pointerout", (event) => {
+  const wrap = event.target.closest?.(".trend-chart-wrap");
+  if (wrap && !wrap.contains(event.relatedTarget)) hideChartScrub(wrap, event.pointerType === "mouse" ? 0 : 1600);
+});
+document.addEventListener("pointerup", (event) => {
+  const wrap = event.target.closest?.(".trend-chart-wrap");
+  if (wrap && event.pointerType !== "mouse") hideChartScrub(wrap, 1600);
+});
 
 // Isti tab, nova vrednost (čekiran obrok, navika, vežba, voda): render gradi
 // DOM iznova, pa su prsten, trake i brojevi skakali. Pamtimo stare vrednosti

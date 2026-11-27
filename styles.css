@@ -21972,3 +21972,57 @@ label.meal-status.is-pop {
 @media (max-width: 899px) {
   :root[data-theme] .foods-list { padding-bottom: 64px; }
 }
+
+/* ---- (17) Prevlačenje po grafikonu trenda ---- */
+.trend-chart-wrap {
+  position: relative;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.chart-scrub {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.chart-scrub.is-visible { opacity: 1; }
+.chart-scrub-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--scrub-x, 0%);
+  width: 1px;
+  background: color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.chart-scrub-dot {
+  position: absolute;
+  left: var(--scrub-x, 0%);
+  top: var(--scrub-y, 0%);
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid var(--ft-surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.chart-scrub-bubble {
+  position: absolute;
+  left: var(--scrub-x, 0%);
+  top: -6px;
+  transform: translate(-50%, -100%);
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--ft-surface);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.chart-scrub.is-right .chart-scrub-bubble { transform: translate(-100%, -100%); }
+.chart-scrub.is-left .chart-scrub-bubble { transform: translate(0, -100%); }
+@media (prefers-reduced-motion: reduce) {
+  .chart-scrub { transition: none; }
+}
