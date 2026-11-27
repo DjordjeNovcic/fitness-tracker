@@ -696,6 +696,7 @@ const state = {
   stepsEditOpen: false,
   foodMenuOpenId: "",
   rowMenuOpenId: "",
+  rowMenuStickyGroup: "",
   foodEditorOpen: false,
   quickEntryOpen: false,
   quickEntryEaten: false,
@@ -4874,10 +4875,6 @@ function replaceRecordInPlace(collection, id, next) {
 }
 
 // Olovka na redu: ista ikonica i isti oblik kao brze akcije na stavci u obroku.
-function renderEditRecordButton(action, idAttr, id, label) {
-  return `<button class="ghost-button button-with-icon icon-only-action" type="button" data-action="${action}" ${idAttr}="${id}" aria-label="${escapeHtml(label)}" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>`;
-}
-
 function getFoodNutritionStatus(food = {}) {
   const kcal = toNumber(food.kcal);
   const protein = toNumber(food.protein);
@@ -9282,6 +9279,13 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
 // Namirnicama. Olovka i kanta na svakom redu bile su vizuelni šum, a brisanje
 // je bilo jedan tap od slučajnog dodira. Otvara se ispod reda, radnje sa
 // natpisom; zatvara ga bilo koja druga radnja.
+// Sklopivi deo u kome je meni ⋯ (ili je upravo izabrana radnja iz njega)
+// ostaje otvoren: render ga inače gradi zatvorenog, pa se meni nije video, a
+// posle „Obriši“ se lista zatvarala.
+function isRowMenuGroupActive(prefix) {
+  return state.rowMenuOpenId.startsWith(prefix) || state.rowMenuStickyGroup === prefix;
+}
+
 function renderRowMenu(id, label, items) {
   const open = state.rowMenuOpenId === id;
   return {
@@ -11430,7 +11434,7 @@ function renderPlanSupplementsSection() {
             : `<div class="empty">Još nema suplemenata za danas, dodaj prvi ispod.</div>`
         }
       </div>
-      <details class="form-collapse plan-supplement-manage" ${editingSupplement ? "open" : ""}>
+      <details class="form-collapse plan-supplement-manage" ${editingSupplement || isRowMenuGroupActive("supplement-") ? "open" : ""}>
         <summary>
           <span class="form-collapse-title">${editingSupplement ? "Izmena suplementa" : "Dodaj ili uredi suplemente"}</span>
           <span class="form-collapse-icon" aria-hidden="true">${renderActionIcon("add")}</span>
@@ -11473,8 +11477,12 @@ function renderPlanSupplementsSection() {
           ${
             allSupplements.length
               ? allSupplements
-                  .map(
-                    (supplement) => `
+                  .map((supplement) => {
+                    const supplementMenu = renderRowMenu(`supplement-${supplement.id}`, supplement.name, [
+                      { action: "edit-supplement", data: { "supplement-id": supplement.id }, text: "Izmeni", icon: "edit" },
+                      { action: "delete-supplement", data: { "supplement-id": supplement.id }, text: "Obriši", icon: "delete", danger: true },
+                    ]);
+                    return `
                       <article class="food-card routine-card supplement-card">
                         <div class="routine-row">
                           <div class="routine-content">
@@ -11485,14 +11493,12 @@ function renderPlanSupplementsSection() {
                               <span class="pill">${(supplement.weekdays || WEEKDAYS).length === WEEKDAYS.length ? "Svaki dan" : (supplement.weekdays || []).map((weekday) => weekdayLabel(weekday).slice(0, 3)).join(", ")}</span>
                             </div>
                           </div>
-                          <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                            <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-supplement" data-supplement-id="${supplement.id}" aria-label="Izmeni suplement" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
-                            <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-supplement" data-supplement-id="${supplement.id}" aria-label="Obriši suplement" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
-                          </div>
+                          <div class="entry-actions row-menu-slot">${supplementMenu.toggle}</div>
                         </div>
+                        ${supplementMenu.panel}
                       </article>
-                    `
-                  )
+                    `;
+                  })
                   .join("")
               : `<div class="empty">Dodaj prvi vitamin ili suplement.</div>`
           }
@@ -15358,7 +15364,7 @@ function renderTrainingTab() {
     ${
       // Samo lista; dok je prazna ne zauzima red (unos je u „Napredak po vežbi“).
       recentProgressLogs.length
-        ? `<details class="section form-collapse form-collapse--view">
+        ? `<details class="section form-collapse form-collapse--view" ${isRowMenuGroupActive("progress-") ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Poslednji unosi</span>
         ${renderCollapseHint(formatDateValueLabel(normalizeDateValue(recentProgressLogs[0].date)).replace(/ \d{4}\.$/, ""))}
@@ -15380,7 +15386,12 @@ function renderTrainingTab() {
                     .join(" · ")}</span>
                   ${log.note ? `<span class="progress-log-note">${escapeHtml(log.note)}</span>` : ""}
                 </span>
-                <button class="ghost-button icon-only-action" type="button" data-action="delete-training-progress" data-progress-id="${log.id}" aria-label="Obriši unos ${escapeHtml(log.exerciseName)}" title="Obriši">${renderActionIcon("delete")}</button>
+                ${(() => {
+                  const progressMenu = renderRowMenu(`progress-${log.id}`, `unos ${log.exerciseName}`, [
+                    { action: "delete-training-progress", data: { "progress-id": log.id }, text: "Obriši", icon: "delete", danger: true },
+                  ]);
+                  return progressMenu.toggle + progressMenu.panel;
+                })()}
               </li>`
           )
           .join("")}
@@ -15389,7 +15400,7 @@ function renderTrainingTab() {
         : ""
     }
 
-    <details class="section form-collapse form-collapse--view">
+    <details class="section form-collapse form-collapse--view" ${isRowMenuGroupActive("training-log-") ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Beleške</span>
         ${renderCollapseHint(
@@ -15410,17 +15421,21 @@ function renderTrainingTab() {
         ${
           logs.length
             ? logs
-                .map(
-                  (log) => `
-                    <article class="food-card">
-                      <div class="food-card-top">
-                        <strong>${log.createdAt}</strong>
-                        <button class="danger-button" data-action="delete-training-log" data-log-id="${log.id}">Obriši</button>
+                .map((log) => {
+                  const logMenu = renderRowMenu(`training-log-${log.id}`, `belešku od ${log.createdAt}`, [
+                    { action: "delete-training-log", data: { "log-id": log.id }, text: "Obriši", icon: "delete", danger: true },
+                  ]);
+                  return `
+                    <article class="measure-row">
+                      <div class="measure-row-head">
+                        <strong class="measure-row-date">${escapeHtml(String(log.createdAt || ""))}</strong>
+                        ${logMenu.toggle}
                       </div>
-                      <div class="footer-note">${escapeHtml(log.note)}</div>
+                      <p class="measure-row-values">${escapeHtml(log.note)}</p>
+                      ${logMenu.panel}
                     </article>
-                  `
-                )
+                  `;
+                })
                 .join("")
             : `<div class="empty">Još nema beleški za ovaj dan.</div>`
         }
@@ -18174,15 +18189,6 @@ function getCalorieGoalForDate(date) {
 // Pilula sa kalorijama za jedan unos. Nova merenja nose zamrznut cilj
 // (calorieGoal); stari unosi imaju ručno kucan calorieDeficit i prikazuju se pod
 // svojim imenom, da im ne pripišemo značenje koje nisu imali.
-function getMeasurementCaloriePill(entry) {
-  const goal = roundValue(toNumber(entry?.calorieGoal), 0);
-  if (goal > 0) {
-    return `<span class="pill">Cilj: ${goal} kcal</span>`;
-  }
-  const legacy = roundValue(toNumber(entry?.calorieDeficit), 0);
-  return legacy > 0 ? `<span class="pill">Kalorije: ${legacy} kcal</span>` : "";
-}
-
 function renderMeasurementGoalNote(date) {
   const goal = getCalorieGoalForDate(date);
   if (!(goal > 0)) {
@@ -18956,6 +18962,10 @@ function renderLabSection() {
                   const metaText = [rangeText, new Date(latest.date).toLocaleDateString("sr-RS"), group.entries.length > 1 ? `${group.entries.length} nalaza` : ""]
                     .filter(Boolean)
                     .join(" · ");
+                  const labMenu = renderRowMenu(`lab-${latest.id}`, `poslednji nalaz za ${group.marker}`, [
+                    { action: "edit-lab-result", data: { id: latest.id }, text: "Izmeni poslednji", icon: "edit" },
+                    { action: "delete-lab-result", data: { id: latest.id }, text: "Obriši poslednji", icon: "delete", danger: true },
+                  ]);
                   return `
                     <article class="lab-row">
                       <div class="lab-row-main">
@@ -18971,8 +18981,8 @@ function renderLabSection() {
                         <div class="lab-row-meta">${metaText}</div>
                       </div>
                       ${renderLabSparkline(group.entries)}
-                      ${renderEditRecordButton("edit-lab-result", "data-id", latest.id, `Izmeni poslednji nalaz za ${group.marker}`)}
-                      <button class="lab-row-del" type="button" data-action="delete-lab-result" data-id="${latest.id}" aria-label="Obriši poslednji nalaz za ${escapeHtml(group.marker)}">✕</button>
+                      ${labMenu.toggle}
+                      ${labMenu.panel}
                     </article>
                   `;
                 })
@@ -19104,7 +19114,7 @@ function renderBodyCompositionSection() {
 
   const sessions = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
   const sessionsDetails = `
-    <details class="form-collapse form-collapse--view bc-sessions">
+    <details class="form-collapse form-collapse--view bc-sessions" ${isRowMenuGroupActive("bc-") ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Sve analize (${entries.length})</span>
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
@@ -19113,12 +19123,15 @@ function renderBodyCompositionSection() {
         ${sessions
           .map((e) => {
             const count = Object.values(e.values || {}).filter((v) => v != null && v !== "").length;
+            const dateLabel = formatDateValueLabel(normalizeDateValue(e.date)) || String(e.date || "");
+            const bcMenu = renderRowMenu(`bc-${e.id}`, `analizu od ${dateLabel}`, [
+              { action: "edit-body-comp", data: { id: e.id }, text: "Izmeni", icon: "edit" },
+              { action: "delete-body-comp", data: { id: e.id }, text: "Obriši", icon: "delete", danger: true },
+            ]);
             return `<div class="bc-session-row">
-              <span>${new Date(e.date).toLocaleDateString("sr-RS")} · ${count} ${count === 1 ? "vrednost" : "vrednosti"}</span>
-              <div class="record-row-actions">
-                ${renderEditRecordButton("edit-body-comp", "data-id", e.id, `Izmeni analizu od ${new Date(e.date).toLocaleDateString("sr-RS")}`)}
-                <button class="lab-row-del" type="button" data-action="delete-body-comp" data-id="${e.id}" aria-label="Obriši analizu">✕</button>
-              </div>
+              <span>${escapeHtml(dateLabel)} · ${count} ${count === 1 ? "vrednost" : "vrednosti"}</span>
+              ${bcMenu.toggle}
+              ${bcMenu.panel}
             </div>`;
           })
           .join("")}
@@ -19942,7 +19955,7 @@ function renderProgressTab() {
     ` : ""}
 
     ${view === "merenja" ? `
-    <details class="section form-collapse form-collapse--view">
+    <details class="section form-collapse form-collapse--view" ${isRowMenuGroupActive("measure-") ? "open" : ""}>
       <summary>
         <span class="form-collapse-title">Istorija unosa</span>
         <span class="form-collapse-icon form-collapse-icon--chevron" aria-hidden="true">${renderChevronIcon(false)}</span>
@@ -19954,32 +19967,29 @@ function renderProgressTab() {
                 .map(
                   (entry) => {
                     const entryPhotos = getPhotosForDate(photos, entry.date);
+                    // Red sa tankom linijom (ne kartica u kartici): datum, vrednosti u
+                    // jednom redu sa zarezom („87,9 kg“, ne pilula „Težina: 87.9“) i
+                    // meni ⋯ kao na ostalim listama, umesto olovke i crvenog „Obriši“.
+                    const dateLabel = formatDateValueLabel(entry.date).replace(/ \d{4}\.$/, "");
+                    const measureMenu = renderRowMenu(`measure-${entry.id}`, `merenje od ${dateLabel}`, [
+                      { action: "edit-measurement", data: { "measurement-id": entry.id }, text: "Izmeni", icon: "edit" },
+                      { action: "delete-measurement", data: { "measurement-id": entry.id }, text: "Obriši", icon: "delete", danger: true },
+                    ]);
+                    const values = measurementFields
+                      .map((field) => {
+                        const value = findLatestMeasurementValue(entry, field.id);
+                        return value === null ? "" : `<span class="measure-row-value">${escapeHtml(field.label)} <strong>${formatFieldValue(field, toNumber(value))}</strong></span>`;
+                      })
+                      .filter(Boolean);
+                    const calorieGoal = roundValue(toNumber(entry?.calorieGoal), 0);
                     return `
-                    <article class="food-card">
-                      <div class="food-card-top">
-                        <h3>${new Date(entry.date).toLocaleDateString("sr-RS")}</h3>
-                        <div class="record-row-actions">
-                          ${renderEditRecordButton("edit-measurement", "data-measurement-id", entry.id, `Izmeni merenje od ${new Date(entry.date).toLocaleDateString("sr-RS")}`)}
-                          <button class="danger-button" data-action="delete-measurement" data-measurement-id="${entry.id}">
-                            Obriši
-                          </button>
-                        </div>
+                    <article class="measure-row">
+                      <div class="measure-row-head">
+                        <strong class="measure-row-date">${escapeHtml(dateLabel)}</strong>
+                        ${measureMenu.toggle}
                       </div>
-                      <div class="pill-row">
-                        ${
-                          measurementFields
-                            .map((field) => {
-                              const value = findLatestMeasurementValue(entry, field.id);
-                              if (value === null) {
-                                return "";
-                              }
-                              return `<span class="pill ${field.id === "weightKg" ? "note" : ""}">${field.label}: ${value}${field.unit ? ` ${field.unit}` : ""}</span>`;
-                            })
-                            .join("")
-                        }
-                        ${getMeasurementCaloriePill(entry)}
-                        ${entryPhotos.length ? `<span class="pill">${getPhotoCountLabel(entryPhotos.length)}</span>` : ""}
-                      </div>
+                      <p class="measure-row-values">${values.join(" ")}</p>
+                      ${calorieGoal > 0 || entryPhotos.length ? `<p class="measure-row-note">${[calorieGoal > 0 ? `cilj tog dana ${calorieGoal} kcal` : "", entryPhotos.length ? getPhotoCountLabel(entryPhotos.length) : ""].filter(Boolean).join(" · ")}</p>` : ""}
                       ${
                         entryPhotos.length
                           ? `<div class="measurement-thumbs">${entryPhotos
@@ -19994,6 +20004,7 @@ function renderProgressTab() {
                               .join("")}</div>`
                           : ""
                       }
+                      ${measureMenu.panel}
                     </article>
                   `;
                   }
@@ -20715,6 +20726,10 @@ async function handleDocumentClick(event) {
   const action = actionTarget.dataset.action;
   // Otvoren meni ⋯ reda zatvara bilo koja druga radnja (izmeni, obriši…).
   if (state.rowMenuOpenId && action !== "toggle-row-menu") {
+    if (actionTarget.closest(".row-menu-panel")) {
+      const known = ["supplement-", "progress-", "training-log-", "bc-", "measure-"];
+      state.rowMenuStickyGroup = known.find((prefix) => state.rowMenuOpenId.startsWith(prefix)) || "";
+    }
     state.rowMenuOpenId = "";
   }
 
@@ -20743,6 +20758,7 @@ async function handleDocumentClick(event) {
     state.foodSearch = "";
     state.foodMenuOpenId = "";
     state.rowMenuOpenId = "";
+    state.rowMenuStickyGroup = "";
     state.foodFiltersOpen = false;
     resetFoodEditing();
     resetRoutineEditing();

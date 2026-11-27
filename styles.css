@@ -22154,3 +22154,124 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 :root[data-theme] .habit-week-day.is-future:not(.is-done):not(.is-selected) {
   opacity: 0.4;
 }
+
+/* ============================================================
+   (20) iOS: polja za vreme i datum (prijavljeno sa iPhone-a 27. 11.)
+   Na iOS Safariju polje za vreme bez appearance:none zadržava prirodnu
+   širinu (centriran tekst, ~220px), a ćelija mreže min-width:auto, pa je
+   u Ciljevi → Obaveštenja „Prva užina / Druga užina“ izlazilo iz kartice i
+   preklapalo levu kolonu. Sva polja za datum i vreme: pune širine ćelije,
+   levo poravnata, 44px, sa ikonicom (sat / kalendar) kao ostala polja.
+   ============================================================ */
+:root[data-theme] :is(.field, .meal-schedule-field, .notify-time-field, .meal-schedule-grid > *, .notify-time-row > *) {
+  min-width: 0;
+}
+:root[data-theme] input:is([type="time"], [type="date"], [type="datetime-local"], [type="month"]) {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--ft-h-control);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme] input:is([type="time"], [type="date"], [type="datetime-local"], [type="month"])::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
+  min-height: 1.2em;
+}
+:root[data-theme] input[type="time"] {
+  position: relative;
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6c66' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px 18px;
+}
+:root[data-theme="dark"] input[type="time"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3aea8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+}
+:root[data-theme] input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+/* Dve kolone satnice uvek staju u karticu (bilo minmax(130–140px, 1fr) po
+   ćeliji sa min-width:auto). */
+:root[data-theme] :is(.meal-schedule-grid, .notify-time-row) {
+  grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr));
+}
+
+/* Napredak → Merenja → Istorija unosa: redovi sa tankom linijom umesto
+   kartica u kartici sa pilulama i crvenim „Obriši“. */
+.measure-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ft-border);
+}
+.measure-row:last-child { border-bottom: 0; }
+.measure-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ft-space-3);
+}
+.measure-row-date { font-size: 0.9375rem; font-weight: 700; }
+.measure-row-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.measure-row-value { white-space: nowrap; }
+.measure-row-value strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.measure-row-note { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+:root[data-theme] details.form-collapse > .stack:has(> .measure-row) { gap: 0; }
+/* Meni ⋯ i u nalazima, analizama sastava tela i unosima napretka po
+   vežbi: panel radnji ide u novi red preko cele širine. */
+:root[data-theme] :is(.lab-row, .bc-session-row, .progress-log-row) { flex-wrap: wrap; }
+:root[data-theme] :is(.lab-row, .bc-session-row, .progress-log-row) > .row-menu-panel {
+  grid-column: 1 / -1;
+  flex-basis: 100%;
+}
+:root[data-theme] :is(.bc-session-row, .progress-log-row) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ft-space-3);
+}
+/* Danas → Vitamini → „Dodaj ili uredi suplemente“: spisak kao redovi sa
+   tankom linijom (bio kartica u kartici), vreme i dani kao tihi red teksta. */
+:root[data-theme] .plan-supplement-manage-stack { gap: 0; }
+:root[data-theme] .plan-supplement-manage-stack > .supplement-card.food-card {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--ft-border);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:root[data-theme] .plan-supplement-manage-stack > .supplement-card:last-child { border-bottom: 0; }
+:root[data-theme] .supplement-card .pill-row { gap: 0; margin-top: 2px; }
+:root[data-theme] .supplement-card .pill {
+  padding: 0;
+  border: 0;
+  background: none;
+  min-height: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+:root[data-theme] .supplement-card .pill + .pill::before { content: "\00a0·\00a0"; }
