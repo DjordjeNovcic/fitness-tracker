@@ -21729,3 +21729,112 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   letter-spacing: 0.01em;
   text-transform: none;
 }
+
+/* ---- (11) Jedna radnja „dodaj“ u zaglavlju sekcije ----
+   Bilo je pet oblika za isti posao: obrubljena pilula (Brzi unos, Sastavi),
+   tekst + krug sa „+“ (Dodaj naviku / zadatak / nalaz / analizu / sliku).
+   Sada svuda mekana pilula 36px: ikona levo, natpis u akcentu — isto kao
+   „Dodaj u plan“ na receptima. Celoredne forme (Dodaj trčanje / merenje)
+   i red „Kalorije treninga“ ostaju redovi. */
+:root[data-theme] .app-main .section-header > :is(.plan-quick-entry-button, .training-compose-button).ghost-button.ghost-button.ghost-button.ghost-button,
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ft-h-control-sm);
+  padding: 0 14px 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--ft-radius-pill);
+  background: var(--ft-accent-soft);
+  color: var(--ft-accent-strong);
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .app-main .section-header > :is(.plan-quick-entry-button, .training-compose-button).ghost-button,
+:root[data-theme="dark"] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary {
+  color: var(--ft-accent);
+}
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary > .form-collapse-title {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary > .form-collapse-icon {
+  order: -1;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+:root[data-theme] .app-main .section-header > :is(.plan-quick-entry-button, .training-compose-button).ghost-button:hover,
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section):not(.training-burn-collapse) > summary:hover {
+  background: color-mix(in srgb, var(--ft-accent) 18%, var(--ft-accent-soft));
+}
+/* Zaglavlje sa pilulom je visoko koliko pilula, naslov centriran: pilula
+   je u ravni naslova i ne prekriva prvi red teksta ispod. */
+:root[data-theme] .app-main section.section:has(> details.form-collapse:not(.section):not(.training-burn-collapse)) > .section-header {
+  display: flex;
+  align-items: center;
+  min-height: var(--ft-h-control-sm);
+}
+
+/* ---- (12) Jedan segmentni prekidač ----
+   Podtabovi (Namirnice/Recepti, Trening/Trčanje, Pregled…, Cilj…) bili su
+   odvojene pilule sa punim petrolom, a odmah ispod Ova/Sledeća traka sa
+   belom pločicom — dva stila za isti posao, na Treningu jedan iznad drugog.
+   Sada svuda traka + pločica. Petrol ostaje za donju traku, izabrane
+   filtere i glavne radnje (jedan akcenat po regiji). */
+:root[data-theme] .app-main .seg-nav {
+  display: inline-flex;
+  gap: 0;
+  padding: 3px;
+  border-radius: var(--ft-radius-pill);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+:root[data-theme="dark"] .app-main .seg-nav {
+  background: rgba(255, 255, 255, 0.07);
+}
+:root[data-theme] .app-main .seg-nav .seg-nav-btn {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--ft-radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  box-shadow: none;
+}
+:root[data-theme] .app-main .seg-nav .seg-nav-btn:hover:not(.is-active) {
+  color: var(--ink);
+  background: transparent;
+}
+:root[data-theme] .app-main .seg-nav .seg-nav-btn.is-active {
+  background: var(--surface-elevated);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(20, 30, 28, 0.12);
+}
+:root[data-theme="dark"] .app-main .seg-nav .seg-nav-btn.is-active {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+  box-shadow: none;
+}
+/* Četiri podtaba (Napredak, Ciljevi) na telefonu: cela širina, jednaki delovi. */
+@media (max-width: 899px) {
+  :root[data-theme] .app-main > .seg-nav:not(.group-seg-nav) {
+    display: flex;
+    width: 100%;
+  }
+  :root[data-theme] .app-main > .seg-nav:not(.group-seg-nav) .seg-nav-btn {
+    flex: 1 1 0;
+    padding: 0 6px;
+  }
+}

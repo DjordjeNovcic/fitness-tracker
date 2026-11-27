@@ -695,6 +695,7 @@ const state = {
   foodFiltersOpen: false,
   stepsEditOpen: false,
   foodMenuOpenId: "",
+  rowMenuOpenId: "",
   foodEditorOpen: false,
   quickEntryOpen: false,
   quickEntryEaten: false,
@@ -9277,6 +9278,27 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
   `;
 }
 
+// Meni ⋯ za red (navike, nizovi, zadaci, trčanja): isti obrazac kao ⋮ u
+// Namirnicama. Olovka i kanta na svakom redu bile su vizuelni šum, a brisanje
+// je bilo jedan tap od slučajnog dodira. Otvara se ispod reda, radnje sa
+// natpisom; zatvara ga bilo koja druga radnja.
+function renderRowMenu(id, label, items) {
+  const open = state.rowMenuOpenId === id;
+  return {
+    toggle: `<button class="food-row-menu row-menu-toggle ${open ? "is-active" : ""}" type="button" data-action="toggle-row-menu" data-row-id="${escapeHtml(id)}" aria-label="Radnje za ${escapeHtml(label)}" aria-expanded="${open}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>`,
+    panel: open
+      ? `<div class="food-row-actions row-menu-panel">${items
+          .map(
+            ({ action, data, text, icon, danger }) =>
+              `<button class="${danger ? "danger-button" : "ghost-button"} button-with-icon" type="button" data-action="${action}" ${Object.entries(data)
+                .map(([key, value]) => `data-${key}="${escapeHtml(value)}"`)
+                .join(" ")}>${renderButtonContent(text, icon)}</button>`
+          )
+          .join("")}</div>`
+      : "",
+  };
+}
+
 // Petrol kartica dana za Trening i Rutinu (Fit Tracker 2.0, faza 3): isti
 // jezik kao dnevni pregled na Danas — prsten levo (urađeno / ukupno), naslov
 // i kratki brojevi desno. Jedini obojeni blok na tim ekranima; dan je iznad
@@ -13330,11 +13352,12 @@ function renderPlanTab(entries) {
         }
       </div>
       ${
-        (store.weeklyPlanEntries || []).some((entry) => normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
+        // Brisanje dana i nedelje je u „Alati za plan“ (sa poništavanjem): ovde,
+        // odmah ispod obroka, bilo je ravnopravno sa „Zaključaj dan“ i lako se
+        // pritiskalo slučajno. Ostaje samo zaključavanje, koje ništa ne briše.
+        entries.length || isDayLocked
           ? `<div class="meal-secondary-actions plan-delete-actions">
               ${entries.length || isDayLocked ? `<button class="meal-secondary-action" type="button" data-action="toggle-plan-day-lock">${isDayLocked ? "Otključaj dan" : "Zaključaj dan"}</button>` : ""}
-              ${entries.length && !isDayLocked ? `<button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-day-plan">Obriši ceo dan</button>` : ""}
-              <button class="meal-secondary-action meal-secondary-action--danger" type="button" data-action="delete-week-plan">Obriši celu ${getWeekTrackAccusative(state.selectedWeekTrack)}</button>
             </div>`
           : ""
       }
@@ -13404,6 +13427,11 @@ function renderPlanTab(entries) {
             <button class="ghost-button button-with-icon" type="button" data-action="toggle-bulk-delete-panel">
               ${renderButtonContent(state.bulkDeletePanelOpen ? "Zatvori izbor" : "Više dana", state.bulkDeletePanelOpen ? "close" : "copy")}
             </button>
+            ${
+              (store.weeklyPlanEntries || []).some((entry) => normalizeWeekTrack(entry.weekTrack) === state.selectedWeekTrack)
+                ? `<button class="danger-button button-with-icon" type="button" data-action="delete-week-plan">${renderButtonContent(`Obriši celu ${getWeekTrackAccusative(state.selectedWeekTrack)}`, "delete")}</button>`
+                : ""
+            }
           </div>
           ${
             state.bulkDeletePanelOpen
@@ -16094,6 +16122,10 @@ function renderRunCard(run) {
     .map((line) => line.filter(Boolean))
     .filter((line) => line.length);
 
+  const runMenu = renderRowMenu(`run-${run.id}`, `trčanje od ${dateLabel}`, [
+    { action: "edit-run", data: { "run-id": run.id }, text: "Izmeni", icon: "edit" },
+    { action: "delete-run", data: { "run-id": run.id }, text: "Obriši", icon: "delete", danger: true },
+  ]);
   return `
     <article class="run-row">
       <div class="run-row-main">
@@ -16105,10 +16137,8 @@ function renderRunCard(run) {
         ${run.note ? `<div class="run-row-note">${escapeHtml(run.note)}</div>` : ""}
       </div>
       <strong class="run-row-distance">${formatDecimal(derived.distanceKm, 1)} <span>km</span></strong>
-      <div class="run-row-actions">
-        <button class="meal-entry-action" type="button" data-action="edit-run" data-run-id="${run.id}" aria-label="Izmeni trčanje od ${escapeHtml(dateLabel)}" title="Izmeni">${renderActionIcon("edit")}</button>
-        <button class="meal-entry-action meal-entry-action--danger" type="button" data-action="delete-run" data-run-id="${run.id}" aria-label="Obriši trčanje od ${escapeHtml(dateLabel)}" title="Obriši">${renderActionIcon("delete")}</button>
-      </div>
+      <div class="run-row-actions">${runMenu.toggle}</div>
+      ${runMenu.panel}
     </article>
   `;
 }
@@ -16345,8 +16375,12 @@ function renderRoutineTab() {
         ${
           summary.habits.length
             ? summary.habits
-                .map(
-                  (habit) => `
+                .map((habit) => {
+                  const habitMenu = renderRowMenu(`habit-${habit.id}`, habit.name, [
+                    { action: "edit-habit", data: { "habit-id": habit.id }, text: "Izmeni", icon: "edit" },
+                    { action: "delete-habit", data: { "habit-id": habit.id }, text: "Obriši", icon: "delete", danger: true },
+                  ]);
+                  return `
                     <article class="food-card routine-card">
                       <div class="routine-row">
                         <label class="routine-check">
@@ -16371,14 +16405,12 @@ function renderRoutineTab() {
                             <span class="habit-week-count">${getHabitWeeklyCount(habit)}/7</span>
                           </div>
                         </div>
-                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
-                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
-                        </div>
+                        <div class="entry-actions row-menu-slot">${habitMenu.toggle}</div>
                       </div>
+                      ${habitMenu.panel}
                     </article>
-                  `
-                )
+                  `;
+                })
                 .join("")
             : `<div class="empty">Dodaj prvu nedeljnu naviku i prati je kroz dane u nedelji.</div>`
         }
@@ -16400,6 +16432,11 @@ function renderRoutineTab() {
                   const currentStreakDays = getHabitCurrentStreakDays(habit);
                   const bestStreakDays = getHabitBestStreakDays(habit);
                   const startedLabel = formatDateValueLabel(habit.streakStartDate);
+                  const streakMenu = renderRowMenu(`streak-${habit.id}`, habit.name, [
+                    { action: "reset-habit-streak", data: { "habit-id": habit.id }, text: "Počni ispočetka", icon: "refresh" },
+                    { action: "edit-habit", data: { "habit-id": habit.id }, text: "Izmeni", icon: "edit" },
+                    { action: "delete-habit", data: { "habit-id": habit.id }, text: "Obriši", icon: "delete", danger: true },
+                  ]);
 
                   return `
                     <article class="food-card routine-card routine-streak-card">
@@ -16422,12 +16459,9 @@ function renderRoutineTab() {
                             .map((part, index, parts) => `<span class="nowrap">${escapeHtml(part)}${index < parts.length - 1 ? " ·" : ""}</span>`)
                             .join(" ")}</div>
                         </div>
-                        <div class="entry-actions routine-streak-actions">
-                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="reset-habit-streak" data-habit-id="${habit.id}" aria-label="Počni „${escapeHtml(habit.name)}“ ispočetka" title="Počni ispočetka">${renderButtonContent("Počni ispočetka", "refresh")}</button>
-                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-habit" data-habit-id="${habit.id}" aria-label="Izmeni naviku" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
-                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-habit" data-habit-id="${habit.id}" aria-label="Obriši naviku" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
-                        </div>
+                        <div class="entry-actions routine-streak-actions row-menu-slot">${streakMenu.toggle}</div>
                       </div>
+                      ${streakMenu.panel}
                     </article>
                   `;
                 })
@@ -16480,8 +16514,12 @@ function renderRoutineTab() {
         ${
           summary.tasks.length
             ? summary.tasks
-                .map(
-                  (task) => `
+                .map((task) => {
+                  const taskMenu = renderRowMenu(`task-${task.id}`, task.title, [
+                    { action: "edit-task", data: { "task-id": task.id }, text: "Izmeni", icon: "edit" },
+                    { action: "delete-task", data: { "task-id": task.id }, text: "Obriši", icon: "delete", danger: true },
+                  ]);
+                  return `
                     <article class="food-card routine-card">
                       <div class="routine-row">
                         <label class="routine-check">
@@ -16499,14 +16537,12 @@ function renderRoutineTab() {
                           <strong>${escapeHtml(task.title)}</strong>
                           ${task.note ? `<div class="footer-note">${escapeHtml(task.note)}</div>` : ""}
                         </div>
-                        <div class="entry-actions" style="justify-content:flex-start; margin-top:0;">
-                          <button class="ghost-button button-with-icon icon-only-action" type="button" data-action="edit-task" data-task-id="${task.id}" aria-label="Izmeni zadatak" title="Izmeni">${renderButtonContent("Izmeni", "edit")}</button>
-                          <button class="danger-button button-with-icon icon-only-action" type="button" data-action="delete-task" data-task-id="${task.id}" aria-label="Obriši zadatak" title="Obriši">${renderButtonContent("Obriši", "delete")}</button>
-                        </div>
+                        <div class="entry-actions row-menu-slot">${taskMenu.toggle}</div>
                       </div>
+                      ${taskMenu.panel}
                     </article>
-                  `
-                )
+                  `;
+                })
                 .join("")
             : `<div class="empty">Još nema zadataka za ${weekdayAccusative(state.selectedWeekday)} (${getWeekTrackLabel(state.selectedWeekTrack).toLowerCase()}). Dodaj prvi pa čekiraj kad završiš.</div>`
         }
@@ -20532,6 +20568,10 @@ async function handleDocumentClick(event) {
   }
 
   const action = actionTarget.dataset.action;
+  // Otvoren meni ⋯ reda zatvara bilo koja druga radnja (izmeni, obriši…).
+  if (state.rowMenuOpenId && action !== "toggle-row-menu") {
+    state.rowMenuOpenId = "";
+  }
 
   if (action === "switch-tab") {
     const nextTab = actionTarget.dataset.tab;
@@ -20557,6 +20597,7 @@ async function handleDocumentClick(event) {
     // otherwise a stale search re-applies on render and shows the empty state.
     state.foodSearch = "";
     state.foodMenuOpenId = "";
+    state.rowMenuOpenId = "";
     state.foodFiltersOpen = false;
     resetFoodEditing();
     resetRoutineEditing();
@@ -20835,6 +20876,13 @@ async function handleDocumentClick(event) {
 
   if (action === "toggle-food-filters") {
     state.foodFiltersOpen = !state.foodFiltersOpen;
+    render();
+    return;
+  }
+
+  if (action === "toggle-row-menu") {
+    const id = String(actionTarget.dataset.rowId || "");
+    state.rowMenuOpenId = state.rowMenuOpenId === id ? "" : id;
     render();
     return;
   }
