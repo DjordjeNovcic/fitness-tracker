@@ -22467,7 +22467,7 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 /* Obroci na desktopu: makroi | grami | kcal u stalnim kolonama poravnatim
    udesno — „120 g (ili 6 Tonus)“ je pomerao makroe pa ništa nije bilo u
    liniji. */
-@media (min-width: 1024px) {
+@container meals (min-width: 640px) {
   :root[data-theme] .plan-meals-section .meal-entry-stats {
     display: grid;
     grid-template-columns: 150px 140px 72px;
@@ -22572,4 +22572,93 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
   :root[data-theme] main .today-layout .section.plan-quick-section.plan-quick-section.plan-quick-section {
     border-radius: 16px;
   }
+}
+
+/* ============================================================
+   (28) Danas / Trening / Rutina na računaru — jedan jasan raspored
+   1) Zaglavlje u jednom redu: naslov i datum levo, sedam dana u sredini,
+      Ova/Sledeća desno (dani su bili sami u drugom redu, prekidač daleko).
+   2) Danas: jedna petrol kartica preko cele širine — prsten, pojedeno /
+      u planu / cilj i makroi zajedno (bile su dve različite kartice).
+   3) Ispod: dve nezavisne kolone (27).
+   ============================================================ */
+@media (min-width: 1280px) {
+  :root[data-theme] .app-main .hero--plan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: var(--ft-space-6);
+  }
+  :root[data-theme] .app-main .hero--plan > .hero-top { display: contents; }
+  :root[data-theme] .app-main .hero--plan .hero-title-wrap { grid-column: 1; grid-row: 1; min-width: 0; }
+  :root[data-theme] .app-main .hero--plan .hero-day-picker { grid-column: 2; grid-row: 1; margin: 0; padding: 0; }
+  :root[data-theme] .app-main .hero--plan .hero-week-toggle { grid-column: 3; grid-row: 1; }
+  :root[data-theme] .app-main .hero--plan .hero-day-chips {
+    display: grid;
+    grid-template-columns: repeat(7, 56px);
+    gap: 4px;
+    max-width: none;
+    margin: 0;
+  }
+  :root[data-theme] .app-main .hero--plan .hero-day-chips .chip {
+    min-height: 44px;
+    padding: 0;
+  }
+}
+
+@container today (min-width: 800px) {
+  /* jedna petrol kartica: [prsten | brojevi] | makroi */
+  :root[data-theme] .today-summary,
+  :root[data-theme] .today-summary.is-empty {
+    /* granica brojevi | makroi tačno iznad razmaka između kolona ispod
+       (kolone 1,55fr | 1fr, razmak 20px; kartica ima 24px sa strane) */
+    grid-template-columns: calc((100% + 48px - 20px) * 0.60784 - 14px) minmax(0, 1fr);
+    gap: 0;
+    padding: var(--ft-space-5) var(--ft-space-6);
+    border-radius: var(--ft-radius-lg);
+    background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
+    box-shadow: 0 18px 30px -22px rgba(7, 60, 73, 0.9);
+    color: var(--block-ink);
+  }
+  :root[data-theme] .today-summary .today-cal-card {
+    min-height: 0;
+    padding: 0 var(--ft-space-6) 0 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  :root[data-theme] .today-summary .today-ring { width: 120px; height: 120px; }
+  :root[data-theme] .today-summary .today-macro-card {
+    padding: 0 0 0 var(--ft-space-6);
+    border: 0;
+    border-left: 1px solid var(--block-line);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--block-ink);
+    align-content: center;
+    gap: 14px;
+  }
+  :root[data-theme] .today-summary .today-macro-label,
+  :root[data-theme] .today-summary .today-macro-goal { color: var(--block-muted); }
+  :root[data-theme] .today-summary .today-macro-value { color: var(--block-ink); }
+  :root[data-theme] .today-summary .today-macro .progress {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+  :root[data-theme] .today-summary .today-macro--protein .progress > span { background: var(--rd-mint); }
+  :root[data-theme] .today-summary .today-macro--carbs .progress > span { background: var(--rd-sky); }
+  :root[data-theme] .today-summary .today-macro--fat .progress > span { background: var(--rd-sand); }
+  :root[data-theme] .today-summary .today-macro .progress[data-state="over"] > span { background: var(--block-over, #f0a58a); }
+}
+
+/* Kolona obroka je kontejner: stalne kolone makroi | grami | kcal tek kad je
+   šira od 640px; uža (npr. 1280px ekran) — makroi u redu se sakrivaju (stoje
+   u zaglavlju obroka), da naziv namirnice ne nestane. */
+@container today (min-width: 800px) {
+  :root[data-theme] .today-col--main { container: meals / inline-size; }
+}
+@container meals (max-width: 639px) {
+  :root[data-theme] .plan-meals-section .meal-entry-stats > .meal-entry-macros { display: none; }
 }
