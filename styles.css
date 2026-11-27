@@ -22373,3 +22373,15 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 :root[data-theme] .is-selected .exercise-pick-check {
   border-color: var(--accent);
 }
+/* Danas na telefonu: „od 2061“ ispod „kcal preostalo“ (kolona „Cilj“ je
+   samo na desktopu). */
+.today-ring-goal {
+  display: block;
+  margin-top: 2px;
+  font-weight: 700;
+  color: var(--block-ink);
+  opacity: 0.85;
+}
+@container today (min-width: 800px) {
+  .today-ring-goal { display: none; }
+}

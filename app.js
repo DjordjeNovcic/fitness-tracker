@@ -12762,7 +12762,10 @@ function renderTodaySummary({ calorieGoal, ringFacts, plannedKcal, trainingBurn,
           </svg>
           <div class="today-ring-center">
             <strong class="today-ring-value">${Math.abs(ringFacts.remaining)}</strong>
-            <span class="today-ring-label">kcal ${ringFacts.label}</span>
+            <span class="today-ring-label">kcal ${ringFacts.label}${
+              // Na telefonu nema kolone „Cilj“: ispod broja piše od čega se računa.
+              diary && ringFacts.remaining >= 0 ? `<span class="today-ring-goal">od ${calorieGoal}</span>` : ""
+            }</span>
           </div>
         </div>`
             : ""
