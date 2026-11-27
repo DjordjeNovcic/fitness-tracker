@@ -21474,19 +21474,20 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   .day-card-stat dd { font-size: 0.9375rem; }
 }
 
-/* ---- (4) Namirnice: traka odnosa makroa ispod kcal ---- */
-:root[data-theme] .food-row-info .food-row-nutri {
-  display: flex;
+/* ---- (4) Namirnice: traka odnosa makroa levo od kcal ----
+   U prvom redu (naziv … traka · kcal), da makro red ispod ima celu širinu
+   i ne lomi se. */
+:root[data-theme] .food-row-info .food-row-line {
   align-items: center;
-  gap: var(--ft-space-3);
+  gap: var(--ft-space-2);
 }
-.food-row-nutri-text {
+:root[data-theme] .food-row-info .food-row-line .food-row-name {
   flex: 1 1 auto;
   min-width: 0;
 }
 .macro-split {
   display: flex;
-  flex: 0 0 52px;
+  flex: 0 0 44px;
   gap: 2px;
   height: 5px;
   border-radius: var(--ft-radius-pill);
@@ -21666,4 +21667,56 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme="light"] .mobile-menu {
   background: var(--ft-surface);
   border-right-color: var(--ft-border);
+}
+
+/* Trening: „Napredak po vežbi“ i „Beleške“ jedna ispod druge su se
+   dodirivale (razmak 0, preklapanje 1px). */
+:root[data-theme] .section-toolbox { gap: var(--ft-space-3); }
+/* Danas: naziv namirnice u dva reda pre trotačke (na 390px je
+   „Zdravi zalogaj cr…“ bio isečen na jednom redu). */
+:root[data-theme] .meal-entry-main > strong {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---- (10) Sitnice posle nezavisne recenzije ---- */
+/* Rutina: „Vežba disanja“ je bila glasnija od kartice dana (naslov 22,5px
+   naspram 16,9px ostalih sekcija i jedino puno dugme na ekranu). */
+:root[data-theme] .breath-card-copy h2 {
+  font-size: 1.125rem;
+}
+:root[data-theme] .breath-card .solid-button {
+  border-color: transparent;
+  background: var(--ft-accent-soft);
+  color: var(--ft-accent-strong);
+}
+:root[data-theme="dark"] .breath-card .solid-button {
+  color: var(--ft-accent);
+}
+/* Napredak: legenda toplotne mape bez lomljenja („bez unosa“ sam u redu);
+   u tamnoj temi „ispod 80 %“ i „bez unosa“ skoro iste kao kartica. */
+:root[data-theme] .history-legend li { white-space: nowrap; }
+:root[data-theme="dark"] {
+  --heat-low: color-mix(in srgb, var(--muted) 46%, transparent);
+}
+:root[data-theme="dark"] :is(.history-cell:not(.history-cell--pad), .history-legend-swatch) {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+/* „više mera“ bio je jedini podvučen link u aplikaciji. */
+:root[data-theme] .text-link-button { text-decoration: none; }
+/* Parovi dugmadi: jednake polovine (Nalog: Osveži / Odjavi se; Ciljevi:
+   Izračunaj iz profila / Sačuvaj) kao Izvezi / Uvezi. */
+@media (max-width: 719px) {
+  :root[data-theme] .settings-row-actions > :is(button, label) { flex: 1 1 0; }
+  :root[data-theme] form.goals-form-layout > .meta-row > button { flex: 1 1 0; }
+}
+/* Desktop: sedam dana se razvlačilo preko cele širine (aktivni dan pilula
+   od 145px). Traka do 640px, levo, ispod naslova. */
+@media (min-width: 1024px) {
+  :root[data-theme] .app-main .hero--plan .hero-day-chips {
+    max-width: 640px;
+  }
 }

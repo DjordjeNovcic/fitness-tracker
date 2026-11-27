@@ -13605,9 +13605,9 @@ function renderFoodsTab() {
                 <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)}${isFavoriteFood ? ", omiljena" : ""}, detalji i izmena">
                   <span class="food-row-line">
                     <span class="food-row-name">${isFavoriteFood ? `<span class="food-row-fav" aria-hidden="true">${renderStarIcon(true)}</span>` : ""}${escapeHtml(food.name)}</span>
-                    <span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
+                    ${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}<span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
                   </span>
-                  <span class="food-row-nutri"><span class="food-row-nutri-text">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}</span>
+                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
                 </button>
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
@@ -13970,7 +13970,7 @@ function renderRecipesTab() {
                           </div>
                           <div class="recipe-library-stats">
                             <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal${favorite.servings > 1 ? ` <span class="recipe-library-stat-sub">po porciji</span>` : ""}</span>${renderMacroSplitBar(favorite.perServingTotals.protein, favorite.perServingTotals.carbs, favorite.perServingTotals.fat)}
-                            <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
+                            <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
                             ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>
                           ${
@@ -18588,7 +18588,7 @@ function renderProgressHistorySection() {
           <h2>Dnevnik ishrane</h2>
           <p>Poslednjih 5 nedelja.</p>
         </div>
-        ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
+        ${stats.streak > 0 ? `<span class="pill strong pill--success">${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
       </div>
       ${
         // These three were a full stat grid, directly under two cards that
