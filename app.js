@@ -13998,7 +13998,7 @@ function renderRecipesTab() {
                           </div>
                           <div class="recipe-library-stats">
                             <span class="recipe-library-stat-kcal"><strong>${roundValue(favorite.perServingTotals.kcal, 0)}</strong> kcal${favorite.servings > 1 ? ` <span class="recipe-library-stat-sub">po porciji</span>` : ""}</span>${renderMacroSplitBar(favorite.perServingTotals.protein, favorite.perServingTotals.carbs, favorite.perServingTotals.fat)}
-                            <span class="recipe-library-stat-macros">P ${formatDecimal(favorite.perServingTotals.protein, 1)} · UH ${formatDecimal(favorite.perServingTotals.carbs, 1)} · M ${formatDecimal(favorite.perServingTotals.fat, 1)} g</span>
+                            <span class="recipe-library-stat-macros">P ${roundValue(favorite.perServingTotals.protein, 0)} · UH ${roundValue(favorite.perServingTotals.carbs, 0)} · M ${roundValue(favorite.perServingTotals.fat, 0)} g</span>
                             ${getRecipeServingCount(favorite) > 1 ? `<span class="recipe-library-stat-total">Ceo recept ${roundValue(favorite.totals.kcal, 0)} kcal</span>` : ""}
                           </div>
                           ${
@@ -16329,7 +16329,7 @@ function renderRoutineTab() {
     <section class="section breath-card">
       <div class="breath-card-copy">
         <h2>Vežba disanja</h2>
-        <p>4-7-8: udah kroz nos 4 s, zadrži 7 s, izdah kroz usta 8 s. Smiruje za par minuta.</p>
+        <p>4-7-8: udah kroz nos 4 s, zadrži 7 s, izdah kroz usta 8 s. Smiruje za par minuta.</p>
       </div>
       <button class="solid-button button-with-icon" type="button" data-action="open-breath">${renderButtonContent("Počni", "go")}</button>
     </section>
@@ -17976,6 +17976,22 @@ function renderTrendCard(field) {
     `;
   }
 
+  // Jedno merenje nije trend: grafik je bio tačka u uglu, isprekidana linija
+  // cilja pri dnu i isti datum levo i desno. Sada vrednost, datum i šta treba.
+  if (series.length === 1) {
+    const only = series[0];
+    const target = field.id === "weightKg" ? toNumber(store.goals?.targetWeightKg) : 0;
+    return `
+      <article class="chart-card chart-card--single">
+        <div class="chart-card-top">
+          <h3>${field.label}</h3>
+          <strong class="chart-card-value">${formatFieldValue(field, only.value)}</strong>
+        </div>
+        <p class="chart-single-note">Jedno merenje (${escapeHtml(only.label)})${target ? ` · cilj ${formatDecimal(target, 1)} kg` : ""}. Trend se pojavljuje od drugog merenja.</p>
+      </article>
+    `;
+  }
+
   // Goal projection (weight only): where you'd be at each weigh-in date if the
   // configured pace holds, anchored at the first measurement. Lets you see at a
   // glance whether the actual line is running ahead of or behind plan.
@@ -19354,7 +19370,7 @@ function renderInsightsSection() {
   const rows = renderStatRows([
     ins.avgKcal && { label: `Prosečan unos, ${period} dana`, note: `${ins.loggedCount} ${srPlural(ins.loggedCount, "dan", "dana", "dana")} unosa · ${ins.kcalOnTargetPct}\u00a0% na\u00a0cilju`, value: `${ins.avgKcal} kcal/dan` },
     ins.avgProtein && {
-      label: "Protein",
+      label: "Proteini",
       note: ins.proteinHitPct != null ? `cilj ${roundValue(toNumber(store.goals?.protein), 0)} g · pogođen ${ins.proteinHitPct}\u00a0%\u00a0dana` : "",
       value: `${ins.avgProtein} g/dan`,
     },

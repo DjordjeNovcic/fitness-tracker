@@ -22436,3 +22436,103 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 }
 :root[data-theme] .offline-banner strong { color: var(--status-warning-text); }
 :root[data-theme] .offline-banner-dot { flex: 0 0 auto; }
+
+/* ============================================================
+   (25) Desktop poravnanje (prijavljeno slikama sa 1920px, 27. 11.)
+   ============================================================ */
+/* Danas: kartice ispod (Vitamini, Aktivnost sa sata, Lista) imale su svoju
+   mrežu 1fr|1fr preko obe kolone, pa im se ivice nisu poklapale sa
+   obrocima (levo) i metrikama (desno). Sada dele kolone gornje mreže. */
+@container today (min-width: 800px) {
+  :root[data-theme] .today-layout > .today-extras {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    column-gap: inherit;
+    row-gap: var(--ft-space-4);
+    align-items: start;
+  }
+  /* Petrol kartica: tri broja u kompaktnoj grupi levo, ne razvučena preko
+     cele širine sa ~170px praznog između. */
+  :root[data-theme] .today-summary .today-cal-stats {
+    grid-template-columns: repeat(3, max-content);
+    column-gap: 48px;
+    justify-content: start;
+  }
+}
+/* „Zaključaj dan“ ispod kartice obroka: razmak i bez linije (bilo zalepljeno
+   2px ispod ivice kartice, sa linijom). */
+:root[data-theme] .plan-meals-section > .plan-delete-actions {
+  margin-top: var(--ft-space-3);
+  padding-top: 0;
+  border-top: 0;
+}
+/* Prsten: „kcal preostalo“ se prelama u dva reda i ne dodiruje ivicu. */
+:root[data-theme] .today-ring-label {
+  max-width: 72px;
+}
+/* Obroci na desktopu: makroi | grami | kcal u stalnim kolonama poravnatim
+   udesno — „120 g (ili 6 Tonus)“ je pomerao makroe pa ništa nije bilo u
+   liniji. */
+@media (min-width: 1024px) {
+  :root[data-theme] .plan-meals-section .meal-entry-stats {
+    display: grid;
+    grid-template-columns: 150px 140px 72px;
+    column-gap: var(--ft-space-4);
+    justify-items: end;
+    align-items: baseline;
+  }
+  :root[data-theme] .plan-meals-section .meal-entry-stats > .meal-entry-macros { order: -1; }
+  :root[data-theme] .plan-meals-section .meal-entry-stats > * {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+.chart-card--single .chart-single-note {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+/* Naslov stranice je u tamnoj temi bio 4px desno i 6px niže (tamno pravilo
+   za .workspace-header je jače od poravnanja iz (8)); isto mesto u obe teme. */
+@media (max-width: 1023px) {
+  :root[data-theme] .app-main > .workspace-header.workspace-header.workspace-header {
+    margin-top: -2px;
+    padding-top: 0;
+    padding-left: 0;
+  }
+}
+@media (min-width: 1024px) {
+  :root[data-theme] .app-main > .workspace-header.workspace-header.workspace-header {
+    padding-top: 0;
+    padding-left: 0;
+  }
+}
+
+/* ---- (26) Treća recenzija ---- */
+/* Trening: „Izmeni“ i „Sačuvaj kao omiljeni“ na 4px; ostali parovi 8px. */
+:root[data-theme] .training-template-actions { gap: var(--ft-space-2); }
+/* Bez linije posle poslednjeg reda (Nalog, mali grafikoni na Merenjima). */
+:root[data-theme] .settings-list > .settings-row:last-child,
+:root[data-theme] .chart-grid > .chart-card:last-child { border-bottom: 0; }
+@media (max-width: 899px) {
+  /* dva mala grafikona u redu: oba bez donje linije */
+  :root[data-theme] .chart-grid > .chart-card:nth-last-child(-n + 2):nth-child(n + 2) { border-bottom: 0; }
+  /* naslov („Stomak gornji“ u dva reda) ne pomera grafikon: zaglavlja iste visine */
+  :root[data-theme] .chart-grid > .chart-card:not(:first-child) > .chart-card-top {
+    min-height: 2.6em;
+    align-items: flex-start;
+  }
+}
+/* Namirnice: kcal stalne širine, pa se trake makroa završavaju u istoj liniji. */
+:root[data-theme] .food-row-line .food-row-kcal {
+  min-width: 68px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Mesto za „Nova namirnica“ ide na dno stranice, ne kao prazan deo kartice. */
+@media (max-width: 899px) {
+  :root[data-theme] .foods-list { padding-bottom: 0; }
+  :root[data-theme] .app-main.is-foods-shell { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+}
