@@ -22365,3 +22365,11 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 @media (max-width: 359px) {
   :root[data-theme] .food-row-line .macro-split { display: none; }
 }
+/* Sastavljač treninga: krug izbora vežbe je imao ivicu ~1,5:1 (kao kvačice
+   pre ispravke); ista ivica ≥ 3:1. */
+:root[data-theme] .exercise-pick-check {
+  border: 1.5px solid color-mix(in srgb, var(--ink) 52%, transparent);
+}
+:root[data-theme] .is-selected .exercise-pick-check {
+  border-color: var(--accent);
+}
