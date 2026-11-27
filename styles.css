@@ -21506,3 +21506,116 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   width: 64px;
   margin-top: 2px;
 }
+
+/* ---- (5) Dodirni ciljevi: najmanje ~44px površine za prst ----
+   Vizuelna veličina ostaje; površina se širi nevidljivim ::after (isti
+   obrazac kao ⓘ i podtabovi), ili min-visinom gde ima mesta. */
+:root[data-theme] .meal-collapse-toggle,
+:root[data-theme] .text-link-button,
+:root[data-theme] .training-done-check,
+:root[data-theme] .training-exercise-actions > button,
+:root[data-theme] .insights-period .chip,
+:root[data-theme] .amount-unit-chip {
+  position: relative;
+}
+:root[data-theme] .meal-collapse-toggle::after,
+:root[data-theme] .training-done-check::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+:root[data-theme] .text-link-button::after {
+  content: "";
+  position: absolute;
+  inset: -12px -4px;
+}
+:root[data-theme] .training-exercise-actions > button::after,
+:root[data-theme] .insights-period .chip::after,
+:root[data-theme] .amount-unit-chip::after {
+  content: "";
+  position: absolute;
+  inset: -6px -2px;
+}
+/* filter čipovi (period, podsetnici) na istu visinu kao ostali čipovi: 36px */
+:root[data-theme] .insights-head .insights-period .chip,
+:root[data-theme] .notify-chips .amount-unit-chip {
+  min-height: var(--ft-h-control-sm);
+}
+/* redovi „Dodaj trčanje / merenje“, „Pregled po danima“: ceo red 44px,
+   bez pomeranja rasporeda (negativna margina vraća visinu) */
+:root[data-theme] main details.form-collapse > summary,
+:root[data-theme] main details.goals-days-section > summary {
+  min-height: var(--ft-h-control);
+  margin-block: -7px;
+  align-items: center;
+}
+
+/* ---- (6) Najmanji tekst 12px (0,75rem je 11,25px uz koren od 15px) ---- */
+:root[data-theme] :is(
+  .today-stat-label, .today-stat-unit, .today-macro-label, .today-macro-goal,
+  .today-tile-goal, .today-tile-sub, .today-row-sub, .day-card-eyebrow,
+  .meal-head-unit, .meal-prep-badge, .chart-legend-item, .chart-dates span,
+  .measure-delta, .bc-form-group-count, .bc-form-group-title, .form-group-label,
+  .foods-chip-count, .habit-week-day, .history-weekday, .routine-streak-unit,
+  .section-eyebrow, .stat-row-note, .stat-row dt .stat-row-note, .weekly-tips-label, .settings-group-title,
+  .training-exercise-log, .lab-disclaimer, .stats-grid--glance .footer-note,
+  .day-card-stat dt, .history-legend li
+) {
+  font-size: 0.8rem;
+}
+:root[data-theme] :is(.today-ring-label, .meal-next-tag) {
+  font-size: 0.75rem;
+}
+:root[data-theme] details.measurement-extra > summary { position: relative; }
+:root[data-theme] details.measurement-extra > summary::after {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+
+/* Danas: hover dana je ostao iz vremena petrol trake (bela slova na
+   providnoj beloj) — u svetloj temi dan je nestajao pod mišem. */
+:root[data-theme] .app-main .day-block > .hero--plan .hero-day-chips .chip:not(.is-active):hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+
+/* ---- (7) Svetla tema: ostaci stare krem palete → 2.0 površine ----
+   Dijalozi (Brzi unos, nova namirnica, recept u plan, vežbe, gotovi
+   planovi) su i dalje imali topli krem preliv preko bele. */
+:root[data-theme="light"] .app-dialog {
+  background: var(--ft-surface);
+  border-color: var(--ft-border);
+  box-shadow: 0 28px 72px rgba(16, 33, 38, 0.2);
+}
+
+/* ---- (8) Desktop: svi ekrani na istoj ivici kao Danas ----
+   Danas (faza 2) ima 24px sa strane i 24px gore, ostali ekrani 0 / 28 / 30,
+   pa je naslov skakao 24px levo-desno i 10px gore-dole pri promeni taba. */
+@media (min-width: 1024px) {
+  :root[data-theme] .app-main.shell:not(.is-plan-shell) {
+    max-width: calc(1320px + 2 * var(--ft-space-6));
+    padding-left: var(--ft-space-6);
+    padding-right: var(--ft-space-6);
+    padding-top: var(--ft-space-6);
+  }
+}
+@media (min-width: 1024px) {
+  :root[data-theme] .app-main > .workspace-header { padding-top: 0; }
+}
+/* Telefon i tablet: 16px sa strane kao Danas (ostali ekrani 14px), naslov
+   na istoj visini (bilo je 30px od vrha naspram 22px na Danas). */
+@media (max-width: 1023px) {
+  :root[data-theme] .app-main.shell:not(.is-plan-shell) {
+    --main-pad-x: var(--ft-space-4);
+    padding-left: var(--ft-space-4);
+    padding-right: var(--ft-space-4);
+  }
+}
+@media (max-width: 1023px) {
+  :root[data-theme] .app-main > .workspace-header {
+    margin-top: -2px;
+    padding-top: 0;
+    padding-left: 0;
+  }
+}
