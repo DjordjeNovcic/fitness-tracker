@@ -9277,6 +9277,51 @@ function renderDayBar({ headingLevel = 1, dayHint = null } = {}) {
   `;
 }
 
+// Petrol kartica dana za Trening i Rutinu (Fit Tracker 2.0, faza 3): isti
+// jezik kao dnevni pregled na Danas — prsten levo (urađeno / ukupno), naslov
+// i kratki brojevi desno. Jedini obojeni blok na tim ekranima; dan je iznad
+// na papiru, kao na Danas. Bez stavki: bez prstena, samo naslov i rečenica.
+function renderDayCard({ id, eyebrow, title, meta = "", done = 0, total = 0, unit = "", stats = [], note = "", help = "" }) {
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const fraction = total ? Math.min(1, done / total) : 0;
+  const ring = total
+    ? `<div class="today-ring day-card-ring" data-state="${done >= total ? "done" : "ok"}">
+        <svg class="today-ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="today-ring-track" cx="60" cy="60" r="${radius}"></circle>
+          <circle class="today-ring-fill" cx="60" cy="60" r="${radius}" style="stroke-dasharray:${circumference.toFixed(1)};stroke-dashoffset:${(circumference * (1 - fraction)).toFixed(1)};"></circle>
+        </svg>
+        <div class="today-ring-center">
+          <strong class="today-ring-value">${done}<span class="day-card-ring-total">/${total}</span></strong>
+          <span class="today-ring-label">${unit}</span>
+        </div>
+      </div>`
+    : "";
+  return `
+    <section class="section day-card${total ? "" : " is-empty"}" aria-labelledby="${id}">
+      ${help}
+      ${ring}
+      <div class="day-card-copy">
+        <span class="day-card-eyebrow">${eyebrow}</span>
+        <h2 class="day-card-title" id="${id}">${title}</h2>
+        ${meta ? `<p class="day-card-meta">${meta}</p>` : ""}
+      </div>
+      ${
+        stats.length
+          ? `<dl class="day-card-stats">${stats
+              .map(({ label, value }) => `<div class="day-card-stat"><dt>${label}</dt><dd>${value}</dd></div>`)
+              .join("")}</dl>`
+          : ""
+      }
+      ${note ? `<p class="day-card-note">${note}</p>` : ""}
+    </section>`;
+}
+
+function getDayCardEyebrow() {
+  const isToday = state.selectedWeekday === getTodayWeekday() && state.selectedWeekTrack === getCurrentWeekTrack();
+  return isToday ? "Danas" : weekdayLabel(state.selectedWeekday);
+}
+
 function renderWorkspaceHeader() {
   const activeTab = ALL_TABS.find((tab) => tab.id === state.activeTab) || TABS[0];
   const tabMeta = TAB_META[state.activeTab] || TAB_META.plan;
@@ -14984,6 +15029,37 @@ function renderTrainingTab() {
         return { planned: names.length > 0, title: `${weekdayLabel(weekday)} · ${names.length ? names.join(", ") : "odmor"}` };
       },
     })}
+    ${(() => {
+      const groupIds = [...new Set(templates.flatMap((template) => getTemplateGroupIds(template.exercises)))];
+      const burnStat = trainingBurn > 0 ? [{ label: "Potrošnja", value: `${roundValue(trainingBurn, 0)} kcal` }] : [];
+      if (!todayExerciseTotal) {
+        return renderDayCard({
+          id: "training-day-card-title",
+          eyebrow: getDayCardEyebrow(),
+          title: templates.length ? templates.map((template) => escapeHtml(template.name)).join(" + ") : "Dan odmora",
+          meta: templates.length ? "Trening još nema vežbe." : "Nema treninga u planu. Sastavi ga ispod ili uzmi gotov plan.",
+          stats: burnStat,
+        });
+      }
+      return renderDayCard({
+        id: "training-day-card-title",
+        eyebrow: getDayCardEyebrow(),
+        title: templates.map((template) => escapeHtml(template.name)).join(" + "),
+        meta: groupIds.map((groupId) => getExerciseGroupLabel(groupId)).join(" · "),
+        done: todayExerciseCompleted,
+        total: todayExerciseTotal,
+        unit: srPlural(todayExerciseTotal, "vežba", "vežbe", "vežbi"),
+        stats: [
+          // Prsten već kaže koliko je danas odrađeno; ovde je nedelja.
+          (() => {
+            const plannedDays = weeklyTrainingPlan.filter((day) => day.totalExerciseCount > 0);
+            const doneDays = plannedDays.filter((day) => day.completedExerciseCount >= day.totalExerciseCount).length;
+            return { label: "Nedelja", value: `${doneDays}/${plannedDays.length} ${srPlural(plannedDays.length, "trening", "treninga", "treninga")}` };
+          })(),
+          ...(burnStat.length ? burnStat : [{ label: "Potrošnja", value: "nije uneta" }]),
+        ],
+      });
+    })()}
     <section class="section routine-overview-section">
       <div class="section-header">
         <div>
@@ -15042,18 +15118,6 @@ function renderTrainingTab() {
             : ""
         }
       </div>
-      ${
-        // Prazan blok je i dalje nosio marginu od 14px ispod naslova „Vežbe“.
-        // Sa jednim treningom „x od y“ već piše na njegovoj kartici (0/9), a
-        // kalorije u „Kalorije treninga“ ispod — red je samo ponavljao oba.
-        templates.length > 1 || (templates.length && trainingBurn > 0)
-          ? `<div class="training-day-spotlight">
-        <p class="day-summary-line">${todayExerciseCompleted} od ${todayExerciseTotal} ${srPlural(todayExerciseTotal, "vežbe", "vežbe", "vežbi")} odrađeno · ${
-          trainingBurn > 0 ? `${roundValue(trainingBurn, 0)} kcal` : "kalorije nisu unete"
-        }</p>
-      </div>`
-          : ""
-      }
       <div class="stack training-template-stack">
         ${
           templates.length
@@ -16173,26 +16237,28 @@ function renderRoutineTab() {
 
   return `
     ${renderDayBar({ headingLevel: 2 })}
-    <section class="section routine-overview-section routine-day-summary">
-      <div class="section-header">
-        <div>
-          <h2 class="sr-only">Rutina za ${weekdayAccusative(state.selectedWeekday)}</h2>
-        </div>
-      </div>
-      ${renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje.")}
-      ${
-        summary.habits.length || summary.tasks.length || summary.streakHabits.length
-          ? `<p class="day-summary-line">${[
-              summary.habits.length ? `${summary.doneHabits} od ${summary.habits.length} ${srPlural(summary.habits.length, "navike", "navike", "navika")}` : "",
-              summary.tasks.length ? `${summary.doneTasks} od ${summary.tasks.length} ${srPlural(summary.tasks.length, "zadatka", "zadatka", "zadataka")}` : "",
-              summary.longestStreakDays ? `niz ${getDayCountLabel(summary.longestStreakDays).replace(" ", "\u00a0")}` : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}</p>`
-          : // Novom nalogu je kartica bila samo naslov i prazan prostor.
-            `<p class="day-summary-line day-summary-line--empty">Navike, dnevni zadaci i nizovi dana na jednom mestu. Počni od jedne navike ispod.</p>`
-      }
-    </section>
+    ${renderDayCard({
+      id: "routine-day-card-title",
+      eyebrow: getDayCardEyebrow(),
+      title: summary.totalItems
+        ? summary.doneItems >= summary.totalItems
+          ? "Sve odrađeno"
+          : `Još ${summary.totalItems - summary.doneItems} ${srPlural(summary.totalItems - summary.doneItems, "stavka", "stavke", "stavki")}`
+        : summary.streakHabits.length
+          ? "Nizovi teku"
+          : "Rutina dana",
+      // Novom nalogu je kartica bila samo naslov i prazan prostor.
+      meta: summary.habits.length || summary.tasks.length || summary.streakHabits.length ? "" : "Navike, dnevni zadaci i nizovi dana na jednom mestu. Počni od jedne navike ispod.",
+      done: summary.doneItems,
+      total: summary.totalItems,
+      unit: "urađeno",
+      stats: [
+        summary.habits.length ? { label: "Navike", value: `${summary.doneHabits}/${summary.habits.length}` } : null,
+        summary.tasks.length ? { label: "Zadaci", value: `${summary.doneTasks}/${summary.tasks.length}` } : null,
+        summary.longestStreakDays ? { label: "Najduži niz", value: getDayCountLabel(summary.longestStreakDays).replace(" ", "\u00a0") } : null,
+      ].filter(Boolean),
+      help: renderHelpNote("Tri stvari, tri svrhe: <strong>Nedeljne navike</strong> su veće stvari koje ciljaš par puta nedeljno (npr. „trening 3×“) i čekiraš po danima. <strong>Zadaci</strong> su sitne dnevne obaveze za izabrani dan. <strong>Dugoročni nizovi</strong> broje dane u nizu za stvari tipa „bez alkohola“, prekineš ga i kreće od nule. Zadaci su, kao trening i jelovnik, šablon za dve naizmenične nedelje (Ova / Sledeća); navike i nizovi su isti svake nedelje."),
+    })}
     <section class="section breath-card">
       <div class="breath-card-copy">
         <h2>Vežba disanja</h2>

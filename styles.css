@@ -21185,3 +21185,291 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
   opacity: 1;
   visibility: hidden;
 }
+
+/* ============================================================
+   Fit Tracker 2.0 — Faza 3: ostali ekrani u jeziku nove Danas.
+   (1) Naslov stranice kao na Danas: bez ikonice, 1,875rem, podtabovi
+       desno ili ispod kad ne staju. (2) Trening i Rutina: dan na papiru
+       (isti izgled kao na Danas), ispod jedna petrol kartica dana sa
+       prstenom (.day-card) — jedini obojeni blok na ekranu. (3) Recepti:
+       „Dodaj u plan“ kao tiha pilula umesto teškog obrubljenog dugmeta.
+   ============================================================ */
+
+/* ---- (1) naslov stranice ---- */
+:root[data-theme] .workspace-header .workspace-header-icon {
+  display: none;
+}
+:root[data-theme] .app-main .workspace-header h1 {
+  font-size: 1.875rem;
+  line-height: 1.1;
+  color: var(--ink);
+}
+/* Dugi naslov (Nutricionista) i dva podtaba: podtabovi idu u drugi red
+   umesto da se naslov uvuče ispod njih. */
+@media (max-width: 899px) {
+  :root[data-theme] .app-main .workspace-header h1 {
+    white-space: nowrap;
+  }
+  :root[data-theme] .app-frame--nutrition .app-main .workspace-header + .group-seg-nav {
+    position: static;
+    margin: 0 0 var(--ft-space-2);
+    justify-self: start;
+  }
+}
+
+/* ---- (2a) dan na papiru: Trening i Rutina kao Danas ---- */
+:root[data-theme] .app-main .hero--sub {
+  margin-inline: 0;
+  padding: 0 0 var(--ft-space-2);
+  background: var(--ft-bg);
+  color: var(--ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-theme] body.daybar-stuck .app-main .hero--sub {
+  border-radius: 0;
+  box-shadow: 0 1px 0 var(--ft-border);
+}
+:root[data-theme] .app-main .hero--sub .hero-title {
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+:root[data-theme] .app-main .hero--sub .hero-date {
+  color: var(--muted);
+  font-size: var(--fs-14, 0.875rem);
+  font-weight: 500;
+}
+:root[data-theme] .app-main .hero--sub .hero-week-toggle {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border: 0;
+}
+:root[data-theme] .app-main .hero--sub .hero-week-toggle .hero-week-chip {
+  color: var(--muted);
+  background: transparent;
+}
+:root[data-theme] .app-main .hero--sub .hero-week-toggle .hero-week-chip.is-active {
+  background: var(--surface-elevated);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(20, 30, 28, 0.12);
+}
+:root[data-theme="dark"] .app-main .hero--sub .hero-week-toggle {
+  background: rgba(255, 255, 255, 0.07);
+}
+:root[data-theme="dark"] .app-main .hero--sub .hero-week-toggle .hero-week-chip.is-active {
+  background: rgba(255, 255, 255, 0.16);
+}
+:root[data-theme] .app-main .hero--sub .hero-day-chips .chip {
+  min-height: var(--ft-h-control);
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-weight: 600;
+}
+:root[data-theme] .app-main .hero--sub .hero-day-chips .chip:not(.is-active):hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+:root[data-theme] .app-main .hero--sub .hero-day-chips .chip.is-today:not(.is-active) {
+  color: var(--accent);
+}
+:root[data-theme] .app-main .hero--sub .hero-day-chips .chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ft-on-accent);
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+:root[data-theme] .app-main .hero--sub .day-bar-dot {
+  background: currentColor;
+}
+
+/* ---- (2b) petrol kartica dana ---- */
+:root[data-theme] .app-main .section.day-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-areas:
+    "ring copy"
+    "ring stats"
+    "note note"
+    "help help";
+  align-items: center;
+  column-gap: var(--ft-space-4);
+  row-gap: var(--ft-space-3);
+  min-height: 142px;
+  padding: var(--ft-space-4);
+  border: 0;
+  border-radius: var(--ft-radius-lg);
+  background: linear-gradient(140deg, var(--rd-card-a), var(--rd-card-b));
+  color: var(--block-ink);
+  box-shadow: 0 18px 30px -22px rgba(7, 60, 73, 0.9);
+}
+:root[data-theme] .app-main .section.day-card::before {
+  content: none;
+}
+:root[data-theme] .app-main .section.day-card.is-empty {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "copy"
+    "stats"
+    "note"
+    "help";
+  min-height: 0;
+}
+.day-card-ring {
+  grid-area: ring;
+}
+.day-card .today-ring-fill {
+  stroke: var(--rd-mint);
+}
+.day-card .today-ring[data-state="done"] .today-ring-fill {
+  stroke: var(--rd-mint);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--rd-mint) 55%, transparent));
+}
+.day-card-ring-total {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--block-muted);
+  letter-spacing: 0;
+}
+.day-card-copy {
+  grid-area: copy;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  align-self: end;
+  padding-right: 36px;
+}
+.day-card.is-empty .day-card-copy {
+  align-self: start;
+}
+.day-card-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--block-muted);
+}
+:root[data-theme] .app-main .day-card h2.day-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--block-ink);
+  overflow-wrap: anywhere;
+}
+:root[data-theme] .app-main .day-card .day-card-meta {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--block-muted);
+}
+.day-card-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ft-space-2) var(--ft-space-5);
+  align-self: start;
+  margin: 0;
+  padding-top: var(--ft-space-3);
+  border-top: 1px solid var(--block-line);
+}
+.day-card-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.day-card-stat dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--block-muted);
+}
+.day-card-stat dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--block-ink);
+}
+:root[data-theme] .app-main .day-card .day-card-note {
+  grid-area: note;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--block-muted);
+}
+/* (i) gore desno, na petrol pozadini */
+:root[data-theme] .app-main .day-card > .help-note {
+  grid-area: help;
+  margin: 0;
+}
+:root[data-theme] .app-main .day-card > .help-note:not([open]) {
+  position: static;
+  height: 0;
+}
+:root[data-theme] .app-main .day-card > .help-note > summary {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--block-muted);
+  border-color: var(--block-faint);
+  background: transparent;
+}
+:root[data-theme] .app-main .day-card > .help-note .help-note-body {
+  color: var(--ink);
+}
+@media (min-width: 900px) {
+  :root[data-theme] .app-main .section.day-card {
+    grid-template-columns: 120px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "ring copy stats"
+      "note note note"
+      "help help help";
+    padding: var(--ft-space-5) var(--ft-space-6);
+  }
+  :root[data-theme] .app-main .section.day-card.is-empty {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "copy stats"
+      "note note"
+      "help help";
+  }
+  .day-card-ring {
+    width: 120px;
+    height: 120px;
+  }
+  .day-card-copy {
+    align-self: center;
+  }
+  .day-card-stats {
+    align-self: center;
+    padding: 0 48px 0 var(--ft-space-6);
+    border-top: 0;
+    border-left: 1px solid var(--block-line);
+    gap: var(--ft-space-6);
+  }
+}
+
+/* ---- (3) Recepti: „Dodaj u plan“ tiša ---- */
+:root[data-theme] .app-main .recipe-library-card .recipe-library-actions [data-action="open-recipe-apply-dialog"].ghost-button {
+  min-height: var(--ft-h-control-sm);
+  padding-inline: var(--ft-space-3);
+  border-color: transparent;
+  border-radius: var(--ft-radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+/* 320–359px: manji prsten, da „Nedelja“ i „Potrošnja“ stanu u jedan red. */
+@media (max-width: 359px) {
+  :root[data-theme] .app-main .section.day-card {
+    grid-template-columns: 92px minmax(0, 1fr);
+    column-gap: var(--ft-space-3);
+  }
+  .day-card-ring {
+    width: 92px;
+    height: 92px;
+  }
+  .day-card .today-ring-value { font-size: 1.5rem; }
+  .day-card-stats { column-gap: var(--ft-space-3); }
+  .day-card-stat dd { font-size: 0.9375rem; }
+}
