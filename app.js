@@ -9388,16 +9388,11 @@ function renderWorkspaceHeader() {
 function renderLoadingShell() {
   return `
     <main class="shell app-main loading-shell" aria-busy="true" aria-label="Učitavanje">
-      <div class="skeleton skeleton-hero"></div>
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-line skeleton-line--title"></div>
-        <div class="skeleton skeleton-line"></div>
-        <div class="skeleton skeleton-line skeleton-line--short"></div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-line skeleton-line--title"></div>
-        <div class="skeleton skeleton-line"></div>
-      </div>
+      <div class="sk-head"><span class="skeleton sk-title"></span><span class="skeleton sk-toggle"></span></div>
+      <span class="skeleton sk-date"></span>
+      <div class="sk-days"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>
+      <div class="sk-hero"><span class="sk-ring"></span><span class="sk-hero-lines"><span></span><span></span><span></span></span></div>
+      <div class="skeleton-card sk-list"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div>
       <p class="loading-shell-note">Povezujem aplikaciju…</p>
     </main>
   `;
