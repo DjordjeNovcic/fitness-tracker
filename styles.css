@@ -22150,3 +22150,7 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme] .loading-shell .skeleton { animation: none; }
 }
+/* Rutina: dani navike koji tek dolaze su prigušeni (prošli i današnji puni). */
+:root[data-theme] .habit-week-day.is-future:not(.is-done):not(.is-selected) {
+  opacity: 0.4;
+}

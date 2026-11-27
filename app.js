@@ -16391,7 +16391,10 @@ function renderRoutineTab() {
                           <div class="habit-week" aria-label="${getHabitWeeklyCount(habit)} od 7 dana ove nedelje">
                             ${WEEKDAYS.map(
                               (weekday) =>
-                                `<span class="habit-week-day ${isHabitDoneForDay(habit, weekday) ? "is-done" : ""} ${weekday === state.selectedWeekday ? "is-selected" : ""}" title="${weekdayLabel(weekday)}">${weekdayLabel(weekday).slice(0, 1)}</span>`
+                                `<span class="habit-week-day ${isHabitDoneForDay(habit, weekday) ? "is-done" : ""} ${weekday === state.selectedWeekday ? "is-selected" : ""} ${
+                                  // Dan koji tek dolazi (ova nedelja): prigušen, da „0/7“ u petak ne izgleda kao promašaj.
+                                  state.selectedWeekTrack === getCurrentWeekTrack() && WEEKDAYS.indexOf(weekday) > WEEKDAYS.indexOf(getTodayWeekday()) ? "is-future" : ""
+                                }" title="${weekdayLabel(weekday)}">${weekdayLabel(weekday).slice(0, 1)}</span>`
                             ).join("")}
                             <span class="habit-week-count">${getHabitWeeklyCount(habit)}/7</span>
                           </div>
