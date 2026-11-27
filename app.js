@@ -13150,6 +13150,7 @@ function renderPlanTab(entries) {
     ${renderTodayRemindersBanner()}
 
     <div class="today-layout">
+    <div class="today-col today-col--main">
     <section class="section plan-meals-section">
       <div class="section-header">
         <div>
@@ -13362,10 +13363,6 @@ function renderPlanTab(entries) {
       }
     </section>
 
-    <section class="today-metrics" aria-labelledby="today-metrics-title">
-      <h2 class="sr-only" id="today-metrics-title">Dnevne metrike</h2>
-      ${renderPlanGlanceRows()}
-    </section>
 
     <section class="section plan-quick-section ${state.planQuickExpanded ? "is-expanded" : "is-collapsed"}">
       <button
@@ -13452,10 +13449,18 @@ function renderPlanTab(entries) {
       </div>
     </section>
 
+    </div>
+    <div class="today-col today-col--side">
+    <section class="today-metrics" aria-labelledby="today-metrics-title">
+      <h2 class="sr-only" id="today-metrics-title">Dnevne metrike</h2>
+      ${renderPlanGlanceRows()}
+    </section>
+
     <div class="today-extras">
     ${renderPlanSupplementsSection()}
     ${renderPlanActivitySection()}
     ${renderPlanShoppingSection()}
+    </div>
     </div>
     </div>
     </div>

@@ -21870,19 +21870,19 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
    tačno razmak mreže (--ft-space-4), nije pogođena vrednost. Na desktopu su
    u različitim kolonama, pa ostaju zasebne. */
 @media (max-width: 1023px) {
-  :root[data-theme] main .today-layout > .section.plan-quick-section.plan-quick-section.plan-quick-section:has(+ .today-extras) {
+  :root[data-theme] main .today-layout .section.plan-quick-section.plan-quick-section.plan-quick-section {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
-  :root[data-theme] .today-layout > .plan-quick-section + .today-extras {
+  :root[data-theme] .today-layout .today-col > .today-extras {
     margin-top: calc(-1 * var(--ft-space-4));
     gap: 0;
   }
-  :root[data-theme] main .today-layout > .plan-quick-section + .today-extras > .section.section.section {
+  :root[data-theme] main .today-layout .today-extras > .section.section.section {
     border-top-width: 0;
     border-radius: 0;
   }
-  :root[data-theme] main .today-layout > .plan-quick-section + .today-extras > .section.section.section:last-child {
+  :root[data-theme] main .today-layout .today-extras > .section.section.section:last-child {
     border-bottom-left-radius: 16px;
     border-bottom-right-radius: 16px;
   }
@@ -22444,14 +22444,7 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
    mrežu 1fr|1fr preko obe kolone, pa im se ivice nisu poklapale sa
    obrocima (levo) i metrikama (desno). Sada dele kolone gornje mreže. */
 @container today (min-width: 800px) {
-  :root[data-theme] .today-layout > .today-extras {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: subgrid;
-    column-gap: inherit;
-    row-gap: var(--ft-space-4);
-    align-items: start;
-  }
+
   /* Petrol kartica: tri broja u kompaktnoj grupi levo, ne razvučena preko
      cele širine sa ~170px praznog između. */
   :root[data-theme] .today-summary .today-cal-stats {
@@ -22535,4 +22528,48 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 @media (max-width: 899px) {
   :root[data-theme] .foods-list { padding-bottom: 0; }
   :root[data-theme] .app-main.is-foods-shell { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+}
+
+/* ---- (27) Danas: dve nezavisne kolone ----
+   Leva: obroci, pa Alati. Desna: metrike, pa Vitamini / Aktivnost sa sata /
+   Lista. U zajedničkoj mreži su redovi vezivali kolone, pa je uz dug obrok
+   (otvoren, sa beleškom) desno ostajala ogromna praznina iznad „Aktivnost sa
+   sata“ (prijavljeno sa 1920px). Na telefonu omotači nestaju
+   (display: contents) i redosled je isti kao ranije. */
+:root[data-theme] .today-col { display: contents; }
+:root[data-theme] .today-col > * { min-width: 0; margin: 0; }
+:root[data-theme] .today-col > .plan-meals-section { order: 1; border-radius: 16px; }
+:root[data-theme] .today-col > .today-metrics { order: 2; }
+:root[data-theme] .today-col > .plan-quick-section { order: 3; }
+:root[data-theme] .today-col > .today-extras { order: 4; }
+@container today (min-width: 800px) {
+  :root[data-theme] .today-layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+    grid-template-areas: none;
+    grid-template-rows: none;
+    column-gap: 20px;
+    align-items: start;
+  }
+  :root[data-theme] .today-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ft-space-4);
+    align-content: start;
+    min-width: 0;
+  }
+  :root[data-theme] .today-col--main { grid-column: 1; }
+  :root[data-theme] .today-col--side { grid-column: 2; }
+  :root[data-theme] .today-col > .today-extras {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ft-space-4);
+    margin-top: 0;
+  }
+  :root[data-theme] main .today-layout .today-extras > .section.section.section {
+    border-top-width: 1px;
+    border-radius: 16px;
+  }
+  :root[data-theme] main .today-layout .section.plan-quick-section.plan-quick-section.plan-quick-section {
+    border-radius: 16px;
+  }
 }
