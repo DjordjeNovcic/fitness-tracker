@@ -21863,3 +21863,27 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
 :root[data-theme] .app-main .hero--sub .hero-date::first-letter {
   text-transform: uppercase;
 }
+
+/* ---- (14) Danas na telefonu: Alati, Vitamini i Lista kao jedna grupa ----
+   Tri sklopljene kartice od ~70px jedna ispod druge su sada jedna kartica sa
+   tankim linijama (kao „Merenja i slike“). Razmak koji se poništava je
+   tačno razmak mreže (--ft-space-4), nije pogođena vrednost. Na desktopu su
+   u različitim kolonama, pa ostaju zasebne. */
+@media (max-width: 1023px) {
+  :root[data-theme] main .today-layout > .section.plan-quick-section.plan-quick-section.plan-quick-section:has(+ .today-extras) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  :root[data-theme] .today-layout > .plan-quick-section + .today-extras {
+    margin-top: calc(-1 * var(--ft-space-4));
+    gap: 0;
+  }
+  :root[data-theme] main .today-layout > .plan-quick-section + .today-extras > .section.section.section {
+    border-top-width: 0;
+    border-radius: 0;
+  }
+  :root[data-theme] main .today-layout > .plan-quick-section + .today-extras > .section.section.section:last-child {
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+}
