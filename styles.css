@@ -22026,3 +22026,45 @@ label.meal-status.is-pop {
 @media (prefers-reduced-motion: reduce) {
   .chart-scrub { transition: none; }
 }
+/* Namirnice: osnova „na 100 g“ jednom u zaglavlju umesto u svakom redu;
+   red je pominje samo kad nije 100 g („1 komad · …“). */
+:root[data-theme] .foods-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 6px;
+}
+:root[data-theme] .foods-head-basis {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+:root[data-theme] .foods-head-basis::before {
+  content: "· ";
+}
+/* „Dodaj recept“: glavno dugme je bilo ispod vidljivog dela lista (trebalo
+   je skrolovati do „Dodaj u plan“). Lepljivo dno kao u Brzom unosu. */
+:root[data-theme] .recipe-apply-dialog .recipe-apply-actions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 2;
+  margin: 0 -16px -16px;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-strong);
+  border-top: 1px solid var(--line);
+}
+/* Danas, pločice (voda, koraci, kafa, san): vrednost je bila 18,75px, a
+   dugme pored nje 59×44 — radnja je vukla pogled umesto broja. */
+:root[data-theme] .today-tile .today-tile-value {
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+:root[data-theme] .today-tile .today-tile-unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+:root[data-theme] .today-tile .today-btn {
+  padding: 0 10px;
+}

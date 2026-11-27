@@ -13555,6 +13555,7 @@ function renderFoodsTab() {
       <header class="foods-head">
         <h2 class="sr-only">Namirnice</h2>
         <p class="foods-head-count">${foods.length < selectableFoods.length ? `${foods.length} od ${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnice", "namirnice", "namirnica")}` : `${selectableFoods.length} ${srPlural(selectableFoods.length, "namirnica", "namirnice", "namirnica")} u bazi`}</p>
+        <p class="foods-head-basis">vrednosti na 100 g</p>
       </header>
 
       ${renderHelpNote("Ovo je tvoja baza namirnica sa kalorijama i makroima (po 100 g). Pretraži po imenu ili filtriraj (Proteini, UH, Masti…). Tapni namirnicu za detalje i izmenu. <strong>Skeniraj</strong> barkod sa pakovanja da brzo nađeš ili dodaš proizvod, a <strong>Nova namirnica</strong> ručno upiše novu u bazu. Ako nešto nemaš, pretraga ispod liste nudi i namirnice <strong>iz kataloga</strong> i <strong>deljene proizvode</strong> koje su drugi skenirali, „Dodaj“ ih kopira u tvoju bazu. Ovo je samo baza, u obroke se dodaje u <strong>Danas</strong>, iz samog obroka ili preko <strong>Brzog unosa</strong>.")}
@@ -13630,7 +13631,7 @@ function renderFoodsTab() {
                     <span class="food-row-name">${isFavoriteFood ? `<span class="food-row-fav" aria-hidden="true">${renderStarIcon(true)}</span>` : ""}${escapeHtml(food.name)}</span>
                     ${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}<span class="food-row-kcal">${roundValue(food.kcal, 0)}<span class="num-unit"> kcal</span></span>
                   </span>
-                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
+                  <span class="food-row-nutri">${getFoodNutritionBasisLabel(food) === "100 g" ? "" : `${getFoodNutritionBasisLabel(food)} · `}P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
                 </button>
                 <button
                   class="food-row-menu ${menuOpen ? "is-active" : ""}"
