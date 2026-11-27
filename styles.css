@@ -22398,3 +22398,19 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 :root[data-theme] .field:has(:is(input, select, textarea):user-invalid) > label {
   color: var(--status-error-text);
 }
+/* „Počni“ (Vežba disanja) je mekano dugme: opšti hover glavnog dugmeta mu
+   je davao tamnu podlogu iste boje kao tekst (natpis nestajao pod mišem). */
+:root[data-theme] .breath-card .solid-button:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ft-accent) 18%, var(--ft-accent-soft));
+  color: var(--ft-accent-strong);
+}
+:root[data-theme="dark"] .breath-card .solid-button:hover {
+  color: var(--ft-accent);
+}
+:root[data-theme] .solid-button:not(.icon-only-action):disabled:hover,
+:root[data-theme="dark"] .solid-button:not(.icon-only-action):disabled:hover {
+  border-color: transparent;
+  background: var(--ft-surface-sunken);
+  color: var(--muted);
+}
