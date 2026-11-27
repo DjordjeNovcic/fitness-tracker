@@ -20447,10 +20447,8 @@ function renderApp() {
           ? `
             <div class="offline-banner" role="status" aria-live="polite">
               <span class="offline-banner-dot" aria-hidden="true"></span>
-              <div>
-                <strong>Nema interneta</strong>
-                <div class="footer-note" style="margin-top:2px;">Radiš normalno, sve se čuva na uređaju i sinhronizuje čim se vratiš online.</div>
-              </div>
+              <span class="offline-banner-text"><strong>Nema interneta</strong> · čuva se na telefonu</span>
+              <span class="sr-only">Radiš normalno, sve se čuva na uređaju i sinhronizuje čim se vratiš online.</span>
             </div>
           `
           : ""

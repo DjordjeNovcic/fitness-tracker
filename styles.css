@@ -22414,3 +22414,25 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
   background: var(--ft-surface-sunken);
   color: var(--muted);
 }
+
+/* Bez interneta: kompaktna pilula u jednom redu umesto kartice od 90px
+   koja je, dok traje (teretana, lift), pokrivala obroke iznad donje trake. */
+:root[data-theme] .offline-banner {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--ft-radius-pill);
+  background: var(--status-warning-bg);
+  border: 1px solid color-mix(in srgb, var(--status-warning-text) 30%, transparent);
+  box-shadow: 0 6px 18px -10px rgba(16, 33, 38, 0.35);
+  backdrop-filter: none;
+  font-size: 0.8125rem;
+  color: var(--status-warning-text);
+  white-space: nowrap;
+}
+:root[data-theme] .offline-banner strong { color: var(--status-warning-text); }
+:root[data-theme] .offline-banner-dot { flex: 0 0 auto; }
