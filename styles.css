@@ -21619,3 +21619,51 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     padding-left: 0;
   }
 }
+/* Uvod: ista čista bela kartica kao prijava (bio je plavi sjaj u uglu i
+   krem preliv pri dnu). */
+:root[data-theme="light"] .onboarding-card {
+  background: var(--ft-surface);
+  border-color: var(--ft-border);
+}
+/* Tekst na petrol akcentu: 2.0 token (bela) umesto stare krem #fbf8ef. */
+:root[data-theme="light"] .day-block > .hero--plan .hero-day-chips .chip.is-active,
+:root[data-theme="light"] .seg-nav .seg-nav-btn.is-active,
+:root[data-theme="light"] .food-suggest-tab.is-active,
+:root[data-theme="light"] .plan-glance-row .plan-sleep-energy-btn.is-active,
+:root[data-theme="light"] .set-row.is-done .set-done {
+  color: var(--ft-on-accent);
+}
+/* Napredak → Merenja: dva mala grafika jedan pored drugog — vrednost levog
+   („95,6 cm“) i naslov desnog skoro su se dodirivali na 12px. */
+@media (max-width: 899px) {
+  :root[data-theme] .chart-grid { column-gap: var(--ft-space-6); }
+}
+
+/* ---- (9) Trening na širokom ekranu: dve kolone kao Danas ----
+   Vežbe (glavni sadržaj) levo, nedeljni plan i alati desno; naslov, dan i
+   kartica dana preko obe. Samo CSS raspored — redosled u DOM-u (i za
+   čitače ekrana) ostaje isti. */
+@media (min-width: 1360px) {
+  :root[data-theme] .app-frame--training .app-main.shell {
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+    grid-auto-flow: row dense;
+    column-gap: var(--ft-space-4);
+    align-items: start;
+  }
+  :root[data-theme] .app-frame--training .app-main.shell > * {
+    grid-column: 1 / -1;
+  }
+  :root[data-theme] .app-frame--training .app-main.shell > .routine-habits-section {
+    grid-column: 1;
+  }
+  :root[data-theme] .app-frame--training .app-main.shell > .routine-overview-section {
+    grid-column: 2;
+  }
+}
+
+/* Bočna traka (desktop) i meni: bila je krem preliv iz stare palete, pa je
+   na desktopu leva trećina ekrana bila topla, a stranica hladno siva. */
+:root[data-theme="light"] .mobile-menu {
+  background: var(--ft-surface);
+  border-right-color: var(--ft-border);
+}

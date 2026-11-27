@@ -22234,6 +22234,11 @@ async function handleDocumentClick(event) {
       return;
     }
     const nextDone = !mealEntries.every((entry) => entry.done);
+    // Jednokratni savet „Čekiraj ‚Pojedeno‘…“ je ostajao na ekranu i posle
+    // čekiranja — tražio je ono što je upravo urađeno.
+    if (nextDone && document.querySelector(".feedback-toast")?.textContent.includes("Pojedeno")) {
+      dismissFeedbackToast();
+    }
     mealEntries.forEach((entry) => {
       entry.done = nextDone;
     });
