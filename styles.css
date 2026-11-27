@@ -22385,3 +22385,16 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
 @container today (min-width: 800px) {
   .today-ring-goal { display: none; }
 }
+
+/* ---- (24) Stanje greške u formama ----
+   Prazno slanje je samo prebacivalo fokus na prvo polje, bez ikakvog
+   znaka šta nije u redu (na iOS-u je i oblačić pregledača slab).
+   :user-invalid se pali tek posle pokušaja slanja ili kucanja. */
+:root[data-theme] :is(input, select, textarea):user-invalid {
+  border-color: var(--status-error-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-error-text) 16%, transparent);
+}
+:root[data-theme] .field:has(> :is(input, select, textarea):user-invalid) > label,
+:root[data-theme] .field:has(:is(input, select, textarea):user-invalid) > label {
+  color: var(--status-error-text);
+}
