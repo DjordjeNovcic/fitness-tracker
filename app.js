@@ -20008,22 +20008,23 @@ function renderProgressTab() {
 // Count the calorie-ring number up from 0 to its value on tab entry — a
 // premium hero moment that pairs with the ring fill. One-shot, self-cancels
 // if a re-render replaces the element, and respects reduced-motion.
-function animateRingCountUp() {
-  const el = document.querySelector(".cal-ring-value");
-  if (!el) {
+// Prvi tekstualni čvor elementa kao ceo broj („2061“, „0“ u „0/5“), ili null.
+function getLeadingIntegerNode(el) {
+  const node = el && el.firstChild;
+  if (!node || node.nodeType !== 3) {
+    return null;
+  }
+  return /^\d+$/.test(String(node.textContent).trim()) ? node : null;
+}
+
+function countNodeTo(node, from, to, duration) {
+  if (from === to) {
+    node.textContent = String(to);
     return;
   }
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
-  const target = parseInt(String(el.textContent).replace(/\D/g, ""), 10);
-  if (!Number.isFinite(target) || target <= 0) {
-    return;
-  }
-  const duration = 750;
   let startTs = null;
   const step = (ts) => {
-    if (!el.isConnected) {
+    if (!node.isConnected) {
       return;
     }
     if (startTs === null) {
@@ -20031,52 +20032,120 @@ function animateRingCountUp() {
     }
     const progress = Math.min((ts - startTs) / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = String(Math.round(target * eased));
+    node.textContent = String(Math.round(from + (to - from) * eased));
     if (progress < 1) {
       window.requestAnimationFrame(step);
-    } else {
-      el.textContent = String(target);
     }
   };
   window.requestAnimationFrame(step);
 }
 
-// Count the daily-overview macro numbers up from 0 too, in step with the ring.
-function animateMacroCountUps() {
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+// Ulazak na tab: broj u prstenu (Danas, Trening, Rutina) i makroi broje od 0,
+// u korak sa prstenom koji se puni (CSS ring-fill). Posle faze 2 ovo je
+// gađalo stare klase (.cal-ring-value, .macro-value) i ništa se nije micalo.
+const COUNT_UP_SELECTOR = ".today-ring-value, .today-macro-value, .today-stat-value";
+function animateRingCountUp() {
+  if (prefersReducedMotion()) {
     return;
   }
-  document.querySelectorAll(".plan-summary-layout .macro-value").forEach((el) => {
-    const node = el.firstChild;
-    if (!node || node.nodeType !== 3) {
+  document.querySelectorAll(COUNT_UP_SELECTOR).forEach((el) => {
+    const node = getLeadingIntegerNode(el);
+    const target = node ? parseInt(node.textContent, 10) : 0;
+    if (node && target > 0) {
+      countNodeTo(node, 0, target, 750);
+    }
+  });
+}
+
+// Isti tab, nova vrednost (čekiran obrok, navika, vežba, voda): render gradi
+// DOM iznova, pa su prsten, trake i brojevi skakali. Pamtimo stare vrednosti
+// pre rendera i posle ih pustimo da kliznu do novih.
+const VALUE_MOTION = {
+  rings: ".today-ring-fill",
+  bars: ".app-main .progress > span",
+  nums: COUNT_UP_SELECTOR + ", .day-card-stat dd",
+};
+function captureValueMotion() {
+  if (prefersReducedMotion() || !document.querySelector(".app-main")) {
+    return null;
+  }
+  const all = (selector) => [...document.querySelectorAll(selector)];
+  return {
+    tab: state.activeTab,
+    weekday: state.selectedWeekday,
+    weekTrack: state.selectedWeekTrack,
+    rings: all(VALUE_MOTION.rings).map((el) => el.style.strokeDashoffset),
+    bars: all(VALUE_MOTION.bars).map((el) => el.style.width),
+    nums: all(VALUE_MOTION.nums).map((el) => {
+      const node = getLeadingIntegerNode(el);
+      return node ? parseInt(node.textContent, 10) : null;
+    }),
+  };
+}
+// Ključ kvačice koju je korisnik upravo uključio. Beleži se u fazi hvatanja,
+// pre handlera aplikacije: kad render krene, pregledač je kvačicu već
+// uključio, pa poređenje „pre / posle“ ne bi videlo promenu.
+let justCheckedKey = "";
+["click", "change"].forEach((type) =>
+  document.addEventListener(
+    type,
+    (event) => {
+      const input = event.target;
+      if (input instanceof HTMLInputElement && input.type === "checkbox" && input.dataset.action && input.checked) {
+        justCheckedKey = getCheckMotionKey(input);
+      }
+    },
+    true
+  )
+);
+function getCheckMotionKey(input) {
+  return `${input.dataset.action}|${Object.entries(input.dataset).filter(([key]) => key !== "action").map(([key, value]) => `${key}=${value}`).join(",")}`;
+}
+function replayValueMotion(before) {
+  const popKey = justCheckedKey;
+  justCheckedKey = "";
+  // Drugi dan ili tab nije „promena vrednosti“, nego drugi sadržaj.
+  if (!before || before.tab !== state.activeTab || before.weekday !== state.selectedWeekday || before.weekTrack !== state.selectedWeekTrack) {
+    return;
+  }
+  const slide = (selector, previous, prop) => {
+    const els = [...document.querySelectorAll(selector)];
+    if (els.length !== previous.length) {
       return;
     }
-    const raw = String(node.textContent).trim();
-    const target = parseFloat(raw);
-    if (!Number.isFinite(target) || target <= 0) {
-      return;
-    }
-    const decimals = raw.includes(".") ? (raw.split(".")[1] || "").length : 0;
-    const duration = 750;
-    let startTs = null;
-    const step = (ts) => {
-      if (!node.isConnected) {
+    els.forEach((el, index) => {
+      const to = el.style[prop];
+      const from = previous[index];
+      if (!from || !to || from === to) {
         return;
       }
-      if (startTs === null) {
-        startTs = ts;
+      el.style.transition = "none";
+      el.style[prop] = from;
+      el.getBoundingClientRect();
+      el.style.transition = "";
+      el.style[prop] = to;
+    });
+  };
+  // Upravo čekirano: kvačica kratko „pukne“ (Things / Podsetnici).
+  if (popKey) {
+    document.querySelectorAll("main input[type=checkbox][data-action]:checked").forEach((input) => {
+      if (getCheckMotionKey(input) === popKey) {
+        input.closest("label")?.classList.add("is-pop");
       }
-      const progress = Math.min((ts - startTs) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      node.textContent = (target * eased).toFixed(decimals);
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      } else {
-        node.textContent = decimals ? target.toFixed(decimals) : String(target);
+    });
+  }
+  slide(VALUE_MOTION.rings, before.rings, "strokeDashoffset");
+  slide(VALUE_MOTION.bars, before.bars, "width");
+  const nums = [...document.querySelectorAll(VALUE_MOTION.nums)];
+  if (nums.length === before.nums.length) {
+    nums.forEach((el, index) => {
+      const node = getLeadingIntegerNode(el);
+      const from = before.nums[index];
+      if (node && from !== null && from !== parseInt(node.textContent, 10)) {
+        countNodeTo(node, from, parseInt(node.textContent, 10), 450);
       }
-    };
-    window.requestAnimationFrame(step);
-  });
+    });
+  }
 }
 
 function render() {
@@ -20169,6 +20238,7 @@ function renderApp() {
     el.scrollTop,
   ]);
 
+  const valueMotionBefore = state.tabEnter ? null : captureValueMotion();
   document.querySelector("#app").innerHTML = `
     <div class="app-frame app-frame--${state.activeTab} ${state.sidebarCollapsed ? "is-sidebar-collapsed" : ""}">
       <button class="menu-fab" type="button" data-action="toggle-nav-menu" aria-expanded="${state.navMenuOpen}" aria-controls="app-menu" aria-label="Otvori meni">
@@ -20336,7 +20406,9 @@ function renderApp() {
       document.querySelector(".app-main.is-entering")?.classList.remove("is-entering");
     }, 850);
     window.requestAnimationFrame(animateRingCountUp);
-    window.requestAnimationFrame(animateMacroCountUps);
+    justCheckedKey = "";
+  } else {
+    replayValueMotion(valueMotionBefore);
   }
 
   // Put the user back where they were (before the scroll-dependent syncs below

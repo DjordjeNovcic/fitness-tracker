@@ -21887,3 +21887,33 @@ body.plan-scrolled .hero--plan:not(.hero--sub) .hero-top {
     border-bottom-right-radius: 16px;
   }
 }
+
+/* ---- (15) Pokret: prsten se puni pri ulasku na tab ----
+   Danas, Trening i Rutina (stari .cal-ring je nestao u fazi 2, pa se
+   prsten od tada nije punio). r = 52 → obim 326,7. */
+.app-main.is-entering .today-ring-fill {
+  animation: ring-fill 0.85s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.today-ring-fill {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 0.61, 0.36, 1), stroke 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-main.is-entering .today-ring-fill { animation: none; }
+  .today-ring-fill { transition: none; }
+}
+/* Upravo čekirano: kratak „pop“ kvačice (navika, zadatak, vežba, obrok). */
+@keyframes check-pop {
+  0% { transform: scale(0.82); }
+  55% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+.is-pop > .routine-check-ui,
+.is-pop > .meal-toggle-ui,
+label.meal-status.is-pop {
+  animation: check-pop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-pop > .routine-check-ui,
+  .is-pop > .meal-toggle-ui,
+  label.meal-status.is-pop { animation: none; }
+}
