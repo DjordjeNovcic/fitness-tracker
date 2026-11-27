@@ -14,13 +14,13 @@ Fit Tracker is a single-person-maintained fitness/nutrition PWA: daily food logg
 
 ## Brand Personality
 
-Warm, earthy, quietly confident — not clinical, not gamified, not corporate-SaaS. Three words: **grounded, premium, calm.** Light mode carries an earthy sage-green + clay/cream identity (Fraunces display serif + Manrope/system-sans body). Dark mode is a distinct "luxe warm graphite + gold" register — warm graphite surfaces in OKLCH, a single gold accent, no green in dark.
+Warm, earthy, quietly confident — not clinical, not gamified, not corporate-SaaS. Three words: **grounded, premium, calm.** Since Fit Tracker 2.0 (2026-11): calm petrol on cool paper — one petrol accent (#17657A light, #74C7DE dark), one deep-petrol hero block per screen, Manrope only. Dark mode is cool graphite with the same accent hue (see DESIGN.md).
 
 ## Anti-references
 
 - Generic fitness-app look: neon accents, aggressive/loud gamification (badge walls, XP/leveling, streak-shaming), flat corporate SaaS blue-and-white. Note: small decorative emoji as a warm human touch (🔥 streak count, 💧 water, 🍽 meals) IS the established voice — this is not an anti-reference, don't flag it as one.
 - AI-slop tells: gradient text, glassmorphism-as-decoration, hero-metric-template layouts, identical card grids, side-stripe colored borders (absolute ban already established).
-- Green tint bleeding into **brand/decorative** dark-mode elements — nav, CTAs, the calorie ring, progress bars, borders (explicitly rejected twice before landing on gold-luxe dark). This does NOT extend to functional status semantics: `--status-success-text` is deliberately green in dark mode too (`oklch(0.82 0.1 150)`) and is used app-wide (`.pill--success`) — that's precedent, not a regression.
+- Green tint bleeding into **brand/decorative** dark-mode elements — nav, CTAs, the calorie ring, progress bars, borders (rejected twice in the past; the brand accent in both themes is petrol). This does NOT extend to functional status semantics: `--status-success-text` is deliberately green in dark mode too (`oklch(0.82 0.1 150)`) and is used app-wide (`.pill--success`) — that's precedent, not a regression.
 
 ## Design Principles
 
