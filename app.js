@@ -12836,7 +12836,7 @@ function renderMealEntryRow(entry, isReadOnly, { selecting = false } = {}) {
         </div>
         <div class="meal-entry-stats">
           <span class="meal-entry-grams">${getEntryRecipeShareText(entry) ? `<span class="meal-entry-share">${escapeHtml(getEntryRecipeShareText(entry))}</span> · ` : ""}${formatFoodAmount(entry.food, entry.grams)}${formatSwapEquivalent(getFoodSwap(entry.food), entry.grams) ? ` <span class="meal-entry-swap">(${escapeHtml(formatSwapEquivalent(getFoodSwap(entry.food), entry.grams))})</span>` : ""}</span>
-          <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)} kcal</span>
+          <span class="meal-entry-kcal">${roundValue(entry.totals.kcal, 0)}<span class="num-unit"> kcal</span></span>
           <span class="meal-entry-macros">P ${roundValue(entry.totals.protein, 0)} · UH ${roundValue(entry.totals.carbs, 0)} · M ${roundValue(entry.totals.fat, 0)} g</span>
         </div>
       ${isReadOnly && !selecting ? `</div>` : `</button>`}
@@ -12907,7 +12907,7 @@ function renderMealRecipeGroup(group, isReadOnly) {
           </div>
           <div class="meal-entry-stats">
             ${grams ? `<span class="meal-entry-grams">${shareText ? `<span class="meal-entry-share">${escapeHtml(shareText)}</span> · ` : ""}${roundValue(grams, 0)} g${swapText ? ` <span class="meal-entry-swap">(${escapeHtml(swapText)})</span>` : ""}</span>` : ""}
-            <span class="meal-entry-kcal">${roundValue(totals.kcal, 0)} kcal</span>
+            <span class="meal-entry-kcal">${roundValue(totals.kcal, 0)}<span class="num-unit"> kcal</span></span>
             <span class="meal-entry-macros">P ${formatDecimal(totals.protein, 1)} · UH ${formatDecimal(totals.carbs, 1)} · M ${formatDecimal(totals.fat, 1)} g</span>
           </div>
         </button>
@@ -13352,7 +13352,7 @@ function renderPlanTab(entries) {
         // pritiskalo slučajno. Ostaje samo zaključavanje, koje ništa ne briše.
         entries.length || isDayLocked
           ? `<div class="meal-secondary-actions plan-delete-actions">
-              ${entries.length || isDayLocked ? `<button class="meal-secondary-action" type="button" data-action="toggle-plan-day-lock">${isDayLocked ? "Otključaj dan" : "Zaključaj dan"}</button>` : ""}
+              ${entries.length || isDayLocked ? `<button class="meal-secondary-action plan-lock-button" type="button" data-action="toggle-plan-day-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="${isDayLocked ? "M8 11V7a4 4 0 0 1 7.8-1.2" : "M8 11V7a4 4 0 0 1 8 0v4"}"/></svg>${isDayLocked ? "Otključaj dan" : "Zaključaj dan"}</button>` : ""}
             </div>`
           : ""
       }
@@ -13372,7 +13372,7 @@ function renderPlanTab(entries) {
       >
         <div class="section-disclosure-copy">
           <h2>Alati za plan</h2>
-          <p>Jelovnici (sačuvaj, primeni, izvezi), kopiranje dana i brisanje.</p>
+          <p>Jelovnici, kopiranje i brisanje dana.</p>
         </div>
         <div class="section-disclosure-meta">
           <span class="section-disclosure-icon" aria-hidden="true">${renderChevronIcon(state.planQuickExpanded)}</span>
@@ -13628,7 +13628,7 @@ function renderFoodsTab() {
                 <button class="food-row-info" type="button" data-action="edit-food" data-food-id="${food.id}" aria-label="${escapeHtml(food.name)}${isFavoriteFood ? ", omiljena" : ""}, detalji i izmena">
                   <span class="food-row-line">
                     <span class="food-row-name">${isFavoriteFood ? `<span class="food-row-fav" aria-hidden="true">${renderStarIcon(true)}</span>` : ""}${escapeHtml(food.name)}</span>
-                    ${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}<span class="food-row-kcal">${roundValue(food.kcal, 0)} kcal</span>
+                    ${renderMacroSplitBar(proteinValue, carbsValue, fatValue)}<span class="food-row-kcal">${roundValue(food.kcal, 0)}<span class="num-unit"> kcal</span></span>
                   </span>
                   <span class="food-row-nutri">${getFoodNutritionBasisLabel(food)} · P ${formatDecimal(proteinValue, 1)} g · UH ${formatDecimal(carbsValue, 1)} g · M ${formatDecimal(fatValue, 1)} g</span>
                 </button>
@@ -13640,7 +13640,7 @@ function renderFoodsTab() {
                   aria-label="Akcije za ${escapeHtml(food.name)}"
                   aria-expanded="${menuOpen ? "true" : "false"}"
                 >
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
                 </button>
                 ${
                   menuOpen
@@ -20092,6 +20092,12 @@ let justCheckedKey = "";
     (event) => {
       const input = event.target;
       if (input instanceof HTMLInputElement && input.type === "checkbox" && input.dataset.action && input.checked) {
+        if (type === "click" && justCheckedKey !== getCheckMotionKey(input) && !prefersReducedMotion()) {
+          // Kratak dodir pod prstom gde ga uređaj podržava (Android); iOS ga ignoriše.
+          try {
+            navigator.vibrate?.(8);
+          } catch {}
+        }
         justCheckedKey = getCheckMotionKey(input);
       }
     },

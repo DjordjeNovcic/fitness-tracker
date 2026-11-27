@@ -21917,3 +21917,58 @@ label.meal-status.is-pop {
   .is-pop > .meal-toggle-ui,
   label.meal-status.is-pop { animation: none; }
 }
+
+/* ---- (16) Druga recenzija ---- */
+/* Kvačice: ivica je bila mastilo 22 % (~1,6:1 prema beloj); WCAG za granicu
+   kontrole traži ≥ 3:1. */
+:root[data-theme] .routine-check-ui {
+  border: 1.5px solid color-mix(in srgb, var(--ink) 52%, transparent);
+}
+:root[data-theme="dark"] .routine-check-ui {
+  border-color: color-mix(in srgb, var(--ink) 48%, transparent);
+}
+/* Onemogućeno glavno dugme: siva površina i prigušen tekst umesto bledog
+   petrola sa belim tekstom (~2,3:1). */
+:root[data-theme] .solid-button:not(.icon-only-action):disabled,
+:root[data-theme] .solid-button.is-disabled {
+  border-color: transparent;
+  background: var(--ft-surface-sunken);
+  color: var(--muted);
+  box-shadow: none;
+  opacity: 1;
+}
+/* Jedinica lakša od broja: „197 kcal“ — broj nosi težinu. */
+.num-unit {
+  font-weight: 500;
+  color: var(--muted);
+}
+/* Danas: „Zaključaj dan“ je izgledalo kao natpis — tiho dugme sa katancem. */
+:root[data-theme] .plan-delete-actions .plan-lock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ft-h-control-sm);
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--ft-border-strong);
+  border-radius: var(--ft-radius-pill);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+:root[data-theme] .plan-delete-actions .plan-lock-button svg {
+  width: 16px;
+  height: 16px;
+}
+/* Trening: današnje vežbe odmah ispod kartice dana, nedeljni plan posle
+   (na telefonu je plan od ~390px gurao vežbe ispod prvog ekrana). */
+@media (max-width: 1359px) {
+  :root[data-theme] .app-frame--training .app-main > .routine-overview-section { order: 1; }
+  :root[data-theme] .app-frame--training .app-main > .section-toolbox { order: 2; }
+}
+/* Namirnice: na kraju liste plutajuće „Nova namirnica“ je prekrivalo
+   poslednji red — ispod liste ima mesta za dugme. */
+@media (max-width: 899px) {
+  :root[data-theme] .foods-list { padding-bottom: 64px; }
+}
