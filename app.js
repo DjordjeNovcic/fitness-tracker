@@ -16982,7 +16982,7 @@ function renderGoalEtaCard() {
     const weeksLabel = eta.weeks < 1.5 ? "oko nedelju dana" : `za ~${Math.round(eta.weeks)} ned`;
     body = `Do cilja <strong>${formatDecimal(eta.target, 2)} kg</strong> još <strong>${formatDecimal(Math.abs(eta.remaining), 2)} kg</strong>, pri ovom tempu oko <strong>${formatEtaDate(eta.days)}</strong> (${weeksLabel}).`;
   }
-  return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">${renderTabIcon("goals")}</span><p>${body}</p></div>`;
+  return `<div class="goal-eta goal-eta--${tone}"><span class="goal-eta-icon" aria-hidden="true">🎯</span><p>${body}</p></div>`;
 }
 
 function renderGoalsTab() {
@@ -18055,9 +18055,9 @@ function renderTrendCard(field) {
     legendItems.push(`<span class="chart-legend-item"><span class="chart-legend-swatch chart-legend-swatch--target"></span>ciljna težina (${formatDecimal(targetWeight, 1)} kg)</span>`);
     const eta = getGoalEta();
     if (eta.status === "ok") {
-      etaCaption = `<div class="chart-eta">Cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
+      etaCaption = `<div class="chart-eta">🎯 cilj oko <strong>${formatEtaDate(eta.days)}</strong> (za ~${Math.round(eta.weeks)} ned)</div>`;
     } else if (eta.status === "reached") {
-      etaCaption = `<div class="chart-eta">Cilj dostignut!</div>`;
+      etaCaption = `<div class="chart-eta">🎯 cilj dostignut!</div>`;
     } else if (eta.status === "no-profile") {
       etaCaption = `<div class="chart-eta">Popuni profil (pol, godine, visina, težina) da procenim datum.</div>`;
     } else if (eta.status === "no-rate") {
@@ -18627,7 +18627,7 @@ function renderProgressHistorySection() {
           <h2>Dnevnik ishrane</h2>
           <p>Poslednjih 5 nedelja.</p>
         </div>
-        ${stats.streak > 0 ? `<span class="pill strong pill--success">${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
+        ${stats.streak > 0 ? `<span class="pill strong pill--success">🔥 ${stats.streak} ${stats.streak === 1 ? "dan" : "dana"} u nizu</span>` : ""}
       </div>
       ${
         // These three were a full stat grid, directly under two cards that

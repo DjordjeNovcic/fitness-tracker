@@ -22332,3 +22332,36 @@ html[data-day-dir]::view-transition-group(ft-sidebar) { animation-duration: 0.2s
   background: var(--surface-strong);
   border-top: 1px solid var(--line);
 }
+
+/* ---- (22) Fokus tastature ----
+   Pilula „dodaj“ (box-shadow: none) i dugmad u pločicama Danas gubili su
+   vidljiv fokus. Jedan prsten u akcentu, kao ostale kontrole. */
+:root[data-theme] .app-main .section-header > :is(.plan-quick-entry-button, .training-compose-button):focus-visible,
+:root[data-theme] .app-main section.section > details.form-collapse:not(.section) > summary:focus-visible,
+:root[data-theme] .today-btn:focus-visible,
+:root[data-theme] .row-menu-toggle:focus-visible,
+:root[data-theme] .seg-nav .seg-nav-btn:focus-visible {
+  outline: 2px solid var(--ft-accent);
+  outline-offset: 2px;
+}
+
+/* ---- (23) Dugački sadržaj (proba na iPhone SE, 320px) ----
+   Reč bez razmaka („Antiinflamatornih…“) izlazila je iz reda namirnice i
+   navike; namirnica sa dugim nazivom lomila se u šest redova jer su traka
+   makroa i kcal uzimali desnu stranu. */
+:root[data-theme] .app-main {
+  overflow-wrap: break-word;
+}
+:root[data-theme] :is(.food-row-name, .routine-content > strong, .meal-entry-main > strong, .measure-row-values, .day-card-title, .recipe-library-card h3, .training-card h3, .run-row-note) {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+:root[data-theme] .food-row-line .food-row-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+@media (max-width: 359px) {
+  :root[data-theme] .food-row-line .macro-split { display: none; }
+}
